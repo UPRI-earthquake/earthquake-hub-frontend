@@ -2,6 +2,7 @@ import React from 'react';
 import { MapContainer, Popup, TileLayer } from "react-leaflet";
 import "./app.css";
 import StationMarkers from "./components/StationMarkers";
+import EventMarkers from "./components/EventMarkers";
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       />
 
       <StationMarkers />
-      {/*<EventMarkers />*/}
+      <EventMarkers />
 
     </MapContainer>
       
