@@ -10,9 +10,9 @@ function App() {
     // Header
     // Events bar
       // events tiles
-    <div>
+    <div className="App">
 
-    <PickEventListener/>
+    {/*<PickEventListener/>*/}
     <MapContainer center={[12.2795, 122.049]} zoom={6}>
       <TileLayer
         url='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'

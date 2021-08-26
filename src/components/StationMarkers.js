@@ -1,31 +1,64 @@
 import React, {useState, useEffect} from 'react';
 import axios from 'axios';
-import { Marker } from "react-leaflet";
-import { Icon } from "leaflet";
+import StationMarker from "./StationMarker";
 
 const StationMarkers = () => {
 
-  const triangle = new Icon({
-    iconUrl:'/triangle.svg',
-    iconSize: [10,10]
-  });
-
+  // initialize station markers on map
   const [stations, setStations] = useState([]);  
-
   useEffect(() => {
     const fetchData = async () => {
       const result = await axios.get('http://localhost:5000/stationLocations'); 
-      setStations(result.data);
+      const stations = result.data.map(station => (
+        {...station, svg_path: '/triangle-outline.svg'}
+      ));
+      setStations(stations);
     };
     fetchData();
   }, []);
 
+  // subscribe to events channel
+  useEffect(() => {
+    const source = new EventSource('http://localhost:5000/messaging');
+
+    source.onmessage = function logEvents(event) {      
+      // check event.event, run an update-function based on it
+      // response.write("event: event-type\n");
+      // use addEventListener
+      const data = JSON.parse(event.data)
+      setStations(prevStations => {
+        const newStations = prevStations.map(
+          station => {
+            var svg_path = station.svg_path
+            if(station.code === data.stationCode){
+              if(svg_path === '/triangle-outline.svg'){
+                svg_path = '/triangle.svg'
+              }else{
+                svg_path = '/triangle-outline.svg'
+              }
+            }
+            return {
+              "code":station.code, 
+              "latitude":station.latitude,
+              "longitude":station.longitude,
+              "svg_path":svg_path,
+            }
+          }
+        )
+        return newStations
+      });
+    }
+    // clean up funcation 
+    return () => { source.close() }
+  }, [])
+
   return (
     stations.map(station => 
-      <Marker 
+      <StationMarker 
         key={station.code} 
-        position={[station.latitude, station.longitude]}
-        icon={triangle}
+        code={station.code} 
+        latLng={[station.latitude, station.longitude]}
+        svg_path={station.svg_path}
       />
     )
   );
