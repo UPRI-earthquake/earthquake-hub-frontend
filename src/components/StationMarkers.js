@@ -10,7 +10,7 @@ const StationMarkers = () => {
     const fetchData = async () => {
       const result = await axios.get('http://localhost:5000/stationLocations'); 
       const stations = result.data.map(station => (
-        {...station, svg_path: '/triangle-outline.svg'}
+        {...station, isPicked: false}
       ));
       setStations(stations);
     };
@@ -29,19 +29,15 @@ const StationMarkers = () => {
       setStations(prevStations => {
         const newStations = prevStations.map(
           station => {
-            var svg_path = station.svg_path
+            var isPicked = station.isPicked
             if(station.code === data.stationCode){
-              if(svg_path === '/triangle-outline.svg'){
-                svg_path = '/triangle.svg'
-              }else{
-                svg_path = '/triangle-outline.svg'
-              }
+              isPicked = !isPicked;
             }
             return {
               "code":station.code, 
               "latitude":station.latitude,
               "longitude":station.longitude,
-              "svg_path":svg_path,
+              "isPicked":isPicked,
             }
           }
         )
@@ -58,7 +54,7 @@ const StationMarkers = () => {
         key={station.code} 
         code={station.code} 
         latLng={[station.latitude, station.longitude]}
-        svg_path={station.svg_path}
+        isPicked={station.isPicked}
       />
     )
   );

@@ -1,0 +1,11 @@
+.dynamic {
+    fill: #86ae69; 
+    stroke: #e06c75;
+    stroke-width: 70;
+}
+
+.static {
+    fill: #86ae69; 
+    stroke: #e06c75;
+    stroke-width: 0;
+}
