@@ -10,11 +10,20 @@ const StationMarker = ({code, latLng, svg_path}) => {
 
   return (
     <Marker 
-      key={code} 
       position={latLng}
       icon={triangle}
     />
   )
 }
 
-export default StationMarker;
+export default React.memo(StationMarker, (prev, next)=>{
+  if (prev.svg_path === next.svg_path) {
+    // do not re-render
+    return true
+  }
+  else {
+    // log how many times component is rendered
+    console.count(`Re-rendered ${next.code} StationMarker`)
+    return false;
+  }
+});
