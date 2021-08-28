@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { Marker } from "react-leaflet";
 import { DivIcon } from "leaflet";
@@ -8,16 +8,19 @@ import styles from './StationMarker.module.css'
 const StationMarker = ({code, latLng, eventSource}) => {
 
   const [pick, setPick] = useState(false)
+  const timerId = useRef(null) // hold running timeout-id across renders
 
   useEffect(() => {
     const handlePickEvent = (event) => {
       const data = JSON.parse(event.data)// to parse to get valid json-obj
       if(data.stationCode === code){
-        if (data.stationCode === 'RE722'){
-          console.log('Run handlePickEvent w data:', data)
-        }
         setPick(true);
-        setTimeout(()=>setPick(false), 6000);
+        // clear previous timeouts, if any
+        clearTimeout(timerId.current) // it's ok to clear on null
+        timerId.current = setTimeout(()=>{
+          setPick(false)
+          timerId.current = null // to avoid clearing other ids
+        }, 6000);
       }
     }
 
