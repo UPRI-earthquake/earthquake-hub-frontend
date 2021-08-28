@@ -1,11 +1,28 @@
-.dynamic {
-    fill: #86ae69; 
-    stroke: #e06c75;
-    stroke-width: 70;
-}
-
 .static {
     fill: #86ae69; 
-    stroke: #e06c75;
-    stroke-width: 0;
+}
+
+.dynamic {
+    fill: #86ae69; 
+    /*stroke: #e06c75;*/
+    stroke: #e86a73;
+    animation-name: radiate;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+@keyframes radiate {
+    from {
+        stroke-width: 0;
+        stroke-opacity: 1;  
+    }
+    50% {
+        stroke-opacity: 0.75;  
+    }
+
+    to {
+        stroke-width: 300;
+        stroke-opacity: 0;  
+    }
 }

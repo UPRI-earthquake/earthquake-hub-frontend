@@ -50,7 +50,7 @@ const StationMarkers = () => {
       switchStationPickStatus(data.stationCode, true)
       setTimeout(() => {
         switchStationPickStatus(data.stationCode, false)
-      }, 3000)
+      }, 6000)
     }
     // clean up funcation 
     return () => { source.close() }

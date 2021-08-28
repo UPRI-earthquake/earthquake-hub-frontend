@@ -12,11 +12,6 @@ const StationMarker = ({code, latLng, isPicked}) => {
   useEffect(() => { 
     if (isPicked){
       setDynamism('dynamic')
-      /*
-      setTimeout(() => {
-        setDynamism('static')
-      }, 3000);
-      */
     }else{
       setDynamism('static')
     }
@@ -25,9 +20,8 @@ const StationMarker = ({code, latLng, isPicked}) => {
   const divTriangle = new DivIcon({
     className: styles[dynamicOrStatic],
     html: ReactDOMServer.renderToString(<Logo />),
-    iconSize: [12,12]
+    iconSize: [25,25]
   })
-
   return (
     <Marker 
       position={latLng}
