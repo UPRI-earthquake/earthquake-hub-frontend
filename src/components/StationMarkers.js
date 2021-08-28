@@ -46,7 +46,7 @@ const StationMarkers = () => {
       // check event.event, run an update-function based on it
       // response.write("event: event-type\n");
       // use addEventListener
-      const data = JSON.parse(event.data)
+      const data = JSON.parse(JSON.parse(event.data))// to parse to get valid json-obj
       switchStationPickStatus(data.stationCode, true)
       setTimeout(() => {
         switchStationPickStatus(data.stationCode, false)
