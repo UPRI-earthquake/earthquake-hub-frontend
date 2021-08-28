@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import axios from 'axios';
 import StationMarker from "./StationMarker";
 
@@ -18,43 +18,26 @@ const StationMarkers = () => {
   }, []);
 
   // subscribe to events channel
+  const eventSourceRef = useRef(null)
+  // assign ref to source, will persist across renders
+
   useEffect(() => {
-    const source = new EventSource('http://localhost:5000/messaging');
+    eventSourceRef.current = new EventSource('http://localhost:5000/messaging')
+    const eventSource = eventSourceRef.current
 
-    function switchStationPickStatus(stationCode, pickStatus){
-      setStations(prevStations => {
-        const newStations = prevStations.map(
-          station => {
-            var isPicked = station.isPicked
-            if(station.code === stationCode){
-              console.log('Set station '+stationCode+' to '+ pickStatus)
-              isPicked = pickStatus;
-            }
-            return {
-              "code":station.code, 
-              "latitude":station.latitude,
-              "longitude":station.longitude,
-              "isPicked":isPicked,
-            }
-          }
-        )
-        return newStations
-      });
+    const onError = error => {
+      console.log(error)
+      eventSource.close()
     }
 
-    source.onmessage = (event) => {      
-      // check event.event, run an update-function based on it
-      // response.write("event: event-type\n");
-      // use addEventListener
-      const data = JSON.parse(JSON.parse(event.data))// to parse to get valid json-obj
-      switchStationPickStatus(data.stationCode, true)
-      setTimeout(() => {
-        switchStationPickStatus(data.stationCode, false)
-      }, 6000)
+    eventSource.addEventListener('error', onError);
+
+    return () => {
+      // clean up function 
+      eventSource.close()
+      eventSource.removeEventListener('error',onError)
     }
-    // clean up funcation 
-    return () => { source.close() }
-  }, [])
+  }, []);
 
   return (
     stations.map(station => 
@@ -62,7 +45,7 @@ const StationMarkers = () => {
         key={station.code} 
         code={station.code} 
         latLng={[station.latitude, station.longitude]}
-        isPicked={station.isPicked}
+        eventSource={eventSourceRef.current}
       />
     )
   );

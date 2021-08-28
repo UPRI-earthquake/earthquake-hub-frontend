@@ -5,23 +5,35 @@ import { DivIcon } from "leaflet";
 import {ReactComponent as Logo} from './triangle.svg';
 import styles from './StationMarker.module.css'
 
-const StationMarker = ({code, latLng, isPicked}) => {
+const StationMarker = ({code, latLng, eventSource}) => {
 
-  const [dynamicOrStatic, setDynamism] = useState('static')
+  const [pick, setPick] = useState(false)
 
-  useEffect(() => { 
-    if (isPicked){
-      setDynamism('dynamic')
-    }else{
-      setDynamism('static')
+  useEffect(() => {
+    const handlePickEvent = (event) => {
+      const data = JSON.parse(event.data)// to parse to get valid json-obj
+      if(data.stationCode === code){
+        if (data.stationCode === 'RE722'){
+          console.log('Run handlePickEvent w data:', data)
+        }
+        setPick(true);
+        setTimeout(()=>setPick(false), 6000);
+      }
     }
-  }, [isPicked]);
+
+    eventSource.addEventListener('eventName', handlePickEvent);
+
+    return () => {
+      eventSource.removeEventListener('eventName', handlePickEvent);
+    };
+  }, [code, eventSource]);
 
   const divTriangle = new DivIcon({
-    className: styles[dynamicOrStatic],
+    className: pick ? styles.dynamic : styles.static,
     html: ReactDOMServer.renderToString(<Logo />),
     iconSize: [25,25]
   })
+
   return (
     <Marker 
       position={latLng}
@@ -30,15 +42,4 @@ const StationMarker = ({code, latLng, isPicked}) => {
   )
 }
 
-//export default StationMarker
-export default React.memo(StationMarker, (prev, next)=>{
-  if (prev.isPicked === next.isPicked) {
-    // do not re-render
-    return true
-  }
-  else {
-    // log how man times component is rendered
-    console.count(`Re-rendered ${next.code} StationMarker`)
-    return false;
-  }
-});
+export default StationMarker
