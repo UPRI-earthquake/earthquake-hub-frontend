@@ -21,17 +21,14 @@ const StationMarkers = () => {
   useEffect(() => {
     const source = new EventSource('http://localhost:5000/messaging');
 
-    source.onmessage = function logEvents(event) {      
-      // check event.event, run an update-function based on it
-      // response.write("event: event-type\n");
-      // use addEventListener
-      const data = JSON.parse(event.data)
+    function switchStationPickStatus(stationCode, pickStatus){
       setStations(prevStations => {
         const newStations = prevStations.map(
           station => {
             var isPicked = station.isPicked
-            if(station.code === data.stationCode){
-              isPicked = !isPicked;
+            if(station.code === stationCode){
+              console.log('Set station '+stationCode+' to '+ pickStatus)
+              isPicked = pickStatus;
             }
             return {
               "code":station.code, 
@@ -43,6 +40,17 @@ const StationMarkers = () => {
         )
         return newStations
       });
+    }
+
+    source.onmessage = (event) => {      
+      // check event.event, run an update-function based on it
+      // response.write("event: event-type\n");
+      // use addEventListener
+      const data = JSON.parse(event.data)
+      switchStationPickStatus(data.stationCode, true)
+      setTimeout(() => {
+        switchStationPickStatus(data.stationCode, false)
+      }, 3000)
     }
     // clean up funcation 
     return () => { source.close() }
