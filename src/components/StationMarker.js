@@ -1,11 +1,11 @@
 import React, {useEffect, useState, useRef} from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { Marker } from "react-leaflet";
+import { Marker, Popup } from "react-leaflet";
 import { DivIcon } from "leaflet";
 import {ReactComponent as Logo} from './triangle.svg';
 import styles from './StationMarker.module.css'
 
-const StationMarker = ({code, latLng, eventSource}) => {
+const StationMarker = ({code, latLng, description, eventSource}) => {
 
   const [pick, setPick] = useState(false)
   const timerId = useRef(null) // hold running timeout-id across renders
@@ -20,7 +20,7 @@ const StationMarker = ({code, latLng, eventSource}) => {
         timerId.current = setTimeout(()=>{
           setPick(false)
           timerId.current = null // to avoid clearing other ids
-        }, 6000);
+        }, 15000);
       }
     }
 
@@ -41,7 +41,16 @@ const StationMarker = ({code, latLng, eventSource}) => {
     <Marker 
       position={latLng}
       icon={divTriangle}
-    />
+    >
+      <Popup >
+        <div>
+          <h3>Station {code}</h3>
+          <p>{description}</p>
+          {/*TODO: <a href='example.com'>Get past 24hrs data</a><br/>*/}
+          {/*TODO: <a href='example.com'>Get station metadata</a><br/>*/}
+        </div>
+      </Popup>
+    </Marker>
   )
 }
 

@@ -1,9 +1,8 @@
 import React from 'react';
-import { MapContainer, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "./app.css";
 import StationMarkers from "./components/StationMarkers";
 import EventMarkers from "./components/EventMarkers";
-import PickEventListener from "./components/PickEventListener";
 
 function App() {
   return (

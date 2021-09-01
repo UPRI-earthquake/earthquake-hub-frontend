@@ -45,10 +45,11 @@ const StationMarkers = () => {
         key={station.code} 
         code={station.code} 
         latLng={[station.latitude, station.longitude]}
+        description={station.description}
         eventSource={eventSourceRef.current}
       />
     )
-  );
+  )
 }
 
 export default StationMarkers;
