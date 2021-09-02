@@ -3,15 +3,26 @@ import { MapContainer, TileLayer } from "react-leaflet";
 import "./app.css";
 import StationMarkers from "./components/StationMarkers";
 import EventMarkers from "./components/EventMarkers";
+import Sidebar from "./components/Sidebar";
+import SidebarItem from "./components/SidebarItem"
 
 function App() {
+  const data = require('./components/events.json');
   return (
     // Header
     // Events bar
       // events tiles
     <div className="App">
-
-    {/*<PickEventListener/>*/}
+    <Sidebar >
+      {data.map(row => 
+        <SidebarItem 
+          key={row.publicId}
+          title={+row.magnitude_value.toFixed(1)}
+          description={row.place}
+          subDescription={row.OT}
+        />
+      )}
+    </Sidebar>
     <MapContainer center={[12.2795, 122.049]} zoom={6}>
       <TileLayer
         url='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'

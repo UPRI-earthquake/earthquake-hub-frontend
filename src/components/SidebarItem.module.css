@@ -1,0 +1,26 @@
+.sidebarItem{
+  display: flex;  
+  align-items: center;
+  cursor: pointer;
+  padding-left: 15px;
+  padding-right: 15px;
+  border-bottom: solid 1px lightgray;
+}
+
+.sidebarItem:hover{
+  background-color: lightgray;
+}
+
+.sidebarItem > div {
+  margin-left: 20px;
+}
+
+.sidebarItem > div > .desc {
+  margin-bottom: 0px ;
+}
+
+.sidebarItem > div > .subDesc {
+  margin-top: 2px ;
+  font-size: 12px;
+  color: dimgray;
+}
