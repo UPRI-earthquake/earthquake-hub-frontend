@@ -1,6 +1,8 @@
 .sidebar{
-    min-width: 300px;
-    max-width: 300px;
-    max-height: 100vh;
-    overflow: scroll;
+  min-width: 300px;
+  max-width: 300px;
+  max-height: 100vh;
+  background-color: #f4f4f4;
+  border-right: solid 1px #a6a5a9;
+  overflow: scroll;
 }
