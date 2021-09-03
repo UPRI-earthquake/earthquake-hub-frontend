@@ -6,3 +6,9 @@
   border-right: solid 1px #a6a5a9;
   overflow: scroll;
 }
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+}
