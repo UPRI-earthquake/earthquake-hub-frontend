@@ -1,0 +1,10 @@
+.sidebarInfo{
+  padding: 15px;
+  border-bottom: solid 1px lightgray;
+  background-color: #f4f4f4;
+}
+
+h3 {
+  margin: auto;
+  color: #333333;
+}

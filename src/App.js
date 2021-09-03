@@ -4,6 +4,7 @@ import "./app.css";
 import StationMarkers from "./components/StationMarkers";
 import EventMarkers from "./components/EventMarkers";
 import Sidebar from "./components/Sidebar";
+import SidebarInfo from "./components/SidebarInfo"
 import SidebarItem from "./components/SidebarItem"
 import Header from "./components/Header"
 
@@ -17,6 +18,7 @@ function App() {
       <Header />
       <div className="App-body">
         <Sidebar >
+          <SidebarInfo/>
           {data.map(row => 
             <SidebarItem 
               key={row.publicId}
