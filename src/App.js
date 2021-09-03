@@ -5,7 +5,7 @@ import StationMarkers from "./components/StationMarkers";
 import EventMarkers from "./components/EventMarkers";
 import Sidebar from "./components/Sidebar";
 import SidebarInfo from "./components/SidebarInfo"
-import SidebarItem from "./components/SidebarItem"
+import SidebarItems from "./components/SidebarItems"
 import Header from "./components/Header"
 
 function App() {
@@ -19,14 +19,7 @@ function App() {
       <div className="App-body">
         <Sidebar >
           <SidebarInfo/>
-          {data.map(row => 
-            <SidebarItem 
-              key={row.publicId}
-              title={+row.magnitude_value.toFixed(1)}
-              description={row.place}
-              subDescription={row.OT}
-            />
-          )}
+          <SidebarItems initData={data}/>
         </Sidebar>
         <MapContainer center={[12.2795, 122.049]} zoom={6}>
           <TileLayer
