@@ -1,4 +1,4 @@
-import React from 'react';
+import React  from 'react';
 import moment from 'moment';
 import { CircleMarker, Popup } from "react-leaflet";
 
@@ -8,29 +8,43 @@ function toRadius(magnitude) {
   return radiiPixels[magnitude < 8 ? Math.floor(magnitude) : 8]
 }
 
-const EventMarkers = ({events}) => {
+const EventMarker = ({publicID, time, lat, lng, mag, selectedEvent}) => {
+  return(
+    <CircleMarker 
+      stroke={false}
+      fillOpacity={0.3}
+      center={[lat, lng]}
+      radius={toRadius(mag)}
+      fillColor={selectedEvent === publicID ? 'red' : 'blue'}
+    >
+      <Popup>
+        <div>
+          <h2>Magnitude {+mag.toFixed(2)}</h2>
+          <p>{moment(time).format("YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]")}</p>
+          <p>
+            {lat.toFixed(3)}&#176;N&nbsp;
+            {lng.toFixed(3)}&#176;E
+          </p>
+          <p>SELECTED: {selectedEvent}</p>
+        </div>
+      </Popup>
+    </CircleMarker>
+  )
+}
+
+const EventMarkers = ({events, selectedEvent}) => {
+  console.log('Parent rendered')
 
   return (
     events.map(event => 
-      <CircleMarker 
-        stroke={false}
-        fillOpacity={0.3}
-        key={event.publicID} 
-        center={[event.latitude_value, event.longitude_value]}
-        radius={toRadius(event.magnitude_value)}
-      >
-        <Popup>
-          <div>
-            <h2>Magnitude {+event.magnitude_value.toFixed(2)}</h2>
-            <p>{moment(event.OT).format(
-                            "YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]")}</p>
-            <p>
-              {event.latitude_value.toFixed(3)}&#176;N&nbsp;
-              {event.longitude_value.toFixed(3)}&#176;E
-            </p>
-          </div>
-        </Popup>
-      </CircleMarker>
+      <EventMarker
+        key={event.publicID}
+        publicID={event.publicID}
+        time={event.OT}
+        lat={event.latitude_value}
+        lng={event.longitude_value}
+        mag={event.magnitude_value}
+      />
     )
   );
 }
