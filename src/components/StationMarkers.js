@@ -8,7 +8,7 @@ const StationMarkers = () => {
   const [stations, setStations] = useState([]);  
   useEffect(() => {
     const fetchData = async () => {
-      const result = await axios.get('http://localhost:5000/stationLocations'); 
+      const result = await axios.get('http://192.168.1.12:5000/stationLocations'); 
       const stations = result.data.map(station => (
         {...station, isPicked: false}
       ));
@@ -22,7 +22,7 @@ const StationMarkers = () => {
   // assign ref to source, will persist across renders
 
   useEffect(() => {
-    eventSourceRef.current = new EventSource('http://localhost:5000/messaging')
+    eventSourceRef.current = new EventSource('http://192.168.1.12:5000/messaging')
     const eventSource = eventSourceRef.current
 
     const onError = error => {
