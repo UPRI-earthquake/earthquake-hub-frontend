@@ -1,5 +1,4 @@
-import React, {useState, useEffect} from 'react';
-import axios from 'axios';
+import React from 'react';
 import moment from 'moment';
 import { CircleMarker, Popup } from "react-leaflet";
 
@@ -9,22 +8,7 @@ function toRadius(magnitude) {
   return radiiPixels[magnitude < 8 ? Math.floor(magnitude) : 8]
 }
 
-const EventMarkers = () => {
-
-  const [events, setEvents] = useState([]);  
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const result = await axios.get('http://192.168.1.12:5000/eventsList',
-        {params: {
-          startTime:moment('2021-01-01').format("YYYY-MM-DD HH:mm:ss"),
-          endTime:moment().format("YYYY-MM-DD HH:mm:ss"),
-        }}
-      ); 
-      setEvents(result.data);
-    };
-    fetchData();
-  }, []);
+const EventMarkers = ({events}) => {
 
   return (
     events.map(event => 
