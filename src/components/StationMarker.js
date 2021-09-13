@@ -1,14 +1,17 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useContext} from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { Marker, Popup } from "react-leaflet";
 import { DivIcon } from "leaflet";
 import {ReactComponent as Logo} from './triangle.svg';
 import styles from './StationMarker.module.css'
+import SSEContext from "../SSEContext";
 
-const StationMarker = ({code, latLng, description, eventSource}) => {
+const StationMarker = ({code, latLng, description}) => {
 
   const [pick, setPick] = useState(false)
   const timerId = useRef(null) // hold running timeout-id across renders
+  const eventSource = useContext(SSEContext);
+
 
   useEffect(() => {
     const handlePickEvent = (event) => {
@@ -24,10 +27,10 @@ const StationMarker = ({code, latLng, description, eventSource}) => {
       }
     }
 
-    eventSource.addEventListener('eventName', handlePickEvent);
+    eventSource.addEventListener('SC_PICK', handlePickEvent);
 
     return () => {
-      eventSource.removeEventListener('eventName', handlePickEvent);
+      eventSource.removeEventListener('SC_PICK', handlePickEvent);
     };
   }, [code, eventSource]);
 

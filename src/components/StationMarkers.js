@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect} from 'react';
 import axios from 'axios';
 import StationMarker from "./StationMarker";
 
@@ -17,28 +17,6 @@ const StationMarkers = () => {
     fetchData();
   }, []);
 
-  // subscribe to events channel
-  const eventSourceRef = useRef(null)
-  // assign ref to source, will persist across renders
-
-  useEffect(() => {
-    eventSourceRef.current = new EventSource('http://192.168.1.12:5000/messaging')
-    const eventSource = eventSourceRef.current
-
-    const onError = error => {
-      console.log(error)
-      eventSource.close()
-    }
-
-    eventSource.addEventListener('error', onError);
-
-    return () => {
-      // clean up function 
-      eventSource.close()
-      eventSource.removeEventListener('error',onError)
-    }
-  }, []);
-
   return (
     stations.map(station => 
       <StationMarker 
@@ -46,7 +24,6 @@ const StationMarkers = () => {
         code={station.code} 
         latLng={[station.latitude, station.longitude]}
         description={station.description}
-        eventSource={eventSourceRef.current}
       />
     )
   )
