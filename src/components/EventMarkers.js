@@ -1,7 +1,8 @@
-import React, { useEffect, useCallback, useRef }  from 'react';
+import React, { useEffect, useCallback, useRef, useContext, useState}  from 'react';
 import moment from 'moment';
 import { CircleMarker, Popup, useMap } from "react-leaflet";
 import { useSelector } from 'react-redux';
+import SSEContext from "../SSEContext";
 
 function toRadius(magnitude) {
   // 0th index is for mag<1, then mag=1+, and so on up to 33.32 for mag>8
@@ -14,7 +15,6 @@ const EventMarker = ({publicID, time, lat, lng, mag}) => {
   const map = useMap();
   const selectedEvent = useSelector(state => state)
   const popupRef = useRef();
-
   const centerAndPopupEvent = useCallback((selectedEvent) => {
     if(selectedEvent === publicID){
       //center the event
@@ -28,12 +28,9 @@ const EventMarker = ({publicID, time, lat, lng, mag}) => {
       map.closePopup(popupRef.current)
     }
   },[publicID, lat, lng, map, popupRef]); //useCallback prevents recreat of this fn ever render
-
   useEffect(() => {
     centerAndPopupEvent(selectedEvent)
   }, [selectedEvent, centerAndPopupEvent]);
-
-  console.log('state:', selectedEvent, 'publicID', publicID, 'bool', (selectedEvent === publicID))
 
   return(
     <CircleMarker 
@@ -57,8 +54,31 @@ const EventMarker = ({publicID, time, lat, lng, mag}) => {
   )
 }
 
-const EventMarkers = ({events, selectedEvent}) => {
+const EventMarkers = ({initEvents, selectedEvent}) => {
+  const [events, setEvents] = useState(initEvents)
 
+  const eventSource = useContext(SSEContext); 
+  useEffect(() => {
+    const handleEQEvent = (event) => {
+      console.log(`EVENTS: Received EQ Event`)
+      const data = JSON.parse(event.data)// to parse to get valid json-obj
+
+      if (data.eventType === 'NEW'){
+        setEvents([{
+          publicID: data.publicID,
+          OT: data.OT,
+          latitude_value: data.latitude_value,
+          longitude_value: data.longitude_value,
+          magnitude_value: data.magnitude_value,
+        }, ...events])
+      }
+    }
+    eventSource.addEventListener('SC_EVENT', handleEQEvent);
+
+    return () => {
+      eventSource.removeEventListener('SC_EVENT', handleEQEvent);
+    };
+  }, [eventSource, events]);
   return (
     events.map(event => 
       <EventMarker

@@ -14,7 +14,6 @@ import SSEContext from "./SSEContext";
 const App = () => {
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true) 
-
   const eventsRef = useRef([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
   useEffect(() => {
@@ -84,7 +83,7 @@ const App = () => {
                 url='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               />
-              <EventMarkers events={eventsRef.current}/>
+              <EventMarkers initEvents={eventsRef.current}/>
               <StationMarkers />
             </MapContainer>
           </SSEContext.Provider>
