@@ -2,13 +2,13 @@ import React from "react";
 import styles from "./SidebarItem.module.css"
 import { useSelector, useDispatch } from 'react-redux';
 
-function animate(status){
+function animate(status, type){
   switch(status){
     case 'NEW': 
     case 'UPDATE':
-      return styles.heartBeat
+      return styles[type]
     default:
-      return ''
+      return null
   }
 }
 
@@ -27,7 +27,8 @@ function SidebarItem({publicID, title, description, subDescription, status}) {
 
   return(
     <div 
-      className={`${styles.sidebarItem} ${animate(status)}`}
+      key={Math.random() /*force re-render from scratch to animate*/}
+      className={`${styles.sidebarItem} ${animate(status, 'heartBeat')}`}
       onClick={handleClick}
     >
       <h4>{title}</h4>
@@ -40,4 +41,8 @@ function SidebarItem({publicID, title, description, subDescription, status}) {
   )
 }
 
-export default React.memo(SidebarItem)
+export default React.memo(SidebarItem, (prevProps, nextProps) => {
+  // render if status is NEW or UPDATE
+  return !(nextProps.status === 'UPDATE' 
+        || nextProps.status === 'NEW')
+});

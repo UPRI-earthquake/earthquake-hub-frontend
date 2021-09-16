@@ -57,7 +57,7 @@ function SidebarItems({initData}) {
       description={item.place !== 'Nominatim unavailable' 
                     ? item.place : item.text}
       subDescription={item.OT}
-      status={item.eventType ? item.eventType : ''}
+      status={item.eventType ? item.eventType : null}
     />
   ))
 }

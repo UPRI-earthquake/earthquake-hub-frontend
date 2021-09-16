@@ -1,0 +1,18 @@
+.radiate {
+    stroke: #e86a73;
+    animation-name: radiate-outward;
+    animation-duration: 1.5s;
+    animation-iteration-count: 5;
+    animation-timing-function: linear;
+}
+
+@keyframes radiate-outward {
+    from {
+        stroke-width: 0;
+        stroke-opacity: 0.75;  
+    }
+    to {
+        stroke-width: 40;
+        stroke-opacity: 0;  
+    }
+}
