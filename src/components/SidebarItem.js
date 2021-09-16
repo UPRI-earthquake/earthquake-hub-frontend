@@ -2,7 +2,17 @@ import React from "react";
 import styles from "./SidebarItem.module.css"
 import { useSelector, useDispatch } from 'react-redux';
 
-function SidebarItem({publicID, title, description, subDescription}) {
+function animate(status){
+  switch(status){
+    case 'NEW': 
+    case 'UPDATE':
+      return styles.heartBeat
+    default:
+      return ''
+  }
+}
+
+function SidebarItem({publicID, title, description, subDescription, status}) {
   const dispatch = useDispatch();
   const selectedEvent = useSelector(state => state)
   function handleClick(){
@@ -17,7 +27,7 @@ function SidebarItem({publicID, title, description, subDescription}) {
 
   return(
     <div 
-      className={styles.sidebarItem}
+      className={`${styles.sidebarItem} ${animate(status)}`}
       onClick={handleClick}
     >
       <h4>{title}</h4>
@@ -30,4 +40,4 @@ function SidebarItem({publicID, title, description, subDescription}) {
   )
 }
 
-export default SidebarItem
+export default React.memo(SidebarItem)

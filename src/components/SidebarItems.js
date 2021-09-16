@@ -10,9 +10,7 @@ function SidebarItems({initData}) {
   const eventSource = useContext(SSEContext); 
   useEffect(() => {
     const handleEQEvent = (event) => {
-      console.log(`SIDEBAR: Received EQ Event`)
       const data = JSON.parse(event.data)// to parse to get valid json-obj
-      console.log(items)
 
       switch (data.eventType){
         case 'NEW':
@@ -22,6 +20,7 @@ function SidebarItems({initData}) {
             place: data.place,
             OT: data.OT,
             text: data.text,
+            eventType: 'NEW'
           }, ...items])
           break;
         case 'UPDATE':
@@ -33,6 +32,7 @@ function SidebarItems({initData}) {
                 place: data.place,
                 OT: data.OT,
                 text: data.text,
+                eventType: 'UPDATE'
               }
             }else{ return item }
           }));
@@ -40,6 +40,7 @@ function SidebarItems({initData}) {
         default:
           ;
       }
+
     }
     eventSource.addEventListener('SC_EVENT', handleEQEvent);
 
@@ -56,6 +57,7 @@ function SidebarItems({initData}) {
       description={item.place !== 'Nominatim unavailable' 
                     ? item.place : item.text}
       subDescription={item.OT}
+      status={item.eventType ? item.eventType : ''}
     />
   ))
 }
