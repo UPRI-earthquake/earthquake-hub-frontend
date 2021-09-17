@@ -1,8 +1,12 @@
+.default {
+    fill: rgba(255,0,0,0.45);
+}
 .radiate {
+    fill: rgba(255,0,0,0.45);
     stroke: #e86a73;
     animation-name: radiate-outward;
     animation-duration: 1.5s;
-    animation-iteration-count: 5;
+    animation-iteration-count: infinite;
     animation-timing-function: linear;
 }
 
@@ -12,7 +16,7 @@
         stroke-opacity: 0.75;  
     }
     to {
-        stroke-width: 40;
+        stroke-width: 200;
         stroke-opacity: 0;  
     }
 }

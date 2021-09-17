@@ -18,7 +18,8 @@ const EventMarkers = ({initEvents, selectedEvent}) => {
             latitude_value: data.latitude_value,
             longitude_value: data.longitude_value,
             magnitude_value: data.magnitude_value,
-            eventType: 'NEW'
+            eventType: 'NEW',
+            last_modification: data.last_modification
           }, ...events])
           break;
         case 'UPDATE':
@@ -30,7 +31,8 @@ const EventMarkers = ({initEvents, selectedEvent}) => {
                 latitude_value: data.latitude_value,
                 longitude_value: data.longitude_value,
                 magnitude_value: data.magnitude_value,
-                eventType: 'UPDATE'
+                eventType: 'UPDATE',
+                last_modification: data.last_modification
               }
             }else{ return event  }
           }));
@@ -55,6 +57,7 @@ const EventMarkers = ({initEvents, selectedEvent}) => {
         lng={event.longitude_value}
         mag={event.magnitude_value}
         status={event.eventType ? event.eventType : null}
+        last_modification={event.last_modification}
       />
     )
   );

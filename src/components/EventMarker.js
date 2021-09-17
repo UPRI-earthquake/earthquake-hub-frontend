@@ -1,18 +1,11 @@
-import React, { useEffect, useCallback, useRef }  from 'react';
+import React, { useState, useEffect, useCallback, useRef }  from 'react';
 import moment from 'moment';
-import { CircleMarker, Popup, useMap } from "react-leaflet";
+import { Marker, Popup, useMap } from "react-leaflet";
+import { DivIcon } from "leaflet";
 import { useSelector } from 'react-redux';
+import ReactDOMServer from 'react-dom/server';
 import styles from "./EventMarker.module.css";
-
-function animate(status,type){
-  switch(status){
-    case 'NEW': 
-    case 'UPDATE':
-      return styles[type]
-    default:
-      return null
-  }
-}
+import {ReactComponent as Circle} from './circle.svg';
 
 function toRadius(magnitude) {
   // 0th index is for mag<1, then mag=1+, and so on up to 33.32 for mag>8
@@ -20,7 +13,8 @@ function toRadius(magnitude) {
   return radiiPixels[magnitude < 8 ? Math.floor(magnitude) : 8]
 }
 
-const EventMarker = ({publicID, time, lat, lng, mag, status}) => {
+const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification}) => {
+
   // get parent map, and selected event, and ref to this marker's popup
   const map = useMap();
   const selectedEvent = useSelector(state => state)
@@ -40,15 +34,30 @@ const EventMarker = ({publicID, time, lat, lng, mag, status}) => {
     centerAndPopupEvent(selectedEvent)
   }, [selectedEvent, centerAndPopupEvent]);
 
+  const [animate, setAnimate] = useState(false);
+  const timerId = useRef(null) // hold running timeout-id across renders
+  useEffect(() => {
+    if(status === 'NEW' || status === 'UPDATE'){
+      setAnimate(true)
+      clearTimeout(timerId.current) // it's ok to clear on null
+      timerId.current = setTimeout(()=>{
+        setAnimate(false)
+        timerId.current = null // to avoid clearing other ids
+      }, 7500);
+    }
+  }, [status, last_modification]);
+
+  const divCircle = new DivIcon({
+    className: animate ? styles.radiate : styles.default,
+    html: ReactDOMServer.renderToString(<Circle />),
+    iconSize: [20*toRadius(mag),20*toRadius(mag)]
+  })
+
   return(
-    <CircleMarker 
-      key={Math.random()}
-      className={animate(status,'radiate')}
+    <Marker 
+      icon={divCircle}
       stroke={false}
-      fillColor='red'
-      fillOpacity={0.4}
-      center={[lat, lng]}
-      radius={toRadius(mag)}
+      position={[lat, lng]}
     >
       <Popup ref={popupRef}>
         <div>
@@ -60,12 +69,15 @@ const EventMarker = ({publicID, time, lat, lng, mag, status}) => {
           </p>
         </div>
       </Popup>
-    </CircleMarker>
+    </Marker>
   )
 }
 
+/*
+export default EventMarker
+*/
 export default React.memo(EventMarker, (prevProps, nextProps) => {
-  // render if status is NEW or UPDATE
-  return !(nextProps.status === 'UPDATE' 
-        || nextProps.status === 'NEW')
+  // render if status is NEW or was modified
+  return !(nextProps.status === 'NEW' 
+        || nextProps.last_modification !== prevProps.last_modification)
 });
