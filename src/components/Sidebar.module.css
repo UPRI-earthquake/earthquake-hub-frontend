@@ -1,14 +1,21 @@
 .sidebar{
+  display: flex;
+  flex-direction: column;
+  overflow: scroll;
+  -webkit-overflow-scrolling: touch;
   min-width: 300px;
   max-width: 300px;
   max-height: 100vh;
   background-color: #f4f4f4;
   border-right: solid 1px #a6a5a9;
-  overflow: scroll;
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        display: none;
-    }
+  .sidebar {
+    flex-direction: row;
+    min-height: 100px;
+    max-height: 100px;
+    max-width: 100vw;
+    border-top: solid 1px #a6a5a9;
+  }
 }

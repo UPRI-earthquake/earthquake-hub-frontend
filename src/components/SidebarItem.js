@@ -48,7 +48,6 @@ function SidebarItem({publicID, title, description,
 
 
   return(
-    <div>
     <div 
       className={`${styles.sidebarItem}`}
       onClick={handleClick}
@@ -61,7 +60,6 @@ function SidebarItem({publicID, title, description,
       </div>
 
     </div>
-</div>
   )
 }
 

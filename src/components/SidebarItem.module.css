@@ -2,10 +2,23 @@
   display: flex;  
   align-items: center;
   cursor: pointer;
+  box-sizing: border-box;
   padding-left: 15px;
   padding-right: 15px;
   border-bottom: solid 1px lightgray;
   background-color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .sidebarItem {
+      width: 180px;
+      height: 100%;
+      border-bottom: none;
+      border-right: solid 1px lightgray;
+  }
+  .sidebarItem > div {
+      width: 110px;
+  }
 }
 
 .sidebarItem:hover{
@@ -18,12 +31,18 @@
 
 .sidebarItem > div > .desc {
   margin-bottom: 0px ;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebarItem > div > .subDesc {
   margin-top: 2px ;
   font-size: 12px;
   color: dimgray;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .heartBeat{

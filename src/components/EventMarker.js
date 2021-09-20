@@ -15,7 +15,7 @@ function toRadius(magnitude) {
 
 const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification}) => {
 
-  // get parent map, and selected event, and ref to this marker's popup
+  // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
   const selectedEvent = useSelector(state => state)
   const popupRef = useRef();
@@ -34,6 +34,8 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
     centerAndPopupEvent(selectedEvent)
   }, [selectedEvent, centerAndPopupEvent]);
 
+
+  // Animation
   const [animate, setAnimate] = useState(false);
   const timerId = useRef(null) // hold running timeout-id across renders
   useEffect(() => {
