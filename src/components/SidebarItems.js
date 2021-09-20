@@ -20,7 +20,9 @@ function SidebarItems({initData}) {
             place: data.place,
             OT: data.OT,
             text: data.text,
-            eventType: 'NEW'
+            eventType: 'NEW',
+            last_modification: data.last_modification,
+
           }, ...items])
           break;
         case 'UPDATE':
@@ -32,7 +34,8 @@ function SidebarItems({initData}) {
                 place: data.place,
                 OT: data.OT,
                 text: data.text,
-                eventType: 'UPDATE'
+                eventType: 'UPDATE',
+                last_modification: data.last_modification,
               }
             }else{ return item }
           }));
@@ -40,7 +43,6 @@ function SidebarItems({initData}) {
         default:
           ;
       }
-
     }
     eventSource.addEventListener('SC_EVENT', handleEQEvent);
 
@@ -58,6 +60,7 @@ function SidebarItems({initData}) {
                     ? item.place : item.text}
       subDescription={item.OT}
       status={item.eventType ? item.eventType : null}
+      last_modification={item.last_modification}
     />
   ))
 }

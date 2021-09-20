@@ -1,18 +1,11 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import styles from "./SidebarItem.module.css"
 import { useSelector, useDispatch } from 'react-redux';
 
-function animate(status, type){
-  switch(status){
-    case 'NEW': 
-    case 'UPDATE':
-      return styles[type]
-    default:
-      return null
-  }
-}
+function SidebarItem({publicID, title, description, 
+                      subDescription, status, last_modification}) {
 
-function SidebarItem({publicID, title, description, subDescription, status}) {
+  // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
   const selectedEvent = useSelector(state => state)
   function handleClick(){
@@ -25,11 +18,41 @@ function SidebarItem({publicID, title, description, subDescription, status}) {
     }
   }
 
+  
+  // Animation
+  const output = useRef(null) // hold output div
+  const reversed  = useRef(false); // to alternate between two "identical" animations
+  useEffect(() => {
+    if(status === 'NEW' || status === 'UPDATE'){
+      // add animation, but alternate between
+      // the heartbeat animation and its reversed-reversed copy
+      if(reversed.current){
+        output.current.classList.add(styles.heartBeat)
+        reversed.current = false 
+      }else{
+        output.current.classList.add(styles.heartBeatReverse)
+        reversed.current = true 
+      }
+    }
+
+    // cleanup, remove the previously added class before updating
+    const outputComponent = output.current 
+    return(()=>{
+      reversed.current
+      ? outputComponent.classList.remove(styles.heartBeatReverse)
+      : outputComponent.classList.remove(styles.heartBeat)
+    })
+
+    // run effect when a modification is made
+  }, [status, last_modification]);
+
+
   return(
+    <div>
     <div 
-      key={Math.random() /*force re-render from scratch to animate*/}
-      className={`${styles.sidebarItem} ${animate(status, 'heartBeat')}`}
+      className={`${styles.sidebarItem}`}
       onClick={handleClick}
+      ref={output}
     >
       <h4>{title}</h4>
       <div>
@@ -38,11 +61,12 @@ function SidebarItem({publicID, title, description, subDescription, status}) {
       </div>
 
     </div>
+</div>
   )
 }
 
 export default React.memo(SidebarItem, (prevProps, nextProps) => {
-  // render if status is NEW or UPDATE
-  return !(nextProps.status === 'UPDATE' 
-        || nextProps.status === 'NEW')
+  // render if next status is NEW or was modified
+  return !(nextProps.status === 'NEW' 
+        || nextProps.last_modification !== prevProps.last_modification)
 });
