@@ -8,7 +8,7 @@ const StationMarkers = () => {
   const [stations, setStations] = useState([]);  
   useEffect(() => {
     const fetchData = async () => {
-      const result = await axios.get('http://192.168.1.12:5000/stationLocations'); 
+      const result = await axios.get('https://192.168.1.12:5000/stationLocations'); 
       const stations = result.data.map(station => (
         {...station, isPicked: false}
       ));
