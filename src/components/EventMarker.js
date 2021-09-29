@@ -54,14 +54,13 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
     ? {
         className: styles.radiate,
         html: ReactDOMServer.renderToString(<CircleWithBorder />),
-        iconSize: [4*toRadius(mag),4*toRadius(mag)]
+        iconSize: [8*toRadius(mag),8*toRadius(mag)]
       }
     : {
         className: styles.default,
         html: ReactDOMServer.renderToString(<Circle />),
         iconSize: [2*toRadius(mag),2*toRadius(mag)]
       }
-
   )
 
 
