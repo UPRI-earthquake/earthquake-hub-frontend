@@ -14,7 +14,7 @@ function SidebarItems({initData}) {
 
       switch (data.eventType){
         case 'NEW':
-          setItems([{
+          setItems(prevItems => [{
             publicID: data.publicID,
             magnitude_value: data.magnitude_value,
             place: data.place,
@@ -23,10 +23,10 @@ function SidebarItems({initData}) {
             eventType: 'NEW',
             last_modification: data.last_modification,
 
-          }, ...items])
+          }, ...prevItems])
           break;
         case 'UPDATE':
-          setItems(items.map(item=>{
+          setItems(prevItems => prevItems.map(item=>{
             if (item.publicID === data.publicID){
               return {
                 publicID: data.publicID,
@@ -49,7 +49,7 @@ function SidebarItems({initData}) {
     return () => {
       eventSource.removeEventListener('SC_EVENT', handleEQEvent);
     };
-  }, [eventSource, items]);
+  }, [eventSource]);
 
   return(items.map(item => 
     <SidebarItem 
