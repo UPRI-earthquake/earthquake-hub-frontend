@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import ReactDOMServer from 'react-dom/server';
 import styles from "./EventMarker.module.css";
 import {ReactComponent as Circle} from './circle.svg';
+import {ReactComponent as CircleWithBorder} from './circleWithBorder.svg';
 
 function toRadius(magnitude) {
   // 0th index is for mag<1, then mag=1+, and so on up to 33.32 for mag>8
@@ -49,11 +50,20 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
     }
   }, [status, last_modification]);
 
-  const divCircle = new DivIcon({
-    className: animate ? styles.radiate : styles.default,
-    html: ReactDOMServer.renderToString(<Circle />),
-    iconSize: [20*toRadius(mag),20*toRadius(mag)]
-  })
+  const divCircle = new DivIcon(animate 
+    ? {
+        className: styles.radiate,
+        html: ReactDOMServer.renderToString(<CircleWithBorder />),
+        iconSize: [4*toRadius(mag),4*toRadius(mag)]
+      }
+    : {
+        className: styles.default,
+        html: ReactDOMServer.renderToString(<Circle />),
+        iconSize: [2*toRadius(mag),2*toRadius(mag)]
+      }
+
+  )
+
 
   return(
     <Marker 
