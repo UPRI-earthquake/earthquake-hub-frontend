@@ -12,7 +12,7 @@ const EventMarkers = ({initEvents, selectedEvent}) => {
 
       switch (data.eventType){
         case 'NEW':
-          setEvents([{
+          setEvents(prevEvents => [{
             publicID: data.publicID,
             OT: data.OT,
             latitude_value: data.latitude_value,
@@ -20,10 +20,10 @@ const EventMarkers = ({initEvents, selectedEvent}) => {
             magnitude_value: data.magnitude_value,
             eventType: 'NEW',
             last_modification: data.last_modification
-          }, ...events])
+          }, ...prevEvents])
           break;
         case 'UPDATE':
-          setEvents(events.map(event =>{
+          setEvents(prevEvents => prevEvents.map(event =>{
             if (event.publicID === data.publicID){
               return {
                 publicID: data.publicID,
@@ -46,7 +46,7 @@ const EventMarkers = ({initEvents, selectedEvent}) => {
     return () => {
       eventSource.removeEventListener('SC_EVENT', handleEQEvent);
     };
-  }, [eventSource, events]);
+  }, [eventSource]);
   return (
     events.map(event => 
       <EventMarker
