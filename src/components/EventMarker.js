@@ -78,6 +78,9 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
             {lat.toFixed(3)}&#176;N&nbsp;
             {lng.toFixed(3)}&#176;E
           </p>
+          <p style={{color:'gray'}}>
+            Last updated {moment(time).fromNow()}
+          </p>
         </div>
       </Popup>
     </Marker>

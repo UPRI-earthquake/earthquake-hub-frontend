@@ -1,4 +1,5 @@
 import React, {useState, useContext, useEffect} from "react"
+import moment from 'moment';
 import SidebarItem from "./SidebarItem"
 import SSEContext from "../SSEContext";
 
@@ -58,7 +59,7 @@ function SidebarItems({initData}) {
       title={+item.magnitude_value.toFixed(1)}
       description={item.place !== 'Nominatim unavailable' 
                     ? item.place : item.text}
-      subDescription={item.OT}
+      subDescription={moment(item.OT).fromNow()}
       status={item.eventType ? item.eventType : null}
       last_modification={item.last_modification}
     />

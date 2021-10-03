@@ -18,7 +18,6 @@ function SidebarItem({publicID, title, description,
     }
   }
 
-  
   // Animation
   const output = useRef(null) // hold output div
   const reversed  = useRef(false); // to alternate between two "identical" animations
@@ -45,7 +44,6 @@ function SidebarItem({publicID, title, description,
 
     // run effect when a modification is made
   }, [status, last_modification]);
-
 
   return(
     <div 
