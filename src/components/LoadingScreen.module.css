@@ -1,0 +1,16 @@
+.loadingScreen {
+    height: 100vh;
+    width:100vw;
+    background-color: #3a6a50;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.logo {
+    fill: #ffffff;
+    height: 100px;
+    width: auto;
+}
+

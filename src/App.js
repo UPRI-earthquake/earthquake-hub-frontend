@@ -9,6 +9,7 @@ import Sidebar from "./components/Sidebar";
 import SidebarInfo from "./components/SidebarInfo";
 import SidebarItems from "./components/SidebarItems";
 import Header from "./components/Header";
+import LoadingScreen from "./components/LoadingScreen";
 import SSEContext from "./SSEContext";
 import { EventSourcePolyfill } from 'event-source-polyfill';
 
@@ -34,7 +35,7 @@ const App = () => {
 
     // to wait at least timeoutPromise time before trigerring a render
     const timeoutPromise = new Promise(resolve => {
-      setTimeout(resolve, 2000);
+      setTimeout(resolve, 3000);
     })
 
     Promise.all([fetchPromise, eventSourcePromise, timeoutPromise])
@@ -70,10 +71,9 @@ const App = () => {
   return (
     <>
     {loading ? (
-      <h2>
-        Loading...
+      <LoadingScreen>
         {console.log('render loading screen')}
-      </h2>
+      </LoadingScreen>
     ):(
       <div className="App">
         {console.log('render app screen')}
