@@ -10,6 +10,7 @@ import SidebarInfo from "./components/SidebarInfo";
 import SidebarItems from "./components/SidebarItems";
 import Header from "./components/Header";
 import SSEContext from "./SSEContext";
+import { EventSourcePolyfill } from 'event-source-polyfill';
 
 const App = () => {
   // use loading screen (with min time) to wait for events and eventsSource
@@ -27,7 +28,7 @@ const App = () => {
 
     // connect to an emitter for SSE
     const eventSourcePromise = new Promise((resolve, reject) => {
-      const source = new EventSource('https://192.168.1.12:5000/messaging')
+      const source = new EventSourcePolyfill('https://192.168.1.12:5000/messaging')
       source ? resolve(source) : reject('EventSource connection error')
     });
 
@@ -43,8 +44,12 @@ const App = () => {
 
         eventSourceRef.current = values[1]
         eventSourceRef.current.addEventListener('error', (error) =>{
-          console.log(error)
-          eventSourceRef.current.close()
+          //console.log(error)
+          console.log('Enetered error handler')
+          if(eventSourceRef.current.readyState === 0){ // reconnecting
+            console.log('Reconnecting...')
+          }
+          //eventSourceRef.current.close()
         });
 
         setLoading(false);
