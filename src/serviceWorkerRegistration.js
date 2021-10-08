@@ -33,7 +33,8 @@ export function register(config) {
     window.addEventListener('load', () => {
       //const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
       const swFileName = process.env.NODE_ENV === 'production'
-                         ? 'service-worker.js'
+                       /*? 'service-worker.js'*/
+                         ? 'custom-sw.js'
                          : 'custom-sw.js'
       const swUrl = `${process.env.PUBLIC_URL}/${swFileName}`
 

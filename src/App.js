@@ -20,7 +20,7 @@ const App = () => {
   const eventSourceRef = useRef(null) // SSE-emitter
   useEffect(() => {
     // get initial eq-events from backend
-    const fetchPromise = axios.get('https://192.168.1.12:5000/eventsList',
+    const fetchPromise = axios.get(`${process.env.REACT_APP_BACKEND}/eventsList`,
       {params: {
         startTime:moment('2021-09-09 14:30:00.0').format("YYYY-MM-DD HH:mm:ss"),
         endTime:moment().format("YYYY-MM-DD HH:mm:ss"),
@@ -29,7 +29,9 @@ const App = () => {
 
     // connect to an emitter for SSE
     const eventSourcePromise = new Promise((resolve, reject) => {
-      const source = new EventSourcePolyfill('https://192.168.1.12:5000/messaging')
+      const source = new EventSourcePolyfill(
+        `${process.env.REACT_APP_BACKEND}/messaging`
+      )
       source ? resolve(source) : reject('EventSource connection error')
     });
 
