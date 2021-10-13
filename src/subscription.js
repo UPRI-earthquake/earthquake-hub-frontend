@@ -15,7 +15,10 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 function sendSubscription(subscription) {
-  return fetch(`${process.env.REACT_APP_BACKEND}/notifications/subscribe`,{
+  const backend_host = process.env.NODE_ENV === 'production'
+                       ? process.env.REACT_APP_BACKEND
+                       : process.env.REACT_APP_BACKEND_DEV
+  return fetch(`${backend_host}/notifications/subscribe`,{
     method:'POST',
     body: JSON.stringify(subscription),
     headers: {

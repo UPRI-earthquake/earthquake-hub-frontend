@@ -16,11 +16,18 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
 const App = () => {
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true) 
+  const stationsRef = useRef([]);  // initial stations data
   const eventsRef = useRef([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
   useEffect(() => {
     // get initial eq-events from backend
-    const fetchPromise = axios.get(`${process.env.REACT_APP_BACKEND}/eventsList`,
+    const backend_host = process.env.NODE_ENV === 'production'
+                         ? process.env.REACT_APP_BACKEND
+                         : process.env.REACT_APP_BACKEND_DEV
+    
+    const fetchStationsPromise = axios.get(`${backend_host}/stationLocations`); 
+
+    const fetchEventsPromise = axios.get(`${backend_host}/eventsList`,
       {params: {
         startTime:moment('2021-09-09 14:30:00.0').format("YYYY-MM-DD HH:mm:ss"),
         endTime:moment().format("YYYY-MM-DD HH:mm:ss"),
@@ -30,7 +37,7 @@ const App = () => {
     // connect to an emitter for SSE
     const eventSourcePromise = new Promise((resolve, reject) => {
       const source = new EventSourcePolyfill(
-        `${process.env.REACT_APP_BACKEND}/messaging`
+        `${backend_host}/messaging`
       )
       source ? resolve(source) : reject('EventSource connection error')
     });
@@ -40,12 +47,17 @@ const App = () => {
       setTimeout(resolve, 3000);
     })
 
-    Promise.all([fetchPromise, eventSourcePromise, timeoutPromise])
+    Promise.all([fetchStationsPromise, fetchEventsPromise, 
+                 eventSourcePromise, timeoutPromise])
       .then((values) => {
-        eventsRef.current = values[0].data//fetchResult.data
+        stationsRef.current = values[0].data.map(station => (
+          {...station, isPicked: false}
+        ));
+
+        eventsRef.current = values[1].data//fetchResult.data
         //TODO: Get last_modification
 
-        eventSourceRef.current = values[1]
+        eventSourceRef.current = values[2]
         eventSourceRef.current.addEventListener('error', (error) =>{
           //console.log(error)
           console.log('Enetered error handler')
@@ -92,7 +104,7 @@ const App = () => {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               />
               <EventMarkers initEvents={eventsRef.current}/>
-              <StationMarkers />
+              <StationMarkers initStations={stationsRef.current}/>
             </MapContainer>
           </SSEContext.Provider>
         </div>

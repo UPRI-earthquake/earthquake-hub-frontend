@@ -1,22 +1,10 @@
-import React, {useState, useEffect} from 'react';
-import axios from 'axios';
+import React, {useState} from 'react';
 import StationMarker from "./StationMarker";
 
-const StationMarkers = () => {
+const StationMarkers = ({initStations}) => {
 
   // initialize station markers on map
-  const [stations, setStations] = useState([]);  
-  useEffect(() => {
-    const fetchData = async () => {
-      // TODO: Refactor, put this on App.js, then pass as props
-      const result = await axios.get(`${process.env.REACT_APP_BACKEND}/stationLocations`); 
-      const stations = result.data.map(station => (
-        {...station, isPicked: false}
-      ));
-      setStations(stations);
-    };
-    fetchData();
-  }, []);
+  const [stations, ] = useState(initStations);  
 
   return (
     stations.map(station => 
