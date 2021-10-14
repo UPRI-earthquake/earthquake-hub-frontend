@@ -24,6 +24,8 @@ function sendSubscription(subscription) {
     headers: {
       'Content-Type': 'application/json'
     }
+  }).catch(e => {
+    console.error('Error occured in sending subscription', e)
   })
 }
 
