@@ -7,6 +7,9 @@ function LoadingScreen() {
   return(
     <div className={styles.loadingScreen}>
       <Logo className={styles.logo}/>
+      <p> 
+        &nbsp;
+      </p>
     </div>
   )
 }

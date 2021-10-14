@@ -10,12 +10,14 @@ import SidebarInfo from "./components/SidebarInfo";
 import SidebarItems from "./components/SidebarItems";
 import Header from "./components/Header";
 import LoadingScreen from "./components/LoadingScreen";
+import ErrorScreen from "./components/ErrorScreen";
 import SSEContext from "./SSEContext";
 import { EventSourcePolyfill } from 'event-source-polyfill';
 
 const App = () => {
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true) 
+  const [serverTimedout, setServerTimedout] = useState(false) 
   const stationsRef = useRef([]);  // initial stations data
   const eventsRef = useRef([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
@@ -43,8 +45,12 @@ const App = () => {
     });
 
     // to wait at least timeoutPromise time before trigerring a render
+    // or timeout if reached and still loading
     const timeoutPromise = new Promise(resolve => {
-      setTimeout(resolve, 3000);
+      setTimeout(()=>{
+        resolve();
+        if(loading) {setServerTimedout(true)}
+      }, 3000);
     })
 
     Promise.all([fetchStationsPromise, fetchEventsPromise, 
@@ -66,11 +72,11 @@ const App = () => {
           }
           //eventSourceRef.current.close()
         });
-
         setLoading(false);
-
       })
-      .catch(errorArray => console.log(errorArray))
+      .catch(errorArray => {
+        console.log(errorArray);
+      })
 
     return () => {
       // clean up function 
@@ -85,9 +91,13 @@ const App = () => {
   return (
     <>
     {loading ? (
-      <LoadingScreen>
-        {console.log('render loading screen')}
-      </LoadingScreen>
+      serverTimedout ? (
+        <ErrorScreen />
+      ):(
+        <LoadingScreen>
+          {console.log('render loading screen')}
+        </LoadingScreen>
+      )
     ):(
       <div className="App">
         {console.log('render app screen')}
