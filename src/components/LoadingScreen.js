@@ -7,7 +7,7 @@ function LoadingScreen() {
   return(
     <div className={styles.loadingScreen}>
       <Logo className={styles.logo}/>
-      <p> 
+      <p className={styles.pg}>
         &nbsp;
       </p>
     </div>

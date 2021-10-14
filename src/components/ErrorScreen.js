@@ -6,8 +6,8 @@ function ErrorScreen() {
   return(
     <div className={styles.errorScreen}>
       <Logo className={styles.logo}/>
-      <p>
-        A server error occured. Please try again later.
+      <p className={styles.pg}>
+        A server error occured. <br/>Please try again later.
       </p>
     </div>
   )

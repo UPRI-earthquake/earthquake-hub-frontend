@@ -49,7 +49,7 @@ const App = () => {
     const timeoutPromise = new Promise(resolve => {
       setTimeout(()=>{
         resolve();
-        if(loading) {setServerTimedout(true)}
+        setServerTimedout(true);
       }, 3000);
     })
 
