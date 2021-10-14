@@ -1,6 +1,13 @@
 import React, {useState} from 'react';
 import StationMarker from "./StationMarker";
 
+function obscureLocation(lat, lon){
+  // 1deg is 111km, 100m is 0.0009deg
+  // randomize with value around -500m to 500m
+  return [lat + (Math.random()-0.499)/100,
+          lon + (Math.random()-0.499)/100]
+}
+
 const StationMarkers = ({initStations}) => {
 
   // initialize station markers on map
@@ -11,7 +18,7 @@ const StationMarkers = ({initStations}) => {
       <StationMarker 
         key={station.code} 
         code={station.code} 
-        latLng={[station.latitude, station.longitude]}
+        latLng={obscureLocation(station.latitude, station.longitude)}
         description={station.description}
       />
     )
