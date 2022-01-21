@@ -26,13 +26,18 @@ const App = () => {
     const backend_host = process.env.NODE_ENV === 'production'
                          ? process.env.REACT_APP_BACKEND
                          : process.env.REACT_APP_BACKEND_DEV
+
+    // get past 1 month when in production 
+    const start_time = process.env.NODE_ENV === 'production'
+                         ? moment().subtract(1, 'months')
+                         : moment('2021-09-09 14:30:00.0')
     
     const fetchStationsPromise = axios.get(`${backend_host}/stationLocations`); 
 
     const fetchEventsPromise = axios.get(`${backend_host}/eventsList`,
       {params: {
-        startTime:moment('2021-09-09 14:30:00.0').format("YYYY-MM-DD HH:mm:ss"),
-        endTime:moment().format("YYYY-MM-DD HH:mm:ss"),
+        startTime: start_time.format("YYYY-MM-DD HH:mm:ss"),
+        endTime: moment().format("YYYY-MM-DD HH:mm:ss"),
       }}
     ); 
 
