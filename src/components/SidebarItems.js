@@ -57,8 +57,10 @@ function SidebarItems({initData}) {
       key={item.publicID}
       publicID={item.publicID}
       title={+item.magnitude_value.toFixed(1)}
-      description={item.place !== 'Nominatim unavailable' 
-                    ? item.place : item.text}
+      description={
+        (item.place !== 'Nominatim unavailable' 
+          && item.place !== 'Unable to geocode')
+           ? item.place : item.text}
       subDescription={moment(item.OT).fromNow()}
       status={item.eventType ? item.eventType : null}
       last_modification={item.last_modification}
