@@ -17,7 +17,7 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
 const App = () => {
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true)
-  const [serverTimedout, setServerTimedout] = useState(false)
+  const [serverError, setServerError] = useState(false)
   const stationsRef = useRef([]);  // initial stations data
   const eventsRef = useRef([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
@@ -49,17 +49,16 @@ const App = () => {
       source ? resolve(source) : reject('EventSource connection error')
     });
 
-    // to wait at least timeoutPromise time before trigerring a render
-    // or timeout if reached and still loading
-    const timeoutPromise = new Promise(resolve => {
+    // to wait at least 3sec before trigerring a render
+    const waitingPromise = new Promise(resolve => {
       setTimeout(()=>{
         resolve();
-        setServerTimedout(true);
+        //setDoneWaiting(true);
       }, 3000);
     })
 
     Promise.all([fetchStationsPromise, fetchEventsPromise,
-                 eventSourcePromise, timeoutPromise])
+                 eventSourcePromise, waitingPromise])
       .then((values) => {
         stationsRef.current = values[0].data.map(station => (
           {...station, isPicked: false}
@@ -80,6 +79,7 @@ const App = () => {
         setLoading(false);
       })
       .catch(errorArray => {
+        setServerError(true);
         console.log(errorArray);
       })
 
@@ -95,38 +95,38 @@ const App = () => {
 
   return (
     <>
-    {loading ? (
-      serverTimedout ? (
-        <ErrorScreen />
-      ):(
+    {serverError ? (
+      <ErrorScreen />
+    ):(
+      loading ? (
         <LoadingScreen>
           {console.log('render loading screen')}
         </LoadingScreen>
-      )
-    ):(
-      <div className="App">
-        {console.log('render app screen')}
-        <Header />
-        <div className="App-body">
-          <SSEContext.Provider value={eventSourceRef.current}>
-            <Sidebar >
-              <SidebarInfo/>
-              <SidebarItems initData={eventsRef.current}/>
-            </Sidebar>
-            <MapContainer center={[12.2795, 122.049]} zoom={6}>
-              <TileLayer
-                url='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              />
-              <EventMarkers initEvents={eventsRef.current}/>
-              <StationMarkers initStations={stationsRef.current}/>
-            </MapContainer>
-          </SSEContext.Provider>
+      ):(
+        <div className="App">
+          {console.log('render app screen')}
+          <Header />
+          <div className="App-body">
+            <SSEContext.Provider value={eventSourceRef.current}>
+              <Sidebar >
+                <SidebarInfo/>
+                <SidebarItems initData={eventsRef.current}/>
+              </Sidebar>
+              <MapContainer center={[12.2795, 122.049]} zoom={6}>
+                <TileLayer
+                  url='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                <EventMarkers initEvents={eventsRef.current}/>
+                <StationMarkers initStations={stationsRef.current}/>
+              </MapContainer>
+            </SSEContext.Provider>
+          </div>
         </div>
-      </div>
-    )}
+      ) // loading
+    )} // serverError
     </>
-  );
+  ); // return
 }
 
 export default App
