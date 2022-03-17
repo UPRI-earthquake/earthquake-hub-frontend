@@ -16,8 +16,8 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
 
 const App = () => {
   // use loading screen (with min time) to wait for events and eventsSource
-  const [loading, setLoading] = useState(true) 
-  const [serverTimedout, setServerTimedout] = useState(false) 
+  const [loading, setLoading] = useState(true)
+  const [serverTimedout, setServerTimedout] = useState(false)
   const stationsRef = useRef([]);  // initial stations data
   const eventsRef = useRef([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
@@ -27,11 +27,11 @@ const App = () => {
                          ? process.env.REACT_APP_BACKEND
                          : process.env.REACT_APP_BACKEND_DEV
 
-    // get past 1 month when in production 
+    // get past 1 month when in production
     const start_time = process.env.NODE_ENV === 'production'
                          ? moment().subtract(1, 'months')
                          : moment('2021-09-09 14:30:00.0')
-    
+
     const fetchStationsPromise = axios.get(`${backend_host}/stationLocations`); 
 
     const fetchEventsPromise = axios.get(`${backend_host}/eventsList`,
@@ -39,7 +39,7 @@ const App = () => {
         startTime: start_time.format("YYYY-MM-DD HH:mm:ss"),
         endTime: moment().format("YYYY-MM-DD HH:mm:ss"),
       }}
-    ); 
+    );
 
     // connect to an emitter for SSE
     const eventSourcePromise = new Promise((resolve, reject) => {
@@ -58,7 +58,7 @@ const App = () => {
       }, 3000);
     })
 
-    Promise.all([fetchStationsPromise, fetchEventsPromise, 
+    Promise.all([fetchStationsPromise, fetchEventsPromise,
                  eventSourcePromise, timeoutPromise])
       .then((values) => {
         stationsRef.current = values[0].data.map(station => (
