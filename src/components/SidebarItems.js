@@ -8,7 +8,7 @@ function SidebarItems({initData}) {
     return new Date(b.OT) - new Date(a.OT);
   }))
 
-  const eventSource = useContext(SSEContext); 
+  const eventSource = useContext(SSEContext);
   useEffect(() => {
     const handleEQEvent = (event) => {
       const data = JSON.parse(event.data)// to parse to get valid json-obj
@@ -52,15 +52,16 @@ function SidebarItems({initData}) {
     };
   }, [eventSource]);
 
-  return(items.map(item => 
-    <SidebarItem 
+  return(items.map(item =>
+    <SidebarItem
       key={item.publicID}
       publicID={item.publicID}
       title={+item.magnitude_value.toFixed(1)}
       description={
-        (item.place !== 'Nominatim unavailable' 
-          && item.place !== 'Unable to geocode')
-           ? item.place : item.text}
+        ['Nominatim unavailable',
+         'Unable to geocode',
+         ''].includes(item.place)
+           ? item.text : item.place}
       subDescription={moment(item.OT).fromNow()}
       status={item.eventType ? item.eventType : null}
       last_modification={item.last_modification}
