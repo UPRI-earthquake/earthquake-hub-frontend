@@ -124,7 +124,7 @@ const App = () => {
           </div>
         </div>
       ) // loading
-    )} // serverError
+    )/* serverError*/}
     </>
   ); // return
 }
