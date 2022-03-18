@@ -10,7 +10,7 @@ function Header() {
     <div className={styles.header}>
       <div className={styles.headerLeft}>
         <Logo className={styles.logo}/>
-        <h1>UPRI</h1>
+        <h1>CS•UPRI</h1>
       </div>
     </div>
   )
