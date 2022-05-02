@@ -56,7 +56,7 @@ function SidebarItems({initData}) {
     <SidebarItem
       key={item.publicID}
       publicID={item.publicID}
-      title={+item.magnitude_value.toFixed(1)}
+      title={item.magnitude_value.toFixed(1)}
       description={
         ['Nominatim unavailable',
          'Unable to geocode',
