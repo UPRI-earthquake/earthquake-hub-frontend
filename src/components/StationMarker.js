@@ -5,13 +5,13 @@ import { DivIcon } from "leaflet";
 import {ReactComponent as Logo} from './triangle.svg';
 import styles from './StationMarker.module.css'
 import SSEContext from "../SSEContext";
+import moment from 'moment';
 
 const StationMarker = ({code, latLng, description}) => {
 
   const [pick, setPick] = useState(false)
   const timerId = useRef(null) // hold running timeout-id across renders
   const eventSource = useContext(SSEContext);
-
 
   useEffect(() => {
     const handlePickEvent = (event) => {
@@ -40,8 +40,19 @@ const StationMarker = ({code, latLng, description}) => {
     iconSize: [25,25]
   })
 
+  const start_time = moment().subtract(1, 'days')
+  const data_download_URL = process.env.REACT_APP_FDSNWS
+    +"/dataselect/1/query?"
+    +"starttime="+start_time.format("YYYY-MM-DDTHH:mm:ss")
+    +"&endtime="+moment().format("YYYY-MM-DDTHH:mm:ss")
+    +"&network=AM&station="+code
+    +"&location=00&channel=E*&nodata=404"
+  const metadata_download_URL = process.env.REACT_APP_RS_FDSNWS
+    +"/station/1/query?"
+    +"&network=AM&station="+code
+    +"&level=resp&format=sc3ml"
   return (
-    <Marker 
+    <Marker
       position={latLng}
       icon={divTriangle}
     >
@@ -49,8 +60,8 @@ const StationMarker = ({code, latLng, description}) => {
         <div>
           <h3>Station {code}</h3>
           <p>{description}</p>
-          {/*TODO: <a href='example.com'>Get past 24hrs data</a><br/>*/}
-          {/*TODO: <a href='example.com'>Get station metadata</a><br/>*/}
+          <a href={data_download_URL} target="_blank" rel="noreferrer">Get past 24hrs data</a><br/>
+          <a href={metadata_download_URL} target="_blank" rel="noreferrer">Get station metadata</a><br/>
         </div>
       </Popup>
     </Marker>
