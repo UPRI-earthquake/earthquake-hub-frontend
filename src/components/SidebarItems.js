@@ -58,7 +58,7 @@ function SidebarItems({initData}) {
       publicID={item.publicID}
       title={item.magnitude_value.toFixed(1)}
       description={
-        ['Nominatim unavailable',
+        ['Unavailable',
          'Unable to geocode',
          ''].includes(item.place)
            ? item.text : item.place}
