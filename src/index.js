@@ -9,6 +9,8 @@ import {subscribeUser} from './subscription';
 import {createStore} from "redux";
 import {Provider} from "react-redux";
 
+import 'primereact/resources/themes/saga-green/theme.css';
+
 const selectedEventReducer = (state=null, action) => {
   switch (action.type) {
     case "SELECT":
