@@ -1,6 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'
-import { useDispatch } from 'react-redux';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
@@ -11,8 +9,6 @@ import { FORM_FIELDS } from './constant';
 import './LoginPage.scss';
 
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
   const { formInputs, handleFormSubmit, handleInputChange } = useForm(FORM_FIELDS);
 
   const onSubmit = (e) => {

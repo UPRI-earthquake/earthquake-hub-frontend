@@ -7,7 +7,6 @@ import EventMarkers from "./components/EventMarkers";
 import Sidebar from "./components/Sidebar";
 import SidebarInfo from "./components/SidebarInfo";
 import SidebarItems from "./components/SidebarItems";
-import Header from "./components/Header";
 import LoadingScreen from "./components/LoadingScreen";
 import ErrorScreen from "./components/ErrorScreen";
 import SSEContext from "../../SSEContext";
