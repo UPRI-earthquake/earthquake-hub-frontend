@@ -1,0 +1,67 @@
+$table-background-color: #ffffff;
+$table-even-background-color: darken($table-background-color, 4%);
+$table-hover-background-color: darken($table-background-color, 8%);
+$table-header-color: #ffffff;
+$table-header-background-color: #8f8f8f;
+
+.common-table-component {
+  font-family: sans-serif;
+  text-align: center;
+  min-height: 100px;
+
+  .p-datatable-wrapper {
+    .p-datatable-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: 16px;
+    }
+
+    .p-datatable-thead {
+      color: $table-header-color;
+      font-weight: normal;
+      background-color: $table-header-background-color;
+
+      th {
+        padding: 5px;
+      }
+    }
+
+    .p-datatable-tbody {
+      transition: background-color 150ms ease-out;
+
+      &:nth-child(2n) {
+        background-color: $table-even-background-color;
+      }
+
+      tr {
+        &:hover {
+          background-color: $table-hover-background-color;
+        }
+      }
+
+      td {
+        padding: 5px;
+        box-sizing: border-box;
+      }
+    }
+  }
+
+  .p-paginator.p-component.p-paginator-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+
+    .p-dropdown {
+      display: none;
+    }
+
+    button {
+      &:hover {
+        cursor: pointer;
+      }
+    }
+  }
+
+}

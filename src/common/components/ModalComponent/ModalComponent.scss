@@ -1,0 +1,53 @@
+.p-dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  background-color: rgba(0,0,0,.6);
+  transition-property: background-color;
+}
+
+.p-dialog-visible {
+  display: flex
+}
+
+.p-dialog-mask.p-component-overlay {
+  pointer-events: auto
+}
+
+.p-dialog.p-component.common-modal {
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  max-height: 90%;
+  max-width: 90%;
+  transform: scale(1);
+  position: relative;
+  background-color: #fefefe;
+  padding: 10px 20px;
+
+  .p-dialog-content {
+    overflow-y: auto;
+    flex-grow: 1
+  }
+  
+  .p-dialog-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  
+  .p-dialog-header .p-dialog-header-icon {
+    color: #6c757d;
+    border: 0 none;
+    background: transparent;
+  }
+}
+
