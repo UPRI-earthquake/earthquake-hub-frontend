@@ -1,0 +1,46 @@
+#upriLogo {
+    animation: spin;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+#bow1 {
+    animation: extendBow1;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+#bow2 {
+    animation: extendBow2;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+#bow3 {
+    animation: extendBow3;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg)
+    }
+}
+
+@keyframes extendBow1 {
+    40% {
+        transform: translate(100%, 200%);
+    }
+}
+@keyframes extendBow2 {
+    40% {
+        transform: translate(-200%, -100%);
+    }
+}
+@keyframes extendBow3 {
+    40% {
+        transform: translate(100%, -200%);
+    }
+}
+
