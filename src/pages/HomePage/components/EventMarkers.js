@@ -1,5 +1,5 @@
 import React, { useEffect, useContext, useState }  from 'react';
-import SSEContext from "../SSEContext";
+import SSEContext from "../../../SSEContext";
 import EventMarker from "./EventMarker";
 
 const EventMarkers = ({initEvents, selectedEvent}) => {

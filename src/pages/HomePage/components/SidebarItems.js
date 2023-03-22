@@ -1,7 +1,7 @@
 import React, {useState, useContext, useEffect} from "react"
 import moment from 'moment';
 import SidebarItem from "./SidebarItem"
-import SSEContext from "../SSEContext";
+import SSEContext from "../../../SSEContext";
 
 function SidebarItems({initData}) {
   const [items, setItems] = useState(initData.sort((a, b)=>{

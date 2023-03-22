@@ -4,7 +4,7 @@ import { Marker, Popup } from "react-leaflet";
 import { DivIcon } from "leaflet";
 import {ReactComponent as Logo} from './triangle.svg';
 import styles from './StationMarker.module.css'
-import SSEContext from "../SSEContext";
+import SSEContext from "../../../SSEContext";
 import moment from 'moment';
 
 const StationMarker = ({code, latLng, description}) => {

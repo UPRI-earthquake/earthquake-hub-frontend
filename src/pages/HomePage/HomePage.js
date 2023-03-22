@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import axios from 'axios';
 import moment from 'moment';
 import { MapContainer, TileLayer } from "react-leaflet";
-import "./app.css";
+import "./HomePage.css";
 import StationMarkers from "./components/StationMarkers";
 import EventMarkers from "./components/EventMarkers";
 import Sidebar from "./components/Sidebar";
@@ -11,10 +11,10 @@ import SidebarItems from "./components/SidebarItems";
 import Header from "./components/Header";
 import LoadingScreen from "./components/LoadingScreen";
 import ErrorScreen from "./components/ErrorScreen";
-import SSEContext from "./SSEContext";
+import SSEContext from "../../SSEContext";
 import { EventSourcePolyfill } from 'event-source-polyfill';
 
-const App = () => {
+const HomePage = () => {
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true)
   const [serverError, setServerError] = useState(false)
@@ -104,7 +104,7 @@ const App = () => {
         </LoadingScreen>
       ):(
         <div className="App">
-          {console.log('render app screen')}
+          {console.log('render home page screen')}
           <Header />
           <div className="App-body">
             <SSEContext.Provider value={eventSourceRef.current}>
@@ -129,4 +129,4 @@ const App = () => {
   ); // return
 }
 
-export default App
+export default HomePage
