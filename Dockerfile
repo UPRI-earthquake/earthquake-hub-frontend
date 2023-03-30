@@ -15,11 +15,11 @@ COPY . ./
 
 RUN npm run build
 
-# production environment
+# production environment, use nginx as static server
 FROM nginx:stable-alpine
+EXPOSE 3000
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 443
 CMD ["nginx", "-g", "daemon off;"]
 
 
