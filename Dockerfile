@@ -1,9 +1,9 @@
 # build environment
 FROM node:14-alpine as build
 
-LABEL version="1.0"
-LABEL description="Base docker image for LatestEarthquakesPH front-end"
-LABEL maintainer=["cpsanchez@science.upd.edu.ph"]
+LABEL org.opencontainers.image.source=https://github.com/prokorpio/earthquake-hub-commons
+LABEL org.opencontainers.image.description="Base docker image for EarthquakeHub front-end"
+LABEL maintainer=["earthquake@science.upd.edu.ph"]
 
 WORKDIR /app
 ENV PATH /app/node-modules/.bin:$PATH
