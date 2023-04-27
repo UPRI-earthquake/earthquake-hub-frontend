@@ -6,11 +6,11 @@ Frontend code for the EarthquakeHub web app
     > Note: replace X.Y.Z, and you should be at the same directory as the Dockerfile
 
     ```bash
-    docker build -t ghcr.io/prokorpio/earthquake-hub-frontend:X.Y.Z .
+    docker build -t ghcr.io/UPRI-earthquake/earthquake-hub-frontend:X.Y.Z .
     ```
 2. Push the image to ghcr.io:
     ```bash
-    docker push ghcr.io/prokorpio/earthquake-hub-frontend:X.Y.Z
+    docker push ghcr.io/UPRI-earthquake/earthquake-hub-frontend:X.Y.Z
     ```
 
 
