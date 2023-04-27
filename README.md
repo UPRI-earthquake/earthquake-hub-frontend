@@ -1,6 +1,20 @@
-This branch is for development.
+# earthquake-hub-frontend
+Frontend code for the EarthquakeHub web app
+
+## Publishing container image
+1. Build the image, and tag with the correct [semantic versioning](https://semver.org/): 
+    > Note: replace X.Y.Z, and you should be at the same directory as the Dockerfile
+
+    ```bash
+    docker build -t ghcr.io/upri-earthquake/earthquake-hub-frontend:X.Y.Z .
+    ```
+2. Push the image to ghcr.io:
+    ```bash
+    docker push ghcr.io/upri-earthquake/earthquake-hub-frontend:X.Y.Z
+    ```
 
 
+<!---
 
 # Getting Started with Create React App
 
@@ -72,3 +86,5 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+--->
