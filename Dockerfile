@@ -19,7 +19,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build /usr/share/nginx/html
 CMD ["nginx", "-g", "daemon off;"]
 
-LABEL org.opencontainers.image.source="https://github.com/prokorpio/earthquake-hub-frontend"
+LABEL org.opencontainers.image.source="https://github.com/UPRI-earthquake/earthquake-hub-frontend"
 LABEL org.opencontainers.image.description="Base docker image for EarthquakeHub frontend"
 LABEL org.opencontainers.image.authors="earthquake@science.upd.edu.ph"
 
