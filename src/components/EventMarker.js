@@ -72,7 +72,7 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
     >
       <Popup ref={popupRef}>
         <div>
-          <h2>Magnitude {+mag.toFixed(2)}</h2>
+          <h2>Magnitude {+mag.toFixed(1)}</h2>
           <p>{moment(time).format("YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]")}</p>
           <p>
             {lat.toFixed(3)}&#176;N&nbsp;
