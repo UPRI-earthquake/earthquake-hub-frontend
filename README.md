@@ -1,6 +1,42 @@
 # earthquake-hub-frontend
 Frontend code for the EarthquakeHub web app
 
+## Local development
+For local development, the backend is needed to serve the requests from the frontend. As
+such, you need to spin up the backend code first, then the frontend. All of the
+development setup makes use of docker.
+
+1. Clone earthquake-hub-backend, 
+    ```bash
+    git clone git@github.com:UPRI-earthquake/earthquake-hub-backend.git
+    ```
+   and in it, set the following `.env` variables,
+    ```bash
+    CLIENT_DEV_HOST=localhost
+    CLIENT_DEV_PORT=3000
+    ```
+   install all dependencies via `npm install` and finally, run it via 
+   `docker compose up --attach backend` from which you should see the following:
+    ```bash
+    [nodemon] restarting due to changes...
+    [nodemon] starting `node -r dotenv/config index.js`
+    db-host: mongodb
+    mysql-host: host.docker.internal
+    Development backend listening at http://172.22.0.3:5000
+    Development client expected (by CORS) at http://localhost:3000
+    ```
+
+2. Similar to above, clone this repository, 
+    ```bash
+    git clone git@github.com:UPRI-earthquake/earthquake-hub-frontend.git
+    ```
+   create .env file from .env.example, making sure to put this value
+    ```bash
+    REACT_APP_BACKEND_DEV=http://172.22.0.3:5000
+    ```
+   install the dependencies, via `npm install`
+   and run `docker compose up`
+
 ## Publishing container image
 1. Build the image, and tag with the correct [semantic versioning](https://semver.org/): 
     > Note: replace X.Y.Z, and you should be at the same directory as the Dockerfile

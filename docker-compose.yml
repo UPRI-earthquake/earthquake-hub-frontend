@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  frontend:
+    container_name: earthquake-hub-frontend-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: "base" # select dockerfile stage to use
+    image: "earthquake-hub-frontend-dev:1.0.0"
+    volumes:
+      # bind local dir to reflect changes in container
+      # NOTE: includes everything, including all those in .dockerignore, specifically .env
+      - ./:/app
+    ports:
+      - "3000:3000"
+    extra_hosts:
+       - "host.docker.internal:host-gateway"
+    command: npm start
+
+# NOTE: Make sure to run `docker compose up` in the earthquake-hub-backend repo
+# And set its development host domains in its .env
+#CLIENT_DEV_HOST=localhost
+#CLIENT_DEV_PORT=3000
+#
+# You should see:
+#
+# [nodemon] restarting due to changes...
+# [nodemon] starting `node -r dotenv/config index.js`
+# db-host: mongodb
+# mysql-host: host.docker.internal
+# Development backend listening at http://172.22.0.3:5000
+# Development client expected (by CORS) at http://localhost:3000
