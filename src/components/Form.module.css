@@ -42,6 +42,7 @@
 
 .form button[type="submit"] {
   display: block;
+  width: 100%;
   background-color: #3a6a50;
   color: #fff;
   border: none;
