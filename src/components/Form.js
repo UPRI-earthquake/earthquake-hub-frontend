@@ -52,7 +52,6 @@ function SignInForm( {onClick} ) {
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSignInSubmit(event) {
-    event.preventDefault();
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     try {
@@ -100,14 +99,13 @@ function SignUpForm( {onClick} ) {
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSignUpSubmit(event) {
-    event.preventDefault();
     const email = event.target.elements.email.value;
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     const confirmPassword = event.target.elements.confirmPassword.value;
     try {
       const response = await axios.post(
-        `${backend_host}/accounts/authenticate`,
+        `${backend_host}/accounts/register`,
         {
           email: email,
           username: username,
