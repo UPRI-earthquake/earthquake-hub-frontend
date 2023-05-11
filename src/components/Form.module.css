@@ -19,6 +19,10 @@
   max-width: 90%;
 }
 
+.hidden {
+  opacity:0;
+}
+
 .form h2 {
   margin-top: 0;
 }

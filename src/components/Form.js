@@ -1,9 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Form.module.css";
 import ErrorPopup from "./ErrorPopup";
 
 function Form({ children, title, onClick, onSubmit }) {
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    const formEl = formRef.current;
+    formEl.classList.remove(styles.hidden);
+    formEl.animate(
+      [
+        { opacity: 0, transform: 'scale(0.7)' },
+        { opacity: 1, transform: 'scale(1)' }
+      ],
+      {
+        duration: 150,
+        easing: 'cubic-bezier(0, 0, 0.5, 1)'
+      }
+    );
+  }, []);
+
   const handleSubmit = (event) => {
     // call onSubmit instead of prevent form-submit behavior of sending
     // a basic request to the server to handle the data, making the server
@@ -17,7 +34,7 @@ function Form({ children, title, onClick, onSubmit }) {
       {/*When .form div is clicked, prevent click event from bubbling up
          to the div above so that it will not exec it's onClick handler (which
          should close the modal*/}
-      <div className={styles.form} onClick={(e) => e.stopPropagation()}>
+      <div ref={formRef} className={`${styles.form} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <h2>{title}</h2>
           {children}
