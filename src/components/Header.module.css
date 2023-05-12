@@ -8,10 +8,25 @@
     z-index:2;
 }
 
-.headerLeft {
+.headerContent {
     display: flex;
     height: inherit;
     align-items: center;
+    justify-content: space-between;
+}
+
+.headerLeft{
+    display: flex;
+    align-items: center;
+    height: inherit;
+    padding-left:5px
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    height: inherit;
+    padding-right:10px
 }
 
 .logo {
@@ -19,10 +34,9 @@
     fill: #ffffff;
     height: inherit;
     width: auto;
-    padding-left:5px
 }
 
-.header > .headerLeft > h1 {
+.header > .headerContent > .headerLeft > h1 {
     /*color: #e8e6e3*/
     color: #ffffff;
     font-size: 37px;

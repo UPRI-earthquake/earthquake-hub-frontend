@@ -1,0 +1,21 @@
+.button {
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  font-size: 1rem;
+  border-radius: 4px;
+}
+
+.button:hover {
+  color: lightgray
+}
+
+.hasOutline {
+  border: 1px solid white;
+}
+
+.hasOutline:hover {
+  border: 1px solid lightgray;
+}
