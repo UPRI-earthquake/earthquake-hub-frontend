@@ -50,6 +50,7 @@ function SignInForm( {onClick} ) {
                        : process.env.REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
 
   async function handleSignInSubmit(event) {
     const username = event.target.elements.username.value;
@@ -64,6 +65,7 @@ function SignInForm( {onClick} ) {
         }
       );
       console.log("Sign in successful!", response.data);
+      setIsLoggedIn(true); // Set isLoggedIn to true upon successful login
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -73,6 +75,12 @@ function SignInForm( {onClick} ) {
           console.error("Error occurred while signing in:", error);
         }
     }
+  }
+
+  if (isLoggedIn) { // Render Dashboard
+    return (
+      <Dashboard></Dashboard>
+    );
   }
 
   return (
@@ -97,6 +105,7 @@ function SignUpForm( {onClick} ) {
                        : process.env.REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
 
   async function handleSignUpSubmit(event) {
     const email = event.target.elements.email.value;
@@ -114,6 +123,7 @@ function SignUpForm( {onClick} ) {
         }
       );
       console.log("Sign up successful!", response);
+      setIsLoggedIn(true); // Set isLoggedIn to true upon successful sign up
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
@@ -124,6 +134,13 @@ function SignUpForm( {onClick} ) {
       }
     }
   }
+
+  if (isLoggedIn) { // Render Dashboard
+    return (
+      <Dashboard></Dashboard>
+    );
+  }
+
   return (
     <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
       <label>
@@ -131,7 +148,7 @@ function SignUpForm( {onClick} ) {
         <input type="text" name="email" />
       </label>
       <label>
-        Username
+        UsernameonClick
         <input type="text" name="username"/>
       </label>
       <label>
@@ -145,6 +162,60 @@ function SignUpForm( {onClick} ) {
       {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
       <button type="submit">Sign Up</button>
     </Form>
+  );
+}
+
+// --------------------------------------------------------------------------------
+
+function DashboardModal({ children, title, onClick, onSubmit }) {
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    const profileEl = profileRef.current;
+    profileEl.classList.remove(styles.hidden);
+    profileEl.animate(
+      [
+        { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
+        { opacity: 1, transform: 'translateX(0)' } // Updated transform property
+      ],
+      {
+        duration: 150,
+        easing: 'cubic-bezier(0, 0, 0.5, 1)'
+      }
+    );
+  }, []);
+
+  const handleSubmit = (event) => {
+    // call onSubmit instead of prevent form-submit behavior of sending
+    // a basic request to the server to handle the data, making the server
+    // navigate to a new page
+    event.preventDefault();
+    onSubmit(event);
+  };
+
+  return (
+    <div className={styles.profileModal} onClick={onClick}>
+      {/*When .form div is clicked, prevent click event from bubbling up
+         to the div above so that it will not exec it's onClick handler (which
+         should close the modal*/}
+      <div ref={profileRef} className={`${styles.profileForm} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit}>
+          <h2>{title}</h2>
+          {children}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+function Dashboard() {
+  
+
+  return (
+    <DashboardModal title="Dashboard">
+
+    </DashboardModal>
   );
 }
 
