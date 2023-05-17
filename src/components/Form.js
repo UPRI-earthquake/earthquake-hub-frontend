@@ -105,7 +105,7 @@ function SignUpForm( {onClick} ) {
                        : process.env.REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   async function handleSignUpSubmit(event) {
     const email = event.target.elements.email.value;
@@ -209,7 +209,7 @@ function DashboardModal({ children, title, onClick, onSubmit }) {
 }
 
 
-function Dashboard() {
+function Dashboard({ onSuccess }) {
   const [isAddingDevice, setIsAddingDevice] = useState(false);
   const [errorMessage, setErrorMessage] = useState("")
   const addDeviceFormRef = useRef(null);
@@ -228,11 +228,39 @@ function Dashboard() {
 
   async function handleAddDeviceSubmit(event) {
     event.preventDefault();
-    console.log("Add Device Submit is Clicked")
+    const backend_host = process.env.NODE_ENV === 'production'
+                       ? process.env.REACT_APP_BACKEND
+                       : process.env.REACT_APP_BACKEND_DEV
+
+    const network = event.target.elements.network.value;
+    const station = event.target.elements.station.value;
+    const location = event.target.elements.location.value;
+    const elevation = event.target.elements.elevation.value;
+    try {
+      const response = await axios.post(
+        `${backend_host}/device/add`,
+        {
+          network: network,
+          station: station,
+          location: location,
+          elevation: elevation
+        }
+      );
+      console.log("Add Device Success", response.data);
+    } catch (error) {
+        if (error.response) {
+          const { data } = error.response;
+          setErrorMessage(`Error: ${data.message}`); // API should always sends {message: ""} in json
+          console.error("Error occurred while adding device:", data);
+        } else {
+          console.error("Error occurred while adding device:", error);
+        }
+    }
   }
 
   function handleAddDeviceClick() {
     setIsAddingDevice(true);
+    setErrorMessage("")
   }
 
   function handleCancelClick() {
@@ -240,11 +268,10 @@ function Dashboard() {
   }
 
   return (
-    <DashboardModal title="Dashboard Modal">
+    <DashboardModal title="Dashboard Modal" onSubmit={handleAddDeviceSubmit}>
       {isAddingDevice ? (
         <div className={styles.addDeviceForm} ref={addDeviceFormRef}>
-          <form onSubmit={handleAddDeviceSubmit}>
-            <h2>Add Device</h2>
+            <h2>Add a New Device</h2>
             {/* Error Message Div*/}
             {errorMessage && (
               <div className={styles.errorPopup}>
@@ -270,7 +297,6 @@ function Dashboard() {
             </label>
             <button type="submit">Submit</button>
             <button type="button" onClick={handleCancelClick}>Cancel</button>
-          </form>
         </div>
       ) : (
         <div ref={profileContainerRef}>
@@ -290,7 +316,7 @@ function Dashboard() {
               <tr>
                 <td>AM</td>
                 <td>R3B2D</td>
-                <td>Not Yet</td>
+                <td>Not Yet Linked</td>
               </tr>
               {/* Add more rows as needed */}
             </tbody>
