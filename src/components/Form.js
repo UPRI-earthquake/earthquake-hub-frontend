@@ -210,10 +210,97 @@ function DashboardModal({ children, title, onClick, onSubmit }) {
 
 
 function Dashboard() {
-  
+  const [isAddingDevice, setIsAddingDevice] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("")
+  const addDeviceFormRef = useRef(null);
+  const profileContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (isAddingDevice) {
+      const addDeviceFormEl = addDeviceFormRef.current;
+      addDeviceFormEl.classList.add(styles.showForm);
+    } else {
+      const profileContainerEl = profileContainerRef.current;
+      profileContainerEl.classList.add(styles.showProfileContainer)
+      profileContainerEl.classList.remove(styles.animate);
+    }
+  }, [isAddingDevice]);
+
+  async function handleAddDeviceSubmit(event) {
+    event.preventDefault();
+    console.log("Add Device Submit is Clicked")
+  }
+
+  function handleAddDeviceClick() {
+    setIsAddingDevice(true);
+  }
+
+  function handleCancelClick() {
+    setIsAddingDevice(false);
+  }
 
   return (
-    <DashboardModal title="Dashboard">
+    <DashboardModal title="Dashboard Modal">
+      {isAddingDevice ? (
+        <div className={styles.addDeviceForm} ref={addDeviceFormRef}>
+          <form onSubmit={handleAddDeviceSubmit}>
+            <h2>Add Device</h2>
+            {/* Error Message Div*/}
+            {errorMessage && (
+              <div className={styles.errorPopup}>
+                <p>{errorMessage}</p>
+              </div>
+            )}
+            {/* Add device form contents */}
+            <label>
+              Network
+              <input type="text" name="network" />
+            </label>
+            <label>
+              Station
+              <input type="text" name="station" />
+            </label>
+            <label>
+              Elevation
+              <input type="text" name="elevation" />
+            </label>
+            <label>
+              Location
+              <input type="text" name="location" />
+            </label>
+            <button type="submit">Submit</button>
+            <button type="button" onClick={handleCancelClick}>Cancel</button>
+          </form>
+        </div>
+      ) : (
+        <div ref={profileContainerRef}>
+          <h2>Profile</h2>
+
+
+          <h2>Device List</h2>
+          <table className={styles.deviceListTable}>
+            <thead>
+              <tr>
+                <th>Network</th>
+                <th>Station</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>AM</td>
+                <td>R3B2D</td>
+                <td>Not Yet</td>
+              </tr>
+              {/* Add more rows as needed */}
+            </tbody>
+          </table>
+
+          <div className={styles.addButtonContainer}>
+            <button onClick={handleAddDeviceClick}>Add Device</button>
+          </div>
+        </div>
+      )}
 
     </DashboardModal>
   );
