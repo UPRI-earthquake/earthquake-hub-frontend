@@ -1,152 +1,116 @@
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .form {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    width: 300px;
-    max-width: 90%;
-  }
-  
-  .hidden {
-    opacity: 0;
-    transition: opacity 150ms ease-out;
-    background-color: transparent;
-    z-index: -9999;
-  }
-  
-  .form h2 {
-    margin-top: 0;
-  }
-  
-  .form label {
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-  
-  .form input[type="text"],
-  .form input[type="password"] {
-    display: block;
-    box-sizing: border-box;
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    margin-top: 0.3rem;
-    margin-bottom: 1rem;
-  }
-  
-  .form button[type="submit"] {
-    display: block;
-    width: 100%;
-    background-color: #3a6a50;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-  }
-  
-  .form button[type="submit"]:hover {
-    background-color: #447f5b;
-  }
-  
-  
-  /* ----------------------------------   PROFILE CONTAINER   ------------------------------------------------ */
-  
-  .profileModal {
-    position: fixed;
-    right: 0;
-    width: 100%;  
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-  }
-  
-  .profileForm {
-    background-color: #fff;
-    padding-left: 20px;
-    padding-right: 20px;
-    border-radius:10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    width: 700px;
-    max-width: 90%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Center vertically */
-  }
-  
-  .deviceListTable {
-    border-collapse: collapse;
-    width: 100%;
-  }
-  
-  .deviceListTable th,
-  .deviceListTable td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  
-  .deviceListTable th {
-    background-color: #f2f2f2;
-  }
-  
-  
-  .addDeviceForm{
-    opacity: 1;
-    transform: translateX(100%);
-  }
-  
-  .addDeviceForm label {
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-  
-  .showForm {
-    opacity: 1;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    transform: translateX(0%);
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-  
-  .closeForm {
-    opacity: 1;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    transform: translateX(100%);
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-  
-  .showProfileContainer {
-    opacity: 1;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    transform: translateX(0);
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-  
-  .errorPopup {
-    background-color: #eA6D7E;
-    border: 3px solid #d54c49;
-    color: white;
-    padding: 2px;
-    border-radius: 5px;
-    margin: 10px;
-    text-align: center;
-  }
+.profileModal {
+  position: fixed;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.profileForm {
+  background-color: #fff;
+  padding-left: 20px;
+  padding-right: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 700px;
+  max-width: 90%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Center vertically */
+}
+
+.hidden {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+  background-color: transparent;
+  z-index: -9999;
+}
+
+.deviceListTable {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.deviceListTable th,
+.deviceListTable td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.deviceListTable th {
+  background-color: #f2f2f2;
+}
+
+
+.addDeviceForm {
+  opacity: 1;
+  transform: translateX(100%);
+}
+
+.addDeviceForm label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.showForm {
+  opacity: 1;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateX(0%);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.closeForm {
+  opacity: 1;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateX(100%);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.showProfileContainer {
+  opacity: 1;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateX(0);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.errorPopup {
+  background-color: #eA6D7E;
+  border: 3px solid #d54c49;
+  color: white;
+  padding: 2px;
+  border-radius: 5px;
+  margin: 10px;
+  text-align: center;
+}
+
+.messagePopup {
+  position: relative;
+  background-color: #79dfa4;
+  border: 3px solid #015508;
+  color: white;
+  padding: 20px;
+  border-radius: 5px;
+  margin: 10px;
+  text-align: center;
+}
+
+.exitButton {
+  position: absolute;
+  top: 0;
+  right: 5px;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 16px;
+  padding: 5px;
+  cursor: pointer;
+}

@@ -5,6 +5,7 @@ import Button from "./Button";
 import { SignInForm, SignUpForm } from "./Form";
 import { Dashboard } from "./Dashboard";
 import { ReactComponent as BurgerMenu } from './burger-menu-white.svg';
+import { ReactComponent as CloseMenu } from './close-menu-white.svg';
 
 function Header() {
   const [showSignInForm, setShowSignInForm] = useState(false);
@@ -12,6 +13,7 @@ function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [signupSuccessMessage, setSignupSuccessMessage] = useState('');
 
   const handleSignInClick = () => setShowSignInForm(true);
   const handleSignInClose = () => setShowSignInForm(false);
@@ -24,14 +26,19 @@ function Header() {
     setIsLoggedIn(true); // User is now logged in
   }
   const handleSignUpSuccess = () => {
+    setSignupSuccessMessage("Registration Successful")
     setShowSignUpForm(false);
     setShowDashboard(true);
     setIsLoggedIn(true); // User is now logged in
   }
-
+  
   const handleDashboardToggle = () => {
     setIsDashboardOpen(!isDashboardOpen);
     setShowDashboard(!isDashboardOpen)
+  };
+
+  const handlePopupExit = () => {
+    setSignupSuccessMessage('')
   };
 
   return(
@@ -41,9 +48,15 @@ function Header() {
         <Logo className={styles.logo}/>
         <h1>CS•UPRI</h1>
       </div>
-      <div className={styles.headerRight}>
+        <div className={styles.headerRight}>
           {isLoggedIn ? (
-            <BurgerMenu className={styles.burgerMenu} onClick={handleDashboardToggle} />
+            <div className={styles.menuToggle} onClick={handleDashboardToggle}>
+              {isDashboardOpen ? (
+                <CloseMenu className={styles.closeMenu} />
+              ) : (
+                <BurgerMenu className={styles.burgerMenu} />
+              )}
+            </div>
           ) : (
             <>
               <Button hasOutline={false} onClick={handleSignInClick}>
@@ -54,11 +67,11 @@ function Header() {
               </Button>
             </>
           )}
-      </div>
+        </div>
     </div>
       {showSignInForm && <SignInForm onClick={handleSignInClose} onSuccess={handleSignInSuccess} />}
       {showSignUpForm && <SignUpForm onClick={handleSignUpClose} onSuccess={handleSignUpSuccess} />}
-      {showDashboard && <Dashboard onClick={handleDashboardToggle} onEscapeClick={handleDashboardToggle} />}
+      {showDashboard && <Dashboard onClick={handleDashboardToggle} onEscapeClick={handleDashboardToggle} signupSuccessMessage={signupSuccessMessage} onPopupExit={handlePopupExit} />}
     </div>
   )
 }

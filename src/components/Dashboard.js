@@ -41,32 +41,12 @@ function DashboardModal({ children, title, onClick, onSubmit, onEscapeClick }) {
     onSubmit(event);
   };
 
-  // const handleExitClick = () => {
-  //   const profileEl = profileRef.current;
-  //   profileEl.classList.add(styles.hidden);
-  //   profileEl.classList.remove(styles.profileModal);
-  //   profileEl.classList.remove(styles.profileForm);
-  //   profileEl.animate(
-  //     [
-  //       { opacity: 1, transform: 'translateX(0)' },
-  //       { opacity: 0, transform: 'translateX(100%)' }
-  //     ],
-  //     {
-  //       duration: 150,
-  //       easing: 'cubic-bezier(0, 0, 0.5, 1)'
-  //     }
-  //   )
-  // };
-
   return (
     <div className={styles.profileModal} onClick={onClick}>
       {/*When .form div is clicked, prevent click event from bubbling up
          to the div above so that it will not exec it's onClick handler (which
          should close the modal*/}
       <div ref={profileRef} className={`${styles.profileForm} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
-        {/* <div className={styles.exitButton} onClick={handleExitClick}>
-          X
-        </div> */}
         <form onSubmit={handleSubmit}>
           <h2>{title}</h2>
           {children}
@@ -77,9 +57,10 @@ function DashboardModal({ children, title, onClick, onSubmit, onEscapeClick }) {
 }
 
 
-function Dashboard({ onClick, onEscapeClick }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
   const [isAddingDevice, setIsAddingDevice] = useState(false);
   const [errorMessage, setErrorMessage] = useState("")
+  const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage);
   const addDeviceFormRef = useRef(null);
   const profileContainerRef = useRef(null);
 
@@ -146,6 +127,11 @@ function Dashboard({ onClick, onEscapeClick }) {
     setIsAddingDevice(false);
   }
 
+  function handleExitPopup() {
+    setSignupSuccessMessage('')
+    onPopupExit()
+  }
+
   return (
     <DashboardModal onClick={onClick} onEscapeClick={onEscapeClick} onSubmit={handleAddDeviceSubmit}>
       {isAddingDevice ? (
@@ -179,6 +165,14 @@ function Dashboard({ onClick, onEscapeClick }) {
         </div>
       ) : (
         <div ref={profileContainerRef}>
+          {SignupSuccessMessage && (
+            <div className={styles.messagePopup}>
+              <button className={styles.exitButton} onClick={handleExitPopup}>
+                X
+              </button>
+              <p>{SignupSuccessMessage}</p>
+            </div>
+          )} 
           <h2>Profile</h2>
 
 
