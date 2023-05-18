@@ -160,8 +160,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
               Location
               <input type="text" name="location" />
             </label>
-            <button type="submit">Submit</button>
-            <button type="button" onClick={handleCancelClick}>Cancel</button>
+            <button type="submit"  className={styles.addDeviceButton}>Submit</button>
+            <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
         </div>
       ) : (
         <div ref={profileContainerRef}>
@@ -195,8 +195,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
             </tbody>
           </table>
 
-          <div className={styles.addButtonContainer}>
-            <button onClick={handleAddDeviceClick}>Add Device</button>
+          <div className={styles.addDeviceButtonDiv}>
+            <button className={styles.addDeviceButton} onClick={handleAddDeviceClick}>Add Device</button>
           </div>
         </div>
       )}

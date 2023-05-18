@@ -47,6 +47,12 @@
   background-color: #f2f2f2;
 }
 
+.addDeviceButtonDiv {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
 .addDeviceForm {
   opacity: 1;
@@ -55,7 +61,7 @@
 
 .addDeviceForm label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem;  
 }
 
 .showForm {
@@ -113,4 +119,53 @@
   font-size: 16px;
   padding: 5px;
   cursor: pointer;
+}
+
+
+.addDeviceButton {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: rgba(36, 99, 42, 0.3);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.addDeviceButton:hover {
+  background-color: rgba(28, 82, 24, 0.5);
+}
+
+.addDeviceButton:focus {
+  outline: none;
+}
+
+.cancelButton {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: rgba(109, 109, 109, 0.3);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.cancelButton:hover {
+  background-color: #6b6b6b;
+}
+
+.cancelButton:focus {
+  outline: none;
 }
