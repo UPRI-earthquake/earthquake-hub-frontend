@@ -44,13 +44,12 @@ function Form({ children, title, onClick, onSubmit }) {
   );
 }
 
-function SignInForm( {onClick} ) {
+function SignInForm( {onClick, onSuccess} ) {
   const backend_host = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_BACKEND
                        : process.env.REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
 
   async function handleSignInSubmit(event) {
     const username = event.target.elements.username.value;
@@ -65,7 +64,9 @@ function SignInForm( {onClick} ) {
         }
       );
       console.log("Sign in successful!", response.data);
-      setIsLoggedIn(true); // Set isLoggedIn to true upon successful login
+      
+      // TODO: Pass message of successful login to Dashboard
+      onSuccess();
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -77,14 +78,8 @@ function SignInForm( {onClick} ) {
     }
   }
 
-  if (isLoggedIn) { // Render Dashboard
-    return (
-      <Dashboard></Dashboard>
-    );
-  }
-
   return (
-    <Form title="Sign In" onClick={onClick} onSubmit={handleSignInSubmit}>
+    <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
       <label>
         Username
         <input type="text" name="username"/>
@@ -99,13 +94,12 @@ function SignInForm( {onClick} ) {
   );
 }
 
-function SignUpForm( {onClick} ) {
+function SignUpForm( {onClick, onSuccess} ) {
   const backend_host = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_BACKEND
                        : process.env.REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   async function handleSignUpSubmit(event) {
     const email = event.target.elements.email.value;
@@ -123,7 +117,9 @@ function SignUpForm( {onClick} ) {
         }
       );
       console.log("Sign up successful!", response);
-      setIsLoggedIn(true); // Set isLoggedIn to true upon successful sign up
+
+      // TODO: Pass message of successful login to <Dashboard>
+      onSuccess();
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
@@ -135,20 +131,14 @@ function SignUpForm( {onClick} ) {
     }
   }
 
-  if (isLoggedIn) { // Render Dashboard
-    return (
-      <Dashboard></Dashboard>
-    );
-  }
-
   return (
-    <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
+    <Form title="Sign Up" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignUpSubmit}>
       <label>
         Email
         <input type="text" name="email" />
       </label>
       <label>
-        UsernameonClick
+        Username
         <input type="text" name="username"/>
       </label>
       <label>
@@ -162,173 +152,6 @@ function SignUpForm( {onClick} ) {
       {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
       <button type="submit">Sign Up</button>
     </Form>
-  );
-}
-
-// --------------------------------------------------------------------------------
-
-function DashboardModal({ children, title, onClick, onSubmit }) {
-  const profileRef = useRef(null);
-
-  useEffect(() => {
-    const profileEl = profileRef.current;
-    profileEl.classList.remove(styles.hidden);
-    profileEl.animate(
-      [
-        { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
-        { opacity: 1, transform: 'translateX(0)' } // Updated transform property
-      ],
-      {
-        duration: 150,
-        easing: 'cubic-bezier(0, 0, 0.5, 1)'
-      }
-    );
-  }, []);
-
-  const handleSubmit = (event) => {
-    // call onSubmit instead of prevent form-submit behavior of sending
-    // a basic request to the server to handle the data, making the server
-    // navigate to a new page
-    event.preventDefault();
-    onSubmit(event);
-  };
-
-  return (
-    <div className={styles.profileModal} onClick={onClick}>
-      {/*When .form div is clicked, prevent click event from bubbling up
-         to the div above so that it will not exec it's onClick handler (which
-         should close the modal*/}
-      <div ref={profileRef} className={`${styles.profileForm} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
-        <form onSubmit={handleSubmit}>
-          <h2>{title}</h2>
-          {children}
-        </form>
-      </div>
-    </div>
-  );
-}
-
-
-function Dashboard({ onSuccess }) {
-  const [isAddingDevice, setIsAddingDevice] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("")
-  const addDeviceFormRef = useRef(null);
-  const profileContainerRef = useRef(null);
-
-  useEffect(() => {
-    if (isAddingDevice) {
-      const addDeviceFormEl = addDeviceFormRef.current;
-      addDeviceFormEl.classList.add(styles.showForm);
-    } else {
-      const profileContainerEl = profileContainerRef.current;
-      profileContainerEl.classList.add(styles.showProfileContainer)
-      profileContainerEl.classList.remove(styles.animate);
-    }
-  }, [isAddingDevice]);
-
-  async function handleAddDeviceSubmit(event) {
-    event.preventDefault();
-    const backend_host = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_BACKEND
-                       : process.env.REACT_APP_BACKEND_DEV
-
-    const network = event.target.elements.network.value;
-    const station = event.target.elements.station.value;
-    const location = event.target.elements.location.value;
-    const elevation = event.target.elements.elevation.value;
-    try {
-      const response = await axios.post(
-        `${backend_host}/device/add`,
-        {
-          network: network,
-          station: station,
-          location: location,
-          elevation: elevation
-        }
-      );
-      console.log("Add Device Success", response.data);
-    } catch (error) {
-        if (error.response) {
-          const { data } = error.response;
-          setErrorMessage(`Error: ${data.message}`); // API should always sends {message: ""} in json
-          console.error("Error occurred while adding device:", data);
-        } else {
-          console.error("Error occurred while adding device:", error);
-        }
-    }
-  }
-
-  function handleAddDeviceClick() {
-    setIsAddingDevice(true);
-    setErrorMessage("")
-  }
-
-  function handleCancelClick() {
-    setIsAddingDevice(false);
-  }
-
-  return (
-    <DashboardModal title="Dashboard Modal" onSubmit={handleAddDeviceSubmit}>
-      {isAddingDevice ? (
-        <div className={styles.addDeviceForm} ref={addDeviceFormRef}>
-            <h2>Add a New Device</h2>
-            {/* Error Message Div*/}
-            {errorMessage && (
-              <div className={styles.errorPopup}>
-                <p>{errorMessage}</p>
-              </div>
-            )}
-            {/* Add device form contents */}
-            <label>
-              Network
-              <input type="text" name="network" />
-            </label>
-            <label>
-              Station
-              <input type="text" name="station" />
-            </label>
-            <label>
-              Elevation
-              <input type="text" name="elevation" />
-            </label>
-            <label>
-              Location
-              <input type="text" name="location" />
-            </label>
-            <button type="submit">Submit</button>
-            <button type="button" onClick={handleCancelClick}>Cancel</button>
-        </div>
-      ) : (
-        <div ref={profileContainerRef}>
-          <h2>Profile</h2>
-
-
-          <h2>Device List</h2>
-          <table className={styles.deviceListTable}>
-            <thead>
-              <tr>
-                <th>Network</th>
-                <th>Station</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>AM</td>
-                <td>R3B2D</td>
-                <td>Not Yet Linked</td>
-              </tr>
-              {/* Add more rows as needed */}
-            </tbody>
-          </table>
-
-          <div className={styles.addButtonContainer}>
-            <button onClick={handleAddDeviceClick}>Add Device</button>
-          </div>
-        </div>
-      )}
-
-    </DashboardModal>
   );
 }
 
