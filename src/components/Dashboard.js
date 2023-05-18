@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Dashboard.module.css";
-// import ErrorPopup from "./ErrorPopup";
+import ErrorPopup from "./ErrorPopup";
 
 function DashboardModal({ children, title, onClick, onSubmit, onEscapeClick }) {
   const profileRef = useRef(null);
@@ -113,6 +113,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
           setErrorMessage(`Error: ${data.message}`); // API should always sends {message: ""} in json
           console.error("Error occurred while adding device:", data);
         } else {
+          setErrorMessage("Network Error")
           console.error("Error occurred while adding device:", error);
         }
     }
@@ -138,11 +139,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
         <div className={styles.addDeviceForm} ref={addDeviceFormRef}>
             <h2>Add a New Device</h2>
             {/* Error Message Div*/}
-            {errorMessage && (
-              <div className={styles.errorPopup}>
-                <p>{errorMessage}</p>
-              </div>
-            )}
+            {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
             {/* Add device form contents */}
             <label>
               Network
