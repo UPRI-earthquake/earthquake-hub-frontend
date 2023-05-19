@@ -1,28 +1,30 @@
-.profileModal {
+.modalOverlay {
   position: fixed;
   right: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.301);
   display: flex;
   justify-content: flex-end;
   align-items: center;
 }
 
-.profileForm {
-  background-color: #fff;
+.dashboardModal {
+  background-color: rgb(255, 255, 255);
   padding-left: 20px;
   padding-right: 20px;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.5);
   width: 700px;
   max-width: 90%;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /* Center vertically */
 }
+
 
 .hidden {
   opacity: 0;
@@ -31,39 +33,110 @@
   z-index: -9999;
 }
 
+
+/* Device List Table */
 .deviceListTable {
   border-collapse: collapse;
   width: 100%;
-}
-
-.deviceListTable th,
-.deviceListTable td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
+  background-color: #f2f2f2;
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1),
+              -8px -8px 16px rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .deviceListTable th {
-  background-color: #f2f2f2;
+  background-color: #e0e0e0;
+  padding: 10px;
+  font-weight: bold;
+  color: #4f6152;
+  border: 1px solid #ddd;
+  text-align: center;
 }
 
-.addDeviceButtonDiv {
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.deviceListTable td {
+  flex-basis: 0;
+  flex-grow: 1;
+  padding: 10px;
+  color: #4f6152;
 }
 
+
+/* Add Device Form */
 .addDeviceForm {
   opacity: 1;
   transform: translateX(100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f2f2f2;
+  box-shadow: inset 8px 8px 16px rgba(0, 0, 0, 0.1),
+              inset -8px -8px 16px rgba(255, 255, 255, 0.5),
+              8px 8px 16px rgba(0, 0, 0, 0.1),
+              -8px -8px 16px rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  padding: 20px;
 }
 
-.addDeviceForm label {
-  display: block;
-  margin-bottom: 0.5rem;  
+.addDeviceForm h2 {
+  color: #4f6152;
 }
 
+.addDeviceForm input[type="text"] {
+  background-color: #f2f2f2;
+  box-shadow: inset 8px 8px 16px rgba(0, 0, 0, 0.1),
+              inset -8px -8px 16px rgba(255, 255, 255, 0.5),
+              8px 8px 16px rgba(0, 0, 0, 0.1),
+              -8px -8px 16px rgba(255, 255, 255, 0.5);
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  margin: 5px;
+  transition: box-shadow 0.3s ease;
+}
+
+.addDeviceForm input[type="text"]:hover {
+  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+              inset -6px -6px 12px rgba(255, 255, 255, 0.5),
+              6px 6px 12px rgba(0, 0, 0, 0.1),
+              -6px -6px 12px rgba(255, 255, 255, 0.5);
+}
+
+.addDeviceForm input[type="text"]:focus {
+  animation: input-focus-animation 0.3s ease;
+}
+
+@keyframes input-focus-animation {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.addDeviceForm input[type="text"]::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+  font-style: italic;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.addDeviceForm input[type="text"]:hover::placeholder {
+  opacity: 1;
+}
+
+.addDeviceForm input[type="text"]:focus::placeholder {
+  opacity: 0.5;
+}
+
+
+/*  */
 .showForm {
   opacity: 1;
   transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -92,26 +165,31 @@
   background-color: #eA6D7E;
   border: 3px solid #d54c49;
   color: white;
-  padding: 2px;
-  border-radius: 5px;
+  padding: 10px;
+  border-radius: 10px;
   margin: 10px;
   text-align: center;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2), -5px -5px 10px rgba(255, 255, 255, 0.7);
 }
 
+/* Success Message Popup */
 .messagePopup {
   position: relative;
   background-color: #79dfa4;
-  border: 3px solid #015508;
+  border: none;
   color: white;
   padding: 20px;
   border-radius: 5px;
   margin: 10px;
   text-align: center;
+  box-shadow: 
+    inset 6px 6px 10px rgba(0, 0, 0, 0.1),
+    inset -6px -6px 10px rgba(255, 255, 255, 0.5);
 }
 
 .exitButton {
   position: absolute;
-  top: 0;
+  top: 2px;
   right: 5px;
   background-color: transparent;
   border: none;
@@ -121,39 +199,53 @@
   cursor: pointer;
 }
 
+/* Add Device/Cancel Button */
+.addDeviceButtonDiv {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
 .addDeviceButton {
   display: inline-block;
   padding: 10px 20px;
-  background-color: rgba(36, 99, 42, 0.3);
-  backdrop-filter: blur(10px);
+  margin: 10px;
+  background-color: #f0f0f0;
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.5);
   border: none;
   border-radius: 10px;
-  color: #ffffff;
+  color: #788d7b;
   font-size: 16px;
   font-weight: bold;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.3s ease-in-out;
+  transition: background-color 0.3s ease-in-out, transform 0.2s ease;
 }
 
+
 .addDeviceButton:hover {
-  background-color: rgba(28, 82, 24, 0.5);
+  background-color: #d8d8d8;
 }
 
 .addDeviceButton:focus {
   outline: none;
 }
 
+.addDeviceButton:active {
+  transform: scale(0.95);
+}
+
 .cancelButton {
   display: inline-block;
   padding: 10px 20px;
-  background-color: rgba(109, 109, 109, 0.3);
-  backdrop-filter: blur(10px);
+  margin: 10px;
+  background-color: #f0f0f0;
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.5);
   border: none;
   border-radius: 10px;
-  color: #ffffff;
+  color: #788d7b;
   font-size: 16px;
   font-weight: bold;
   text-align: center;
@@ -163,9 +255,46 @@
 }
 
 .cancelButton:hover {
-  background-color: #6b6b6b;
+  background-color: #d8d8d8;
 }
 
 .cancelButton:focus {
   outline: none;
 }
+
+
+/* Table */
+.table {
+  background-color: #f2f2f2;
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1),
+              -8px -8px 16px rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table-header {
+  background-color: #e0e0e0;
+  padding: 10px;
+  font-weight: bold;
+  color: #4f6152;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #c8c8c8;
+}
+
+.table-cell {
+  flex-basis: 0;
+  flex-grow: 1;
+  padding: 10px;
+  color: #4f6152;
+}
+
+.table-cell:first-child {
+  flex-grow: 0;
+  font-weight: bold;
+}
+

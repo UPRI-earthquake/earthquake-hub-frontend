@@ -3,7 +3,12 @@ import axios from 'axios';
 import styles from "./Dashboard.module.css";
 import ErrorPopup from "./ErrorPopup";
 
-function DashboardModal({ children, title, onClick, onSubmit, onEscapeClick }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
+  const [isAddingDevice, setIsAddingDevice] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('')
+  const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage);
+  const addDeviceFormRef = useRef(null);
+  const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -32,44 +37,13 @@ function DashboardModal({ children, title, onClick, onSubmit, onEscapeClick }) {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [onEscapeClick]);
-
-  const handleSubmit = (event) => {
-    // call onSubmit instead of prevent form-submit behavior of sending
-    // a basic request to the server to handle the data, making the server
-    // navigate to a new page
-    event.preventDefault();
-    onSubmit(event);
-  };
-
-  return (
-    <div className={styles.profileModal} onClick={onClick}>
-      {/*When .form div is clicked, prevent click event from bubbling up
-         to the div above so that it will not exec it's onClick handler (which
-         should close the modal*/}
-      <div ref={profileRef} className={`${styles.profileForm} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
-        <form onSubmit={handleSubmit}>
-          <h2>{title}</h2>
-          {children}
-        </form>
-      </div>
-    </div>
-  );
-}
-
-
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
-  const [isAddingDevice, setIsAddingDevice] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("")
-  const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage);
-  const addDeviceFormRef = useRef(null);
-  const profileContainerRef = useRef(null);
-
+  
   useEffect(() => {
     if (isAddingDevice) {
       const addDeviceFormEl = addDeviceFormRef.current;
       addDeviceFormEl.classList.add(styles.showForm);
     } else{
-      const profileContainerEl = profileContainerRef.current;
+      const profileContainerEl = dashboardContainerRef.current;
       profileContainerEl.classList.add(styles.showProfileContainer)
       profileContainerEl.classList.add(styles.animate);
     }
@@ -121,7 +95,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
 
   function handleAddDeviceClick() {
     setIsAddingDevice(true);
-    setErrorMessage("")
+    setErrorMessage('')
   }
 
   function handleCancelClick() {
@@ -134,34 +108,27 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   }
 
   return (
-    <DashboardModal onClick={onClick} onEscapeClick={onEscapeClick} onSubmit={handleAddDeviceSubmit}>
+    <div className={styles.modalOverlay} onClick={onClick}>
+      <div ref={profileRef} className={`${styles.dashboardModal} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
       {isAddingDevice ? (
-        <div className={styles.addDeviceForm} ref={addDeviceFormRef}>
-            <h2>Add a New Device</h2>
-            {/* Error Message Div*/}
-            {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
+        <>
+          <form className={`${styles.addDeviceForm} ${styles.addDeviceForm_default}`} ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
+            <h2>Add New Device</h2>
             {/* Add device form contents */}
-            <label>
-              Network
-              <input type="text" name="network" />
-            </label>
-            <label>
-              Station
-              <input type="text" name="station" />
-            </label>
-            <label>
-              Elevation
-              <input type="text" name="elevation" />
-            </label>
-            <label>
-              Location
-              <input type="text" name="location" />
-            </label>
-            <button type="submit"  className={styles.addDeviceButton}>Submit</button>
-            <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
-        </div>
+              <input type="text" name="network" placeholder="Network" />
+              <input type="text" name="station" placeholder="Station" />
+              <input type="text" name="elevation" placeholder="Elevation" />
+              <input type="text" name="location" placeholder="Location" />
+            <div className={styles.addDeviceButtonDiv}>
+              <button type="submit"  className={styles.addDeviceButton}>Submit</button>
+              <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
+            </div>
+          </form>
+          {/* Error Message */}
+          {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
+        </>
       ) : (
-        <div ref={profileContainerRef}>
+        <div ref={dashboardContainerRef}>
           {SignupSuccessMessage && (
             <div className={styles.messagePopup}>
               <button className={styles.exitButton} onClick={handleExitPopup}>
@@ -198,8 +165,41 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
         </div>
       )}
 
-    </DashboardModal>
+      </div>
+    </div>
   );
 }
+
+
+// function AddDeviceForm() {
+
+//   return (
+//     <>
+//       <h2>Add a New Device</h2>
+//       {/* Error Message form*/}
+//       {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
+//       {/* Add device form contents */}
+//       <label>
+//         Network
+//         <input type="text" name="network" />
+//       </label>
+//       <label>
+//         Station
+//         <input type="text" name="station" />
+//       </label>
+//       <label>
+//         Elevation
+//         <input type="text" name="elevation" />
+//       </label>
+//       <label>
+//         Location
+//         <input type="text" name="location" />
+//       </label>
+//       <button type="submit" className={styles.addDeviceButton}>Submit</button>
+//       <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
+//     </>
+//   );
+// }
+
 
 export { Dashboard };
