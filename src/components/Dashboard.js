@@ -185,36 +185,4 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   );
 }
 
-
-// function AddDeviceForm() {
-
-//   return (
-//     <>
-//       <h2>Add a New Device</h2>
-//       {/* Error Message form*/}
-//       {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
-//       {/* Add device form contents */}
-//       <label>
-//         Network
-//         <input type="text" name="network" />
-//       </label>
-//       <label>
-//         Station
-//         <input type="text" name="station" />
-//       </label>
-//       <label>
-//         Elevation
-//         <input type="text" name="elevation" />
-//       </label>
-//       <label>
-//         Location
-//         <input type="text" name="location" />
-//       </label>
-//       <button type="submit" className={styles.addDeviceButton}>Submit</button>
-//       <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
-//     </>
-//   );
-// }
-
-
 export { Dashboard };
