@@ -3,6 +3,12 @@ import axios from 'axios';
 import styles from "./Dashboard.module.css";
 import ErrorPopup from "./ErrorPopup";
 
+const statusTooltips = {
+  'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
+  'Not Streaming': 'This device has been linked to your account but is currently not sending data to the server.',
+  'Streaming': 'This device is sending data to the server.',
+};
+
 function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
   const [isAddingDevice, setIsAddingDevice] = useState(false);
   const [errorMessage, setErrorMessage] = useState('')
@@ -10,6 +16,14 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
+
+  // TODO: get device list from W1 endpoint
+  const [devices, setDevices] = useState([
+    { network: 'AM', station: 'R3B2D', status: 'Not Yet Linked' },
+    { network: 'AB', station: 'RFC12', status: 'Not Streaming' },
+    { network: 'CD', station: 'ABC12', status: 'Streaming' }
+    // Add more devices as needed
+  ]);
 
   useEffect(() => {
     const profileEl = profileRef.current;
@@ -150,12 +164,13 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>AM</td>
-                <td>R3B2D</td>
-                <td>Not Yet Linked</td>
-              </tr>
-              {/* Add more rows as needed */}
+              {devices.map((device, index) => (
+                <tr key={index}>
+                  <td>{device.network}</td>
+                  <td>{device.station}</td>
+                  <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
 

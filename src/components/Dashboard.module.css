@@ -57,8 +57,34 @@
 .deviceListTable td {
   flex-basis: 0;
   flex-grow: 1;
-  padding: 10px;
+  padding: 20px;
   color: #4f6152;
+}
+
+
+/* Tooltip */
+[data-tooltip] {
+  position: relative;
+  cursor: pointer;
+}
+
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #01581b;
+  color: #fff;
+  border-radius: 5px;
+  font-size: 14px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+[data-tooltip]:hover::before {
+  opacity: 1;
+  visibility: visible;
 }
 
 
@@ -261,40 +287,3 @@
 .cancelButton:focus {
   outline: none;
 }
-
-
-/* Table */
-.table {
-  background-color: #f2f2f2;
-  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1),
-              -8px -8px 16px rgba(255, 255, 255, 0.5);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.table-header {
-  background-color: #e0e0e0;
-  padding: 10px;
-  font-weight: bold;
-  color: #4f6152;
-}
-
-.table-row {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #c8c8c8;
-}
-
-.table-cell {
-  flex-basis: 0;
-  flex-grow: 1;
-  padding: 10px;
-  color: #4f6152;
-}
-
-.table-cell:first-child {
-  flex-grow: 0;
-  font-weight: bold;
-}
-
