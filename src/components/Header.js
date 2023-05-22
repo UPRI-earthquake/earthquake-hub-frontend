@@ -24,12 +24,16 @@ function Header() {
     setShowSignInForm(false);
     setShowDashboard(true);
     setIsLoggedIn(true); // User is now logged in
+    setIsDashboardOpen(!isDashboardOpen);
+    setShowDashboard(!isDashboardOpen)
   }
   const handleSignUpSuccess = () => {
     setSignupSuccessMessage("Registration Successful")
     setShowSignUpForm(false);
     setShowDashboard(true);
     setIsLoggedIn(true); // User is now logged in
+    setIsDashboardOpen(!isDashboardOpen);
+    setShowDashboard(!isDashboardOpen)
   }
   
   const handleDashboardToggle = () => {
