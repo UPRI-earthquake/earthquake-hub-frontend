@@ -10,11 +10,13 @@ const statusTooltips = {
 };
 
 function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
-  const [isAddingDevice, setIsAddingDevice] = useState(false);
-  const [isAddDeviceCancelled, setIsAddDeviceCancelled] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('')
-  const [devices, setDevices] = useState([])
-  const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage);
+  const [isAddingDevice, setIsAddingDevice] = useState(false); // checks the state if 'Add Device' button is clicked
+  const [isAddDeviceSuccess, setIsAddDeviceSuccess] = useState(false); // checks the state if Add Device form submission is successful
+  const [isAddDeviceCancelled, setIsAddDeviceCancelled] = useState(false); //checks the state if 'Cancel' button from form submission is clicked
+  const [errorMessage, setErrorMessage] = useState('') // hook for all error message
+  const [devices, setDevices] = useState([]) // hook for list of device in table (array)
+  const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage); // hook for success message on successful registration
+  const [addDeviceSuccessMessage, setAddDeviceSuccessMessage] = useState();  // hook for add device success message
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
@@ -100,8 +102,21 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
           easing: 'cubic-bezier(0, 0, 0.5, 1)',
         }
       );
+    } else if(isAddDeviceSuccess) {
+      const dashboardEl = dashboardContainerRef.current;
+      dashboardEl.classList.remove(styles.hidden);
+      dashboardEl.animate(
+        [
+          { opacity: 0, transform: 'translateX(-25%)' },
+          { opacity: 1, transform: 'translateX(0)' }
+        ],
+        {
+          duration: 300,
+          easing: 'cubic-bezier(0, 0, 0.5, 1)',
+        }
+      );
     }
-  }, [isAddingDevice, isAddDeviceCancelled]);
+  }, [isAddingDevice, isAddDeviceCancelled, isAddDeviceSuccess]);
 
   async function handleAddDeviceSubmit(event) {
     event.preventDefault();
@@ -135,6 +150,10 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
         }, axiosConfig
       );
       console.log("Add Device Success", response.data);
+
+      setAddDeviceSuccessMessage('Successfully added a new device. Your next step is to link your rshake device to your account. Access the device-to-account linking page of your device by going to rs-upri.local.') // Set success message to be displayed, in toast, after successful add device
+      setIsAddingDevice(false); // set isAddingDevice hook to false
+      setIsAddDeviceSuccess(true); // set isAddDeviceSuccess hook to true, to trigger transition
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -161,6 +180,10 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
     setSignupSuccessMessage('')
     onPopupExit()
   }
+  
+  function handlePopupClose() {
+    setAddDeviceSuccessMessage('')
+  }
 
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
@@ -183,7 +206,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
           {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
         </>
       ) : (
-        <div ref={dashboardContainerRef}>
+        <div ref={dashboardContainerRef} className={styles.profileContainer}>
           {SignupSuccessMessage && (
             <div className={styles.messagePopup}>
               <button className={styles.exitButton} onClick={handleExitPopup}>
@@ -196,6 +219,14 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
             {/* TODO: Will Add Profile Details Here */}
 
           <h2>Device List</h2>
+          {addDeviceSuccessMessage && (
+            <div className={styles.messagePopup}>
+              <button className={styles.exitButton} onClick={handlePopupClose}>
+                X
+              </button>
+              <p>{addDeviceSuccessMessage}</p>
+            </div>
+          )} 
           <table className={styles.deviceListTable}>
             <thead>
               <tr>
