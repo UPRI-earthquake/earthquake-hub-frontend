@@ -154,6 +154,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
       setAddDeviceSuccessMessage('Successfully added a new device. Your next step is to link your rshake device to your account. Access the device-to-account linking page of your device by going to rs-upri.local.') // Set success message to be displayed, in toast, after successful add device
       setIsAddingDevice(false); // set isAddingDevice hook to false
       setIsAddDeviceSuccess(true); // set isAddDeviceSuccess hook to true, to trigger transition
+      fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
