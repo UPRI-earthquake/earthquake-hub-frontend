@@ -11,6 +11,7 @@ const statusTooltips = {
 
 function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
   const [isAddingDevice, setIsAddingDevice] = useState(false);
+  const [isAddDeviceCancelled, setIsAddDeviceCancelled] = useState(false);
   const [errorMessage, setErrorMessage] = useState('')
   const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage);
   const addDeviceFormRef = useRef(null);
@@ -30,8 +31,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
     profileEl.classList.remove(styles.hidden);
     profileEl.animate(
       [
-        { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
-        { opacity: 1, transform: 'translateX(0)' } // Updated transform property
+        { opacity: 0, transform: 'translateX(100%)' },
+        { opacity: 1, transform: 'translateX(0)' }
       ],
       {
         duration: 150,
@@ -55,13 +56,32 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   useEffect(() => {
     if (isAddingDevice) {
       const addDeviceFormEl = addDeviceFormRef.current;
-      addDeviceFormEl.classList.add(styles.showForm);
-    } else{
-      const profileContainerEl = dashboardContainerRef.current;
-      profileContainerEl.classList.add(styles.showProfileContainer)
-      profileContainerEl.classList.add(styles.animate);
+      addDeviceFormEl.animate(
+        [
+          { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
+          { opacity: 1, transform: 'translateX(0)' } // Updated transform property
+        ],
+        {
+          duration: 300,
+          easing: 'cubic-bezier(0, 0, 0.5, 1)',
+          fill: 'forwards'
+        }
+      );
+    } else if(isAddDeviceCancelled) {
+      const dashboardEl = dashboardContainerRef.current;
+      dashboardEl.classList.remove(styles.hidden);
+      dashboardEl.animate(
+        [
+          { opacity: 0, transform: 'translateX(-25%)' },
+          { opacity: 1, transform: 'translateX(0)' }
+        ],
+        {
+          duration: 300,
+          easing: 'cubic-bezier(0, 0, 0.5, 1)',
+        }
+      );
     }
-  }, [isAddingDevice]);
+  }, [isAddingDevice, isAddDeviceCancelled]);
 
   async function handleAddDeviceSubmit(event) {
     event.preventDefault();
@@ -114,6 +134,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
 
   function handleCancelClick() {
     setIsAddingDevice(false);
+    setIsAddDeviceCancelled(true);
   }
 
   function handleExitPopup() {
@@ -152,7 +173,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
             </div>
           )} 
           <h2>Profile</h2>
-
+            {/* TODO: Will Add Profile Details Here */}
 
           <h2>Device List</h2>
           <table className={styles.deviceListTable}>
