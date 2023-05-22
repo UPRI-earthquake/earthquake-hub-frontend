@@ -13,18 +13,38 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   const [isAddingDevice, setIsAddingDevice] = useState(false);
   const [isAddDeviceCancelled, setIsAddDeviceCancelled] = useState(false);
   const [errorMessage, setErrorMessage] = useState('')
+  const [devices, setDevices] = useState([])
   const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage);
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
 
-  // TODO: get device list from W1 endpoint
-  const [devices, setDevices] = useState([
-    { network: 'AM', station: 'R3B2D', status: 'Not Yet Linked' },
-    { network: 'AB', station: 'RFC12', status: 'Not Streaming' },
-    { network: 'CD', station: 'ABC12', status: 'Streaming' }
-    // Add more devices as needed
-  ]);
+  useEffect(() => {
+    fetchDevices();
+  }, [])
+
+  const fetchDevices = async () => {
+    try {
+      const backend_host = process.env.NODE_ENV === 'production'
+        ? process.env.REACT_APP_BACKEND
+        : process.env.REACT_APP_BACKEND_DEV
+      const accessToken = localStorage.getItem('accessToken');
+      const axiosConfig = {
+        headers: {
+          'content-Type': 'application/json',
+          "Accept": "/",
+          "Cache-Control": "no-cache",
+          "Cookie": `accessToken=${accessToken}`
+        },
+        withCredentials: true
+      };
+      const response = await axios.get(`${backend_host}/device/listAll`, axiosConfig);
+      setDevices(response.data.payload)
+    } catch (error) {
+      // Handle any error that occurred during the request
+      console.error('Error:', error.message);
+    }
+  }
 
   useEffect(() => {
     const profileEl = profileRef.current;
@@ -183,16 +203,22 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
                 <th>Station</th>
                 <th>Status</th>
               </tr>
-            </thead>
-            <tbody>
-              {devices.map((device, index) => (
-                <tr key={index}>
-                  <td>{device.network}</td>
-                  <td>{device.station}</td>
-                  <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
-                </tr>
-              ))}
-            </tbody>
+                </thead>
+                <tbody>
+                  {devices.length === 0 ? (
+                    <tr>
+                      <td colSpan="3">No data available</td>
+                    </tr>
+                  ) : (
+                    devices.map((device, index) => (
+                      <tr key={index}>
+                        <td>{device.network}</td>
+                        <td>{device.station}</td>
+                        <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
           </table>
 
           <div className={styles.addDeviceButtonDiv}>
