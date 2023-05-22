@@ -55,6 +55,7 @@ function SignInForm( {onClick, onSuccess} ) {
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     try {
+      axios.defaults.withCredentials = true;
       const response = await axios.post(
         `${backend_host}/accounts/authenticate`,
         {
@@ -64,8 +65,6 @@ function SignInForm( {onClick, onSuccess} ) {
         }
       );
       console.log("Sign in successful!", response.data);
-      
-      // TODO: Pass message of successful login to Dashboard
       onSuccess();
     } catch (error) {
         if (error.response) {
