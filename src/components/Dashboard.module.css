@@ -163,30 +163,6 @@
 
 
 /*  */
-.showForm {
-  opacity: 1;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateX(0%);
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.closeForm {
-  opacity: 1;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateX(100%);
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.showProfileContainer {
-  opacity: 1;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateX(0);
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
 .errorPopup {
   background-color: #eA6D7E;
   border: 3px solid #d54c49;
@@ -225,6 +201,7 @@
   cursor: pointer;
 }
 
+
 /* Add Device/Cancel Button */
 .addDeviceButtonDiv {
   padding: 20px;
@@ -249,7 +226,6 @@
   cursor: pointer;
   transition: background-color 0.3s ease-in-out, transform 0.2s ease;
 }
-
 
 .addDeviceButton:hover {
   background-color: #d8d8d8;
