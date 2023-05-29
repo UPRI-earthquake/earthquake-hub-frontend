@@ -42,3 +42,18 @@
     font-size: 37px;
     font-family: "Times New Roman"
 }
+
+.menuToggle {
+    width: 35px;
+    height: 35px;
+}
+
+.burgerMenu {
+    width: 35px;
+    height: 35px;
+}
+
+.closeMenu {
+    width: 35px;
+    height: 35px;
+}

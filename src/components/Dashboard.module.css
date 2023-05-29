@@ -1,0 +1,264 @@
+.modalOverlay {
+  position: fixed;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.301);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dashboardModal {
+  margin-top: 20px; 
+  margin-right: 20px;
+  background-color: rgb(255, 255, 255);
+  padding-left: 20px;
+  padding-right: 20px;
+  border-radius: 5px;
+  width: 700px;
+  max-width: 90%;
+  height: 90%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  z-index: 2;
+  opacity: 0
+}
+
+@media (max-width: 600px) {
+  .dashboardModal {
+    margin-top: 0;
+    margin-right: 0;
+    height: 100%;
+  }
+}
+
+.profileContainer {
+  opacity: 0;
+  display: flex;
+  padding-bottom: 50px;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  overflow-y: auto;
+}
+
+
+/* Device List Table */
+.deviceListTableContainer {
+  overflow-x: auto;
+  border: solid 1px #a6a5a9;
+}
+
+.deviceListTable {
+  border: none; 
+  width: 100%;
+  background-color: #f2f2f2;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.deviceListTable th {
+  border-bottom: solid 1px #a6a5a9;
+  background-color: #e0e0e0;
+  padding: 10px;
+  font-weight: bold;
+  color: #333333;
+  text-align: center;
+}
+
+.deviceListTable td {
+  flex-basis: 0;
+  flex-grow: 1;
+  padding: 10px;
+  color: #333333;
+}
+
+
+/* Tooltip */
+[data-tooltip] {
+  position: relative;
+  cursor: pointer;
+}
+
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: #01581b;
+  color: #fff;
+  border-radius: 5px;
+  font-size: 14px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+[data-tooltip]:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+
+/* Add Device Form */
+.addDeviceForm {
+  opacity: 0;
+  transform: translateX(100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: solid 1px #a6a5a9;
+  background-color: #f4f4f4;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.addDeviceForm h2 {
+  color: #333333;
+}
+
+.addDeviceForm input[type="text"] {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-top: 0.3rem;
+  margin-bottom: 1rem;  
+}
+
+.addDeviceForm input[type="text"]:hover {
+  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+              inset -6px -6px 12px rgba(255, 255, 255, 0.5),
+              6px 6px 12px rgba(0, 0, 0, 0.1),
+              -6px -6px 12px rgba(255, 255, 255, 0.5);
+}
+
+.addDeviceForm input[type="text"]:focus {
+  animation: input-focus-animation 0.3s ease;
+}
+
+@keyframes input-focus-animation {
+  0% {
+    transform: scale(1);  
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.addDeviceForm input[type="text"]::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+  font-style: italic;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.addDeviceForm input[type="text"]:hover::placeholder {
+  opacity: 1;
+}
+
+.addDeviceForm input[type="text"]:focus::placeholder {
+  opacity: 0.5;
+}
+
+
+/*  */
+.errorPopup {
+  background-color: #eA6D7E;
+  border: 3px solid #d54c49;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  margin: 10px;
+  text-align: center;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2), -5px -5px 10px rgba(255, 255, 255, 0.7);
+}
+
+/* Success Message Popup */
+.messagePopup {
+  position: relative;
+  background-color: #729758;
+  border: none;
+  color: white;
+  padding: 20px;
+  border-radius: 5px;
+  margin: 10px;
+  text-align: center;
+}
+
+.exitButton {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 16px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+
+/* Add Device/Cancel Button */
+.addDeviceButtonDiv {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.addDeviceButton {
+  display: block;
+  width: 100%;
+  margin: 10px;
+  background-color: #3a6a50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.addDeviceButton:hover {
+  background-color: #447f5b;
+}
+
+.addDeviceButton:focus {
+  outline: none;
+}
+
+.addDeviceButton:active {
+  transform: scale(0.95);
+}
+
+.cancelButton {
+  display: block;
+  width: 100%;
+  margin: 10px;
+  background-color: #d1d1d1;
+  color: #333333;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background-color: #dfdfdf;
+}
+
+.cancelButton:focus {
+  outline: none;
+}
+
+.cancelButton:active {
+  transform: scale(0.95);
+}

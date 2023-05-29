@@ -44,7 +44,7 @@ function Form({ children, title, onClick, onSubmit }) {
   );
 }
 
-function SignInForm( {onClick} ) {
+function SignInForm( {onClick, onSuccess} ) {
   const backend_host = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_BACKEND
                        : process.env.REACT_APP_BACKEND_DEV
@@ -55,6 +55,7 @@ function SignInForm( {onClick} ) {
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     try {
+      axios.defaults.withCredentials = true;
       const response = await axios.post(
         `${backend_host}/accounts/authenticate`,
         {
@@ -64,6 +65,7 @@ function SignInForm( {onClick} ) {
         }
       );
       console.log("Sign in successful!", response.data);
+      onSuccess();
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -76,7 +78,7 @@ function SignInForm( {onClick} ) {
   }
 
   return (
-    <Form title="Sign In" onClick={onClick} onSubmit={handleSignInSubmit}>
+    <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
       <label>
         Username
         <input type="text" name="username"/>
@@ -91,7 +93,7 @@ function SignInForm( {onClick} ) {
   );
 }
 
-function SignUpForm( {onClick} ) {
+function SignUpForm( {onClick, onSuccess} ) {
   const backend_host = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_BACKEND
                        : process.env.REACT_APP_BACKEND_DEV
@@ -114,6 +116,9 @@ function SignUpForm( {onClick} ) {
         }
       );
       console.log("Sign up successful!", response);
+
+      // TODO: Pass message of successful login to <Dashboard>
+      onSuccess();
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
@@ -124,8 +129,9 @@ function SignUpForm( {onClick} ) {
       }
     }
   }
+
   return (
-    <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
+    <Form title="Sign Up" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignUpSubmit}>
       <label>
         Email
         <input type="text" name="email" />
