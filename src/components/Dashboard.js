@@ -116,6 +116,9 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
           }
         );
         break;
+
+      default:
+        console.error(`pageTransition of value ${pageTransition} not handled!`);
     }
   }, [pageTransition]);
 
