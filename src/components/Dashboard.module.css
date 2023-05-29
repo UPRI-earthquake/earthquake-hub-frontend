@@ -29,6 +29,7 @@
 }
 
 .profileContainer {
+  opacity:0;
   display: flex;
   padding-bottom: 50px;
   flex-direction: column;
@@ -37,12 +38,8 @@
   overflow-y: auto;
 }
 
-
 .hidden {
   opacity: 0;
-  transition: opacity 150ms ease-out;
-  background-color: transparent;
-  z-index: -9999;
 }
 
 
@@ -102,7 +99,7 @@
 
 /* Add Device Form */
 .addDeviceForm {
-  opacity: 1;
+  opacity: 0;
   transform: translateX(100%);
   display: flex;
   flex-direction: column;

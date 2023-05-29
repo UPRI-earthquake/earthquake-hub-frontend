@@ -10,9 +10,13 @@ const statusTooltips = {
 };
 
 function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
+  /*
   const [isAddingDevice, setIsAddingDevice] = useState(false); // checks the state if 'Add Device' button is clicked
   const [isAddDeviceSuccess, setIsAddDeviceSuccess] = useState(false); // checks the state if Add Device form submission is successful
   const [isAddDeviceCancelled, setIsAddDeviceCancelled] = useState(false); //checks the state if 'Cancel' button from form submission is clicked
+  */
+  const [pageTransition, setPageTransition] = useState(0);
+
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
   const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage); // hook for success message on successful registration
@@ -49,16 +53,17 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   }
 
   useEffect(() => {
-    const profileEl = profileRef.current;
-    profileEl.classList.remove(styles.hidden);
-    profileEl.animate(
+    const dashboardContainerEl = dashboardContainerRef.current;
+    //dashboardContainerEl.classList.remove(styles.hidden);
+    dashboardContainerEl.animate(
       [
         { opacity: 0, transform: 'translateX(100%)' },
         { opacity: 1, transform: 'translateX(0)' }
       ],
       {
         duration: 150,
-        easing: 'cubic-bezier(0, 0, 0.5, 1)'
+        easing: 'cubic-bezier(0, 0, 0.5, 1)',
+        fill: 'both'
       }
     );
 
@@ -74,49 +79,52 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [onEscapeClick]);
-  
+
   useEffect(() => {
-    if (isAddingDevice) {
-      const addDeviceFormEl = addDeviceFormRef.current;
-      addDeviceFormEl.animate(
-        [
-          { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
-          { opacity: 1, transform: 'translateX(0)' } // Updated transform property
-        ],
-        {
-          duration: 300,
-          easing: 'cubic-bezier(0, 0, 0.5, 1)',
-          fill: 'forwards'
-        }
-      );
-    } else if(isAddDeviceCancelled) {
-      const dashboardEl = dashboardContainerRef.current;
-      dashboardEl.classList.remove(styles.hidden);
-      dashboardEl.animate(
-        [
-          { opacity: 0, transform: 'translateX(-25%)' },
-          { opacity: 1, transform: 'translateX(0)' }
-        ],
-        {
-          duration: 300,
-          easing: 'cubic-bezier(0, 0, 0.5, 1)',
-        }
-      );
-    } else if(isAddDeviceSuccess) {
-      const dashboardEl = dashboardContainerRef.current;
-      dashboardEl.classList.remove(styles.hidden);
-      dashboardEl.animate(
-        [
-          { opacity: 0, transform: 'translateX(-25%)' },
-          { opacity: 1, transform: 'translateX(0)' }
-        ],
-        {
-          duration: 300,
-          easing: 'cubic-bezier(0, 0, 0.5, 1)',
-        }
-      );
+    switch (pageTransition) {
+      case 0: // Initial state
+        profileRef.current.animate(
+          [
+            { opacity: 0, transform: 'translateX(100%)' },
+            { opacity: 1, transform: 'translateX(0)' }
+          ],
+          {
+            duration: 150,
+            easing: 'cubic-bezier(0, 0, 0.5, 1)',
+            fill: 'both'
+          }
+        );
+        break;
+
+      case 1: // AddDevice to DeviceList
+        profileRef.current.animate(
+          [
+            { opacity: 0, transform: 'translateX(-100%)' },
+            { opacity: 1, transform: 'translateX(0)' }
+          ],
+          {
+            duration: 300,
+            easing: 'cubic-bezier(0, 0, 0.5, 1)',
+            fill: 'both'
+          }
+        );
+        break;
+
+      case 2: // DeviceList to AddDevice
+        addDeviceFormRef.current.animate(
+          [
+            { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
+            { opacity: 1, transform: 'translateX(0%)' } // Updated transform property
+          ],
+          {
+            duration: 300,
+            easing: 'cubic-bezier(0, 0, 0.5, 1)',
+            fill: 'both'
+          }
+        );
+        break;
     }
-  }, [isAddingDevice, isAddDeviceCancelled, isAddDeviceSuccess]);
+  }, [pageTransition]);
 
   async function handleAddDeviceSubmit(event) {
     event.preventDefault();
@@ -152,8 +160,11 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
       console.log("Add Device Success", response.data);
 
       setAddDeviceSuccessMessage('Successfully added a new device. Your next step is to link your rshake device to your account. Access the device-to-account linking page of your device by going to rs-upri.local.') // Set success message to be displayed, in toast, after successful add device
+      /*
       setIsAddingDevice(false); // set isAddingDevice hook to false
       setIsAddDeviceSuccess(true); // set isAddDeviceSuccess hook to true, to trigger transition
+      */
+      setPageTransition(1);
       fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
     } catch (error) {
         if (error.response) {
@@ -168,46 +179,36 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
   }
 
   function handleAddDeviceClick() {
+    setPageTransition(2);
+    /*
     setIsAddingDevice(true);
     setErrorMessage('')
+    */
   }
 
   function handleCancelClick() {
+    setPageTransition(1);
+    /*
     setIsAddingDevice(false);
     setIsAddDeviceCancelled(true);
+    */
   }
 
   function handleExitPopup() {
     setSignupSuccessMessage('')
     onPopupExit()
   }
-  
+
   function handlePopupClose() {
     setAddDeviceSuccessMessage('')
   }
 
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
-      <div ref={profileRef} className={`${styles.dashboardModal} ${styles.hidden}`} onClick={(e) => e.stopPropagation()}>
-      {isAddingDevice ? (
-        <>
-          <form className={`${styles.addDeviceForm} ${styles.addDeviceForm_default}`} ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
-            <h2>Add New Device</h2>
-            {/* Add device form contents */}
-              <input type="text" name="network" placeholder="Network" />
-              <input type="text" name="station" placeholder="Station" />
-              <input type="text" name="elevation" placeholder="Elevation" />
-              <input type="text" name="location" placeholder="Location" />
-            <div className={styles.addDeviceButtonDiv}>
-              <button type="submit"  className={styles.addDeviceButton}>Submit</button>
-              <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
-            </div>
-          </form>
-          {/* Error Message */}
-          {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
-        </>
-      ) : (
-        <div ref={dashboardContainerRef} className={styles.profileContainer}>
+      <div ref={dashboardContainerRef} className={`${styles.dashboardModal}`} onClick={(e) => e.stopPropagation()}>
+
+        {(pageTransition < 2) && (
+          <div ref={profileRef} className={`${styles.profileContainer}`}>
           {SignupSuccessMessage && (
             <div className={styles.messagePopup}>
               <button className={styles.exitButton} onClick={handleExitPopup}>
@@ -256,8 +257,29 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
           <div className={styles.addDeviceButtonDiv}>
             <button className={styles.addDeviceButton} onClick={handleAddDeviceClick}>Add Device</button>
           </div>
-        </div>
-      )}
+          </div>
+        )}
+
+        {(pageTransition === 2) && (
+
+        <>
+          <form className={`${styles.addDeviceForm} ${styles.addDeviceForm_default}`}
+                ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
+            <h2>Add New Device</h2>
+            {/* Add device form contents */}
+              <input type="text" name="network" placeholder="Network" />
+              <input type="text" name="station" placeholder="Station" />
+              <input type="text" name="elevation" placeholder="Elevation" />
+              <input type="text" name="location" placeholder="Location" />
+            <div className={styles.addDeviceButtonDiv}>
+              <button type="submit"  className={styles.addDeviceButton}>Submit</button>
+              <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
+            </div>
+          </form>
+          {/* Error Message */}
+          {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
+        </>
+        )}
 
       </div>
     </div>
