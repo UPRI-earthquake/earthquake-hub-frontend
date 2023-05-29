@@ -26,6 +26,7 @@
   justify-content: center;
   overflow-y: auto;
   z-index: 2;
+  opacity: 0;
 }
 
 .profileContainer {
@@ -36,10 +37,6 @@
   justify-content: flex-start;
   flex: 1;
   overflow-y: auto;
-}
-
-.hidden {
-  opacity: 0;
 }
 
 

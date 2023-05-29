@@ -54,7 +54,6 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
 
   useEffect(() => {
     const dashboardContainerEl = dashboardContainerRef.current;
-    //dashboardContainerEl.classList.remove(styles.hidden);
     dashboardContainerEl.animate(
       [
         { opacity: 0, transform: 'translateX(100%)' },
