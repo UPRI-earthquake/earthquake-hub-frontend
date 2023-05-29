@@ -10,13 +10,7 @@ const statusTooltips = {
 };
 
 function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
-  /*
-  const [isAddingDevice, setIsAddingDevice] = useState(false); // checks the state if 'Add Device' button is clicked
-  const [isAddDeviceSuccess, setIsAddDeviceSuccess] = useState(false); // checks the state if Add Device form submission is successful
-  const [isAddDeviceCancelled, setIsAddDeviceCancelled] = useState(false); //checks the state if 'Cancel' button from form submission is clicked
-  */
-  const [pageTransition, setPageTransition] = useState(0);
-
+  const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
   const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage); // hook for success message on successful registration
@@ -95,7 +89,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
         );
         break;
 
-      case 1: // AddDevice to DeviceList
+      case 1: // Other to DeviceList (where Other is any other dashboard view, and DeviceList/Profile is the main view)
         profileRef.current.animate(
           [
             { opacity: 0, transform: 'translateX(-100%)' },
@@ -179,18 +173,10 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
 
   function handleAddDeviceClick() {
     setPageTransition(2);
-    /*
-    setIsAddingDevice(true);
-    setErrorMessage('')
-    */
   }
 
   function handleCancelClick() {
     setPageTransition(1);
-    /*
-    setIsAddingDevice(false);
-    setIsAddDeviceCancelled(true);
-    */
   }
 
   function handleExitPopup() {
