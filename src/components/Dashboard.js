@@ -38,7 +38,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
         },
         withCredentials: true
       };
-      const response = await axios.get(`${backend_host}/device/listAll`, axiosConfig);
+      const response = await axios.get(`${backend_host}/device/list`, axiosConfig);
       setDevices(response.data.payload)
     } catch (error) {
       // Handle any error that occurred during the request
@@ -180,6 +180,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
 
   function handleCancelClick() {
     setPageTransition(1);
+    setErrorMessage('')
   }
 
   function handleExitPopup() {
@@ -217,6 +218,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
               <p>{addDeviceSuccessMessage}</p>
             </div>
           )} 
+          <div className={styles.deviceListTableContainer}>
           <table className={styles.deviceListTable}>
             <thead>
               <tr>
@@ -241,6 +243,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
                   )}
                 </tbody>
           </table>
+          </div>
 
           <div className={styles.addDeviceButtonDiv}>
             <button className={styles.addDeviceButton} onClick={handleAddDeviceClick}>Add Device</button>
