@@ -78,7 +78,7 @@
 
 /* Tooltip */
 [data-tooltip] {
-  position: relative;
+  position: static;
   cursor: pointer;
 }
 
