@@ -46,7 +46,7 @@ function Header() {
     setSignupSuccessMessage('')
   };
 
-  const handleLogout = () => {
+  const handleSignout = () => {
     setShowDashboard(false);
     setIsLoggedIn(false);
     setIsDashboardOpen(!isDashboardOpen);
@@ -126,7 +126,7 @@ function Header() {
           onEscapeClick={handleDashboardToggle} 
           signupSuccessMessage={signupSuccessMessage} 
           onPopupExit={handlePopupExit} 
-          onLogout={handleLogout} />}
+          onSignout={handleSignout} />}
     </div>
   )
 }

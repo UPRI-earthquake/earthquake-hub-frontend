@@ -263,17 +263,17 @@
   transform: scale(0.95);
 }
 
-.logoutButtonDiv {
+.signoutButtonDiv {
   text-align: right;
 }
 
-.logoutButton {
+.signoutButton {
   cursor: pointer;
   position: relative;
   display: inline-block;
 }
 
-.logoutButton:hover {
+.signoutButton:hover {
   text-decoration: underline;
   color: #062568;
 }

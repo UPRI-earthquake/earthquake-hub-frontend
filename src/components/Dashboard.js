@@ -9,7 +9,7 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, onLogout }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, onSignout }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
@@ -192,7 +192,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
     setAddDeviceSuccessMessage('')
   }
 
-  async function handleLogout() {
+  async function handleSignout() {
     const backend_host = process.env.NODE_ENV === 'production'
       ? process.env.REACT_APP_BACKEND
       : process.env.REACT_APP_BACKEND_DEV
@@ -211,7 +211,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
       const response = await axios.post(`${backend_host}/accounts/logout`,{}, axiosConfig);
       console.log(response)
 
-      onLogout();
+      onSignout();
     } catch (error) {
       console.log(error)
     }
@@ -223,7 +223,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
 
         {(pageTransition < 2) && (
           <div ref={profileRef} className={`${styles.profileContainer}`}>
-            <p className={styles.logoutButtonDiv}><span className={styles.logoutButton} onClick={handleLogout}>Logout</span></p>
+            <p className={styles.signoutButtonDiv}><span className={styles.signoutButton} onClick={handleSignout}>Sign out</span></p>
           {SignupSuccessMessage && (
             <div className={styles.messagePopup}>
               <button className={styles.exitButton} onClick={handleExitPopup}>
