@@ -262,3 +262,18 @@
 .cancelButton:active {
   transform: scale(0.95);
 }
+
+.logoutButtonDiv {
+  text-align: right;
+}
+
+.logoutButton {
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+}
+
+.logoutButton:hover {
+  text-decoration: underline;
+  color: #062568;
+}

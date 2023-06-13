@@ -220,10 +220,10 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
       <div ref={dashboardContainerRef} className={`${styles.dashboardModal}`} onClick={(e) => e.stopPropagation()}>
-        <button onClick={handleLogout}>Logout</button>
 
         {(pageTransition < 2) && (
           <div ref={profileRef} className={`${styles.profileContainer}`}>
+            <p className={styles.logoutButtonDiv}><span className={styles.logoutButton} onClick={handleLogout}>Logout</span></p>
           {SignupSuccessMessage && (
             <div className={styles.messagePopup}>
               <button className={styles.exitButton} onClick={handleExitPopup}>
