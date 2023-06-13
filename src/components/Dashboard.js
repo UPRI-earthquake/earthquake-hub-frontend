@@ -9,7 +9,7 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, onLogout }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
@@ -192,9 +192,35 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
     setAddDeviceSuccessMessage('')
   }
 
+  async function handleLogout() {
+    const backend_host = process.env.NODE_ENV === 'production'
+      ? process.env.REACT_APP_BACKEND
+      : process.env.REACT_APP_BACKEND_DEV
+    const accessToken = localStorage.getItem('accessToken');
+    try {
+      const axiosConfig = {
+        headers: {
+          'content-Type': 'application/json',
+          "Accept": "/",
+          "Cache-Control": "no-cache",
+          "Cookie": `accessToken=${accessToken}`
+        },
+        credentials: "same-origin"
+      };
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(`${backend_host}/accounts/logout`,{}, axiosConfig);
+      console.log(response)
+
+      onLogout();
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
       <div ref={dashboardContainerRef} className={`${styles.dashboardModal}`} onClick={(e) => e.stopPropagation()}>
+        <button onClick={handleLogout}>Logout</button>
 
         {(pageTransition < 2) && (
           <div ref={profileRef} className={`${styles.profileContainer}`}>
