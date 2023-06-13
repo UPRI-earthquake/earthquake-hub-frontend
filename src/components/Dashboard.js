@@ -208,7 +208,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
         credentials: "same-origin"
       };
       axios.defaults.withCredentials = true;
-      const response = await axios.post(`${backend_host}/accounts/logout`,{}, axiosConfig);
+      const response = await axios.post(`${backend_host}/accounts/signout`,{}, axiosConfig);
       console.log(response)
 
       onSignout();
