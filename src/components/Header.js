@@ -59,17 +59,8 @@ function Header() {
         const backend_host = process.env.NODE_ENV === 'production'
           ? process.env.REACT_APP_BACKEND
           : process.env.REACT_APP_BACKEND_DEV;
-        const accessToken = localStorage.getItem('accessToken');
-        const axiosConfig = {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': '/',
-            'Cache-Control': 'no-cache',
-            'Cookie': `accessToken=${accessToken}`
-          },
-          withCredentials: true
-        };
-        const response = await axios.get(`${backend_host}/accounts/profile`, axiosConfig);
+        axios.defaults.withCredentials = true;
+        const response = await axios.get(`${backend_host}/accounts/profile`);
         return response.data.payload.email;
       } catch (error) {
         return null;
