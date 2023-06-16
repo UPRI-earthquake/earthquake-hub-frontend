@@ -180,7 +180,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/signout`);
-      console.log('Signout successful', response)
+      console.log('Sign out successful', response.data)
 
       onSuccess();
     } catch (error) {
