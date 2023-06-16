@@ -9,7 +9,7 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, onSignoutSuccess }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
@@ -28,17 +28,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
       const backend_host = process.env.NODE_ENV === 'production'
         ? process.env.REACT_APP_BACKEND
         : process.env.REACT_APP_BACKEND_DEV
-      const accessToken = localStorage.getItem('accessToken');
-      const axiosConfig = {
-        headers: {
-          'content-Type': 'application/json',
-          "Accept": "/",
-          "Cache-Control": "no-cache",
-          "Cookie": `accessToken=${accessToken}`
-        },
-        withCredentials: true
-      };
-      const response = await axios.get(`${backend_host}/device/list`, axiosConfig);
+      axios.defaults.withCredentials = true;
+      const response = await axios.get(`${backend_host}/device/list`);
       setDevices(response.data.payload)
     } catch (error) {
       // Handle any error that occurred during the request
@@ -132,17 +123,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
     const station = event.target.elements.station.value;
     const location = event.target.elements.location.value;
     const elevation = event.target.elements.elevation.value;
-    const accessToken = localStorage.getItem('accessToken');
     try {
-      const axiosConfig = {
-        headers: {
-          'content-Type': 'application/json',
-          "Accept": "/",
-          "Cache-Control": "no-cache",
-          "Cookie": `accessToken=${accessToken}`
-        },
-        credentials: "same-origin"
-      };
       axios.defaults.withCredentials = true;
       const response = await axios.post(
         `${backend_host}/device/add`,
@@ -151,7 +132,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
           station: station,
           location: location,
           elevation: elevation
-        }, axiosConfig
+        }
       );
       console.log("Add Device Success", response.data);
 
@@ -192,12 +173,28 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit }
     setAddDeviceSuccessMessage('')
   }
 
+  async function handleSignout() {
+    const backend_host = process.env.NODE_ENV === 'production'
+      ? process.env.REACT_APP_BACKEND
+      : process.env.REACT_APP_BACKEND_DEV
+    try {
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(`${backend_host}/accounts/signout`);
+      console.log('Sign out successful', response.data)
+
+      onSignoutSuccess();
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
       <div ref={dashboardContainerRef} className={`${styles.dashboardModal}`} onClick={(e) => e.stopPropagation()}>
 
         {(pageTransition < 2) && (
           <div ref={profileRef} className={`${styles.profileContainer}`}>
+            <p className={styles.signoutButtonDiv}><span className={styles.signoutButton} onClick={handleSignout}>Sign out</span></p>
           {SignupSuccessMessage && (
             <div className={styles.messagePopup}>
               <button className={styles.exitButton} onClick={handleExitPopup}>

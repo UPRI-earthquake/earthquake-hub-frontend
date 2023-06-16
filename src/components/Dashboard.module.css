@@ -78,7 +78,7 @@
 
 /* Tooltip */
 [data-tooltip] {
-  position: relative;
+  position: static;
   cursor: pointer;
 }
 
@@ -261,4 +261,19 @@
 
 .cancelButton:active {
   transform: scale(0.95);
+}
+
+.signoutButtonDiv {
+  text-align: right;
+}
+
+.signoutButton {
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+}
+
+.signoutButton:hover {
+  text-decoration: underline;
+  color: #062568;
 }

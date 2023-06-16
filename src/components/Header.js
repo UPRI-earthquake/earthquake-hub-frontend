@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, { useState, useEffect } from "react";
 import styles from "./Header.module.css";
 import {ReactComponent as Logo} from './upri-logo.svg';
 import Button from "./Button";
@@ -6,6 +6,7 @@ import { SignInForm, SignUpForm } from "./Form";
 import { Dashboard } from "./Dashboard";
 import { ReactComponent as BurgerMenu } from './burger-menu-white.svg';
 import { ReactComponent as CloseMenu } from './close-menu-white.svg';
+import axios from 'axios';
 
 function Header() {
   const [showSignInForm, setShowSignInForm] = useState(false);
@@ -45,6 +46,41 @@ function Header() {
     setSignupSuccessMessage('')
   };
 
+  const handleSignoutSuccess = () => {
+    setShowDashboard(false);
+    setIsLoggedIn(false);
+    setIsDashboardOpen(!isDashboardOpen);
+    setShowDashboard(!isDashboardOpen)
+  }
+
+  useEffect(() => {
+    const accessTokenExistenceCheck = async () => {
+      try {
+        const backend_host = process.env.NODE_ENV === 'production'
+          ? process.env.REACT_APP_BACKEND
+          : process.env.REACT_APP_BACKEND_DEV;
+        axios.defaults.withCredentials = true;
+        const response = await axios.get(`${backend_host}/accounts/profile`);
+        return response.data.payload.email;
+      } catch (error) {
+        return null;
+      }
+    };
+  
+    const checkAccessToken = async () => {
+      const response = await accessTokenExistenceCheck();
+  
+      if (response) {
+        setShowDashboard(false);
+        setIsLoggedIn(true);
+        setIsDashboardOpen(false);
+      }
+    };
+  
+    checkAccessToken();
+  }, []);
+  
+
   return(
     <div className={styles.header}>
     <div className={styles.headerContent}>
@@ -75,7 +111,13 @@ function Header() {
     </div>
       {showSignInForm && <SignInForm onClick={handleSignInClose} onSuccess={handleSignInSuccess} />}
       {showSignUpForm && <SignUpForm onClick={handleSignUpClose} onSuccess={handleSignUpSuccess} />}
-      {showDashboard && <Dashboard onClick={handleDashboardToggle} onEscapeClick={handleDashboardToggle} signupSuccessMessage={signupSuccessMessage} onPopupExit={handlePopupExit} />}
+      {showDashboard && 
+        <Dashboard 
+          onClick={handleDashboardToggle} 
+          onEscapeClick={handleDashboardToggle} 
+          signupSuccessMessage={signupSuccessMessage} 
+          onPopupExit={handlePopupExit} 
+          onSignoutSuccess={handleSignoutSuccess} />}
     </div>
   )
 }
