@@ -46,7 +46,7 @@ function Header() {
     setSignupSuccessMessage('')
   };
 
-  const handleSignout = () => {
+  const handleSignoutSuccess = () => {
     setShowDashboard(false);
     setIsLoggedIn(false);
     setIsDashboardOpen(!isDashboardOpen);
@@ -69,7 +69,7 @@ function Header() {
           },
           withCredentials: true
         };
-        const response = await axios.get(`${backend_host}/accounts/authTokenCheck`, axiosConfig);
+        const response = await axios.get(`${backend_host}/accounts/profile`, axiosConfig);
         return response.data.payload.email;
       } catch (error) {
         return null;
@@ -126,7 +126,7 @@ function Header() {
           onEscapeClick={handleDashboardToggle} 
           signupSuccessMessage={signupSuccessMessage} 
           onPopupExit={handlePopupExit} 
-          onSignout={handleSignout} />}
+          onSignout={handleSignoutSuccess} />}
     </div>
   )
 }
