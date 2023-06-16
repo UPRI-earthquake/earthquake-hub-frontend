@@ -9,7 +9,7 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, onSignout }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, onSuccess }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
@@ -180,9 +180,9 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/signout`);
-      console.log(response)
+      console.log('Signout successful', response)
 
-      onSignout();
+      onSuccess();
     } catch (error) {
       console.log(error)
     }

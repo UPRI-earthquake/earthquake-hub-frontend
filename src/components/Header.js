@@ -117,7 +117,7 @@ function Header() {
           onEscapeClick={handleDashboardToggle} 
           signupSuccessMessage={signupSuccessMessage} 
           onPopupExit={handlePopupExit} 
-          onSignout={handleSignoutSuccess} />}
+          onSuccess={handleSignoutSuccess} />}
     </div>
   )
 }
