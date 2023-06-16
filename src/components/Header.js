@@ -71,9 +71,9 @@ function Header() {
       const response = await accessTokenExistenceCheck();
   
       if (response) {
-        setShowDashboard(true);
+        setShowDashboard(false);
         setIsLoggedIn(true);
-        setIsDashboardOpen(true);
+        setIsDashboardOpen(false);
       }
     };
   
