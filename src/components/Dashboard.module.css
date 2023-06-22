@@ -108,7 +108,6 @@
   transform: translateX(100%);
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
   border: solid 1px #a6a5a9;
   background-color: #f4f4f4;
@@ -127,11 +126,9 @@
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-  margin-top: 0.3rem;
-  margin-bottom: 1rem;  
 }
 
-.addDeviceForm input[type="text"]:hover {
+/* .addDeviceForm input[type="text"]:hover {
   box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
               inset -6px -6px 12px rgba(255, 255, 255, 0.5),
               6px 6px 12px rgba(0, 0, 0, 0.1),
@@ -140,6 +137,35 @@
 
 .addDeviceForm input[type="text"]:focus {
   animation: input-focus-animation 0.3s ease;
+} */
+
+.addDeviceForm input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.inputField {
+  position: relative;
+  margin-top: 2rem;
+}
+
+.inputLabel {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  color: #999;
+}
+
+.addDeviceForm input:focus + .inputLabel,
+.addDeviceForm input:not([value=""]) {
+  top: -20px;
+  font-size: 12px;
+  color: #333;
 }
 
 @keyframes input-focus-animation {

@@ -121,7 +121,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
 
     const network = event.target.elements.network.value;
     const station = event.target.elements.station.value;
-    const location = event.target.elements.location.value;
+    const longitude = event.target.elements.longitude.value;
+    const latitude = event.target.elements.latitude.value;
     const elevation = event.target.elements.elevation.value;
     try {
       axios.defaults.withCredentials = true;
@@ -130,7 +131,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
         {
           network: network,
           station: station,
-          location: location,
+          longitude: longitude,
+          latitude: latitude,
           elevation: elevation
         }
       );
@@ -255,10 +257,26 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
                 ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
             <h2>Add New Device</h2>
             {/* Add device form contents */}
-              <input type="text" name="network" placeholder="Network" />
-              <input type="text" name="station" placeholder="Station" />
-              <input type="text" name="elevation" placeholder="Elevation" />
-              <input type="text" name="location" placeholder="Location" />
+              <div className={styles.inputField}>
+                <input type="text" name="network" title="(e.g. `AM`)" />
+                <label className={styles.inputLabel}>Network</label>
+              </div>
+              <div className={styles.inputField} title="(e.g. `R3B2D`)">
+                <input type="text" name="station" />
+                <label className={styles.inputLabel}>Station</label>
+              </div>
+              <div className={styles.inputField}>
+                <input type="text" name="elevation" title="in meters; relative to sea level (e.g. `1.232314`)" />
+                <label className={styles.inputLabel}>Elevation</label>
+              </div>
+              <div className={styles.inputField}>
+                <input type="text" name="longitude" title="in degree coordinates (e.g. `0.1234`)" />
+                <label className={styles.inputLabel}>Longitude</label>
+              </div>
+              <div className={styles.inputField}>
+                <input type="text" name="latitude" title="in degree coordinates (e.g. `10.1234`)" />
+                <label className={styles.inputLabel}>Latitude</label>
+              </div>
             <div className={styles.addDeviceButtonDiv}>
               <button type="submit"  className={styles.addDeviceButton}>Submit</button>
               <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
