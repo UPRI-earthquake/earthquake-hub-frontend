@@ -258,24 +258,24 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
             <h2>Add New Device</h2>
             {/* Add device form contents */}
               <div className={styles.inputField}>
-                <input type="text" name="network" title="(e.g. `AM`)" />
-                <label className={styles.inputLabel}>Network</label>
+                <input type="text" name="network" title="(e.g. `AM`)" placeholder='' />
+                <label className={styles.inputLabel}>Network: (e.g. `AM`)</label>
               </div>
               <div className={styles.inputField} title="(e.g. `R3B2D`)">
-                <input type="text" name="station" />
-                <label className={styles.inputLabel}>Station</label>
+                <input type="text" name="station" placeholder='' />
+                <label className={styles.inputLabel}>Station: (e.g. `R3B2D`)</label>
               </div>
               <div className={styles.inputField}>
-                <input type="text" name="elevation" title="in meters; relative to sea level (e.g. `1.232314`)" />
-                <label className={styles.inputLabel}>Elevation</label>
+                <input type="text" name="elevation" title="in meters; relative to sea level (e.g. `1.232314`)" placeholder='' />
+                <label className={styles.inputLabel}>Elevation: (in meters; relative to sea level. e.g. `1.232314`)</label>
               </div>
               <div className={styles.inputField}>
-                <input type="text" name="longitude" title="in degree coordinates (e.g. `0.1234`)" />
-                <label className={styles.inputLabel}>Longitude</label>
+                <input type="text" name="latitude" title="in degree coordinates (e.g. `10.1234`)" placeholder='' />
+                <label className={styles.inputLabel}>Latitude: (in degree coordinates. Range is from -90 to 90. e.g. `10.1234`)</label>
               </div>
               <div className={styles.inputField}>
-                <input type="text" name="latitude" title="in degree coordinates (e.g. `10.1234`)" />
-                <label className={styles.inputLabel}>Latitude</label>
+                <input type="text" name="longitude" title="in degree coordinates (e.g. `0.1234`)" placeholder='' />
+                <label className={styles.inputLabel}>Longitude: (in degree coordinates. Range is from -180 to 180. e.g. `0.1234`)</label>
               </div>
             <div className={styles.addDeviceButtonDiv}>
               <button type="submit"  className={styles.addDeviceButton}>Submit</button>

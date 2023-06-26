@@ -162,13 +162,13 @@
 }
 
 .addDeviceForm input:focus + .inputLabel,
-.addDeviceForm input:not([value=""]) {
+.addDeviceForm input:not(:placeholder-shown) + .inputLabel{
   top: -20px;
   font-size: 12px;
   color: #333;
 }
 
-@keyframes input-focus-animation {
+/* @keyframes input-focus-animation {
   0% {
     transform: scale(1);  
   }
@@ -193,7 +193,7 @@
 
 .addDeviceForm input[type="text"]:focus::placeholder {
   opacity: 0.5;
-}
+} */
 
 
 /*  */
