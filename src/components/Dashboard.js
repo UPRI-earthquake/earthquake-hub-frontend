@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Dashboard.module.css";
 import ErrorPopup from "./ErrorPopup";
+import Toast from "./Toast";
 
 const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
@@ -13,13 +14,27 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)
-  const [SignupSuccessMessage, setSignupSuccessMessage] = useState(signupSuccessMessage); // hook for success message on successful registration
   const [addDeviceSuccessMessage, setAddDeviceSuccessMessage] = useState();  // hook for add device success message
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
 
+  // TOASTS
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('error');
+
   useEffect(() => {
+    // Set sign up success toast message to empty string to remove the toast
+    if(signupSuccessMessage.length > 0) {
+      setToastMessage(signupSuccessMessage);
+      setToastType('success');
+    }
+
+    // Set toast message to empty string to remove the toast
+    setTimeout(() => {
+      setToastMessage('');
+    }, 5000);
+
     fetchDevices();
   }, [])
 
@@ -137,8 +152,15 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
         }
       );
       console.log("Add Device Success", response.data);
+      
+      // Set toast message
+      setToastMessage('Device added. Visit rs.local:3000 to link device.');
+      setToastType('success');
 
-      setAddDeviceSuccessMessage('Successfully added a new device. Your next step is to link your rshake device to your account. Access the device-to-account linking page of your device by going to rs-upri.local.') // Set success message to be displayed, in toast, after successful add device
+      // Set toast message to empty string to remove the toast
+      setTimeout(() => {
+        setToastMessage('');
+      }, 5000);
       /*
       setIsAddingDevice(false); // set isAddingDevice hook to false
       setIsAddDeviceSuccess(true); // set isAddDeviceSuccess hook to true, to trigger transition
@@ -148,10 +170,22 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
-          setErrorMessage(`Error: ${data.message}`); // API should always sends {message: ""} in json
+          setToastMessage(`Error: ${data.message}`);
+          setToastType('error');
+          // Set toast message to empty string to remove the toast
+          setTimeout(() => {
+            setToastMessage('');
+          }, 5000);
+
           console.error("Error occurred while adding device:", data);
         } else {
-          setErrorMessage("Network Error")
+          setToastMessage(`Network Error`);
+          setToastType('error');
+          // Set toast message to empty string to remove the toast
+          setTimeout(() => {
+            setToastMessage('');
+          }, 5000);
+
           console.error("Error occurred while adding device:", error);
         }
     }
@@ -164,11 +198,6 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
   function handleCancelClick() {
     setPageTransition(1);
     setErrorMessage('')
-  }
-
-  function handleExitPopup() {
-    setSignupSuccessMessage('')
-    onPopupExit()
   }
 
   function handlePopupClose() {
@@ -193,18 +222,11 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onPopupExit, 
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
       <div ref={dashboardContainerRef} className={`${styles.dashboardModal}`} onClick={(e) => e.stopPropagation()}>
+        <Toast message={toastMessage} toastType={toastType}></Toast>
 
         {(pageTransition < 2) && (
           <div ref={profileRef} className={`${styles.profileContainer}`}>
             <p className={styles.signoutButtonDiv}><span className={styles.signoutButton} onClick={handleSignout}>Sign out</span></p>
-          {SignupSuccessMessage && (
-            <div className={styles.messagePopup}>
-              <button className={styles.exitButton} onClick={handleExitPopup}>
-                X
-              </button>
-              <p>{SignupSuccessMessage}</p>
-            </div>
-          )} 
           <h2>Profile</h2>
             {/* TODO: Will Add Profile Details Here */}
 

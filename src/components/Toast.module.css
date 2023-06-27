@@ -1,0 +1,31 @@
+/* Toast */
+.toastContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* transform: translateX(-50%); */
+  width: 100%;
+  z-index: 2;
+}
+
+.toast {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 35px;
+  background-color: #333;
+  color: #fff;
+}
+
+.toast p {
+  margin: 0;
+  padding: 0;
+}
+
+.toast.error {
+  background-color: #d9534f;
+}
+
+.toast.success {
+  background-color: #5cb85c;
+}
