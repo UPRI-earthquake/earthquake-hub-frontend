@@ -42,10 +42,6 @@ function Header() {
     setShowDashboard(!isDashboardOpen)
   };
 
-  const handlePopupExit = () => {
-    setSignupSuccessMessage('')
-  };
-
   const handleSignoutSuccess = () => {
     setShowDashboard(false);
     setIsLoggedIn(false);
@@ -115,8 +111,7 @@ function Header() {
         <Dashboard 
           onClick={handleDashboardToggle} 
           onEscapeClick={handleDashboardToggle} 
-          signupSuccessMessage={signupSuccessMessage} 
-          onPopupExit={handlePopupExit} 
+          signupSuccessMessage={signupSuccessMessage}
           onSignoutSuccess={handleSignoutSuccess} />}
     </div>
   )
