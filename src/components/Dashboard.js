@@ -246,6 +246,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
                 <th>Network</th>
                 <th>Station</th>
                 <th>Status</th>
+                <th>Status Since</th>
               </tr>
                 </thead>
                 <tbody>
@@ -259,6 +260,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
                         <td>{device.network}</td>
                         <td>{device.station}</td>
                         <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
+                        <td>{device.statusSince}</td>
                       </tr>
                     ))
                   )}
