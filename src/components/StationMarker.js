@@ -52,7 +52,7 @@ const StationMarker = ({code, latLng, description}) => {
       const payload = response.data.payload;
       setStatusState({
         status: payload.status,
-        statusSince: moment(payload.statusSince).fromNow() 
+        statusSince: payload.statusSince
       })
     } catch (error) {
       console.error('Error occurred while fetching device status:', error);
@@ -85,7 +85,7 @@ const StationMarker = ({code, latLng, description}) => {
           <p>{description}</p>
           <p>
           {statusState.status && statusState.status} 
-          {statusState.statusSince && ` since ${statusState.statusSince}`}
+          {statusState.statusSince && ` since ${moment(statusState.statusSince).fromNow()}`}
           </p>
           <a href={data_download_URL} target="_blank" rel="noreferrer">Get past 24hrs data</a><br/>
           <a href={metadata_download_URL} target="_blank" rel="noreferrer">Get station metadata</a><br/>
