@@ -204,8 +204,8 @@ const StationMarker = ({code, latLng, description}) => {
         click: handleStationClick
       }}
     >
-      <Popup >
-        <div>
+      <Popup className={styles.popUp}>
+        <div className={styles.popUpBody}>
           <h3>Station {code}</h3>
           <p>{description}</p>
           <p>
