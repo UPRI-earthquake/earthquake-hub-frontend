@@ -18,7 +18,8 @@ const StationMarker = ({code, latLng, description}) => {
   const datalinkRef = useRef(null);
 
   function getRealTimeTrace(){
-    const matchPattern = 'CO_BIRD_00_HHZ/MSEED';
+    const matchPattern = 'GE_TOLI2__SHN/MSEED';
+    // const matchPattern = 'CO_BIRD_00_HHZ/MSEED';
     const duration = sp.luxon.Duration.fromISO('PT3M');
     const timeWindow = new sp.util.durationEnd(duration, sp.luxon.DateTime.utc());
     const seisPlotConfig = new sp.seismographconfig.SeismographConfig();
@@ -60,7 +61,8 @@ const StationMarker = ({code, latLng, description}) => {
     };
 
     datalinkRef.current = new sp.datalink.DataLinkConnection(
-      "wss://rtserve.iris.washington.edu/datalink",
+      // "wss://rtserve.iris.washington.edu/datalink",
+      "ws://127.0.0.1:16000/datalink",
       packetHandler,
       errorFn
     );
