@@ -61,78 +61,71 @@ const StationMarker = ({network, code, latLng, description}) => {
 
     const errorFn = function (error) {
       console.assert(false, error);
-      if (datalinkRef.current) { datalinkRef.current.close(); }
+      if (datalinkRef.current) { datalinkRef.current.close(); } // Close the websocket connection
     };
 
+    /***************************************************************************
+     * new DataLinkConnection:
+     *     A websocket based Datalink connection
+     * Parameters:  
+     *     url            (string)                                    websocket url to the ringserver
+     *     packetHandler  (function (packet: DataLinkPacket): void)   callback for packets as they arrive
+     *     errorHandler   (function (error: Error): void)             callback for errors
+     *     
+     ***************************************************************************/
     datalinkRef.current = new sp.datalink.DataLinkConnection(
-      // "wss://rtserve.iris.washington.edu/datalink",
       "ws://127.0.0.1:16000/datalink",
       packetHandler,
       errorFn
     );
-    console.log(datalinkRef.current)
 
-    let timer;
     const timerInterval = duration.toMillis() /
       (realtimeDivRef.current.offsetWidth - seisPlotConfig.margin.left - seisPlotConfig.margin.right);
+
     const drawGraph = function (timestamp) {
-      if (redrawInProgressRef.current) return;
-      redrawInProgressRef.current = true;
+      if (redrawInProgressRef.current) return; // Skip if redraw is already in progress
+      redrawInProgressRef.current = true; // Mark redraw as in progress
       window.requestAnimationFrame(() => {
         const now = sp.luxon.DateTime.utc();
         graphListRef.current.forEach(function (graph) {
           graph.seisData.forEach(sdd => {
             sdd.alignmentTime = now;
           });
-          graph.calcTimeScaleDomain();
-          graph.calcAmpScaleDomain();
+          graph.calcTimeScaleDomain(); // Recalculate time scale domain
+          graph.calcAmpScaleDomain(); // Recalculate amplitude scale domain
           graph.draw();
         });
-        redrawInProgressRef.current = false;
+        redrawInProgressRef.current = false; // Mark redraw as complete
       });
     };
 
-    const toggleConnect = function () {
+    const toggleConnect = async function () {
       if (datalinkRef.current) {
-        datalinkRef.current.connect()
-          .then(serverId => {
-            return datalinkRef.current.match(matchPattern);
-          }).then(response => {
-            if (response.isError()) {
-              console.log(`response is not OK, ignore... ${response}`);
-            }
-            return datalinkRef.current.infoStatus();
-          }).then(response => {
-            return datalinkRef.current.infoStreams();
-          }).then(response => {
-            return datalinkRef.current.positionAfter(timeWindow.start);
-          }).then(response => {
-            if (response.isError()) {
-              console.log(`Oops, positionAfter response is not OK, ignore... ${response}`);
-            }
-            return datalinkRef.current.stream();
-          }).catch(function (error) {
-            console.log("Error: " + error);
-            console.assert(false, error);
-          });
+        try {
+          await datalinkRef.current.connect(); // Create websocket connection and send the client ID
+
+          const matchResponse = await datalinkRef.current.match(matchPattern); // Send match command
+          if (matchResponse.isError()) {
+            console.log(`response is not OK, ignore... ${matchResponse}`);
+          }
+
+          const positionResponse = await datalinkRef.current.positionAfter(timeWindow.start); // Send position after match command
+          if (positionResponse.isError()) {
+            console.log(`Oops, positionAfter response is not OK, ignore... ${positionResponse}`);
+          }
+    
+          await datalinkRef.current.stream(); // Switch to streaming mode to receive data packets from the ringserver
+        } catch (error) {
+          console.log("Error: " + error);
+          console.assert(false, error);
+        }
       }
     };
 
     const startGraph = function () {
-      timer = window.setInterval(drawGraph, timerInterval);
+      window.setInterval(drawGraph, timerInterval);
       toggleConnect();
     };
-
-    // const stopGraph = function () {
-    //   if (timer) {
-    //     clearInterval(timer);
-    //     timer = null;
-    //   }
-    //   if (datalinkRef.current) {
-    //     datalinkRef.current.endStream();
-    //     datalinkRef.current.close();
-    //   }
-    // };
 
     startGraph();
   }
