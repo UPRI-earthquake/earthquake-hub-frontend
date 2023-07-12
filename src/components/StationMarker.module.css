@@ -72,8 +72,9 @@
 
 .stationDescription {
     display: flex;
+    align-items: center;
 }
 
-.stationDescription i {
-    right: 0;
+.stationDescription b {
+    margin-right: 140px;
 }
