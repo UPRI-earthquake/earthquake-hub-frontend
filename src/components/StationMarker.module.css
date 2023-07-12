@@ -33,7 +33,7 @@
 }
 
 .popUpBody {
-    width: 315px;
+    width: 310px;
 }
 .statusIndicator {
     width: 12px;
@@ -77,4 +77,9 @@
 
 .stationDescription b {
     margin-right: 140px;
+}
+
+.realtimeGraphDiv:not(:empty) {
+    background-color: #f4f4f4;
+    padding: 5px;
 }
