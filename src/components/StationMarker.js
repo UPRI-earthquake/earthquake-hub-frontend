@@ -17,33 +17,37 @@ const StationMarker = ({network, code, latLng, description}) => {
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
 
-  function getRealTimeTrace(){
-    const matchPattern = 'GE_TOLI2__SHN/MSEED';
-    // const matchPattern = 'CO_BIRD_00_HHZ/MSEED';
-    const duration = sp.luxon.Duration.fromISO('PT3M');
+  function getRealTimeTrace(net, sta){
+    const matchPattern = `${net}_${sta}_([0-9]{2})?_.HZ/MSEED`; 
+    const duration = sp.luxon.Duration.fromObject({ minutes: 3, seconds: 30 });
+    const graphDuration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 30 }); // Set the graphDuration 1 minute shorter than the duration to make the trace look more realtime
     const timeWindow = new sp.util.durationEnd(duration, sp.luxon.DateTime.utc());
     const seisPlotConfig = new sp.seismographconfig.SeismographConfig();
     seisPlotConfig.wheelZoom = false;
-    seisPlotConfig.isYAxisNice = true;
-    seisPlotConfig._yLabel = 'Amplitude';
-    seisPlotConfig.linkedTimeScale.offset = sp.luxon.Duration.fromMillis(-1.2 * duration.toMillis()); // BINAGO KO TO FROM -1 to -1.2
-    seisPlotConfig.linkedTimeScale.duration = duration;
-    seisPlotConfig.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();
+    seisPlotConfig.linkedTimeScale.offset = sp.luxon.Duration.fromMillis(-1 * duration.toMillis());
+    seisPlotConfig.linkedTimeScale.duration = graphDuration;
+    seisPlotConfig.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();  
     seisPlotConfig.doGain = true;
+    seisPlotConfig.isRelativeTime = false; // This can be set to true to set the time to be relative from the current time (in millis)
 
     const packetHandler = function (packet) {
       if (packet.isMiniseed()) {
-        numPacketsRef.current++;
-        let seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed());
-        const codes = seisSegment.codes();
-        let seisPlot = graphListRef.current.get(codes);
-        if (!seisPlot) {
-          let seismogram = new sp.seismogram.Seismogram([seisSegment]);
-          let seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seismogram);
-          seisData.alignmentTime = sp.luxon.DateTime.utc();
-          seisPlot = new sp.seismograph.Seismograph([seisData], seisPlotConfig);
-          realtimeDivRef.current.appendChild(seisPlot);
-          graphListRef.current.set(codes, seisPlot);
+        numPacketsRef.current++; // Increment the packet counter
+        let seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed()); // Create a SeismogramSegment from the packet
+        let codes = seisSegment.codes(); // Get the codes (stream ID) of the SeismogramSegment
+        let seisPlot = graphListRef.current.get(codes); // Retrieve the corresponding graph for the codes from the graphListRef
+
+        if (!seisPlot) { // If the graph doesn't exist
+          // seisPlotConfig.title = codes; // Set the title of the graph based on the stream_id
+
+          let seismogram = new sp.seismogram.Seismogram([seisSegment]); // Create a Seismogram with the SeismogramSegment
+          let seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seismogram); // Create SeismogramDisplayData from the Seismogram
+          seisData.alignmentTime = sp.luxon.DateTime.utc(); // Set the alignment time to current UTC time
+
+          seisPlot = new sp.seismograph.Seismograph([seisData], seisPlotConfig); // Create a new Seismograph with the SeismogramDisplayData and SeismographConfig
+          realtimeDivRef.current.appendChild(seisPlot); // Append the Seismograph to the realtimeDiv
+          graphListRef.current.set(codes, seisPlot); // Store the Seismograph in the graphListRef for future reference
+
           console.log(`new plot: ${codes}`)
         } else {
           seisPlot.seisData[0].append(seisSegment);
@@ -171,14 +175,13 @@ const StationMarker = ({network, code, latLng, description}) => {
   const handleStationClick = async () => {
     try{
       const response = await axios.get(
-        `${backend_host}/device/status?network=AM&station=${code.toUpperCase()}`);
+        `${backend_host}/device/status?network=${network.toUpperCase()}&station=${code.toUpperCase()}`);
       const payload = response.data.payload;
       setStatusState({
         status: payload.status,
         statusSince: payload.statusSince
       })
-      getRealTimeTrace(); // call the function that traces the realtime data received by the ringserver 
-
+      getRealTimeTrace(network, code); // Call the function that traces the realtime data received by the ringserver
     } catch (error) {
       console.error('Error occurred while fetching device status:', error);
       setStatusState({ status: null, statusSince: null });
