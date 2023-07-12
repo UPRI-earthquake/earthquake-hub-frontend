@@ -206,13 +206,21 @@ const StationMarker = ({network, code, latLng, description}) => {
     >
       <Popup className={styles.popUp}>
         <div className={styles.popUpBody}>
-          <h3>Station {code}</h3>
-          <p>{description}</p>
+          <div className={styles.stationDescription}><b>Station {code} </b><i>{description}</i></div> 
+          <hr/>
+          <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
           <p>
-            {statusState.status && statusState.status} 
+            <span
+              className={`${styles.statusIndicator} 
+              ${statusState.status === 'Streaming' 
+                ? styles.streaming 
+                : statusState.status === 'Not streaming' 
+                ? styles['not-streaming'] 
+                : styles['not-linked']}`}
+            ></span>
+            {statusState.status && statusState.status}
             {statusState.statusSince && ` since ${moment(statusState.statusSince).fromNow()}`}
           </p>
-          <div ref={realtimeDivRef}></div>
           <a href={data_download_URL} target="_blank" rel="noreferrer">Get past 24hrs data</a><br/>
           <a href={metadata_download_URL} target="_blank" rel="noreferrer">Get station metadata</a><br/>
         </div>

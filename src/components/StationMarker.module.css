@@ -29,9 +29,51 @@
 
 
 .popUp {
-    width: 400px;
+    width: 350px;
 }
 
 .popUpBody {
-    width: 370px;
+    width: 315px;
+}
+.statusIndicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.streaming {
+    background-color: green;
+    animation: blinkAnimation 1s infinite;
+}
+
+@keyframes blinkAnimation {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.not-streaming {
+    background-color: red;
+}
+
+.not-linked {
+    background-color: gray;
+}
+
+.stationDescription {
+    display: flex;
+}
+
+.stationDescription i {
+    right: 0;
 }
