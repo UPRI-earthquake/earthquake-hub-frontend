@@ -9,7 +9,7 @@ import moment from 'moment';
 import axios from 'axios';
 import * as sp from 'seisplotjs';
 
-const StationMarker = ({code, latLng, description}) => {
+const StationMarker = ({network, code, latLng, description}) => {
     
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
