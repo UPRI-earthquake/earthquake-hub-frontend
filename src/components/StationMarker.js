@@ -74,7 +74,7 @@ const StationMarker = ({network, code, latLng, description}) => {
      *     
      ***************************************************************************/
     datalinkRef.current = new sp.datalink.DataLinkConnection(
-      "ws://127.0.0.1:16000/datalink",
+      ringserver_ws,
       packetHandler,
       errorFn
     );
@@ -137,6 +137,9 @@ const StationMarker = ({network, code, latLng, description}) => {
   const backend_host = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_BACKEND
                        : process.env.REACT_APP_BACKEND_DEV
+  const ringserver_ws = process.env.NODE_ENV === 'production'
+                       ? process.env.REACT_APP_RINGSERVER_WS
+                       : process.env.REACT_APP_RINGSERVER_WS_DEV
 
   useEffect(() => {
     const handlePickEvent = (event) => {
@@ -214,6 +217,7 @@ const StationMarker = ({network, code, latLng, description}) => {
                 ? styles['not-streaming'] 
                 : styles['not-linked']}`}
             ></span>
+            {statusState.status}
             {statusState.statusSince && ` since ${moment(statusState.statusSince).fromNow()}`}
           </p>
           <a href={data_download_URL} target="_blank" rel="noreferrer">Get past 24hrs data</a><br/>
