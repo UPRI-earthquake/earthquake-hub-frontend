@@ -214,7 +214,6 @@ const StationMarker = ({network, code, latLng, description}) => {
                 ? styles['not-streaming'] 
                 : styles['not-linked']}`}
             ></span>
-            {statusState.status && statusState.status}
             {statusState.statusSince && ` since ${moment(statusState.statusSince).fromNow()}`}
           </p>
           <a href={data_download_URL} target="_blank" rel="noreferrer">Get past 24hrs data</a><br/>
