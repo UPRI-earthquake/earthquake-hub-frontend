@@ -50,6 +50,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@react-leaflet/core": "npm:@monsonjeremy/react-leaflet-core@^1.1.1"
   }
 }
