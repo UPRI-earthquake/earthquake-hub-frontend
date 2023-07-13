@@ -29,6 +29,7 @@ const StationMarker = ({network, code, latLng, description}) => {
     seisPlotConfig.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();  
     seisPlotConfig.doGain = true;
     seisPlotConfig.isRelativeTime = true; // Display the time to be relative from the current time (in millis)
+    seisPlotConfig.xLabel = 'Time (seconds)';
 
     const packetHandler = function (packet) {
       if (packet.isMiniseed()) {
