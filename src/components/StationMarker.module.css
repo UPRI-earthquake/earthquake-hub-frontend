@@ -44,7 +44,7 @@
 }
 
 .streaming {
-    background-color: green;
+    background-color: #5cb85c;
     animation: blinkAnimation 1s infinite;
 }
 
@@ -63,7 +63,7 @@
 }
 
 .not-streaming {
-    background-color: red;
+    background-color: #d9534f;
 }
 
 .not-linked {
