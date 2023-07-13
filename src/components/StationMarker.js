@@ -126,8 +126,8 @@ const StationMarker = ({network, code, latLng, description}) => {
     } else if (!connect.current && datalinkRef.current){
       // close connection
       console.log("Disconnecting datalink websocket")
-      datalinkRef.current.endStream();
-      datalinkRef.current.close();
+      await datalinkRef.current.endStream();
+      await datalinkRef.current.close();
     }
   };
 
@@ -185,10 +185,22 @@ const StationMarker = ({network, code, latLng, description}) => {
         status: payload.status,
         statusSince: payload.statusSince
       })
-      startGraph(network, code);
+
+      if(payload.status === "Streaming"){
+        startGraph(network, code);
+      }
+
     } catch (error) {
-      console.error('Error occurred while fetching device status:', error);
+      console.error('Error occurred while fetching device status or starting datalink graph:', error);
       setStatusState({ status: null, statusSince: null });
+    }
+  }
+
+  const handlePopupClose = async () => {
+    try{
+      await toggleConnect();
+    } catch (error) {
+      console.error('Error occurred while closing websocket:', error);
     }
   }
 
@@ -209,7 +221,7 @@ const StationMarker = ({network, code, latLng, description}) => {
       icon={divTriangle}
       eventHandlers={{
         click: handleStationClick,
-        popupclose: toggleConnect
+        popupclose: handlePopupClose
       }}
     >
       <Popup className={styles.popUp}>
