@@ -19,8 +19,8 @@ const StationMarker = ({network, code, latLng, description}) => {
 
   function getRealTimeTrace(net, sta){
     const matchPattern = `${net}_${sta}_([0-9]{2})?_.HZ/MSEED`; 
-    const duration = sp.luxon.Duration.fromObject({ minutes: 3, seconds: 30 });
-    const graphDuration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 30 }); // Set the graphDuration 1 minute shorter than the duration to make the trace look more realtime
+    const duration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 45 });
+    const graphDuration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 30 }); // Set the graphDuration 30 seconds shorter than the duration to make the trace look more realtime
     const timeWindow = new sp.util.durationEnd(duration, sp.luxon.DateTime.utc());
     const seisPlotConfig = new sp.seismographconfig.SeismographConfig();
     seisPlotConfig.wheelZoom = false;
@@ -28,7 +28,7 @@ const StationMarker = ({network, code, latLng, description}) => {
     seisPlotConfig.linkedTimeScale.duration = graphDuration;
     seisPlotConfig.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();  
     seisPlotConfig.doGain = true;
-    seisPlotConfig.isRelativeTime = false; // This can be set to true to set the time to be relative from the current time (in millis)
+    seisPlotConfig.isRelativeTime = true; // Display the time to be relative from the current time (in millis)
 
     const packetHandler = function (packet) {
       if (packet.isMiniseed()) {
