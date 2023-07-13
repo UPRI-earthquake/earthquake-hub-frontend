@@ -15,6 +15,7 @@ const StationMarker = ({network, code, latLng, description}) => {
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
+  const connect = useRef(false);  // flag used in toggleConnect(), ws is not connected by default
   const ringserver_ws = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_RINGSERVER_WS
                        : process.env.REACT_APP_RINGSERVER_WS_DEV
@@ -98,10 +99,14 @@ const StationMarker = ({network, code, latLng, description}) => {
   };
 
   const toggleConnect = async function (network, station) {
-    if (datalinkRef.current) {
+    connect.current = !connect.current;
+
+    if (connect.current && datalinkRef.current) {
+      // start connection
       try {
         const matchPattern = `${network}_${station}_([0-9]{2})?_.HZ/MSEED`; 
 
+        console.log("Connecting to datalink via websocket")
         await datalinkRef.current.connect(); // Create websocket connection and send the client ID
         const matchResponse = await datalinkRef.current.match(matchPattern); // Send match command
         if (matchResponse.isError()) {
@@ -118,6 +123,11 @@ const StationMarker = ({network, code, latLng, description}) => {
         console.log("Error: " + error);
         console.assert(false, error);
       }
+    } else if (!connect.current && datalinkRef.current){
+      // close connection
+      console.log("Disconnecting datalink websocket")
+      datalinkRef.current.endStream();
+      datalinkRef.current.close();
     }
   };
 
@@ -199,7 +209,7 @@ const StationMarker = ({network, code, latLng, description}) => {
       icon={divTriangle}
       eventHandlers={{
         click: handleStationClick,
-        popupclose: (e) => {console.table(e)}
+        popupclose: toggleConnect
       }}
     >
       <Popup className={styles.popUp}>
