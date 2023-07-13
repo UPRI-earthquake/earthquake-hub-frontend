@@ -209,12 +209,18 @@ const StationMarker = ({network, code, latLng, description}) => {
           <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
           <p>
             <span
-              className={`${styles.statusIndicator} 
-              ${statusState.status === 'Streaming' 
-                ? styles.streaming 
-                : statusState.status === 'Not streaming' 
-                ? styles['not-streaming'] 
-                : styles['not-linked']}`}
+              className={`
+                ${styles.statusIndicator}
+                ${
+                    statusState.status === 'Streaming' 
+                    ? styles.streaming 
+                    : (
+                        statusState.status === 'Not yet linked' 
+                        ? styles['not-linked']
+                        : styles['not-streaming']
+                      )
+                 }
+              `}
             ></span>
             {statusState.status}
             {statusState.statusSince && ` since ${moment(statusState.statusSince).fromNow()}`}
