@@ -13,7 +13,6 @@ const StationMarker = ({network, code, latLng, description}) => {
     
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
-  const numPacketsRef = useRef(0);
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
 
@@ -33,7 +32,6 @@ const StationMarker = ({network, code, latLng, description}) => {
 
     const packetHandler = function (packet) {
       if (packet.isMiniseed()) {
-        numPacketsRef.current++; // Increment the packet counter
         let seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed()); // Create a SeismogramSegment from the packet
         let codes = seisSegment.codes(); // Get the codes (stream ID) of the SeismogramSegment
         let seisPlot = graphListRef.current.get(codes); // Retrieve the corresponding graph for the codes from the graphListRef
@@ -83,7 +81,7 @@ const StationMarker = ({network, code, latLng, description}) => {
     const timerInterval = duration.toMillis() /
       (realtimeDivRef.current.offsetWidth - seisPlotConfig.margin.left - seisPlotConfig.margin.right);
 
-    const drawGraph = function (timestamp) {
+    const drawGraph = function () {
       if (redrawInProgressRef.current) return; // Skip if redraw is already in progress
       redrawInProgressRef.current = true; // Mark redraw as in progress
       window.requestAnimationFrame(() => {
