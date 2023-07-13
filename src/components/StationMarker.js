@@ -202,7 +202,7 @@ const StationMarker = ({network, code, latLng, description}) => {
     >
       <Popup className={styles.popUp}>
         <div className={styles.popUpBody}>
-          <div className={styles.stationDescription}><b>Station {code} </b><i>{description}</i></div> 
+          <div><b>Station {code} </b><i>{description}</i></div> 
           <hr/>
           <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
           <p>

@@ -70,15 +70,6 @@
     background-color: gray;
 }
 
-.stationDescription {
-    display: flex;
-    align-items: center;
-}
-
-.stationDescription b {
-    margin-right: 140px;
-}
-
 .realtimeGraphDiv:not(:empty) {
     background-color: #f4f4f4;
     padding: 5px;
