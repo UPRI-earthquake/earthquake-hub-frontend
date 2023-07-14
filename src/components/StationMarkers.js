@@ -16,6 +16,7 @@ const StationMarkers = ({initStations}) => {
   return (
     stations.map(station => 
       <StationMarker 
+        network={station.network}
         key={station.code} 
         code={station.code} 
         latLng={obscureLocation(station.latitude, station.longitude)}

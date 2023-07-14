@@ -26,3 +26,52 @@
         stroke-opacity: 0;  
     }
 }
+
+
+.popUp {
+    width: 350px;
+}
+
+.popUpBody {
+    width: 310px;
+}
+.statusIndicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.streaming {
+    background-color: #5cb85c;
+    animation: blinkAnimation 1s infinite;
+}
+
+@keyframes blinkAnimation {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.not-streaming {
+    background-color: #d9534f;
+}
+
+.not-linked {
+    background-color: gray;
+}
+
+.realtimeGraphDiv:not(:empty) {
+    background-color: #f4f4f4;
+    padding: 5px;
+    border-radius: 10px;
+}
