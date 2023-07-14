@@ -15,7 +15,7 @@ const StationMarker = ({network, code, latLng, description}) => {
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
-  const connect = useRef(false);  // flag used in toggleConnect(), ws is not connected by default
+  const connected = useRef(false);  // flag used in connectDataLinkWS(), ws is not connected by default
   const ringserver_ws = process.env.NODE_ENV === 'production'
                        ? process.env.REACT_APP_RINGSERVER_WS
                        : process.env.REACT_APP_RINGSERVER_WS_DEV
@@ -62,7 +62,6 @@ const StationMarker = ({network, code, latLng, description}) => {
   };
 
   const errorFn = function (error) {
-    console.assert(false, error);
     if (datalinkRef.current) { datalinkRef.current.close(); } // Close the websocket connection
   };
 
@@ -98,16 +97,15 @@ const StationMarker = ({network, code, latLng, description}) => {
     });
   };
 
-  const toggleConnect = async function (network, station) {
-    connect.current = !connect.current;
-
-    if (connect.current && datalinkRef.current) {
+  const connectDataLinkWS = async function (network, station) {
+    if (!connected.current && datalinkRef.current) {
       // start connection
       try {
         const matchPattern = `${network}_${station}_([0-9]{2})?_.HZ/MSEED`; 
 
         console.log("Connecting to datalink via websocket")
         await datalinkRef.current.connect(); // Create websocket connection and send the client ID
+        connected.current = true;
         const matchResponse = await datalinkRef.current.match(matchPattern); // Send match command
         if (matchResponse.isError()) {
           console.log(`response is not OK, ignore... ${matchResponse}`);
@@ -119,24 +117,38 @@ const StationMarker = ({network, code, latLng, description}) => {
         }
   
         await datalinkRef.current.stream(); // Switch to streaming mode to receive data packets from the ringserver
-      } catch (error) {
-        console.log("Error: " + error);
-        console.assert(false, error);
+                                            // NOTE: This part blocks while streaming,
+                                            // until endStream() is called
+      } catch (e) {
+        console.error("Error occurred while connecting to websocket");
       }
-    } else if (!connect.current && datalinkRef.current){
-      // close connection
-      console.log("Disconnecting datalink websocket")
-      await datalinkRef.current.endStream();
-      await datalinkRef.current.close();
-    }
+    }    
   };
+
+  const disconnectDataLinkWS = async () => {
+    console.log(`connected.current=${connected.current}`)
+    console.log(`datalinkRef=${datalinkRef}`)
+    try{
+      if (connected.current && datalinkRef.current){
+        // close connection
+        console.log("Disconnecting datalink websocket")
+        await datalinkRef.current.endStream();
+        await datalinkRef.current.close();
+
+        connected.current = false;
+      }
+    } catch (e) {
+      console.error('Error occurred while closing websocket');
+    }
+  }
+
 
   const startGraph = function (network, station) {
     const timerInterval = duration.toMillis() /
       (realtimeDivRef.current.offsetWidth - seisPlotConfig.margin.left - seisPlotConfig.margin.right);
 
     window.setInterval(drawGraph, timerInterval);
-    toggleConnect(network, station);
+    connectDataLinkWS(network, station);
   };
   /* End of graph data from DataLink WebSocket */
 
@@ -191,17 +203,13 @@ const StationMarker = ({network, code, latLng, description}) => {
       }
 
     } catch (error) {
-      console.error('Error occurred while fetching device status or starting datalink graph:', error);
+      console.error('Error occurred while fetching device status or while starting datalink graph:', error);
       setStatusState({ status: null, statusSince: null });
     }
   }
 
   const handlePopupClose = async () => {
-    try{
-      await toggleConnect();
-    } catch (error) {
-      console.error('Error occurred while closing websocket:', error);
-    }
+    await disconnectDataLinkWS();
   }
 
   const start_time = moment().subtract(1, 'days')
