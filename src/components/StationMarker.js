@@ -126,8 +126,6 @@ const StationMarker = ({network, code, latLng, description}) => {
   };
 
   const disconnectDataLinkWS = async () => {
-    console.log(`connected.current=${connected.current}`)
-    console.log(`datalinkRef=${datalinkRef}`)
     try{
       if (connected.current && datalinkRef.current){
         // close connection
