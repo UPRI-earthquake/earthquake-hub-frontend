@@ -146,6 +146,11 @@ const StationMarker = ({network, code, latLng, description}) => {
   const startGraph = function (network, station) {
     const timerInterval = duration.toMillis() /
       (realtimeDivRef.current.offsetWidth - seisPlotConfig.margin.left - seisPlotConfig.margin.right);
+      //The offsetWidth property returns the viewable width of an element (in pixels) 
+      // You can think of the timerInterval as the number of data seconds per pixel
+      // Meaning the interval refreshes whenever a pixel-length amount of data is
+      // available.
+
 
     window.setInterval(drawGraph, timerInterval);
     connectDataLinkWS(network, station);
