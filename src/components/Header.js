@@ -53,8 +53,8 @@ function Header() {
     const accessTokenExistenceCheck = async () => {
       try {
         const backend_host = process.env.NODE_ENV === 'production'
-          ? process.env.REACT_APP_BACKEND
-          : process.env.REACT_APP_BACKEND_DEV;
+          ? window['ENV'].REACT_APP_BACKEND
+          : window['ENV'].REACT_APP_BACKEND_DEV;
         axios.defaults.withCredentials = true;
         const response = await axios.get(`${backend_host}/accounts/profile`);
         return response.data.payload.email;

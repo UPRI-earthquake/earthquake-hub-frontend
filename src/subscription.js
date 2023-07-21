@@ -1,4 +1,4 @@
-const convertedVapidKey = urlBase64ToUint8Array(process.env.REACT_APP_PUBLIC_VAPID_KEY)
+const convertedVapidKey = urlBase64ToUint8Array(window['ENV'].REACT_APP_PUBLIC_VAPID_KEY)
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - base64String.length % 4) % 4)
@@ -16,8 +16,8 @@ function urlBase64ToUint8Array(base64String) {
 
 function sendSubscription(subscription) {
   const backend_host = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_BACKEND
-                       : process.env.REACT_APP_BACKEND_DEV
+                       ? window['ENV'].REACT_APP_BACKEND
+                       : window['ENV'].REACT_APP_BACKEND_DEV
   return fetch(`${backend_host}/notifications/subscribe`,{
     method:'POST',
     body: JSON.stringify(subscription),

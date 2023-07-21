@@ -17,8 +17,8 @@ const StationMarker = ({network, code, latLng, description}) => {
   const datalinkRef = useRef(null);
   const connected = useRef(false);  // flag used in connectDataLinkWS(), ws is not connected by default
   const ringserver_ws = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_RINGSERVER_WS
-                       : process.env.REACT_APP_RINGSERVER_WS_DEV
+                       ? window['ENV'].REACT_APP_RINGSERVER_WS
+                       : window['ENV'].REACT_APP_RINGSERVER_WS_DEV
 
   /* Graph data from DataLink WebSocket */
   const duration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 45 });
@@ -161,8 +161,8 @@ const StationMarker = ({network, code, latLng, description}) => {
   const eventSource = useContext(SSEContext);
   const [statusState, setStatusState] = useState({status: null, statusSince: null});
   const backend_host = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_BACKEND
-                       : process.env.REACT_APP_BACKEND_DEV
+                       ? window['ENV'].REACT_APP_BACKEND
+                       : window['ENV'].REACT_APP_BACKEND_DEV
 
   useEffect(() => {
     const handlePickEvent = (event) => {
@@ -216,13 +216,13 @@ const StationMarker = ({network, code, latLng, description}) => {
   }
 
   const start_time = moment().subtract(1, 'days')
-  const data_download_URL = process.env.REACT_APP_FDSNWS
+  const data_download_URL = window['ENV'].REACT_APP_FDSNWS
     +"/dataselect/1/query?"
     +"starttime="+start_time.format("YYYY-MM-DDTHH:mm:ss")
     +"&endtime="+moment().format("YYYY-MM-DDTHH:mm:ss")
     +"&network=AM&station="+code
     +"&location=00&channel=E*&nodata=404"
-  const metadata_download_URL = process.env.REACT_APP_RS_FDSNWS
+  const metadata_download_URL = window['ENV'].REACT_APP_RS_FDSNWS
     +"/station/1/query?"
     +"&network=AM&station="+code
     +"&level=resp&format=sc3ml"

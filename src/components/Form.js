@@ -46,8 +46,8 @@ function Form({ children, title, onClick, onSubmit }) {
 
 function SignInForm( {onClick, onSuccess} ) {
   const backend_host = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_BACKEND
-                       : process.env.REACT_APP_BACKEND_DEV
+                       ? window['ENV'].REACT_APP_BACKEND
+                       : window['ENV'].REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -95,8 +95,8 @@ function SignInForm( {onClick, onSuccess} ) {
 
 function SignUpForm( {onClick, onSuccess} ) {
   const backend_host = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_BACKEND
-                       : process.env.REACT_APP_BACKEND_DEV
+                       ? window['ENV'].REACT_APP_BACKEND
+                       : window['ENV'].REACT_APP_BACKEND_DEV
 
   const [errorMessage, setErrorMessage] = useState("");
 
