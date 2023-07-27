@@ -32,9 +32,9 @@ const App = () => {
                          ? moment().subtract(1, 'months')
                          : moment('2021-09-09 14:30:00.0')
 
-    const fetchStationsPromise = axios.get(`${backend_host}/stationLocations`); 
+    const fetchStationsPromise = axios.get(`${backend_host}/device/all`); 
 
-    const fetchEventsPromise = axios.get(`${backend_host}/eventsList`,
+    const fetchEventsPromise = axios.get(`${backend_host}/eq-events`,
       {params: {
         startTime: start_time.format("YYYY-MM-DD HH:mm:ss"),
         endTime: moment().format("YYYY-MM-DD HH:mm:ss"),
@@ -60,11 +60,11 @@ const App = () => {
     Promise.all([fetchStationsPromise, fetchEventsPromise,
                  eventSourcePromise, waitingPromise])
       .then((values) => {
-        stationsRef.current = values[0].data.map(station => (
+        stationsRef.current = values[0].data.payload.map(station => (
           {...station, isPicked: false}
         ));
 
-        eventsRef.current = values[1].data//fetchResult.data
+        eventsRef.current = values[1].data.payload//fetchResult.data
         //TODO: Get last_modification
 
         eventSourceRef.current = values[2]
