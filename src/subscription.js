@@ -56,7 +56,7 @@ export function subscribeUser() {
           })
           .catch(e => {
             (Notification.permission !== 'granted') 
-            ? console.log('Notification peremission was not granted.')
+            ? console.log('Notification permission was not granted.')
             : console.error('Error occured in subscription.', e)
           })
 
