@@ -1,6 +1,5 @@
 ## Setting Up The Repository On Your Local Machine
-For local development, the earthquake-hbackend is needed to serve the requests from the frontend. As
-such, you need to spin up the backend code first, then the frontend. All of the
+For local development, the earthquake-hub-backend is needed to serve the requests from the frontend. As such, you need to spin up the backend code first, then the frontend. All of the
 development setup makes use of docker.
 
 1. Clone earthquake-hub-backend, 
