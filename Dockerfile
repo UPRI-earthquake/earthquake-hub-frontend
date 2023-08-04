@@ -1,7 +1,13 @@
 # build environment
-FROM node:16-alpine as build
+FROM node:16-alpine as base
+
+EXPOSE 3000
 
 WORKDIR /app
+
+# Stage 2: prod
+FROM base as build
+
 ENV PATH /app/node-modules/.bin:$PATH
 COPY package.json ./
 COPY package-lock.json ./
