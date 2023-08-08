@@ -45,7 +45,7 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
         : process.env.REACT_APP_BACKEND_DEV
       axios.defaults.withCredentials = true;
       const response = await axios.get(`${backend_host}/device/my-devices`);
-      setDevices(response.data.payload)
+      setDevices(response.data.devices)
     } catch (error) {
       // Handle any error that occurred during the request
       console.error('Error:', error.message);
