@@ -52,11 +52,11 @@ export function subscribeUser() {
           })
           .then(newSubscription => {
             console.log('New subscription added.')
-            sendSubscription(newSubscription)
+            console.log(JSON.stringify(newSubscription))
           })
           .catch(e => {
             (Notification.permission !== 'granted') 
-            ? console.log('Premission was not granted.')
+            ? console.log('Notification permission was not granted.')
             : console.error('Error occured in subscription.', e)
           })
 
