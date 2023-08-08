@@ -24,8 +24,8 @@ const App = () => {
   useEffect(() => {
     // get initial eq-events from backend
     const backend_host = process.env.NODE_ENV === 'production'
-                         ? process.env.REACT_APP_BACKEND
-                         : process.env.REACT_APP_BACKEND_DEV
+                         ? window['ENV'].REACT_APP_BACKEND
+                         : window['ENV'].REACT_APP_BACKEND_DEV
 
     // get past 1 month when in production
     const start_time = process.env.NODE_ENV === 'production'

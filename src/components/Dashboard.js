@@ -41,8 +41,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
   const fetchDevices = async () => {
     try {
       const backend_host = process.env.NODE_ENV === 'production'
-        ? process.env.REACT_APP_BACKEND
-        : process.env.REACT_APP_BACKEND_DEV
+        ? window['ENV'].REACT_APP_BACKEND
+        : window['ENV'].REACT_APP_BACKEND_DEV
       axios.defaults.withCredentials = true;
       const response = await axios.get(`${backend_host}/device/list`);
       setDevices(response.data.payload)
@@ -131,8 +131,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
   async function handleAddDeviceSubmit(event) {
     event.preventDefault();
     const backend_host = process.env.NODE_ENV === 'production'
-                       ? process.env.REACT_APP_BACKEND
-                       : process.env.REACT_APP_BACKEND_DEV
+                       ? window['ENV'].REACT_APP_BACKEND
+                       : window['ENV'].REACT_APP_BACKEND_DEV
 
     const network = event.target.elements.network.value;
     const station = event.target.elements.station.value;
@@ -206,8 +206,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
 
   async function handleSignout() {
     const backend_host = process.env.NODE_ENV === 'production'
-      ? process.env.REACT_APP_BACKEND
-      : process.env.REACT_APP_BACKEND_DEV
+      ? window['ENV'].REACT_APP_BACKEND
+      : window['ENV'].REACT_APP_BACKEND_DEV
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/signout`);
