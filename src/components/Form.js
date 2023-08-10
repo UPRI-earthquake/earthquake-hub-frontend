@@ -73,7 +73,7 @@ function SignInForm( {onClick, onSuccess} ) {
         }
       );
       console.log("Sign in successful!", response.data);
-      onSuccess();
+      onSuccess(role);
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -90,19 +90,19 @@ function SignInForm( {onClick, onSuccess} ) {
     <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
-        Role
-        <select name="role" value={selectedRole} onChange={handleRoleChange}>
-          <option value="citizen">Citizen</option>
-          <option value="brgy">Brgy</option>
-        </select>
-      </label>
-      <label>
         Username
         <input type="text" name="username"/>
       </label>
       <label>
         Password
         <input type="password" name="password"/>
+      </label>
+      <label>
+        Role
+        <select name="role" value={selectedRole} onChange={handleRoleChange}>
+          <option value="citizen">Citizen</option>
+          <option value="brgy">Brgy</option>
+        </select>
       </label>
       <button type="submit">Sign in</button>
     </Form>
@@ -150,8 +150,17 @@ function SignUpForm( {onClick, onSuccess} ) {
       );
       console.log("Sign up successful!", response);
 
-      // TODO: Pass message of successful login to <Dashboard>
-      onSuccess();
+      if (role === 'brgy') {
+        setToastMessage('Registration Successful. Kindly await an email notification confirming the activation of your account.');
+        setToastType('success');
+        // // Loop through each input field and set its value to an empty string
+        const inputFields = document.querySelectorAll("input"); // Select all text input fields
+        inputFields.forEach((input) => {
+          input.value = '';
+        });
+      } else if (role === 'citizen') {
+        onSuccess();
+      }
     } catch (error) {
       if (error.response) {
         const { data } = error.response;

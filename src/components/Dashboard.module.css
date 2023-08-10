@@ -60,6 +60,22 @@
   margin-bottom: 20px;
 }
 
+.panelBody .copyTextDiv {
+  text-align: right;
+}
+
+.panelBody .copyTextButton {
+  font-size: small;
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+}
+
+.panelBody .copyTextButton:hover {
+  text-decoration: underline;
+  color: #062568;
+}
+
 .panelBody .buttonDiv {
   padding: 2px;
   display: flex;

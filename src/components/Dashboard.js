@@ -10,10 +10,11 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSuccess }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSuccess, loggedInUserRole }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)success message
+  const [brgyAccessToken, setBrgyAccessToken] = useState() // hook for brgyAccessToken
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
@@ -190,6 +191,59 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
     }
   }
 
+  async function requestTokenSubmit(event) {
+    event.preventDefault();
+    const backend_host = process.env.NODE_ENV === 'production'
+      ? process.env.REACT_APP_BACKEND
+      : process.env.REACT_APP_BACKEND_DEV
+    try {
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(`${backend_host}/accounts/acquire-brgy-token`);
+      console.log('Brgy access token acquired', response.data)
+
+      setBrgyAccessToken(response.data.accessToken)
+
+      setToastMessage('Brgy access token request success');
+      setToastType('success');
+    } catch (error) {
+      console.log(error)
+
+      setToastMessage(`Brgy access token request error`);
+      setToastType('error');
+    }
+
+    // Set toast message to empty string to remove the toast
+    setTimeout(() => {
+      setToastMessage('');
+    }, 5000);
+  }
+
+  const textRef = useRef(null);
+
+  function copyText() {
+    try {
+      if (!textRef.current.innerText) {
+        throw new Error('Clipboard is empty. Request a token first.')
+      }
+
+      const textToCopy = textRef.current.innerText;
+      navigator.clipboard.writeText(textToCopy)
+      console.log("Text copied to clipboard:", textToCopy);
+
+      setToastMessage('Access Token copied to clipboard');
+      setToastType('success');
+    } catch (error) {
+      console.error("Failed to copy text:", error);
+
+      setToastMessage('Failed to copy text');
+      setToastType('error');
+    }
+
+    setTimeout(() => {
+      setToastMessage('');
+    }, 5000);
+  }
+
   function handleAddDeviceClick() {
     setPageTransition(2);
   }
@@ -228,6 +282,23 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
             <div className={styles.panelBody}>
               
               {/* TODO: Will Add Profile Details Here */}
+              {(loggedInUserRole === 'brgy') && (
+              <>
+                <div>
+                  <p className={styles.copyTextDiv}>
+                    <span className={styles.copyTextButton} onClick={copyText}>
+                      Copy to clipboard
+                    </span>
+                  </p>
+                  <p className={styles.accessTokenContainer} ref={textRef}>{brgyAccessToken}</p>
+                  {(brgyAccessToken) && (<small><i>Note: Please ensure to store this token, as we do not save a copy of your access token.</i></small>)}
+                </div>
+
+                <div className={styles.buttonDiv}>
+                  <button onClick={requestTokenSubmit}>Request a Brgy Token</button>
+                </div>
+              </>
+              )}
 
             </div> {/* End of Profile panelBody */}
 

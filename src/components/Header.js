@@ -15,13 +15,15 @@ function Header() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [signupSuccessMessage, setSignupSuccessMessage] = useState('');
+  const [loggedInUserRole, setLoggedInUserRole] = useState();
 
   const handleSignInClick = () => setShowSignInForm(true);
   const handleSignInClose = () => setShowSignInForm(false);
   const handleSignUpClick = () => setShowSignUpForm(true);
   const handleSignUpClose = () => setShowSignUpForm(false);
 
-  const handleSignInSuccess = () => {
+  const handleSignInSuccess = (role) => {
+    setLoggedInUserRole(role); // This will be passed to the Dashboard Element
     setShowSignInForm(false);
     setShowDashboard(true);
     setIsLoggedIn(true); // User is now logged in
@@ -112,6 +114,7 @@ function Header() {
           onClick={handleDashboardToggle} 
           onEscapeClick={handleDashboardToggle} 
           signupSuccessMessage={signupSuccessMessage}
+          loggedInUserRole={loggedInUserRole}
           onSignoutSuccess={handleSignoutSuccess} />}
     </div>
   )
