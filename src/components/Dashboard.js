@@ -13,8 +13,7 @@ const statusTooltips = {
 function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSuccess }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
-  const [devices, setDevices] = useState([]) // hook for list of device in table (array)
-  const [addDeviceSuccessMessage, setAddDeviceSuccessMessage] = useState();  // hook for add device success message
+  const [devices, setDevices] = useState([]) // hook for list of device in table (array)success message
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
@@ -200,10 +199,6 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
     setErrorMessage('')
   }
 
-  function handlePopupClose() {
-    setAddDeviceSuccessMessage('')
-  }
-
   async function handleSignout() {
     const backend_host = process.env.NODE_ENV === 'production'
       ? window['ENV'].REACT_APP_BACKEND
@@ -225,62 +220,67 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
         <Toast message={toastMessage} toastType={toastType}></Toast>
 
         {(pageTransition < 2) && (
-          <div ref={profileRef} className={`${styles.profileContainer}`}>
+          <div ref={profileRef} className={styles.profileContainer}>
             <p className={styles.signoutButtonDiv}><span className={styles.signoutButton} onClick={handleSignout}>Sign out</span></p>
-          <h2>Profile</h2>
-            {/* TODO: Will Add Profile Details Here */}
+            <div className={styles.panelHeader}>
+              <p>Profile</p>
+            </div> {/* End of Profile panelHeader */}
+            <div className={styles.panelBody}>
+              
+              {/* TODO: Will Add Profile Details Here */}
 
-          <h2>Device List</h2>
-          {addDeviceSuccessMessage && (
-            <div className={styles.messagePopup}>
-              <button className={styles.exitButton} onClick={handlePopupClose}>
-                X
-              </button>
-              <p>{addDeviceSuccessMessage}</p>
-            </div>
-          )} 
-          <div className={styles.deviceListTableContainer}>
-          <table className={styles.deviceListTable}>
-            <thead>
-              <tr>
-                <th>Network</th>
-                <th>Station</th>
-                <th>Status</th>
-                <th>Status Since</th>
-              </tr>
-                </thead>
-                <tbody>
-                  {devices.length === 0 ? (
+            </div> {/* End of Profile panelBody */}
+
+            <div className={styles.panelHeader}>
+              <p>Device List</p>
+            </div> {/* End of Device List panelHeader */}
+            <div className={styles.panelBody}>
+              <div className={styles.deviceListTableContainer}>
+                <table className={styles.deviceListTable}>
+                  <thead>
                     <tr>
-                      <td colSpan="3">No data available</td>
+                      <th>Network</th>
+                      <th>Station</th>
+                      <th>Status</th>
+                      <th>Status Since</th>
                     </tr>
-                  ) : (
-                    devices.map((device, index) => (
-                      <tr key={index}>
-                        <td>{device.network}</td>
-                        <td>{device.station}</td>
-                        <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
-                        <td>{device.statusSince}</td>
+                  </thead>
+                  <tbody>
+                    {devices.length === 0 ? (
+                      <tr>
+                        <td colSpan="3">No data available</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-          </table>
-          </div>
+                    ) : (
+                      devices.map((device, index) => (
+                        <tr key={index}>
+                          <td>{device.network}</td>
+                          <td>{device.station}</td>
+                          <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
+                          <td>{device.statusSince}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-          <div className={styles.addDeviceButtonDiv}>
-            <button className={styles.addDeviceButton} onClick={handleAddDeviceClick}>Add Device</button>
-          </div>
+              <div className={styles.buttonDiv}>
+                <button onClick={handleAddDeviceClick}>Add New Device</button>
+              </div>
+            </div> {/* End of Device List panelBody */}
+
           </div>
         )}
 
         {(pageTransition === 2) && (
 
         <>
-          <form className={`${styles.addDeviceForm} ${styles.addDeviceForm_default}`}
-                ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
-            <h2>Add New Device</h2>
-            {/* Add device form contents */}
+          <div className={styles.panelHeader}>
+            <p>Add New Device</p>
+          </div> {/* End of Device List panelHeader */}
+          <div className={styles.panelBody}>
+            <form className={styles.addDeviceForm}
+              ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
               <div className={styles.inputField}>
                 <input type="text" name="network" title="(e.g. `AM`)" placeholder='' />
                 <label className={styles.inputLabel}>Network: (e.g. `AM`)</label>
@@ -301,11 +301,12 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
                 <input type="text" name="longitude" title="in degree coordinates (e.g. `0.1234`)" placeholder='' />
                 <label className={styles.inputLabel}>Longitude: (in degree coordinates. Range is from -180 to 180. e.g. `0.1234`)</label>
               </div>
-            <div className={styles.addDeviceButtonDiv}>
-              <button type="submit"  className={styles.addDeviceButton}>Submit</button>
-              <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
-            </div>
-          </form>
+              <div className={styles.buttonDiv}>
+                <button type="submit">Submit</button>
+                <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
+              </div>
+            </form>
+          </div>
           {/* Error Message */}
           {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
         </>
