@@ -52,10 +52,16 @@ function SignInForm( {onClick, onSuccess} ) {
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
+  const [selectedRole, setSelectedRole] = useState('');
+
+  const handleRoleChange = (event) => {
+    setSelectedRole(event.target.value);
+  };
 
   async function handleSignInSubmit(event) {
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
+    const role = event.target.elements.role.value
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(
@@ -63,7 +69,7 @@ function SignInForm( {onClick, onSuccess} ) {
         {
           username: username,
           password: password,
-          role: 'citizen'
+          role: role
         }
       );
       console.log("Sign in successful!", response.data);
@@ -83,6 +89,13 @@ function SignInForm( {onClick, onSuccess} ) {
   return (
     <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
+      <label>
+        Role
+        <select name="role" value={selectedRole} onChange={handleRoleChange}>
+          <option value="citizen">Citizen</option>
+          <option value="brgy">Brgy</option>
+        </select>
+      </label>
       <label>
         Username
         <input type="text" name="username"/>
