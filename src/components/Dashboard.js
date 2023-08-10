@@ -285,11 +285,11 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
               {(loggedInUserRole === 'brgy') && (
               <>
                 <div>
-                  <p className={styles.copyTextDiv}>
+                  {(brgyAccessToken) && (<p className={styles.copyTextDiv}>
                     <span className={styles.copyTextButton} onClick={copyText}>
                       Copy to clipboard
                     </span>
-                  </p>
+                  </p>)}
                   <p className={styles.accessTokenContainer} ref={textRef}>{brgyAccessToken}</p>
                   {(brgyAccessToken) && (<small><i>Note: Please ensure to store this token, as we do not save a copy of your access token.</i></small>)}
                 </div>

@@ -76,6 +76,13 @@
   color: #062568;
 }
 
+.panelBody .accessTokenContainer {
+  padding: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .panelBody .buttonDiv {
   padding: 2px;
   display: flex;
