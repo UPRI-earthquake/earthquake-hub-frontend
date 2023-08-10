@@ -105,20 +105,35 @@ function SignUpForm( {onClick, onSuccess} ) {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
 
+  const [selectedRole, setSelectedRole] = useState('');
+
+  const handleRoleChange = (event) => {
+    setSelectedRole(event.target.value);
+  };
+
   async function handleSignUpSubmit(event) {
+    const role = event.target.elements.role.value;
     const email = event.target.elements.email.value;
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     const confirmPassword = event.target.elements.confirmPassword.value;
     try {
+      let requestPayload = {
+        role: role,
+        email: email,
+        username: username,
+        password: password,
+        confirmPassword: confirmPassword
+      }
+
+      if (role === 'brgy') {
+        const ringserverUrl = event.target.elements.ringserverUrl.value;
+        requestPayload.ringserverUrl = ringserverUrl;
+      }
+
       const response = await axios.post(
-        `${backend_host}/accounts/register`,
-        {
-          email: email,
-          username: username,
-          password: password,
-          confirmPassword: confirmPassword
-        }
+        `${backend_host}/accounts/register`, 
+        requestPayload
       );
       console.log("Sign up successful!", response);
 
@@ -139,6 +154,19 @@ function SignUpForm( {onClick, onSuccess} ) {
   return (
     <Form title="Sign Up" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignUpSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
+      <label>
+        Role
+        <select name="role" value={selectedRole} onChange={handleRoleChange}>
+          <option value="citizen">Citizen</option>
+          <option value="brgy">Brgy</option>
+        </select>
+      </label>
+      {(selectedRole === 'brgy') && 
+        <label>
+          Ringserver Url
+          <input type="text" name="ringserverUrl"/>
+        </label>
+      }
       <label>
         Email
         <input type="text" name="email" />
