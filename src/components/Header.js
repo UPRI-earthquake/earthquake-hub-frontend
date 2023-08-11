@@ -9,6 +9,7 @@ import { ReactComponent as CloseMenu } from './close-menu-white.svg';
 import axios from 'axios';
 
 function Header() {
+  const [loggedInUser, setLoggedInUser] = useState('');
   const [showSignInForm, setShowSignInForm] = useState(false);
   const [showSignUpForm, setShowSignUpForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -21,14 +22,16 @@ function Header() {
   const handleSignUpClick = () => setShowSignUpForm(true);
   const handleSignUpClose = () => setShowSignUpForm(false);
 
-  const handleSignInSuccess = () => {
+  const handleSignInSuccess = (username) => {
+    setLoggedInUser(username); // Pass the username of the logged in user
     setShowSignInForm(false);
     setShowDashboard(true);
     setIsLoggedIn(true); // User is now logged in
     setIsDashboardOpen(!isDashboardOpen);
     setShowDashboard(!isDashboardOpen)
   }
-  const handleSignUpSuccess = () => {
+  const handleSignUpSuccess = (username) => {
+    setLoggedInUser(username); // Pass the username of the logged in user
     setSignupSuccessMessage("Registration Successful")
     setShowSignUpForm(false);
     setShowDashboard(true);
@@ -57,6 +60,7 @@ function Header() {
           : window['ENV'].REACT_APP_BACKEND_DEV;
         axios.defaults.withCredentials = true;
         const response = await axios.get(`${backend_host}/accounts/profile`);
+        setLoggedInUser(response.data.payload.username)
         return response.data.payload.email;
       } catch (error) {
         return null;
@@ -112,6 +116,7 @@ function Header() {
           onClick={handleDashboardToggle} 
           onEscapeClick={handleDashboardToggle} 
           signupSuccessMessage={signupSuccessMessage}
+          loggedInUser={loggedInUser}
           onSignoutSuccess={handleSignoutSuccess} />}
     </div>
   )

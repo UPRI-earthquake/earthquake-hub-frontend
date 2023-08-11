@@ -67,7 +67,7 @@ function SignInForm( {onClick, onSuccess} ) {
         }
       );
       console.log("Sign in successful!", response.data);
-      onSuccess();
+      onSuccess(username);
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -123,7 +123,7 @@ function SignUpForm( {onClick, onSuccess} ) {
       console.log("Sign up successful!", response);
 
       // TODO: Pass message of successful login to <Dashboard>
-      onSuccess();
+      onSuccess(username);
     } catch (error) {
       if (error.response) {
         const { data } = error.response;

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Dashboard.module.css";
-import ErrorPopup from "./ErrorPopup";
 import Toast from "./Toast";
 
 const statusTooltips = {
@@ -10,9 +9,8 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSuccess }) {
+function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSuccess, loggedInUser }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
-  const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)success message
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
@@ -196,7 +194,6 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
 
   function handleCancelClick() {
     setPageTransition(1);
-    setErrorMessage('')
   }
 
   async function handleSignout() {
@@ -222,17 +219,9 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
         {(pageTransition < 2) && (
           <div ref={profileRef} className={styles.profileContainer}>
             <p className={styles.signoutButtonDiv}><span className={styles.signoutButton} onClick={handleSignout}>Sign out</span></p>
-            <div className={styles.panelHeader}>
-              <p>Profile</p>
-            </div> {/* End of Profile panelHeader */}
-            <div className={styles.panelBody}>
-              
-              {/* TODO: Will Add Profile Details Here */}
-
-            </div> {/* End of Profile panelBody */}
 
             <div className={styles.panelHeader}>
-              <p>Device List</p>
+              <h2>{loggedInUser}'s devices</h2>
             </div> {/* End of Device List panelHeader */}
             <div className={styles.panelBody}>
               <div className={styles.deviceListTableContainer}>
@@ -274,13 +263,12 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
 
         {(pageTransition === 2) && (
 
-        <>
+        <form className={styles.addDeviceForm} ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
           <div className={styles.panelHeader}>
-            <p>Add New Device</p>
+            <h2>Add New Device</h2>
           </div> {/* End of Device List panelHeader */}
           <div className={styles.panelBody}>
-            <form className={styles.addDeviceForm}
-              ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
+            
               <div className={styles.inputField}>
                 <input type="text" name="network" title="(e.g. `AM`)" placeholder='' />
                 <label className={styles.inputLabel}>Network: (e.g. `AM`)</label>
@@ -305,11 +293,9 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
                 <button type="submit">Submit</button>
                 <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
               </div>
-            </form>
+            
           </div>
-          {/* Error Message */}
-          {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
-        </>
+        </form>
         )}
 
       </div>
