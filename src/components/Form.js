@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Form.module.css";
-import ErrorPopup from "./ErrorPopup";
+import Toast from "./Toast";
 
 function Form({ children, title, onClick, onSubmit }) {
   const formRef = useRef(null);
@@ -49,7 +49,9 @@ function SignInForm( {onClick, onSuccess} ) {
                        ? window['ENV'].REACT_APP_BACKEND
                        : window['ENV'].REACT_APP_BACKEND_DEV
 
-  const [errorMessage, setErrorMessage] = useState("");
+  // TOASTS
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('error');
 
   async function handleSignInSubmit(event) {
     const username = event.target.elements.username.value;
@@ -65,11 +67,12 @@ function SignInForm( {onClick, onSuccess} ) {
         }
       );
       console.log("Sign in successful!", response.data);
-      onSuccess();
+      onSuccess(username);
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
-          setErrorMessage(data.message); // API should always sends {message: ""} in json
+          setToastMessage(data.message);
+          setToastType('error');
           console.error("Error occurred while signing in:", data);
         } else {
           console.error("Error occurred while signing in:", error);
@@ -79,6 +82,7 @@ function SignInForm( {onClick, onSuccess} ) {
 
   return (
     <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
+      <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
         Username
         <input type="text" name="username"/>
@@ -87,7 +91,6 @@ function SignInForm( {onClick, onSuccess} ) {
         Password
         <input type="password" name="password"/>
       </label>
-      {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
       <button type="submit">Sign in</button>
     </Form>
   );
@@ -98,7 +101,9 @@ function SignUpForm( {onClick, onSuccess} ) {
                        ? window['ENV'].REACT_APP_BACKEND
                        : window['ENV'].REACT_APP_BACKEND_DEV
 
-  const [errorMessage, setErrorMessage] = useState("");
+  // TOASTS
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('error');
 
   async function handleSignUpSubmit(event) {
     const email = event.target.elements.email.value;
@@ -118,11 +123,12 @@ function SignUpForm( {onClick, onSuccess} ) {
       console.log("Sign up successful!", response);
 
       // TODO: Pass message of successful login to <Dashboard>
-      onSuccess();
+      onSuccess(username);
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
-        setErrorMessage(data.message);
+        setToastMessage(data.message);
+        setToastType('error');
         console.error("Error occurred while signing up:", data);
       } else {
         console.error("Error occurred while signing up:", error);
@@ -132,6 +138,7 @@ function SignUpForm( {onClick, onSuccess} ) {
 
   return (
     <Form title="Sign Up" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignUpSubmit}>
+      <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
         Email
         <input type="text" name="email" />
@@ -148,7 +155,6 @@ function SignUpForm( {onClick, onSuccess} ) {
         Confirm Password
         <input type="password" name="confirmPassword"/>
       </label>
-      {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
       <button type="submit">Sign Up</button>
     </Form>
   );
