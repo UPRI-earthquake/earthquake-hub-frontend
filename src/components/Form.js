@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Form.module.css";
 import Toast from "./Toast";
+import {responseCodes} from "../responseCodes";
 
 function Form({ children, title, onClick, onSubmit }) {
   const formRef = useRef(null);
@@ -66,16 +67,25 @@ function SignInForm( {onClick, onSuccess} ) {
           role: 'citizen'
         }
       );
-      console.log("Sign in successful!", response.data);
-      onSuccess(username);
+
+      if(response.data.status === responseCodes.AUTHENTICATION_TOKEN_COOKIE){
+        console.log("Sign in successful!");
+        onSuccess(username);
+      }
+      else {
+        console.log("Something went wrong in submitting sign-in request")
+      }
+
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
           setToastMessage(data.message);
           setToastType('error');
-          console.error("Error occurred while signing in:", data);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while signing in:", data);
         } else {
-          console.error("Error occurred while signing in:", error);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while signing in:", error);
         }
     }
   }
@@ -120,18 +130,23 @@ function SignUpForm( {onClick, onSuccess} ) {
           confirmPassword: confirmPassword
         }
       );
-      console.log("Sign up successful!", response);
-
-      // TODO: Pass message of successful login to <Dashboard>
-      onSuccess(username);
+      if(response.data.status === responseCodes.REGISTRATION_SUCCESS){
+        console.log("Sign up successful!");
+        onSuccess(username);
+      }
+      else {
+        console.log("Something went wrong in submitting sign-up request")
+      }
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
         setToastMessage(data.message);
         setToastType('error');
-        console.error("Error occurred while signing up:", data);
+        process.env.NODE_ENV !== 'production' &&  
+         console.error("Error occurred while signing up:", data);
       } else {
-        console.error("Error occurred while signing up:", error);
+        process.env.NODE_ENV !== 'production' &&  
+          console.error("Error occurred while signing up:", error);
       }
     }
   }
