@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Dashboard.module.css";
 import Toast from "./Toast";
+import {responseCodes} from "../responseCodes";
 
 const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
@@ -203,11 +204,27 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/signout`);
-      console.log('Sign out successful', response.data)
 
-      onSignoutSuccess();
+
+      if(response.data.status === responseCodes.SIGNOUT_SUCCESS){
+        console.log("Sign out successful!");
+        onSignoutSuccess();
+      }
+      else {
+        console.log("Something went wrong in submitting sign-out request")
+      }
+
     } catch (error) {
-      console.log(error)
+      if (error.response) {
+        const { data } = error.response;
+        setToastMessage(data.message);
+        setToastType('error');
+        process.env.NODE_ENV !== 'production' &&  
+          console.error("Error occurred while signing out:", data);
+      } else {
+        process.env.NODE_ENV !== 'production' &&  
+          console.error("Error occurred while signing out:", error);
+      }
     }
   }
 
