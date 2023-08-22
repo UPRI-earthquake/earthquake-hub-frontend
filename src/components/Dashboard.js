@@ -175,7 +175,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
             setToastMessage('');
           }, 5000);
 
-          console.error("Error occurred while adding device:", data);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while adding device:", data);
         } else {
           setToastMessage(`Network Error`);
           setToastType('error');
@@ -184,7 +185,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
             setToastMessage('');
           }, 5000);
 
-          console.error("Error occurred while adding device:", error);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while adding device:", error);
         }
     }
   }
