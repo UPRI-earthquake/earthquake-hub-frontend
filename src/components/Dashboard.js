@@ -149,22 +149,25 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
           elevation: elevation
         }
       );
-      console.log("Add Device Success", response.data);
-      
-      // Set toast message
-      setToastMessage('Device added. Visit rs.local:3000 to link device.');
-      setToastType('success');
 
-      // Set toast message to empty string to remove the toast
-      setTimeout(() => {
-        setToastMessage('');
-      }, 5000);
-      /*
-      setIsAddingDevice(false); // set isAddingDevice hook to false
-      setIsAddDeviceSuccess(true); // set isAddDeviceSuccess hook to true, to trigger transition
-      */
-      setPageTransition(1);
-      fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
+      if(response.data.status === responseCodes.GENERIC_SUCCESS){
+        console.log("Add Device Success");
+        
+        // Set toast message
+        setToastMessage('Device added. Visit rs.local:3000 to link device.');
+        setToastType('success');
+
+        // Set toast message to empty string to remove the toast
+        setTimeout(() => {
+          setToastMessage('');
+        }, 60000); //60 seconds
+
+        setPageTransition(1);
+        fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
+      }
+      else {
+        console.log("Something went wrong in submitting add-device request")
+      }
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
