@@ -152,7 +152,7 @@ function SignUpForm( {onClick, onSuccess} ) {
   }
 
   return (
-    <Form title="Sign Up" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignUpSubmit}>
+    <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
         Email
