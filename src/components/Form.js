@@ -7,7 +7,7 @@ import {responseCodes} from "../responseCodes";
 function Form({ children, title, onClick, onSubmit }) {
   const formRef = useRef(null);
 
-  useEffect(() => {
+  useEffect(() => { // animation to appear from nothing
     const formEl = formRef.current;
     formEl.classList.remove(styles.hidden);
     formEl.animate(
@@ -91,7 +91,7 @@ function SignInForm( {onClick, onSuccess} ) {
   }
 
   return (
-    <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
+    <Form title="Sign In" onClick={onClick} onSubmit={handleSignInSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
         Username
