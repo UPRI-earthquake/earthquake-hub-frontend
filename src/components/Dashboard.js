@@ -10,7 +10,7 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSuccess, loggedInUserRole }) {
+function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)success message
@@ -24,19 +24,8 @@ function Dashboard({ onClick, onEscapeClick, signupSuccessMessage, onSignoutSucc
   const [toastType, setToastType] = useState('error');
 
   useEffect(() => {
-    // Set sign up success toast message to empty string to remove the toast
-    if(signupSuccessMessage.length > 0) {
-      setToastMessage(signupSuccessMessage);
-      setToastType('success');
-
-      // Set toast message to empty string to remove the toast
-      setTimeout(() => {
-        setToastMessage('');
-      }, 5000);
-    }
-
     fetchDevices();
-  }, [signupSuccessMessage])
+  }, [])
 
   const fetchDevices = async () => {
     try {

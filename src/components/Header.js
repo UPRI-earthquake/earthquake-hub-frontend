@@ -7,6 +7,7 @@ import { Dashboard } from "./Dashboard";
 import { ReactComponent as BurgerMenu } from './burger-menu-white.svg';
 import { ReactComponent as CloseMenu } from './close-menu-white.svg';
 import axios from 'axios';
+import Toast from "./Toast";
 
 function Header() {
   const [showSignInForm, setShowSignInForm] = useState(false);
@@ -14,8 +15,10 @@ function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [signupSuccessMessage, setSignupSuccessMessage] = useState('');
   const [loggedInUserRole, setLoggedInUserRole] = useState();
+  // Toasts
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('error');
 
   const handleSignInClick = () => setShowSignInForm(true);
   const handleSignInClose = () => setShowSignInForm(false);
@@ -28,15 +31,19 @@ function Header() {
     setShowDashboard(true);
     setIsLoggedIn(true); // User is now logged in
     setIsDashboardOpen(!isDashboardOpen);
-    setShowDashboard(!isDashboardOpen)
   }
   const handleSignUpSuccess = () => {
-    setSignupSuccessMessage("Registration Successful")
+    setToastMessage('Registration Successful. You may now sign in.');
+    setToastType('success');
     setShowSignUpForm(false);
-    setShowDashboard(true);
-    setIsLoggedIn(true); // User is now logged in
+    setShowDashboard(false);
+    setIsLoggedIn(false); // Don't automatically log the user
     setIsDashboardOpen(!isDashboardOpen);
-    setShowDashboard(!isDashboardOpen)
+
+    // remove toast after timeout
+    setTimeout(() => {
+      setToastMessage('');
+    }, 1000 * 6);
   }
   
   const handleDashboardToggle = () => {
@@ -107,13 +114,13 @@ function Header() {
           )}
         </div>
     </div>
+    <Toast message={toastMessage} toastType={toastType}></Toast>
       {showSignInForm && <SignInForm onClick={handleSignInClose} onSuccess={handleSignInSuccess} />}
       {showSignUpForm && <SignUpForm onClick={handleSignUpClose} onSuccess={handleSignUpSuccess} />}
       {showDashboard && 
         <Dashboard 
           onClick={handleDashboardToggle} 
           onEscapeClick={handleDashboardToggle} 
-          signupSuccessMessage={signupSuccessMessage}
           loggedInUserRole={loggedInUserRole}
           onSignoutSuccess={handleSignoutSuccess} />}
     </div>

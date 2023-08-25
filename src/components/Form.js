@@ -150,17 +150,7 @@ function SignUpForm( {onClick, onSuccess} ) {
       );
       console.log("Sign up successful!", response);
 
-      if (role === 'brgy') {
-        setToastMessage('Registration Successful. Kindly await an email notification confirming the activation of your account.');
-        setToastType('success');
-        // // Loop through each input field and set its value to an empty string
-        const inputFields = document.querySelectorAll("input"); // Select all text input fields
-        inputFields.forEach((input) => {
-          input.value = '';
-        });
-      } else if (role === 'citizen') {
-        onSuccess();
-      }
+      onSuccess(); // trigger the onSuccess prop to Header
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
