@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Form.module.css";
 import Toast from "./Toast";
+import {responseCodes} from "../responseCodes";
 
 function Form({ children, title, onClick, onSubmit }) {
   const formRef = useRef(null);
 
-  useEffect(() => {
+  useEffect(() => { // animation to appear from nothing
     const formEl = formRef.current;
     formEl.classList.remove(styles.hidden);
     formEl.animate(
@@ -72,22 +73,31 @@ function SignInForm( {onClick, onSuccess} ) {
           role: role
         }
       );
-      console.log("Sign in successful!", response.data);
-      onSuccess(role);
+
+      if(response.data.status === responseCodes.AUTHENTICATION_TOKEN_COOKIE){
+        console.log("Sign in successful!");
+        onSuccess(username);
+      }
+      else {
+        console.log("Something went wrong in submitting sign-in request")
+      }
+
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
           setToastMessage(data.message);
           setToastType('error');
-          console.error("Error occurred while signing in:", data);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while signing in:", data);
         } else {
-          console.error("Error occurred while signing in:", error);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while signing in:", error);
         }
     }
   }
 
   return (
-    <Form title="Sign In" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignInSubmit}>
+    <Form title="Sign In" onClick={onClick} onSubmit={handleSignInSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
         Username
@@ -148,23 +158,29 @@ function SignUpForm( {onClick, onSuccess} ) {
         `${backend_host}/accounts/register`, 
         requestPayload
       );
-      console.log("Sign up successful!", response);
-
-      onSuccess(); // trigger the onSuccess prop to Header
+      if(response.data.status === responseCodes.REGISTRATION_SUCCESS){
+        console.log("Sign up successful!");
+        onSuccess();
+      }
+      else {
+        console.log("Something went wrong in submitting sign-up request")
+      }
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
         setToastMessage(data.message);
         setToastType('error');
-        console.error("Error occurred while signing up:", data);
+        process.env.NODE_ENV !== 'production' &&  
+         console.error("Error occurred while signing up:", data);
       } else {
-        console.error("Error occurred while signing up:", error);
+        process.env.NODE_ENV !== 'production' &&  
+          console.error("Error occurred while signing up:", error);
       }
     }
   }
 
   return (
-    <Form title="Sign Up" onClick={onClick} onSuccess={onSuccess} onSubmit={handleSignUpSubmit}>
+    <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
       <label>
         Role

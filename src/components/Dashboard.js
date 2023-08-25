@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import styles from "./Dashboard.module.css";
-import ErrorPopup from "./ErrorPopup";
 import Toast from "./Toast";
+import {responseCodes} from "../responseCodes";
 
 const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
@@ -10,9 +10,8 @@ const statusTooltips = {
   'Streaming': 'This device is sending data to the server.',
 };
 
-function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole }) {
+function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, loggedInUserRole }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
-  const [errorMessage, setErrorMessage] = useState('') // hook for all error message
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)success message
   const [brgyAccessToken, setBrgyAccessToken] = useState() // hook for brgyAccessToken
   const addDeviceFormRef = useRef(null);
@@ -140,22 +139,25 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
           elevation: elevation
         }
       );
-      console.log("Add Device Success", response.data);
-      
-      // Set toast message
-      setToastMessage('Device added. Visit rs.local:3000 to link device.');
-      setToastType('success');
 
-      // Set toast message to empty string to remove the toast
-      setTimeout(() => {
-        setToastMessage('');
-      }, 5000);
-      /*
-      setIsAddingDevice(false); // set isAddingDevice hook to false
-      setIsAddDeviceSuccess(true); // set isAddDeviceSuccess hook to true, to trigger transition
-      */
-      setPageTransition(1);
-      fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
+      if(response.data.status === responseCodes.GENERIC_SUCCESS){
+        console.log("Add Device Success");
+        
+        // Set toast message
+        setToastMessage('Device added. Visit rs.local:3000 to link device.');
+        setToastType('success');
+
+        // Set toast message to empty string to remove the toast
+        setTimeout(() => {
+          setToastMessage('');
+        }, 60000); //60 seconds
+
+        setPageTransition(1);
+        fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
+      }
+      else {
+        console.log("Something went wrong in submitting add-device request")
+      }
     } catch (error) {
         if (error.response) {
           const { data } = error.response;
@@ -166,7 +168,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
             setToastMessage('');
           }, 5000);
 
-          console.error("Error occurred while adding device:", data);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while adding device:", data);
         } else {
           setToastMessage(`Network Error`);
           setToastType('error');
@@ -175,7 +178,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
             setToastMessage('');
           }, 5000);
 
-          console.error("Error occurred while adding device:", error);
+          process.env.NODE_ENV !== 'production' &&  
+            console.error("Error occurred while adding device:", error);
         }
     }
   }
@@ -239,7 +243,6 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
 
   function handleCancelClick() {
     setPageTransition(1);
-    setErrorMessage('')
   }
 
   async function handleSignout() {
@@ -249,11 +252,27 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/signout`);
-      console.log('Sign out successful', response.data)
 
-      onSignoutSuccess();
+
+      if(response.data.status === responseCodes.SIGNOUT_SUCCESS){
+        console.log("Sign out successful!");
+        onSignoutSuccess();
+      }
+      else {
+        console.log("Something went wrong in submitting sign-out request")
+      }
+
     } catch (error) {
-      console.log(error)
+      if (error.response) {
+        const { data } = error.response;
+        setToastMessage(data.message);
+        setToastType('error');
+        process.env.NODE_ENV !== 'production' &&  
+          console.error("Error occurred while signing out:", data);
+      } else {
+        process.env.NODE_ENV !== 'production' &&  
+          console.error("Error occurred while signing out:", error);
+      }
     }
   }
 
@@ -292,7 +311,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
             </div> {/* End of Profile panelBody */}
 
             <div className={styles.panelHeader}>
-              <p>Device List</p>
+              <h2>{loggedInUser}'s devices</h2>
             </div> {/* End of Device List panelHeader */}
             <div className={styles.panelBody}>
               <div className={styles.deviceListTableContainer}>
@@ -334,13 +353,12 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
 
         {(pageTransition === 2) && (
 
-        <>
+        <form className={styles.addDeviceForm} ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
           <div className={styles.panelHeader}>
-            <p>Add New Device</p>
+            <h2>Add New Device</h2>
           </div> {/* End of Device List panelHeader */}
           <div className={styles.panelBody}>
-            <form className={styles.addDeviceForm}
-              ref={addDeviceFormRef} onSubmit={handleAddDeviceSubmit}>
+            
               <div className={styles.inputField}>
                 <input type="text" name="network" title="(e.g. `AM`)" placeholder='' />
                 <label className={styles.inputLabel}>Network: (e.g. `AM`)</label>
@@ -365,11 +383,9 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUserRole 
                 <button type="submit">Submit</button>
                 <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>Cancel</button>
               </div>
-            </form>
+            
           </div>
-          {/* Error Message */}
-          {(errorMessage.length > 0) && <ErrorPopup message={errorMessage} />}
-        </>
+        </form>
         )}
 
       </div>

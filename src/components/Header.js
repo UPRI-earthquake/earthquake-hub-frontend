@@ -10,6 +10,7 @@ import axios from 'axios';
 import Toast from "./Toast";
 
 function Header() {
+  const [loggedInUser, setLoggedInUser] = useState('');
   const [showSignInForm, setShowSignInForm] = useState(false);
   const [showSignUpForm, setShowSignUpForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -25,7 +26,8 @@ function Header() {
   const handleSignUpClick = () => setShowSignUpForm(true);
   const handleSignUpClose = () => setShowSignUpForm(false);
 
-  const handleSignInSuccess = (role) => {
+  const handleSignInSuccess = (username, role) => {
+    setLoggedInUser(username); // Pass the username of the logged in user
     setLoggedInUserRole(role); // This will be passed to the Dashboard Element
     setShowSignInForm(false);
     setShowDashboard(true);
@@ -66,6 +68,7 @@ function Header() {
           : window['ENV'].REACT_APP_BACKEND_DEV;
         axios.defaults.withCredentials = true;
         const response = await axios.get(`${backend_host}/accounts/profile`);
+        setLoggedInUser(response.data.payload.username)
         return response.data.payload.email;
       } catch (error) {
         return null;
@@ -122,6 +125,7 @@ function Header() {
           onClick={handleDashboardToggle} 
           onEscapeClick={handleDashboardToggle} 
           loggedInUserRole={loggedInUserRole}
+          loggedInUser={loggedInUser}
           onSignoutSuccess={handleSignoutSuccess} />}
     </div>
   )
