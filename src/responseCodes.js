@@ -13,6 +13,7 @@ const responseCodes = {
 
   GENERIC_SUCCESS: 0,
   GENERIC_ERROR: 100,
+  VALIDATION_ERROR: 101,
 
   REGISTRATION_SUCCESS:          10,
   REGISTRATION_ERROR:           110,
