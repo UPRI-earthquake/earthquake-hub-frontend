@@ -283,32 +283,33 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
 
         {(pageTransition < 2) && (
           <div ref={profileRef} className={styles.profileContainer}>
-            <p className={styles.signoutButtonDiv}><span className={styles.signoutButton} onClick={handleSignout}>Sign out</span></p>
-            <div className={styles.panelHeader}>
-              <p>Profile</p>
-            </div> {/* End of Profile panelHeader */}
-            <div className={styles.panelBody}>
-              
-              {/* TODO: Will Add Profile Details Here */}
-              {(loggedInUserRole === 'brgy') && (
-              <>
-                <div>
-                  {(brgyAccessToken) && (<p className={styles.copyTextDiv}>
-                    <span className={styles.copyTextButton} onClick={copyText}>
-                      Copy to clipboard
-                    </span>
-                  </p>)}
-                  <p className={styles.accessTokenContainer} ref={textRef}>{brgyAccessToken}</p>
-                  {(brgyAccessToken) && (<small><i>Note: Please ensure to store this token, as we do not save a copy of your access token.</i></small>)}
-                </div>
-
-                <div className={styles.buttonDiv}>
-                  <button onClick={requestTokenSubmit}>Request a Brgy Token</button>
-                </div>
-              </>
+            <div className={styles.panelHeaderButtonDiv}>
+              {(loggedInUserRole === 'brgy') && ( 
+                <button className={styles.requestTokenButton} onClick={requestTokenSubmit}>
+                  Request Token
+                </button>
               )}
+              <p className={styles.signoutButton} onClick={handleSignout}>
+                Sign out
+              </p>
+            </div>
+            
 
-            </div> {/* End of Profile panelBody */}
+            {/* This section will only be displayed if loggedInUserRole is `brgy` */}
+            {(brgyAccessToken) && (
+              <>
+              <div className={styles.panelBody}>
+                <p className={styles.copyTextDiv}>
+                  <span className={styles.copyTextButton} onClick={copyText}>
+                    Copy to clipboard
+                  </span>
+                </p>
+                <p className={styles.accessTokenContainer} ref={textRef}>{brgyAccessToken}</p>
+                <small><i>Note: Please ensure to store this token, as we do not save a copy of your access token.</i></small>
+
+              </div> {/* End of panelBody */}
+              </>
+            )}
 
             <div className={styles.panelHeader}>
               <h2>{loggedInUser}'s devices</h2>
