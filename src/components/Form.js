@@ -76,7 +76,7 @@ function SignInForm( {onClick, onSuccess} ) {
 
       if(response.data.status === responseCodes.AUTHENTICATION_TOKEN_COOKIE){
         console.log("Sign in successful!");
-        onSuccess(username);
+        onSuccess(username, role);
       }
       else {
         console.log("Something went wrong in submitting sign-in request")
