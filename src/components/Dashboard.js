@@ -3,6 +3,8 @@ import axios from 'axios';
 import styles from "./Dashboard.module.css";
 import Toast from "./Toast";
 import {responseCodes} from "../responseCodes";
+import jwtDecode from "jwt-decode";
+import moment from 'moment';
 
 const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
@@ -14,6 +16,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [devices, setDevices] = useState([]) // hook for list of device in table (array)success message
   const [brgyAccessToken, setBrgyAccessToken] = useState() // hook for brgyAccessToken
+  const [accessTokenExpiry, setAccessTokenExpiry] = useState() // hook for brgy accessToken expiration
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
@@ -194,7 +197,17 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
       const response = await axios.post(`${backend_host}/accounts/acquire-brgy-token`);
       console.log('Brgy access token acquired', response.data)
 
-      setBrgyAccessToken(response.data.accessToken)
+      const decodedToken = jwtDecode(response.data.accessToken);
+
+      const currentMoment = moment(); // Get the current moment
+      const expiryTimeStamp =  new Date(decodedToken.exp * 1000); // Convert seconds to milliseconds
+      const expiryMoment = moment(expiryTimeStamp); // Moment object for the expiry date
+      const remainingTime = moment.duration(expiryMoment.diff(currentMoment));
+
+      console.log("Token Expiry: ", remainingTime.days());
+
+      setAccessTokenExpiry(remainingTime.days()); // set brgyAccessTokenExpiry value
+      setBrgyAccessToken(response.data.accessToken); // set brgyAccessToken value
 
       setToastMessage('Brgy access token request success');
       setToastType('success');
@@ -305,7 +318,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                   </span>
                 </p>
                 <p className={styles.accessTokenContainer} ref={textRef}>{brgyAccessToken}</p>
-                <small><i>Note: Please ensure to store this token, as we do not save a copy of your access token.</i></small>
+                <small><i><b>Note:</b> Please ensure to store this token, as we do not save a copy of your access token. This token is valid for <u><b>{accessTokenExpiry} days</b></u>. Make sure to request another valid token and save it in your ringserver configuration to continue forwarding data to the server.</i></small>
 
               </div> {/* End of panelBody */}
               </>

@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^12.8.3",
     "axios": "^0.21.1",
     "event-source-polyfill": "^1.0.25",
+    "jwt-decode": "^3.1.2",
     "leaflet": "^1.7.1",
     "moment": "^2.29.1",
     "react": "^17.0.2",
