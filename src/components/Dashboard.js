@@ -318,7 +318,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                   </span>
                 </p>
                 <p className={styles.accessTokenContainer} ref={textRef}>{brgyAccessToken}</p>
-                <small><i><b>Note:</b> Please ensure to store this token, as we do not save a copy of your access token. This token is valid for <u><b>{accessTokenExpiry} days</b></u>. Make sure to request another valid token and save it in your ringserver configuration to continue forwarding data to the server.</i></small>
+                <small><i><b>Note:</b> Please ensure to store this token, as we do not save a copy of your access token. This token is valid for <u><b>{(accessTokenExpiry)} days</b></u>. This is to ensure that periodic monitoring of your ringserver is being performed. Before token expiration, make sure to request another valid token and save it in your ringserver configuration to continue forwarding data to the server.</i></small>
 
               </div> {/* End of panelBody */}
               </>
