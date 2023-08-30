@@ -190,8 +190,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
   async function requestTokenSubmit(event) {
     event.preventDefault();
     const backend_host = process.env.NODE_ENV === 'production'
-      ? process.env.REACT_APP_BACKEND
-      : process.env.REACT_APP_BACKEND_DEV
+      ? window['ENV'].REACT_APP_BACKEND
+      : window['ENV'].REACT_APP_BACKEND_DEV
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/acquire-brgy-token`);
