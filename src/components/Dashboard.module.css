@@ -36,6 +36,7 @@
 
 .panelHeader {
   border: 1px solid #dee2e6;
+  border-bottom: none;
   border-top-right-radius: 6px;
   border-top-left-radius: 6px;
   background: #f8f9fa;
@@ -53,11 +54,33 @@
   background: #ffffff;
   border-bottom-right-radius: 6px;
   border-bottom-left-radius: 6px;
-  border-top: 0 none;
 }
 
 .panelBody:not(:last-child) {
   margin-bottom: 20px;
+}
+
+.panelBody .copyTextDiv {
+  text-align: right;
+}
+
+.panelBody .copyTextButton {
+  font-size: small;
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+}
+
+.panelBody .copyTextButton:hover {
+  text-decoration: underline;
+  color: #062568;
+}
+
+.panelBody .accessTokenContainer {
+  padding: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .panelBody .buttonDiv {
@@ -324,8 +347,12 @@
   transform: scale(0.95);
 }
 
-.signoutButtonDiv {
-  text-align: right;
+
+.panelHeaderButtonDiv {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px; 
 }
 
 .signoutButton {
@@ -337,4 +364,19 @@
 .signoutButton:hover {
   text-decoration: underline;
   color: #062568;
+}
+
+.requestTokenButton {
+  width: fit-content;
+  margin: 10px;
+  background-color: #3a6a50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.requestTokenButton:hover {
+  background-color: #447f5b;
 }
