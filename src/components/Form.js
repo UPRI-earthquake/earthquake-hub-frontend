@@ -150,7 +150,8 @@ function SignUpForm( {onClick, onSuccess} ) {
       }
 
       if (role === 'brgy') {
-        const ringserverUrl = event.target.elements.ringserverUrl.value;
+        // ringserverUrl format = url:port
+        const ringserverUrl = `${event.target.elements.ringserverUrl.value}:${event.target.elements.ringserverPort.value}`;
         requestPayload.ringserverUrl = ringserverUrl;
       }
 
@@ -190,10 +191,16 @@ function SignUpForm( {onClick, onSuccess} ) {
         </select>
       </label>
       {(selectedRole === 'brgy') && 
+      <>
         <label>
           Ringserver Url
           <input type="text" name="ringserverUrl"/>
         </label>
+        <label>
+          Ringserver Port
+          <input type="text" name="ringserverPort"/>
+        </label>
+      </>
       }
       <label>
         Email
