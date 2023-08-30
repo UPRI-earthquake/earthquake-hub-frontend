@@ -151,8 +151,10 @@ function SignUpForm( {onClick, onSuccess} ) {
 
       if (role === 'brgy') {
         // ringserverUrl format = url:port
-        const ringserverUrl = `${event.target.elements.ringserverUrl.value}:${event.target.elements.ringserverPort.value}`;
+        const ringserverUrl = event.target.elements.ringserverUrl.value;
+        const ringserverPort = events.target.elements.ringserverPort.value;
         requestPayload.ringserverUrl = ringserverUrl;
+        requestPayload.ringserverPort = ringserverPort;
       }
 
       const response = await axios.post(
