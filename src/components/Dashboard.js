@@ -357,9 +357,12 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                 </table>
               </div>
 
+              {/* Remove add device button but keep this code for now;
+                  Same code can be used for other page transition eg "settings"
               <div className={styles.buttonDiv}>
                 <button onClick={handleAddDeviceClick}>Add New Device</button>
               </div>
+              */}
             </div> {/* End of Device List panelBody */}
 
           </div>
