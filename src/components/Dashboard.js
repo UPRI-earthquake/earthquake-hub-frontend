@@ -250,9 +250,11 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     }, 5000);
   }
 
+  /* Comment out for now (remove add device option)
   function handleAddDeviceClick() {
     setPageTransition(2);
   }
+  */
 
   function handleCancelClick() {
     setPageTransition(1);
