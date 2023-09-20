@@ -242,21 +242,26 @@ const StationMarker = ({network, code, latLng, description}) => {
           <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
           <p>
             <span
-              className={`
+              className={
+              // Show green or red indicator status indicator
+              `
                 ${styles.statusIndicator}
                 ${
                     statusState.status === 'Streaming' 
-                    ? styles.streaming 
-                    : (
-                        statusState.status === 'Not yet linked' 
-                        ? styles['not-linked']
-                        : styles['not-streaming']
-                      )
+                    ? styles['streaming']
+                    : styles['not-streaming']
                  }
               `}
             ></span>
-            {statusState.status}
-            {statusState.statusSince && ` since ${moment(statusState.statusSince).fromNow()}`}
+            {statusState.statusSince
+              ? ( statusState.status === 'Streaming' || moment(statusState.statusSince) > moment().subtract(1, 'month')
+                // If streaming or time of last status toggle is within one month, follow: "<status> since <time> ago"
+                // else (meaning Not streaming for more than 1 month): "Offline"
+                ? `${statusState.status} since ${moment(statusState.statusSince).fromNow()}`
+                : "Device Offline"
+               )
+             : (statusState.status)
+            }
           </p>
           <a href={data_download_URL} target="_blank" rel="noreferrer">Get past 24hrs data</a><br/>
           <a href={metadata_download_URL} target="_blank" rel="noreferrer">Get station metadata</a><br/>
