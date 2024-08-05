@@ -1,0 +1,117 @@
+
+.earthquake-info-container {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: center;
+    align-items: center;
+    padding: 20px;
+    margin: -20px;
+    overflow-x: hidden;
+  }
+  
+  .main-content {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    overflow: hidden;
+    padding: 10px;
+  }
+  
+  .info-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 20px;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  ul.station {
+    list-style-type: none;
+    padding: 0;
+    vertical-align: top;
+    height: 120px;
+    overflow-y: scroll;
+  }
+
+  .station li {
+    font-size: 14px;
+  }
+
+  
+.main-content h2 {
+    align-self: flex-start;  
+    margin: 0;  
+    padding: 0 0 10px 0;
+  }
+
+.list-items {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    margin: -10px 0;
+}
+
+.table-container{
+  overflow-x: auto;
+}
+
+table th{
+  border-bottom: 1px solid black;
+  padding-bottom: 10px;
+}
+table tr{
+  padding: 10px;
+}
+
+table td{
+  text-align: start;
+  padding: 20px 0;
+}
+
+table td:first-child{
+  width: 25%;
+}
+table td:nth-child(2) {
+  width: 50%; /* Adjust the width as needed */
+  padding: 0 10px;
+}
+
+.info-table .first-column {
+  font-weight: bold;
+  padding-right: 10px;
+  border-right: 2px solid #000;
+  vertical-align: top;
+}
+
+table, td, th {
+  border-collapse: collapse;
+}
+
+/*reports section*/
+.info-details > h2{
+  margin: 30px 0px;
+  width: 100%;
+  text-align: center;
+}
+
+.reference{
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+.table-container{
+  overflow-x: scroll;
+}
+
+.instrument td{
+  vertical-align: top;
+  align-self: flex-start;
+  min-width: max-content;
+}
