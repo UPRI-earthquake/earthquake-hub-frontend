@@ -37,7 +37,7 @@ const Articles = ({ url }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <a href={url.url}>
+      <a href={url}>
         <div className={`post-module ${isHovered ? 'hover' : ''}`}>
           <div className="thumbnail">
           <img src={img !== '' ? img : defaultThumbnail} alt="Page Thumbnail" />
