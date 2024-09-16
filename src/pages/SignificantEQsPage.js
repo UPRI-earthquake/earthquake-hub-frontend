@@ -1,24 +1,32 @@
+import React, {useState, useEffect} from 'react';
+
 import Header from "../components/Header";
 import Card from "../components/Card";
 import './SignificantEQsPage.css';
+import axios from 'axios';
+
 
 function App() {
-  const cardsData = [
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-    { title: 'Magnitude 7.1 Earthquake in Sultan Kudarat', magnitude: '7.1', location: '99 km S 72° W of Palimbang (Sultan Kudarat)', date: '11 July 2024', time: '10:13 AM', 
-      description: 'Caused extensive structural damage to buildings, leading to collapsed walls, cracked foundations, and compromised safety. Infrastructure such as roads and bridges suffered significant disruption, impeding emergency response and daily commutes.' },
-  ];
+  const [significantEQs, setSignificantEQs] = useState([]) // hook for list of device in table (array)success message
+
+  useEffect(() => {
+    fetchSignificantEQs();
+  }, [])
+
+  const fetchSignificantEQs = async () => {
+    try {
+      // get significant-eqs from backend
+      const backend_host = process.env.NODE_ENV === 'production'
+        ? window['ENV'].REACT_APP_BACKEND
+        : window['ENV'].REACT_APP_BACKEND_DEV
+      axios.defaults.withCredentials = true;
+      const response = await axios.get(`${backend_host}/significant-eqs/all`);
+      setSignificantEQs(response.data.payload)
+    } catch (error) {
+      // Handle any error that occurred during the request
+      console.error('Error:', error.message);
+    }
+  }
 
   return (
     <div className="App">
@@ -28,8 +36,8 @@ function App() {
           <div className="content-container">
             <h1>Significant Earthquakes</h1>
             <div className="cards-container">
-              {cardsData.map((card, index) => (
-                <Card key={index} title={card.title} magnitude={card.magnitude} location={card.location} date={card.date} time={card.time} description={card.description} />
+              {significantEQs.map((card, index) => (
+                <Card key={index} title={card.title} magnitude={card.magnitude} location={card.location} date={card.date} time={card.time} description={card.eventSummary} />
               ))}
           </div>
           </div>
