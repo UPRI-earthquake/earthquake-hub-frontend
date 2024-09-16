@@ -1,9 +1,9 @@
 import React from 'react';
 import './Card.css';
 
-const Card = ({ title, magnitude, location, date, time, description }) => {
+const Card = ({ title, magnitude, location, date, time, description, onClick }) => {
   return (
-    <div className="card">
+    <div className="card" onClick={onClick}>
       <div className="card-content">
         <h3>{title}</h3>
         <div className="hover-details">
