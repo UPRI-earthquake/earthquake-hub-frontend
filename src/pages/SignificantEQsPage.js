@@ -1,6 +1,6 @@
 import Header from "../components/Header";
 import Card from "../components/Card";
-import './significantEQsPage.css';
+import './SignificantEQsPage.css';
 
 function App() {
   const cardsData = [
