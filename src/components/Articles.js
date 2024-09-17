@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Article.css';
 import defaultThumbnail from './thumbnail.jpg';
-import fetchPageTitle from './fetchAPI';
+import axios from 'axios';
 
 /**
  * Component to display article information with hover effects.
@@ -10,19 +10,33 @@ import fetchPageTitle from './fetchAPI';
  */
 const Articles = ({ url }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [pageTitle, setPageTitle] = useState('');
-  const [metaDescription, setMetaDescription] = useState('');
-  const [author, setAuthor] = useState('');
+  const [pageTitle, setPageTitle] = useState('Loading...');
+  const [metaDescription, setMetaDescription] = useState('Loading...');
+  const [author, setAuthor] = useState('Loading...');
   const [img, setImage] = useState(defaultThumbnail);
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await fetchPageTitle(url);
-      if (data) {
-        setPageTitle(data.title);
-        setMetaDescription(data.metaDescription);
-        setAuthor(data.author);
-        setImage(data.imgURL || defaultThumbnail);
+      try {
+        const proxyUrl = 'https://thingproxy.freeboard.io/fetch/';
+        // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const response = await axios.get(proxyUrl + url, { withCredentials: false});
+        const payload = response.data;
+        console.log("RESPONSE: " + response)
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(payload, 'text/html');
+        setPageTitle(doc.querySelector('title').innerText);
+        setMetaDescription(doc.querySelector('meta[name="description"]').content);
+        setAuthor(doc.querySelector('meta[property="og:site_name"]').content);
+        setImage(doc.querySelector('meta[property="og:image"]').content || defaultThumbnail);
+      } catch (error) {
+        console.log("Error fetching data from link: " + error)
+
+        setPageTitle("...");
+        setMetaDescription("...");
+        setAuthor("...");
+        setImage(defaultThumbnail);
       }
     };
 
@@ -38,7 +52,7 @@ const Articles = ({ url }) => {
       <a href={url} target='_blank'>
         <div className={`post-module ${isHovered ? 'hover' : ''}`}>
           <div className="thumbnail">
-          <img src={img !== '' ? img : defaultThumbnail} alt="Page Thumbnail" />
+            <img src={img !== '' ? img : defaultThumbnail} alt="Page Thumbnail" />
           </div>
           <div className="post-content">
             <div className="category">News</div>
@@ -49,7 +63,7 @@ const Articles = ({ url }) => {
             </p>
             <div className="post-meta">
               <span className={`timestamp ${isHovered ? 'hide-timestamp' : ''}`}>
-                <i className="fa fa-clock-o"></i> Read more...
+                <i className="fa fa-clock-o"></i> Click here to redirect to the article.
               </span>
             </div>
           </div>
