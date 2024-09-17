@@ -1,83 +1,108 @@
-import React from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from "../components/Header";
 import './EQInfoPage.css';
-import DownloadButtons from '../components/DownloadButton';
 import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles'
+import axios from 'axios';
 
 function EQInfoPage() {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const id = queryParams.get('id'); // Get the object_id from the query parameter
+  let [earthquakeInfo, setEarthquakeInfo] = useState()
+
+  // Function for getting earthquake information based on id
+  const fetchEarthquakeInfo = useCallback(async () => {
+    if (!id) return; // If there's no id, don't fetch
+    try {
+      // Get eq info from backend
+      const backend_host = process.env.NODE_ENV === 'production'
+        ? window['ENV'].REACT_APP_BACKEND
+        : window['ENV'].REACT_APP_BACKEND_DEV;
+
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(
+        `${backend_host}/significant-eqs`,
+        { id: id }
+      );
+      
+      setEarthquakeInfo(response.data.payload);
+    } catch (error) {
+      // Handle any error that occurred during the request
+      console.error('Error:', error.message);
+    }
+  }, [id]); // Add `id` as a dependency to ensure it fetches when id changes
+
+  // Fetch data when id changes
+  useEffect(() => {
+    fetchEarthquakeInfo();
+  }, [fetchEarthquakeInfo]);
+
+
   return (
     <>
       <Header />
       <div className="section-container">
+      {earthquakeInfo ? (
+        <>
         <div className="table-container">
-          <table className="eq-info-table">
-            <tbody>
-              <tr>
-                <th colSpan={3}>
-                  <h2>M7.1 earthquake hits Davao Occidental</h2>
-                </th>
-              </tr>
-              <tr>
-                <td className="first-column ">Date & Time:</td>
-                <td className="value">Jan 23, 2023</td>
-              </tr>
-              <tr>
-                <td className="first-column ">Location:</td>
-                <td className="value">13.66°N, 120.57°E - 021 km S 20° W of Davao Occidental</td>
-              </tr>
-              <tr>
-                <td className="first-column ">Magnitude:</td>
-                <td className="value">7.1</td>
-              </tr>
-              <tr className='instrument'>
-                <td className="first-column">
-                  Instrument Recordings:
-                </td>
-                <td className="value">
-                  <ul className="station">
-                    <li>
-                      <div className="list-items">
-                        <p>R2DSF</p>
-                        <StationDownloadButtons stationCode="R2DSF" />
-                      </div>
-                    </li>
-                    <li>
-                      <div className="list-items">
-                        <p>RF3GH</p>
-                        <StationDownloadButtons stationCode="RF3GH" />
-                      </div>
-                    </li>
-                    <li>
-                      <div className="list-items">
-                        <p>R2DKF</p>
-                        <StationDownloadButtons stationCode="R2DKF" />
-                      </div>
-                    </li>
-                  </ul>
-                </td>
-                <td>
-                  <DownloadButtons />
-                </td>
-              </tr>
-              <tr>
-                <td className="first-column ">Event Summary:</td>
-                <td className="value" colSpan={2}>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <h2>Reports:</h2>
-        <div className='reference'>
-          <Articles url='https://www.rappler.com/philippines/earthquake-davao-del-sur-february-7-2021/' />
-          <Articles url='https://www.philstar.com/headlines/2021/02/07/2075988/no-official-damage-casualty-yet-63-quake-davao-del-sur' />
-          <Articles url='https://www.gmanetwork.com/news/scitech/science/774933/magnitude-6-3-earthquake-hits-davao-del-sur/story/' />
-          {/* <Articles url = 'https://earthquake.phivolcs.dost.gov.ph/2024_Earthquake_Information/July/2024_0711_0213_B4F.html' /> */}
-          <Articles url='https://monitoring-dashboard.ndrrmc.gov.ph/page/situation/situational-report-for-magnitude-70-earthquake-in-tayum-abra-2022' />
-        </div>
+            <table className="eq-info-table">
+              <tbody>
+                <tr>
+                  <th colSpan={3}>
+                    <h2>{earthquakeInfo.title}</h2>
+                  </th>
+                </tr>
+                <tr>
+                  <td className="first-column ">Date & Time:</td>
+                  <td>{earthquakeInfo.eventTime}</td>
+                </tr>
+                <tr>
+                  <td className="first-column ">Location:</td>
+                  <td>{earthquakeInfo.location}</td>
+                </tr>
+                <tr>
+                  <td className="first-column ">Magnitude:</td>
+                  <td>{earthquakeInfo.magnitude}</td>
+                </tr>
+                <tr className='instrument'>
+                  <td className="first-column">
+                    Instrument Recordings:
+                  </td>
+                  <td>
+                    <ul className="station">
+                    {earthquakeInfo.instrumentRecordings && earthquakeInfo.instrumentRecordings.map((station, index) => (
+                      <li>
+                        <div className="list-items">
+                          <p>{station}</p>
+                          <StationDownloadButtons stationCode={station} />
+                        </div>
+                      </li>
+                    ))}
+                    </ul>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="first-column ">Event Summary:</td>
+                  <td colSpan={2}>{earthquakeInfo.eventSummary}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Reports:</h2>
+          <div className='reference'>
+            {earthquakeInfo.references && earthquakeInfo.references.map((reference, index) => (
+              <Articles key={index} url={reference} />
+            ))}
+          </div>
+          </>
+        ):(
+          <></>
+        )}
       </div>
+    
     </>
   );
 }
