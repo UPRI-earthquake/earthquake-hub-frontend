@@ -29,15 +29,13 @@ const Articles = ({ url }) => {
     fetchData();
   }, [url]);
 
-  console.log("Image path", img)
-
   return (
     <div
       className="column"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <a href={url}>
+      <a href={url} target='_blank'>
         <div className={`post-module ${isHovered ? 'hover' : ''}`}>
           <div className="thumbnail">
           <img src={img !== '' ? img : defaultThumbnail} alt="Page Thumbnail" />
