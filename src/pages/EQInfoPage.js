@@ -72,11 +72,15 @@ function EQInfoPage() {
                   </td>
                   <td>
                     <ul className="station">
-                    {earthquakeInfo.instrumentRecordings && earthquakeInfo.instrumentRecordings.map((station, index) => (
+                    {earthquakeInfo.instrumentRecordings && earthquakeInfo.instrumentRecordings.map((station, index, ) => (
                       <li>
                         <div className="list-items">
                           <p>{station}</p>
-                          <StationDownloadButtons stationCode={station} />
+                          <StationDownloadButtons 
+                            key={index} 
+                            stationCode={station} 
+                            eventTime={earthquakeInfo.eventTime}
+                          />
                         </div>
                       </li>
                     ))}
