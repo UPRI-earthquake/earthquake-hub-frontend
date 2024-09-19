@@ -22,7 +22,6 @@ const Articles = ({ url }) => {
         // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
         const response = await axios.get(proxyUrl + url, { withCredentials: false});
         const payload = response.data;
-        console.log("RESPONSE: " + response)
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(payload, 'text/html');
@@ -49,7 +48,7 @@ const Articles = ({ url }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <a href={url} target='_blank'>
+      <a href={url} target='_blank' rel="noopener noreferrer">
         <div className={`post-module ${isHovered ? 'hover' : ''}`}>
           <div className="thumbnail">
             <img src={img !== '' ? img : defaultThumbnail} alt="Page Thumbnail" />
