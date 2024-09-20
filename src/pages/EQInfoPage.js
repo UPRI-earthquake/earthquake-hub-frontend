@@ -43,68 +43,70 @@ function EQInfoPage() {
   return (
     <>
       <Header />
-      <div className="section-container">
-      {earthquakeInfo ? (
-        <>
-        <div className="table-container">
-            <table className="eq-info-table">
-              <tbody>
-                <tr>
-                  <th colSpan={3}>
-                    <h2>{earthquakeInfo.title}</h2>
-                  </th>
-                </tr>
-                <tr>
-                  <td className="first-column ">Date & Time:</td>
-                  <td>{earthquakeInfo.eventTime}</td>
-                </tr>
-                <tr>
-                  <td className="first-column ">Location:</td>
-                  <td>{earthquakeInfo.location}</td>
-                </tr>
-                <tr>
-                  <td className="first-column ">Magnitude:</td>
-                  <td>{earthquakeInfo.magnitude}</td>
-                </tr>
-                <tr className='instrument'>
-                  <td className="first-column">
-                    Instrument Recordings:
-                  </td>
-                  <td>
-                    <ul className="station">
-                    {earthquakeInfo.instrumentRecordings && earthquakeInfo.instrumentRecordings.map((station, index, ) => (
-                      <li>
-                        <div className="list-items">
-                          <p>{station}</p>
-                          <StationDownloadButtons 
-                            key={index} 
-                            stationCode={station} 
-                            eventTime={earthquakeInfo.eventTime}
-                          />
-                        </div>
-                      </li>
-                    ))}
-                    </ul>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="first-column ">Event Summary:</td>
-                  <td colSpan={2}>{earthquakeInfo.eventSummary}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <div className='body'>
+        <div className="section-container">
+        {earthquakeInfo ? (
+          <>
+          <div className="table-container">
+              <table className="eq-info-table">
+                <tbody>
+                  <tr>
+                    <th colSpan={3}>
+                      <h2>{earthquakeInfo.title}</h2>
+                    </th>
+                  </tr>
+                  <tr>
+                    <td className="first-column ">Date & Time:</td>
+                    <td>{earthquakeInfo.eventTime}</td>
+                  </tr>
+                  <tr>
+                    <td className="first-column ">Location:</td>
+                    <td>{earthquakeInfo.location}</td>
+                  </tr>
+                  <tr>
+                    <td className="first-column ">Magnitude:</td>
+                    <td>{earthquakeInfo.magnitude}</td>
+                  </tr>
+                  <tr className='instrument'>
+                    <td className="first-column">
+                      Instrument Recordings:
+                    </td>
+                    <td>
+                      <ul className="station">
+                      {earthquakeInfo.instrumentRecordings && earthquakeInfo.instrumentRecordings.map((station, index, ) => (
+                        <li>
+                          <div className="list-items">
+                            <p>{station}</p>
+                            <StationDownloadButtons 
+                              key={index} 
+                              stationCode={station} 
+                              eventTime={earthquakeInfo.eventTime}
+                            />
+                          </div>
+                        </li>
+                      ))}
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="first-column ">Event Summary:</td>
+                    <td colSpan={2}>{earthquakeInfo.eventSummary}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-          <h2>Reports:</h2>
-          <div className='reference'>
-            {earthquakeInfo.references && earthquakeInfo.references.map((reference, index) => (
-              <Articles key={index} url={reference} />
-            ))}
-          </div>
-          </>
-        ):(
-          <></>
-        )}
+            <h2>Reports:</h2>
+            <div className='reference'>
+              {earthquakeInfo.references && earthquakeInfo.references.map((reference, index) => (
+                <Articles key={index} url={reference} />
+              ))}
+            </div>
+            </>
+          ):(
+            <></>
+          )}
+        </div>
       </div>
     
     </>
