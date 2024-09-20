@@ -5,6 +5,7 @@ import './EQInfoPage.css';
 import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles'
 import axios from 'axios';
+import moment from 'moment';
 
 function EQInfoPage() {
   const location = useLocation();
@@ -57,7 +58,7 @@ function EQInfoPage() {
                   </tr>
                   <tr>
                     <td className="first-column ">Date & Time:</td>
-                    <td>{earthquakeInfo.eventTime}</td>
+                    <td>{moment(earthquakeInfo.eventTime).format("MMMM D, YYYY h:mm:ss A z")}</td>
                   </tr>
                   <tr>
                     <td className="first-column ">Location:</td>
