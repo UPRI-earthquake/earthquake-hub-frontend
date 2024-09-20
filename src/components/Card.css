@@ -18,7 +18,7 @@
 }
 
 .card-content {
-    padding: 40px 25px 40px 25px;
+    padding: 0px 25px 40px 25px;
     text-align: center;
     height: 280px;
     width: 300px;
@@ -38,6 +38,7 @@
     justify-content: center;
     top: 0%;
     opacity: 0.4;
+    padding: 40px 25px 40px 25px;
 }
 
 .card-content .hover-details {
