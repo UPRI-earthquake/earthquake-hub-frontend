@@ -6,6 +6,7 @@ const StationDownloadButtons = (stationInfo) => {
   
   function formatDateTime(dateString, secondsToAdd = 0) {
     const date = new Date(dateString);
+    date.setUTCHours(date.getUTCHours() - 8); // -8hours since this is Ph Time (to make this UTC time)
     date.setUTCSeconds(date.getUTCSeconds() + secondsToAdd); // Add or subtract the specified number of seconds
     
     // Extract the updated year, month, day, hour, minute, second
@@ -22,12 +23,12 @@ const StationDownloadButtons = (stationInfo) => {
 
   const stationCode = stationInfo.stationCode;
   const startTime = formatDateTime(stationInfo.eventTime, -60);
-  const endTime = formatDateTime(stationInfo.eventTime, 60);
+  const endTime = formatDateTime(stationInfo.eventTime, 60*10); // seconds to minutes
 
   return (
     <div className="download-links">
       <a 
-        href={`https://earthquake.science.upd.edu.ph/fdsnws/station/1/query?starttime=${startTime}&endtime=${endTime}&station=${stationCode}&formatted=true&nodata=404`} 
+        href={`https://earthquake.science.upd.edu.ph/fdsnws/station/1/query?level=response&starttime=${startTime}&endtime=${endTime}&station=${stationCode}&formatted=true&nodata=404`} 
         className="station-download-links" 
         target="_blank" 
         rel="noopener noreferrer">Download Metadata</a>
