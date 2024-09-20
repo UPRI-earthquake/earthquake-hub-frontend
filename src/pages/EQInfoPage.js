@@ -58,7 +58,7 @@ function EQInfoPage() {
                   </tr>
                   <tr>
                     <td className="first-column ">Date & Time:</td>
-                    <td>{moment(earthquakeInfo.eventTime).format("MMMM D, YYYY h:mm:ss A z")}</td>
+                    <td>{moment(earthquakeInfo.eventTime).format("MMMM D, YYYY h:mm:ss A z")} (Local Time)</td>
                   </tr>
                   <tr>
                     <td className="first-column ">Location:</td>
