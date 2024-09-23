@@ -32,10 +32,55 @@ const Articles = ({ url }) => {
       } catch (error) {
         console.log("Error fetching data from link: " + error)
 
-        setPageTitle("...");
         setMetaDescription("...");
         setAuthor("...");
         setImage(defaultThumbnail);
+      }
+
+      switch (true) {
+        case url.includes("mb.com"):
+          setAuthor("Manila Bulletin");
+          break;
+
+        case url.includes("phivolcs"):
+          setAuthor("PHIVOLCS");
+          break;
+
+        case url.includes("sunstar"):
+          setAuthor("Sunstar");
+          break;
+
+        case url.includes("inquirer"):
+          setAuthor("Inquirer.net");
+          break;
+
+        case url.includes("abs-cbn"):
+          setAuthor("ABSCBN News");
+          break;
+
+        case url.includes("gma"):
+          setAuthor("GMA News");
+          break;
+
+        case url.includes("philstar"):
+          setAuthor("Philstar");
+          break;
+
+        case url.includes("rappler"):
+          setAuthor("Rappler");
+          break;
+
+        case url.includes("ndrrmc"):
+          setAuthor("NDRRMC");
+          break;
+
+        case url.includes("pna"):
+          setAuthor("Philippine News Agency");
+          break;
+
+        default:
+          setAuthor("Unknown Source");
+          break;
       }
     };
 
