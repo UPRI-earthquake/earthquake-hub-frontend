@@ -91,7 +91,7 @@ function EQInfoPage() {
                   </tr>
                   <tr>
                     <td className="first-column ">Event Summary:</td>
-                    <td colSpan={2}>{earthquakeInfo.eventSummary}</td>
+                    <td colSpan={2} dangerouslySetInnerHTML={{ __html: earthquakeInfo.eventSummary }} ></td>
                   </tr>
                 </tbody>
               </table>
