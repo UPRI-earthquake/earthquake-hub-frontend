@@ -1,174 +1,80 @@
-/* Variables */
-:root {
-    --accent: #3a6a50;
-    --container-width: 800px;
-    --white: #ffffff;
-    --black: #000000;
-    --dark-gray: #333333;
-    --gray: #888888;
-    --light-gray: #cccccc;
-  }
-  
-  /* Font Smoothing */
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  
-  /* Post Module */
-  .post-module {
-    position: relative;
-    z-index: 1;
-    display: block;
-    background: #D9D9D9;
-    width: 250px;
-    height: 300px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    transition: all 1s ease;
-    max-height: max-content;
-    border-radius: 20px;
-  }
-  
-  .post-module:hover {
-    box-shadow: 5px 10px 8px #888888;
-  }
-  
-  .post-module:hover .thumbnail img {
-    transform: scale(1.1);
-    opacity: 0.6;
-    transition: all 1s ease;
-  }
-  
-  .thumbnail {
-    background: var(--black);
-    height: 150px;
-    overflow: hidden;
-    width: 100%;
-    border-radius: 10px;
-  }
-  
-  .thumbnail img {
-    display: block;
-    width: 100%;
-    transition: all 1s ease;
-  }
+.article-container {
+  background-size: cover; 
+  background-position: center; 
+  background-repeat: no-repeat; 
+  border-radius: 8px;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  margin: 16px;
+  width: 350px;
+  height: 350px;
+  transition: opacity 1s ease, top 1s ease;
+}
 
-  .category {
-    position: absolute;
-    top: -34px;
-    left: 0;
-    background: var(--accent);
-    padding: 10px 15px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  
-  .post-content {
-    box-sizing: border-box;
-    position: absolute;
-    bottom: 0;
-    background: var(--white);
-    width: 100%;
-    padding: 10px;
-    transition: all 1s cubic-bezier(.37, .75, .61, 1.05);
-    border-radius: 0px 0px 20px 20px;
-  }
-  
-  .post-content .title {
-    margin: 0;
-    padding: 0 0 10px;
-    color: var(--dark-gray);
-    font-size: 1.3em;
-  }
-  
-  .post-content .sub_title {
-    margin: 0;
-    padding: 0 0 20px;
-    color: var(--accent);
-    font-size: 1em;
-  }
-  
-  .post-content .description {
-    display: none;
-    color: var(--gray);
-    font-size: 14px;
-    line-height: 1.8em;
-  }
-  
-  /* Hover */
-  .post-module.hover .post-content .description {
-    display: block !important;
-    height: auto !important;
-    opacity: 1 !important;
-  }
-  
-  /* Container */
-  .container {
-    max-width: var(--container-width);
-    min-width: 200px;
-    margin: 0 auto;
-  }
-  
-  .container::before,
-  .container::after {
-    content: '';
-    display: block;
-    clear: both;
-  }
-  
-  .column {
-    margin: 0;
-  }
+.article-container a {
+  text-decoration: none;
+}
 
-  .column:hover{
-    cursor: pointer;
-  }
-  
-  /* Info */
-  .info {
-    width: 300px;
-    margin: 50px auto;
-    text-align: center;
-  }
-  
-  .info h1 {
-    margin: 0 0 15px;
-    padding: 0;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--dark-gray);
-  }
-  
-  .info span {
-    color: var(--gray);
-    font-size: 12px;
-  }
-  
-  .info span a {
-    color: var(--black);
-    text-decoration: none;
-  }
-  
-  .info span .fa {
-    color: var(--accent);
-  }
+.article-content h3 {
+  margin: 30px;
+  font-size: 1.8em;
+  text-align: left;
+  max-width: 250px;
+  color: #3a6a50;
+  line-height: 1.01;
+  transition: font-size 1s ease, max-width 1s ease;
+}
 
-  hr{
-    border-color: #3a6a50;
-  }
-  .post-meta {
-    margin: 30px 0 0;
-    color: #aaa;
-  }
-  
-  .timestamp {
-    margin: 0 16px 0 0;
-    font-size: 0.8rem;
-  }
+.article-container:hover {
+  cursor: pointer;
+}
 
-  .hide-timestamp {
-    display: none;
-  }
-  
+.article-category {
+  position: absolute;
+  top: -34px;
+  left: 0;
+  background: #3a6a50;
+  padding: 10px 15px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.article-content {
+  padding: 0px 25px 40px 25px;
+  text-align: center;
+  height: 280px;
+  width: 300px;
+  color: #3a6a50;
+  text-shadow: 10px 10px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: relative;
+  top: 57%;
+  background-color: #ffffff;
+  transition: opacity 1s ease, top 1s ease;
+}
+
+.article-container:hover .article-content{
+  top: 20%;
+  padding: 40px 25px 40px 25px;
+}
+
+.article-container-content .article-hover-details {
+  border-top: 1px solid #fff;
+}
+
+.article-container:hover .article-content h3 {
+  max-width: 160px;
+  font-size: 1.4em;
+}
+
+.article-content p {
+  text-align: left;
+  margin: auto;
+  font-size: 0.8em;
+  line-height: 1.01;
+  color: #333333;
+}
