@@ -44,7 +44,7 @@ function EQInfoPage() {
   return (
     <>
       <Header />
-      <div className='body'>
+      <div className='section'>
         <div className="section-container">
         {earthquakeInfo ? (
           <>
@@ -77,7 +77,7 @@ function EQInfoPage() {
                       {earthquakeInfo.instrumentRecordings && earthquakeInfo.instrumentRecordings.map((station, index, ) => (
                         <li>
                           <div className="list-items">
-                            <p>{station}</p>
+                            <p><b>{station}</b></p>
                             <StationDownloadButtons 
                               key={index} 
                               stationCode={station} 
