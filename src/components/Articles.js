@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Article.css';
 import defaultThumbnail from './thumbnail.jpg';
-import axios from 'axios';
 
 /**
  * Component to display article information with hover effects.
@@ -9,29 +8,11 @@ import axios from 'axios';
  * @returns {JSX.Element} The rendered article component.
  */
 const Articles = ({ url }) => {
-  const [pageTitle, setPageTitle] = useState('Loading...');
   const [author, setAuthor] = useState('Loading...');
-  const [img, setImage] = useState(defaultThumbnail);
+  const [img] = useState(defaultThumbnail);
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const proxyUrl = 'https://thingproxy.freeboard.io/fetch/';
-        // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const response = await axios.get(proxyUrl + url, { withCredentials: false});
-        const payload = response.data;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(payload, 'text/html');
-        setPageTitle(doc.querySelector('title').innerText);
-        setAuthor(doc.querySelector('meta[property="og:site_name"]').content);
-        setImage(doc.querySelector('meta[property="og:image"]').content || defaultThumbnail);
-      } catch (error) {
-        console.log("Error fetching data from link: " + error)
-        setAuthor("---");
-        setImage(defaultThumbnail);
-      }
-
       switch (true) {
         case url.includes("mb.com"):
           setAuthor("Manila Bulletin");
@@ -90,7 +71,7 @@ const Articles = ({ url }) => {
         <h3>{author}</h3>
         <div className="article-hover-details">
           <hr></hr>
-          <p>{pageTitle}</p>
+          <p>Earthquake report from {author}</p>
           <br></br>
           <br></br>
           <i>Click to redirect to the article</i>
