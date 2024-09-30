@@ -10,7 +10,7 @@ const Card = ({ title, magnitude, location, date, time, description, onClick }) 
           <h4>Magnitude {magnitude}</h4>
           <h5>{location}</h5>
           <h5>{date} - {time}</h5>
-          <p>{description}</p>
+          <p dangerouslySetInnerHTML={{ __html: description }} ></p>
         </div>
       </div>
     </div>
