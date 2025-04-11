@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from "./Header.module.css";
 import {ReactComponent as Logo} from './upri-logo.svg';
 import Button from "./Button";
+import FloatingButton from "./FloatingButton";
 import { SignInForm, SignUpForm } from "./Form";
 import { Dashboard } from "./Dashboard";
 import { ReactComponent as BurgerMenu } from './burger-menu-white.svg';
@@ -22,6 +24,18 @@ const Header = ({initStations}) => {
   // Toasts
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
+
+  const location = useLocation();  // Get the current path
+  const navigate = useNavigate();  // For navigation
+  
+  // Check if the current path is either /significant-eqs or /significant-eq-info
+  const isSignificantEQPage = location.pathname === '/significant-eqs' || location.pathname === '/significant-eq-info';
+
+  // Handle Home button click
+  const handleHomeClick = () => {
+    navigate('/');  // Navigate to the home page
+  };
+
 
   const handleSignInClick = () => setShowSignInForm(true);
   const handleSignInClose = () => setShowSignInForm(false);
@@ -104,12 +118,25 @@ const Header = ({initStations}) => {
             </div>
           ) : (
             <>
-              <Button hasOutline={false} onClick={handleSignInClick}>
-                Sign in
-              </Button>
-              <Button hasOutline={true} onClick={handleSignUpClick}>
-                Sign up
-              </Button>
+              {isSignificantEQPage ? (
+                // Show Home button if on /significant-eqs or /significant-eq-info
+                <Button hasOutline={false} onClick={handleHomeClick}>
+                  Home
+                </Button>
+              ) : (
+                // Show Sign in and Sign up buttons for other pages
+                <>
+                  <Button hasOutline={false} onClick={handleSignInClick}>
+                    Sign in
+                  </Button>
+                  <Button hasOutline={true} onClick={handleSignUpClick}>
+                    Sign up
+                  </Button>
+                  
+                  {/* Show Floating Action Button */}
+                  {!showSignInForm && !showSignUpForm && !showDashboard &&  <FloatingButton></FloatingButton>}
+                </>
+              )}
             </>
           )}
         </div>

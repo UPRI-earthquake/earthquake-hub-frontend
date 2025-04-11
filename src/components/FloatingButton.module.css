@@ -1,0 +1,39 @@
+.floatingButton {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 100px;
+  height: 40px;
+  border: none;
+  background-color: #3a6a50;
+  color: white;
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  text-align: center;
+  z-index: 2;
+  transition: background-color 0.3s ease;
+}
+
+.floatingButton:active {
+  background-color: #25432f;
+}
+
+.floatingButton:hover {
+  color: lightgray
+}
+
+.hasOutline {
+  border: 1px solid white;
+}
+
+.hasOutline:hover {
+  border: 1px solid lightgray;
+}
+
+@media (max-width: 768px) {
+  .floatingButton {
+    bottom: 125px;
+  }
+}
