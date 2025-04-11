@@ -11,7 +11,7 @@ import { ReactComponent as CloseMenu } from './close-menu-white.svg';
 import axios from 'axios';
 import Toast from "./Toast";
 
-const Header = ({initStations}) => {
+const Header = ({ initStations = [] }) => {
   const [stations] = useState(initStations)
   const stationsCount = stations.filter(station => station.activity === "active").length;
   
@@ -105,7 +105,14 @@ const Header = ({initStations}) => {
       <div className={styles.headerLeft}>
         <Logo className={styles.logo}/>
         <h1>CS•UPRI</h1>
-        <p><i>Stations Online: </i>{stationsCount}</p>
+        <>
+          {isSignificantEQPage ? (
+            // Hide online stations count if page is on /significant-eqs or /significant-eq-info
+            <p></p>
+          ) : (
+            <p><i>Stations Online: </i>{stationsCount}</p>
+          )}
+        </>
       </div>
         <div className={styles.headerRight}>
           {isLoggedIn ? (
