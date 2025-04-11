@@ -105,7 +105,7 @@ const HomePage = () => {
       ):(
         <div className="App">
           {console.log('render app screen')}
-          <Header />
+          <Header initStations={stationsRef.current}/>
           <div className="App-body">
             <SSEContext.Provider value={eventSourceRef.current}>
               <Sidebar >

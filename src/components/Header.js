@@ -9,7 +9,10 @@ import { ReactComponent as CloseMenu } from './close-menu-white.svg';
 import axios from 'axios';
 import Toast from "./Toast";
 
-function Header() {
+const Header = ({initStations}) => {
+  const [stations] = useState(initStations)
+  const stationsCount = stations.filter(station => station.activity === "active").length;
+  
   const [loggedInUser, setLoggedInUser] = useState('');
   const [showSignInForm, setShowSignInForm] = useState(false);
   const [showSignUpForm, setShowSignUpForm] = useState(false);
@@ -88,6 +91,7 @@ function Header() {
       <div className={styles.headerLeft}>
         <Logo className={styles.logo}/>
         <h1>CS•UPRI</h1>
+        <p><i>Stations Online: </i>{stationsCount}</p>
       </div>
         <div className={styles.headerRight}>
           {isLoggedIn ? (
