@@ -1,0 +1,25 @@
+/* Rounded, minimal layers panel */
+.leaflet-control-layers {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  font-size: 13px;
+}
+/* Headings inside the control */
+.leaflet-control-layers-base::before {
+  content: 'Base maps';
+  display: block;
+  font-weight: 600;
+  margin: 6px 0 4px 2px;
+}
+.leaflet-control-layers-overlays::before {
+  content: 'Overlays';
+  display: block;
+  font-weight: 600;
+  margin: 6px 0 4px 2px;
+}
+.leaflet-control-layers-separator { display: none; }
+.leaflet-control-layers label { line-height: 1.2; }
+/* keep default hover-to-expand behavior; no forced hide */
+
+/* Toggle pill button */
+/* remove custom toggle styles (not used) */

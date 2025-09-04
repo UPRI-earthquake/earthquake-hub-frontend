@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import axios from 'axios';
 import moment from 'moment';
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, LayersControl, LayerGroup } from "react-leaflet";
 import "./homePage.css";
 import StationMarkers from "../components/StationMarkers";
 import EventMarkers from "../components/EventMarkers";
@@ -13,6 +13,8 @@ import LoadingScreen from "../components/LoadingScreen";
 import ErrorScreen from "../components/ErrorScreen";
 import SSEContext from "../SSEContext";
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import MapLayersControl from '../components/MapLayersControl';
+import AttributionControl from '../components/AttributionControl';
 
 const HomePage = () => {
   // use loading screen (with min time) to wait for events and eventsSource
@@ -112,13 +114,22 @@ const HomePage = () => {
                 <SidebarInfo/>
                 <SidebarItems initData={eventsRef.current}/>
               </Sidebar>
-              <MapContainer center={[12.2795, 122.049]} zoom={6}>
-                <TileLayer
-                  url='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                />
-                <EventMarkers initEvents={eventsRef.current}/>
-                <StationMarkers initStations={stationsRef.current}/>
+              <MapContainer center={[12.2795, 122.049]} zoom={6} whenCreated={(m)=> (window.__leaflet_map__ = m)}>
+                {/* Global attribution control without Leaflet prefix */}
+                <AttributionControl />
+                {/* Basemaps + overlays */}
+                <MapLayersControl>
+                  <LayersControl.Overlay checked name="Earthquakes">
+                    <LayerGroup>
+                      <EventMarkers initEvents={eventsRef.current}/>
+                    </LayerGroup>
+                  </LayersControl.Overlay>
+                  <LayersControl.Overlay checked name="Stations">
+                    <LayerGroup>
+                      <StationMarkers initStations={stationsRef.current}/>
+                    </LayerGroup>
+                  </LayersControl.Overlay>
+                </MapLayersControl>
               </MapContainer>
             </SSEContext.Provider>
           </div>
