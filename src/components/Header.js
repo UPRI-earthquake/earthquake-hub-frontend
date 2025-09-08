@@ -140,8 +140,8 @@ const Header = ({ initStations = [] }) => {
                     Sign up
                   </Button>
                   
-                  {/* Show Floating Action Button */}
-                  {!showSignInForm && !showSignUpForm && !showDashboard &&  <FloatingButton></FloatingButton>}
+                  {/* Show Floating Action Button (temporarily disabled to avoid overlapping Legend control) */}
+                  {false && !showSignInForm && !showSignUpForm && !showDashboard &&  <FloatingButton />}
                 </>
               )}
             </>

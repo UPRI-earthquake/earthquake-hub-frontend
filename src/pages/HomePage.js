@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import axios from 'axios';
 import moment from 'moment';
-import { MapContainer, LayersControl, LayerGroup } from "react-leaflet";
+import { MapContainer, LayersControl } from "react-leaflet";
 import "./homePage.css";
 import StationMarkers from "../components/StationMarkers";
 import EventMarkers from "../components/EventMarkers";
@@ -15,6 +15,9 @@ import SSEContext from "../SSEContext";
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import MapLayersControl from '../components/MapLayersControl';
 import AttributionControl from '../components/AttributionControl';
+import LegendControl from '../components/LegendControl';
+import { OverlayStateProvider } from '../components/OverlayStateContext';
+import RegisterableLayerGroup from '../components/RegisterableLayerGroup';
 
 const HomePage = () => {
   // use loading screen (with min time) to wait for events and eventsSource
@@ -128,19 +131,22 @@ const HomePage = () => {
               >
                 {/* Global attribution control without Leaflet prefix */}
                 <AttributionControl />
-                {/* Basemaps + overlays */}
-                <MapLayersControl>
+                {/* Legend + Basemaps/Overlays with synced state */}
+                <OverlayStateProvider>
+                  <MapLayersControl>
                   <LayersControl.Overlay checked name="Earthquakes">
-                    <LayerGroup>
+                    <RegisterableLayerGroup overlayId="earthquakes">
                       <EventMarkers initEvents={eventsRef.current}/>
-                    </LayerGroup>
+                    </RegisterableLayerGroup>
                   </LayersControl.Overlay>
                   <LayersControl.Overlay checked name="Stations">
-                    <LayerGroup>
+                    <RegisterableLayerGroup overlayId="stations">
                       <StationMarkers initStations={stationsRef.current}/>
-                    </LayerGroup>
+                    </RegisterableLayerGroup>
                   </LayersControl.Overlay>
-                </MapLayersControl>
+                  </MapLayersControl>
+                  <LegendControl />
+                </OverlayStateProvider>
               </MapContainer>
             </SSEContext.Provider>
           </div>

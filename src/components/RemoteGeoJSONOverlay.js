@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { GeoJSON } from 'react-leaflet';
 
 // simple in-memory cache so toggling overlays does not refetch/parse large files
@@ -30,8 +30,12 @@ function featureInBbox(feature, bbox) {
   }
 }
 
-export default function RemoteGeoJSONOverlay({ url, style, filterBbox, lineOnly = true }) {
+const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
+  { url, style, filterBbox, lineOnly = true },
+  ref
+) {
   const [data, setData] = React.useState(null);
+  const gjRef = useRef(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -73,6 +77,16 @@ export default function RemoteGeoJSONOverlay({ url, style, filterBbox, lineOnly 
     };
   }, [url, filterBbox, lineOnly]);
 
+  // Expose underlying Leaflet layer via ref (compat for v2/v3 forks)
+  useImperativeHandle(
+    ref,
+    () => {
+      const inst = gjRef.current;
+      if (!inst) return null;
+      return inst.leafletElement || inst; // v2 uses leafletElement, v3 returns the Leaflet instance directly
+    }
+  );
+
   if (!data) return null;
   const mergedStyle = {
     ...style,
@@ -80,5 +94,9 @@ export default function RemoteGeoJSONOverlay({ url, style, filterBbox, lineOnly 
     fillOpacity: 0,
     interactive: false,
   };
-  return <GeoJSON data={data} style={mergedStyle} />;
-}
+  const element = <GeoJSON ref={gjRef} data={data} style={mergedStyle} />;
+
+  return element;
+});
+
+export default RemoteGeoJSONOverlay;

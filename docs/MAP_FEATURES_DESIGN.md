@@ -63,6 +63,12 @@ Acceptance Criteria
 - Base map swap < 300ms on broadband with tile cache warm.
 - Panel collapses to a small button on screens < 768px width.
 
+### Implementation Notes (Updated)
+- A custom Leaflet control (`LegendControl`) renders a collapsible legend in the bottom-right, synced to `LayersControl` via a lightweight overlay registry.
+- Supported overlays for dynamic legend entries: Faults, Plate Boundaries, Population Density (shows units and source; tries to infer last update via `Last-Modified`).
+- Tooltips: the Layers toggle and Legend collapse button expose `title` and `aria-label` attributes for mouse/keyboard users.
+- No new dependencies; control uses React portal to render into a Leaflet control container.
+
 ## Map Legend (Symbols)
 
 Purpose: Explain visual encodings (magnitude, stations status, fault line style) and provide quick reference counts.
