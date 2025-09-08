@@ -114,7 +114,18 @@ const HomePage = () => {
                 <SidebarInfo/>
                 <SidebarItems initData={eventsRef.current}/>
               </Sidebar>
-              <MapContainer center={[12.2795, 122.049]} zoom={6} whenCreated={(m)=> (window.__leaflet_map__ = m)}>
+              <MapContainer
+                center={[12.2795, 122.049]}
+                zoom={6}
+                minZoom={2}
+                worldCopyJump
+                // Hard-stop vertically at WebMercator limits, but keep
+                // very wide longitudes so horizontal panning is not blocked.
+                maxBounds={[[-85.0511, -360], [85.0511, 360]]}
+                maxBoundsViscosity={1.0}
+                preferCanvas
+                whenCreated={(m)=> (window.__leaflet_map__ = m)}
+              >
                 {/* Global attribution control without Leaflet prefix */}
                 <AttributionControl />
                 {/* Basemaps + overlays */}
