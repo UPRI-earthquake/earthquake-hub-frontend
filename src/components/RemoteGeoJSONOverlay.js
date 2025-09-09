@@ -30,8 +30,37 @@ function featureInBbox(feature, bbox) {
   }
 }
 
+// Shift a GeoJSON geometry's longitudes by a constant delta (in degrees)
+function shiftGeometryLng(geom, delta) {
+  if (!geom || !delta) return geom;
+  const shiftCoord = (c) => {
+    if (!Array.isArray(c)) return c;
+    // Allow 2D or 3D coords; adjust only longitude (index 0)
+    const out = c.slice();
+    if (typeof out[0] === 'number') out[0] = out[0] + delta;
+    return out;
+  };
+  const shiftLine = (line) => Array.isArray(line) ? line.map(shiftCoord) : line;
+  const shiftMulti = (multi) => Array.isArray(multi) ? multi.map(shiftLine) : multi;
+
+  switch (geom.type) {
+    case 'Point':
+      return { ...geom, coordinates: shiftCoord(geom.coordinates) };
+    case 'MultiPoint':
+    case 'LineString':
+      return { ...geom, coordinates: shiftLine(geom.coordinates) };
+    case 'MultiLineString':
+    case 'Polygon':
+      return { ...geom, coordinates: shiftMulti(geom.coordinates) };
+    case 'MultiPolygon':
+      return { ...geom, coordinates: Array.isArray(geom.coordinates) ? geom.coordinates.map(shiftMulti) : geom.coordinates };
+    default:
+      return geom;
+  }
+}
+
 const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
-  { url, style, filterBbox, lineOnly = true },
+  { url, style, filterBbox, lineOnly = true, worldCopies = false },
   ref
 ) {
   const [data, setData] = React.useState(null);
@@ -39,7 +68,7 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
 
   React.useEffect(() => {
     let cancelled = false;
-    const key = JSON.stringify({ url, filterBbox, lineOnly });
+    const key = JSON.stringify({ url, filterBbox, lineOnly, worldCopies });
     const cached = cache.get(key);
     if (cached) {
       setData(cached);
@@ -58,6 +87,21 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
           const t = f?.geometry?.type;
           return t === 'LineString' || t === 'MultiLineString';
         });
+        // If requested, add left/right world copies by shifting longitudes ±360°
+        if (worldCopies) {
+          const left = features.map((f) => ({
+            ...f,
+            geometry: shiftGeometryLng(f.geometry, -360),
+            properties: { ...(f.properties || {}), _copy: -1 },
+          }));
+          const right = features.map((f) => ({
+            ...f,
+            geometry: shiftGeometryLng(f.geometry, 360),
+            properties: { ...(f.properties || {}), _copy: 1 },
+          }));
+          features = [...left, ...features, ...right];
+        }
+
         const fc = { type: 'FeatureCollection', features };
         cache.set(key, fc);
         setData(fc);
@@ -75,7 +119,7 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
       clearTimeout(id);
       controller.abort();
     };
-  }, [url, filterBbox, lineOnly]);
+  }, [url, filterBbox, lineOnly, worldCopies]);
 
   // Expose underlying Leaflet layer via ref (compat for v2/v3 forks)
   useImperativeHandle(

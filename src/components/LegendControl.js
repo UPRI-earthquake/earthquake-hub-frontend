@@ -129,7 +129,7 @@ function useLastModified(url) {
   return lastMod;
 }
 
-function LegendContent({ active }) {
+function LegendContent({ active, onToggle }) {
   // Build a small map of active overlays we support
   const shown = useMemo(() => ({
     faults: active.has('faults'),
@@ -156,10 +156,22 @@ function LegendContent({ active }) {
   const platesLM = useLastModified(shown.plates ? META.plates.lastUpdateHintUrl : null);
   const popLM = useLastModified(shown.population ? popHeadUrl : null);
 
+  const anyShown = shown.faults || shown.plates || shown.population || shown.stations || shown.earthquakes;
   return (
     <div className="map-legend" role="region" aria-label="Map legend">
+      {!anyShown && (
+        <div className="legend-empty">No overlays enabled</div>
+      )}
       {shown.faults && (
-        <div className="legend-item" data-key="faults">
+        <div
+          className="legend-item"
+          data-key="faults"
+          role="button"
+          tabIndex={0}
+          title="Click to toggle"
+          onClick={() => onToggle && onToggle('faults')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('faults')}
+        >
           <div className="legend-swatch">
             <span
               className="swatch-line"
@@ -180,7 +192,15 @@ function LegendContent({ active }) {
         </div>
       )}
       {shown.plates && (
-        <div className="legend-item" data-key="plates">
+        <div
+          className="legend-item"
+          data-key="plates"
+          role="button"
+          tabIndex={0}
+          title="Click to toggle"
+          onClick={() => onToggle && onToggle('plates')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('plates')}
+        >
           <div className="legend-swatch">
             <span
               className="swatch-line"
@@ -198,7 +218,15 @@ function LegendContent({ active }) {
         </div>
       )}
       {shown.population && (
-        <div className="legend-item" data-key="population">
+        <div
+          className="legend-item"
+          data-key="population"
+          role="button"
+          tabIndex={0}
+          title="Click to toggle"
+          onClick={() => onToggle && onToggle('population')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('population')}
+        >
           <div className="legend-swatch">
             {/* simple 4-step ramp */}
             <span className="swatch-ramp">
@@ -216,7 +244,15 @@ function LegendContent({ active }) {
         </div>
       )}
       {shown.stations && (
-        <div className="legend-item" data-key="stations">
+        <div
+          className="legend-item"
+          data-key="stations"
+          role="button"
+          tabIndex={0}
+          title="Click to toggle"
+          onClick={() => onToggle && onToggle('stations')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('stations')}
+        >
           <div className="legend-swatch">
             <span className="swatch-triangle" aria-hidden />
           </div>
@@ -226,7 +262,15 @@ function LegendContent({ active }) {
         </div>
       )}
       {shown.earthquakes && (
-        <div className="legend-item" data-key="earthquakes">
+        <div
+          className="legend-item"
+          data-key="earthquakes"
+          role="button"
+          tabIndex={0}
+          title="Click to toggle"
+          onClick={() => onToggle && onToggle('earthquakes')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('earthquakes')}
+        >
           <div className="legend-swatch">
             <span className="swatch-circle" aria-hidden />
           </div>
@@ -242,7 +286,7 @@ function LegendContent({ active }) {
 
 export default function LegendControl({ position = 'bottomright' }) {
   const map = useMap();
-  const { activeIds } = useOverlayState();
+  const { activeIds, toggleOverlay } = useOverlayState();
   const containerRef = useRef(null);
   const [, forceRender] = useState(0); // trigger a re-render after control attaches
   const [collapsed, setCollapsed] = useState(() => {
@@ -281,40 +325,99 @@ export default function LegendControl({ position = 'bottomright' }) {
     };
   }, [map, position]);
 
+  // Keyboard shortcuts: G toggles Legend, Esc collapses
+  useEffect(() => {
+    const onKey = (e) => {
+      // ignore if typing in input/textarea/contenteditable
+      const t = e.target;
+      const tag = (t && t.tagName) || '';
+      const editable = (t && (t.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'));
+      if (editable) return;
+      if ((e.key === 'g' || e.key === 'G')) {
+        e.preventDefault();
+        setCollapsed((c) => !c);
+      } else if (e.key === 'Escape') {
+        setCollapsed(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Removed cross-panel coupling: no external collapse listeners
+
+  // Focus trap inside the legend when expanded
+  useEffect(() => {
+    if (!containerRef.current || collapsed) return undefined;
+    const shell = containerRef.current.querySelector('.legend-shell');
+    if (!shell) return undefined;
+    const focusables = shell.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (first && typeof first.focus === 'function') first.focus();
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      if (!focusables.length) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    shell.addEventListener('keydown', trap);
+    return () => shell.removeEventListener('keydown', trap);
+  }, [collapsed]);
+
   // Render portal content into the control container
   const hasAny = activeIds.size > 0;
   const content = (
-    <div className={`legend-shell ${collapsed ? 'is-collapsed' : ''}`}>
-      <button
-        type="button"
-        className="legend-toggle"
-        title={collapsed ? (hasAny ? 'Show legend' : 'Show legend (enable overlays)') : 'Hide legend'}
-        aria-label={collapsed ? 'Show legend' : 'Hide legend'}
-        aria-pressed={!collapsed}
-        onClick={() => {
-          const next = !collapsed;
-          setCollapsed(next);
-          try { sessionStorage.setItem('legendCollapsed', next ? '1' : '0'); } catch (_) {}
-        }}
-      >
-        {collapsed ? (
-          // Icon-only placeholder; text intentionally omitted for design swap later
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            aria-hidden
-            focusable="false"
-            fill="currentColor"
-          >
-            <path d="M9 3l6 2 6-2v18l-6 2-6-2-6 2V5l6-2zm0 2v14l6 2V7L9 5zM3 7v14l4-1.33V5.67L3 7zm18-2l-4 1.33v15.66L21 19V5z" />
-          </svg>
-        ) : (
-          'Hide'
-        )}
-      </button>
-      {!collapsed && <LegendContent active={activeIds} />}
+    <div
+      className={`legend-shell ${collapsed ? 'is-collapsed' : ''}`}
+      role={!collapsed ? 'dialog' : undefined}
+      aria-labelledby={!collapsed ? 'legend-title' : undefined}
+      aria-modal={!collapsed ? 'true' : undefined}
+    >
+      {collapsed ? (
+        <button
+          type="button"
+          className="legend-toggle"
+          title={hasAny ? 'Legend (G)' : 'Legend (enable overlays)'}
+          aria-label="Legend"
+          aria-pressed={!collapsed}
+          onClick={() => {
+            const next = !collapsed;
+            setCollapsed(next);
+            try { sessionStorage.setItem('legendCollapsed', next ? '1' : '0'); } catch (_) {}
+          }}
+        >
+          Legend ▸
+        </button>
+      ) : (
+        <>
+          <div className="legend-header">
+            <div id="legend-title" className="legend-title">Legend</div>
+            <div className="legend-tools">
+              <button
+                type="button"
+                className="legend-close"
+                title="Close legend (G)"
+                aria-label="Close legend"
+                onClick={() => {
+                  setCollapsed(true);
+                  try { sessionStorage.setItem('legendCollapsed', '1'); } catch (_) {}
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div className="legend-body">
+            <LegendContent active={activeIds} onToggle={toggleOverlay} />
+          </div>
+        </>
+      )}
     </div>
   );
 

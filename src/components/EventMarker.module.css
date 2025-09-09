@@ -1,8 +1,10 @@
 .default {
-    fill: rgba(255,0,0,0.45);
+    fill: #e53e3e; /* red-600 */
+    stroke: #e5e7eb; /* gray-200 as default ring on light */
+    stroke-width: 1px;
 }
 .radiate {
-    fill: rgba(255,0,0,0.45);
+    fill: #e53e3e;
     stroke: #e86a73;
     animation-name: radiate-outward;
     animation-duration: 1.5s;
@@ -19,4 +21,23 @@
         stroke-width: 200;
         stroke-opacity: 0;  
     }
+}
+
+/* Theme-aware ring for dark/imagery to keep edge readable */
+.leaflet-container[data-basemap-theme="dark"] .default,
+.leaflet-container[data-basemap-theme="imagery"] .default {
+    stroke: #ffffff; /* 2px white ring on dark/imagery */
+    stroke-width: 2px;
+}
+
+/* Reduce clutter at low zoom */
+.leaflet-container[data-zoom-lte4="1"] .default,
+.leaflet-container[data-zoom-lte4="1"] .radiate {
+    transform: scale(0.75);
+    transform-origin: center center;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .radiate { animation: none; }
 }

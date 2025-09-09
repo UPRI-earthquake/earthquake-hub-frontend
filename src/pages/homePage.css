@@ -52,12 +52,6 @@
   z-index: 1;
 }
 
-@media (min-width: 768px) {
-    .leaflet-bottom.leaflet-right {
-      margin-bottom: 50px;
-    }
-}
-
 @media (max-width: 768px) {
     .App-body{
         flex-direction: column-reverse;

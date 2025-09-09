@@ -43,17 +43,21 @@ export const OVERLAYS = {
 
 // Simple vector style helpers
 export const styles = {
+  // Fault Lines (orange-red, slightly thicker, rounded joins)
   faults: {
-    color: '#b71c1c', // darker red
-    weight: 1.2,
-    opacity: 0.9,
+    color: '#d94c3d',
+    weight: 2.8,
+    opacity: 0.95,
     lineCap: 'round',
+    lineJoin: 'round',
   },
+  // Plate Boundaries (cyan, dashed, thicker)
   plates: {
-    color: '#6f42c1', // muted purple
-    weight: 1.2,
-    opacity: 0.7,
-    dashArray: '6,3',
+    color: '#0891b2',
+    weight: 3,
+    opacity: 0.85,
+    dashArray: '8,6',
     lineCap: 'round',
+    lineJoin: 'round',
   },
 };

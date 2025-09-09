@@ -1,74 +1,155 @@
+/* Container */
 .custom-legend-control {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  padding: 6px;
-  font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  color: #222;
+  --panel-bg: #ffffffee;
+  --panel-text: #1f2937;
+  --panel-border: rgba(17, 24, 39, 0.12);
+  --panel-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  background: var(--panel-bg);
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  padding: 12px 12px 16px 12px;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--panel-text);
   pointer-events: auto;
+  backdrop-filter: saturate(120%) blur(6px);
+  max-width: 320px;
 }
 
 .custom-legend-control.is-collapsed {
   background: transparent;
   box-shadow: none;
   padding: 0;
+  border: none;
 }
 
 .legend-shell {
   position: relative;
-  min-width: 160px;
+  min-width: 180px;
 }
 
 .legend-shell.is-collapsed { min-width: auto; }
 
-.custom-legend-control:not(.is-collapsed) .legend-toggle {
-  position: absolute;
-  bottom: 6px; /* anchor to bottom-right same spot as collapsed */
-  right: 6px;
-  height: 32px;
+/* Toggle button inside expanded panel (Collapse) */
+/* Expanded header */
+.legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 10px 12px;
+  position: sticky;
+  top: 0;
+  background: inherit;
+  z-index: 1;
+}
+.legend-title { font-weight: 600; font-size: 14px; }
+.legend-tools { display: inline-flex; gap: 8px; align-items: center; }
+/* Header tools – match Map Layers style */
+.legend-tools button {
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.2);
+  background: #f3f4f6;
+  color: #111827;
   padding: 0 10px;
-  border: none;
-  border-radius: 6px;
-  background: #f3f3f3;
-  color: #222;
   cursor: pointer;
 }
+.legend-tools button:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+.legend-tools .legend-close { width: 30px; padding: 0; font-size: 18px; line-height: 1; }
+.leaflet-container[data-basemap-theme="dark"] .legend-tools button,
+.leaflet-container[data-basemap-theme="imagery"] .legend-tools button { background: #1f2937; color: #f3f4f6; border-color: rgba(255,255,255,0.2); }
+/* Collapsed pill (Legend ▸) */
 .custom-legend-control.is-collapsed .legend-toggle {
   position: static;
-  width: 36px;
-  height: 36px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0,0,0,0.35); /* match layers toggle */
-  border-radius: 6px;
-  background: #fff; /* match layers toggle */
-  color: #2e2e2e;
+  border: 1px solid rgba(0,0,0,0.25);
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
   z-index: 1000;
-  padding: 0;
+}
+.leaflet-container[data-basemap-theme="dark"] .custom-legend-control.is-collapsed .legend-toggle,
+.leaflet-container[data-basemap-theme="imagery"] .custom-legend-control.is-collapsed .legend-toggle {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: rgba(255,255,255,0.25);
 }
 .legend-toggle:focus { outline: 2px solid #4aa96c; outline-offset: 2px; }
 
-.map-legend {
-  padding: 8px 8px 46px 8px; /* make space for bottom-right Hide button */
+.legend-body { padding: 8px; max-height: 40vh; overflow: auto; }
+.map-legend { padding: 0; }
+
+.legend-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
 }
 
 .legend-item { display: flex; align-items: center; margin: 8px 0; }
+.legend-item[role="button"] { cursor: pointer; }
 .legend-swatch { width: 42px; flex: 0 0 42px; display: flex; align-items: center; justify-content: center; }
-.swatch-line { display: block; width: 30px; }
+.swatch-line { display: block; width: 30px; height: 0; }
 .swatch-ramp { display: inline-flex; gap: 2px; }
 .swatch-ramp i { display: inline-block; width: 10px; height: 10px; border-radius: 1px; }
-.swatch-triangle { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #3a6a50; }
-.swatch-circle { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,0,0,0.45); border: 1px solid #e86a73; }
+.swatch-triangle { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #22c55e; }
+.swatch-circle { width: 12px; height: 12px; border-radius: 50%; background: #e53e3e; border: 2px solid #e5e7eb; }
 
 .legend-meta { display: flex; flex-direction: column; }
-.legend-label { font-weight: 600; margin-bottom: 2px; }
+.legend-label { font-weight: 600; margin-bottom: 2px; font-size: 13px; }
 .legend-source-line { font-size: 11px; color: #555; margin-top: 2px; }
 .legend-update-line { font-size: 11px; color: #777; margin-top: 2px; }
-.leaflet-bottom.leaflet-right .custom-legend-control {
-  /* margin-bottom: 28px; keep above attribution */
-  margin-right: 6px;
-}
 .legend-empty { color: #666; padding: 4px 0; }
+
+/* Focus styles */
+.legend-item[role="button"]:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; border-radius: 8px; }
+
+/* Theme-aware background for dark/imagery basemaps */
+.leaflet-container[data-basemap-theme="dark"] .custom-legend-control,
+.leaflet-container[data-basemap-theme="imagery"] .custom-legend-control {
+  --panel-bg: #111827dd;
+  --panel-text: #f3f4f6;
+  --panel-border: rgba(255, 255, 255, 0.12);
+}
+
+/* Legend chips match map styles */
+.legend-item[data-key="faults"] .swatch-line {
+  border-top: 3px solid #d94c3d;
+  opacity: 0.95;
+}
+.legend-item[data-key="plates"] .swatch-line {
+  border-top: 3px dashed #0891b2;
+  opacity: 0.85;
+}
+
+/* Adjust chips on dark/imagery for visibility */
+.leaflet-container[data-basemap-theme="dark"] .legend-item .legend-source-line,
+.leaflet-container[data-basemap-theme="imagery"] .legend-item .legend-source-line {
+  color: #d1d5db;
+}
+
+/* Station/EQ chips follow theme stroke/fill */
+.leaflet-container[data-basemap-theme="dark"] .swatch-triangle,
+.leaflet-container[data-basemap-theme="imagery"] .swatch-triangle {
+  border-bottom-color: #86efac; /* green-300 */
+}
+.leaflet-container[data-basemap-theme="dark"] .swatch-circle,
+.leaflet-container[data-basemap-theme="imagery"] .swatch-circle {
+  border-color: #ffffff; /* 2px white ring */
+}
+
+/* Mobile: limit legend height a bit more to avoid crowding */
+@media (max-width: 767px) {
+  .legend-body { max-height: 28vh; }
+}

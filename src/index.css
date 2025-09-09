@@ -1,13 +1,34 @@
+:root {
+  --font-primary: Inter, Roboto, "Noto Sans", system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+  --text-light: #1f2937; /* gray-800 */
+  --text-dark: #f3f4f6;  /* gray-100 */
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--text-light);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Force Leaflet and map UI to use primary font */
+.leaflet-container, .leaflet-container * , .leaflet-control, .leaflet-control * {
+  font-family: var(--font-primary) !important;
+}
+
+/* Ensure top-right controls don’t collide with fixed header (50px) */
+/* .leaflet-top.leaflet-right { margin-top: 20px; margin-right: 20px; } */
+@media (max-height: 420px) {
+  .leaflet-top.leaflet-right { margin-top: 12px; }
+}
+
+/* Give bottom-right controls breathing room above attribution */
+@media (min-width: 768px) {
+  .leaflet-bottom.leaflet-right { margin-bottom: 56px; }
 }

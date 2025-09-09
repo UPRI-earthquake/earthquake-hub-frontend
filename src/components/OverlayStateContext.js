@@ -8,6 +8,7 @@ const OverlayStateContext = createContext(null);
 export function OverlayStateProvider({ children }) {
   const map = useMap();
   const registryRef = useRef(new WeakMap()); // LeafletLayer -> id
+  const idToLayerRef = useRef(new Map());     // id -> LeafletLayer
   const [activeIds, setActiveIds] = useState(() => new Set());
 
   // Helper: resolve id for a given Leaflet layer using the registry
@@ -16,6 +17,7 @@ export function OverlayStateProvider({ children }) {
   const registerLayer = useCallback((id, layer) => {
     if (!layer) return;
     registryRef.current.set(layer, id);
+    idToLayerRef.current.set(id, layer);
     // initialize active state for this layer if needed
     if (map && map.hasLayer(layer)) {
       setActiveIds((prev) => {
@@ -36,6 +38,7 @@ export function OverlayStateProvider({ children }) {
         next.delete(id);
         return next;
       });
+      idToLayerRef.current.delete(id);
     }
     registryRef.current.delete(layer);
   }, []);
@@ -72,7 +75,17 @@ export function OverlayStateProvider({ children }) {
     };
   }, [map]);
 
-  const value = useMemo(() => ({ activeIds, registerLayer, unregisterLayer }), [activeIds, registerLayer, unregisterLayer]);
+  const toggleOverlay = useCallback((id) => {
+    const layer = idToLayerRef.current.get(id);
+    if (!map || !layer) return;
+    if (map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    } else {
+      map.addLayer(layer);
+    }
+  }, [map]);
+
+  const value = useMemo(() => ({ activeIds, registerLayer, unregisterLayer, toggleOverlay }), [activeIds, registerLayer, unregisterLayer, toggleOverlay]);
 
   return (
     <OverlayStateContext.Provider value={value}>{children}</OverlayStateContext.Provider>

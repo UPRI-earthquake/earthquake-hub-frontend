@@ -1,10 +1,11 @@
 .static {
-    fill: #86ae69; 
+    fill: #22c55e; /* green-500 on light */
+    stroke: #0f172a; /* slate-900 */
+    stroke-width: 2px;
 }
 
 .dynamic {
-    fill: #86ae69; 
-    /*stroke: #e06c75;*/
+    fill: #22c55e;
     stroke: #e86a73;
     animation-name: radiate;
     animation-duration: 1.5s;
@@ -74,4 +75,22 @@
     background-color: #f4f4f4;
     padding: 5px;
     border-radius: 10px;
+}
+
+/* Theme-aware fill/stroke for stations */
+.leaflet-container[data-basemap-theme="dark"] .static,
+.leaflet-container[data-basemap-theme="imagery"] .static,
+.leaflet-container[data-basemap-theme="dark"] .dynamic,
+.leaflet-container[data-basemap-theme="imagery"] .dynamic {
+    fill: #86efac; /* green-300 */
+    stroke: #ffffff; /* white ring on dark/imagery */
+}
+
+/* Lightly reduce visual weight at low zoom */
+.leaflet-container[data-zoom-lte4="1"] .static,
+.leaflet-container[data-zoom-lte4="1"] .dynamic { opacity: 0.8; }
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .dynamic { animation: none; }
 }
