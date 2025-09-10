@@ -195,12 +195,29 @@ export default function MapLayersControl({ children }) {
   useEffect(() => {
     if (!map) return undefined;
     const el = map.getContainer();
-    const themeForLayer = (layer) => {
-      const url = (layer && layer._url) || '';
-      const lc = url.toLowerCase();
-      if (lc.includes('cartocdn') && lc.includes('dark')) return 'dark';
-      if (lc.includes('worldimagery') || lc.includes('world_imagery') || lc.includes('arcgisonline') || lc.includes('esri')) return 'imagery';
-      // treat others (osm, positron) as light
+    // Heuristic detection by layer URL/name/attribution to avoid provider-specific misses
+    const themeForLayer = (layer, nameHint = '') => {
+      const url = (layer && (layer._url || (layer.options && layer.options.url))) || '';
+      const attr = (layer && typeof layer.getAttribution === 'function' && layer.getAttribution()) || (layer && layer.options && layer.options.attribution) || '';
+      const lc = String(url).toLowerCase();
+      const la = String(attr).toLowerCase();
+      const ln = String(nameHint).toLowerCase();
+
+      // Imagery (Esri Satellite and similar)
+      if (/worldimagery|world_imagery|arcgisonline|esri|satellite|imagery/.test(lc) || /esri|imagery|satellite/.test(la) || /satellite|imagery/.test(ln)) {
+        return 'imagery';
+      }
+
+      // Dark themes (Carto DarkMatter, variants, or other providers)
+      const darkByUrlPair = /cartocdn|cartodb|carto/.test(lc) && /dark/.test(lc);
+      const darkByToken   = /darkmatter|dark_all|dark-matter/.test(lc);
+      const darkByName    = /dark/.test(ln);
+      const darkByAttrib  = /carto/.test(la) && /dark/.test(la);
+      if (darkByUrlPair || darkByToken || darkByName || darkByAttrib) {
+        return 'dark';
+      }
+
+      // Default to light
       return 'light';
     };
     const setThemeFromActiveBase = () => {
@@ -219,7 +236,7 @@ export default function MapLayersControl({ children }) {
     };
     setThemeFromActiveBase();
     const onBase = (e) => {
-      el.setAttribute('data-basemap-theme', themeForLayer(e.layer));
+      el.setAttribute('data-basemap-theme', themeForLayer(e.layer, e && e.name));
     };
     map.on('baselayerchange', onBase);
     return () => {
