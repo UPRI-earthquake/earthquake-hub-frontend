@@ -60,7 +60,15 @@ function shiftGeometryLng(geom, delta) {
 }
 
 const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
-  { url, style, filterBbox, lineOnly = true, worldCopies = false },
+  {
+    url,
+    style,
+    filterBbox,
+    lineOnly = true,
+    worldCopies = false,
+    interactive = false,
+    onEachFeature,
+  },
   ref
 ) {
   const [data, setData] = React.useState(null);
@@ -136,9 +144,19 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
     ...style,
     fill: false,
     fillOpacity: 0,
-    interactive: false,
+    // Allow callers to opt-in to interaction for hover tooltips, etc.
+    interactive: Boolean(interactive),
+    className: 'remote-geojson-layer',
   };
-  const element = <GeoJSON ref={gjRef} data={data} style={mergedStyle} />;
+  const element = (
+    <GeoJSON
+      ref={gjRef}
+      data={data}
+      style={mergedStyle}
+      // Pass through optional feature hook for tooltips/highlights
+      onEachFeature={onEachFeature}
+    />
+  );
 
   return element;
 });

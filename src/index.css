@@ -71,3 +71,33 @@ code {
 .leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a.leaflet-disabled {
   opacity: 0.5;
 }
+
+/* Feature hover tooltips (faults, plates) */
+.leaflet-tooltip.feature-tooltip {
+  --tt-bg: #ffffff;
+  --tt-text: #111827;
+  --tt-border: rgba(17, 24, 39, 0.18);
+  background: var(--tt-bg);
+  color: var(--tt-text);
+  border: 1px solid var(--tt-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+}
+.leaflet-container[data-basemap-theme="dark"] .leaflet-tooltip.feature-tooltip,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-tooltip.feature-tooltip {
+  --tt-bg: #111827;
+  --tt-text: #f3f4f6;
+  --tt-border: rgba(255, 255, 255, 0.15);
+}
+.leaflet-tooltip.feature-tooltip .ft-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.leaflet-tooltip.feature-tooltip .ft-row { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; }
+.leaflet-tooltip.feature-tooltip .ft-k { color: #6b7280; }
+.leaflet-container[data-basemap-theme="dark"] .leaflet-tooltip.feature-tooltip .ft-k,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-tooltip.feature-tooltip .ft-k { color: #d1d5db; opacity: 0.8; }
+
+/* Indicate hoverable path */
+path.remote-geojson-layer.leaflet-interactive { cursor: help; }
