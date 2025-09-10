@@ -10,7 +10,7 @@
   line-height: 1.45;
 }
 /* Apply width only when expanded so the collapsed toggle is not stretched */
-.leaflet-control-layers.leaflet-control-layers-expanded { min-width: 230px; width: 250px; }
+.leaflet-control-layers.leaflet-control-layers-expanded { min-width: 180px; }
 /* Panel background with theme-aware variant */
 .leaflet-container .leaflet-control-layers {
   background: var(--panel-bg);
@@ -165,6 +165,20 @@
   background: linear-gradient(90deg, #f7fbff, #c6dbef, #6baed6, #2171b5);
 }
 
+/* Overlay meta row (Last updated) */
+.overlay-meta {
+  grid-column: 3 / 4; /* place under the text column */
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280; /* gray-500 */
+}
+.leaflet-container[data-basemap-theme="dark"] .overlay-meta,
+.leaflet-container[data-basemap-theme="imagery"] .overlay-meta {
+  color: #9ca3af; /* gray-400 */
+}
+.overlay-meta a { color: inherit; text-decoration: underline dotted; }
+.overlay-meta .meta-fallback { opacity: 0.9; }
+
 /* Themed radios/checkboxes (avoid default blue) */
 .leaflet-control-layers input[type="radio"],
 .leaflet-control-layers input[type="checkbox"] {
@@ -218,7 +232,7 @@
 
 /* Responsive panel width */
 @media (min-width: 1200px) {
-  .leaflet-control-layers.leaflet-control-layers-expanded { min-width: 120px; }
+  .leaflet-control-layers.leaflet-control-layers-expanded { min-width: 180px; }
 }
 @media (max-width: 900px) {
   .leaflet-control-layers.leaflet-control-layers-expanded { min-width: 200px; }

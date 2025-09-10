@@ -4,6 +4,8 @@ import L from 'leaflet';
 import { useMap } from 'react-leaflet';
 import { useOverlayState } from './OverlayStateContext';
 import { styles } from '../config/mapLayers';
+import { DATASETS } from '../config/datasets';
+import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
 import './legend.css';
 
 // Lightweight metadata per supported overlay. Sources align with existing config/docs.
@@ -11,15 +13,13 @@ const META = {
   faults: {
     label: 'Faults',
     source: 'GEM Global Active Faults (harmonized)',
-    // Last-Modified is fetched at runtime; fallback is N/A.
-    lastUpdateHintUrl:
-      'https://cdn.jsdelivr.net/gh/GEMScienceTools/gem-global-active-faults@master/geojson/gem_active_faults_harmonized.geojson',
+    // Use centralized dataset URL (jsDelivr GitHub) for exact ref
+    lastUpdateHintUrl: DATASETS.FAULTS.cdnUrl,
   },
   plates: {
     label: 'Plate Boundaries',
     source: 'PB2002 (Bird, 2003) via tectonicplates',
-    lastUpdateHintUrl:
-      'https://cdn.jsdelivr.net/gh/fraxen/tectonicplates@master/GeoJSON/PB2002_boundaries.json',
+    lastUpdateHintUrl: DATASETS.PLATES.cdnUrl,
   },
   population: {
     label: 'Population Density',
@@ -30,8 +30,9 @@ const META = {
   },
 };
 
-function useLastModified(url) {
-  const [lastMod, setLastMod] = useState(null);
+// Commit-first last updated for GitHub-backed CDN sources; falls back to HEAD Last-Modified
+function useLastUpdatedGitHubFirst(url) {
+  const [res, setRes] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,84 +40,13 @@ function useLastModified(url) {
 
     const controller = new AbortController();
 
-    const cacheKey = `lm:${url}`;
-    try {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        setLastMod(cached);
-        return undefined; // use cached value
-      }
-    } catch (_) {
-      // ignore caching errors
-    }
-
-    const isoFromHeaders = (headers) => {
-      const lm = headers.get('last-modified') || headers.get('date');
-      return lm ? new Date(lm).toISOString() : null;
-    };
-
-    const parseJsDelivrGh = (rawUrl) => {
-      try {
-        const u = new URL(rawUrl);
-        if (u.hostname !== 'cdn.jsdelivr.net') return null;
-        const m = u.pathname.match(/^\/gh\/([^/]+)\/([^@/]+)@([^/]+)\/(.+)$/);
-        if (!m) return null;
-        return { owner: m[1], repo: m[2], ref: m[3], path: m[4] };
-      } catch (e) {
-        return null;
-      }
-    };
-
     async function resolveLastModified() {
-      // 1) Try HEAD
       try {
-        const res = await fetch(url, { method: 'HEAD', cache: 'no-cache', signal: controller.signal });
-        if (res.ok) {
-          const iso = isoFromHeaders(res.headers);
-          if (iso && !cancelled) {
-            setLastMod(iso);
-            try { sessionStorage.setItem(cacheKey, iso); } catch (_) {}
-            return;
-          }
-        }
-      } catch (_) {
-        // fall through to GitHub API
+        const res = await getLastUpdated(partsForCdnUrl(url));
+        if (!cancelled) setRes(res);
+      } catch (e) {
+        if (!cancelled) setRes(null);
       }
-
-      // 2) Fallback for jsDelivr GitHub sources → use GitHub commits API
-      const gh = parseJsDelivrGh(url);
-      if (gh) {
-        try {
-          const q = new URL(`https://api.github.com/repos/${gh.owner}/${gh.repo}/commits`);
-          q.searchParams.set('path', gh.path);
-          q.searchParams.set('per_page', '1');
-          if (gh.ref) q.searchParams.set('sha', gh.ref);
-          const headers = { Accept: 'application/vnd.github+json' };
-          try {
-            const token = (window && window.ENV && window.ENV.REACT_APP_GITHUB_TOKEN) || '';
-            if (token) headers.Authorization = `Bearer ${token}`;
-          } catch (_) {}
-          const res = await fetch(q.toString(), { headers, signal: controller.signal });
-          if (res.ok) {
-            const arr = await res.json();
-            let date = null;
-            if (Array.isArray(arr) && arr.length > 0) {
-              const c = arr[0]?.commit;
-              date = c?.committer?.date || c?.author?.date || null;
-            }
-            if (!cancelled) {
-              setLastMod(date);
-              if (date) try { sessionStorage.setItem(cacheKey, date); } catch (_) {}
-            }
-            return;
-          }
-        } catch (_) {
-          // ignore
-        }
-      }
-
-      // 3) Give up
-      if (!cancelled) setLastMod(null);
     }
 
     resolveLastModified();
@@ -126,7 +56,38 @@ function useLastModified(url) {
     };
   }, [url]);
 
-  return lastMod;
+  return res;
+}
+
+// Simple HEAD Last-Modified/Date for non-GitHub XYZ sources (e.g., Population tiles)
+function useHeadLastModified(url) {
+  const [iso, setIso] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!url) { setIso(null); return undefined; }
+    const controller = new AbortController();
+    const cacheKey = `lm:${url}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) { setIso(cached); return undefined; }
+    } catch (_) {}
+    (async () => {
+      try {
+        const res = await fetch(url, { method: 'HEAD', cache: 'no-cache', signal: controller.signal });
+        if (!res.ok) throw new Error(`HEAD ${res.status}`);
+        const lm = (res.headers.get && (res.headers.get('Last-Modified') || res.headers.get('last-modified') || res.headers.get('Date') || res.headers.get('date')));
+        const next = lm ? new Date(lm).toISOString() : null;
+        if (!cancelled) {
+          setIso(next);
+          try { if (next) sessionStorage.setItem(cacheKey, next); } catch (_) {}
+        }
+      } catch (_) {
+        if (!cancelled) setIso(null);
+      }
+    })();
+    return () => { cancelled = true; controller.abort(); };
+  }, [url]);
+  return iso;
 }
 
 function LegendContent({ active, onToggle }) {
@@ -152,9 +113,28 @@ function LegendContent({ active, onToggle }) {
     return popUrlTemplate.replace('{z}', '0').replace('{x}', '0').replace('{y}', '0');
   }, [popUrlTemplate]);
 
-  const faultsLM = useLastModified(shown.faults ? META.faults.lastUpdateHintUrl : null);
-  const platesLM = useLastModified(shown.plates ? META.plates.lastUpdateHintUrl : null);
-  const popLM = useLastModified(shown.population ? popHeadUrl : null);
+  const faultsLU = useLastUpdatedGitHubFirst(shown.faults ? META.faults.lastUpdateHintUrl : null);
+  const platesLU = useLastUpdatedGitHubFirst(shown.plates ? META.plates.lastUpdateHintUrl : null);
+  const popLM = useHeadLastModified(shown.population ? popHeadUrl : null);
+
+  const isInteractive = (el) => {
+    try {
+      return !!(el && el.closest && el.closest('a,button,input,select,textarea,[role="button"],[contenteditable="true"]'));
+    } catch (_) { return false; }
+  };
+  const makeToggleHandler = (key) => (e) => {
+    if (!onToggle) return;
+    if (e && (e.defaultPrevented || isInteractive(e.target))) return;
+    onToggle(key);
+  };
+  const makeKeyHandler = (key) => (e) => {
+    if (!onToggle) return;
+    if (isInteractive(e.target)) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onToggle(key);
+    }
+  };
 
   const anyShown = shown.faults || shown.plates || shown.population || shown.stations || shown.earthquakes;
   return (
@@ -169,8 +149,8 @@ function LegendContent({ active, onToggle }) {
           role="button"
           tabIndex={0}
           title="Click to toggle"
-          onClick={() => onToggle && onToggle('faults')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('faults')}
+          onClick={makeToggleHandler('faults')}
+          onKeyDown={makeKeyHandler('faults')}
         >
           <div className="legend-swatch">
             <span
@@ -187,7 +167,27 @@ function LegendContent({ active, onToggle }) {
           <div className="legend-meta">
             <div className="legend-label">{META.faults.label}</div>
             <div className="legend-source-line">{META.faults.source}</div>
-            <div className="legend-update-line">{faultsLM ? `Last update: ${new Date(faultsLM).toLocaleDateString()}` : 'Last update: —'}</div>
+            <div className="legend-update-line" title={faultsLU?.tooltip || ''} aria-label={faultsLU?.tooltip || ''}>
+              {faultsLU ? (
+                <>
+                  Last updated: {faultsLU.displayDate || 'Unknown'}
+                  {faultsLU.source === 'github' && faultsLU.commitUrl && faultsLU.commitSha ? (
+                    <>
+                      {' '}· <a
+                        href={faultsLU.commitUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
+                      >{faultsLU.commitSha}</a>
+                    </>
+                  ) : null}
+                  {faultsLU.source === 'cdn' ? ' (from CDN header)' : null}
+                </>
+              ) : 'Last updated: —'}
+            </div>
           </div>
         </div>
       )}
@@ -198,8 +198,8 @@ function LegendContent({ active, onToggle }) {
           role="button"
           tabIndex={0}
           title="Click to toggle"
-          onClick={() => onToggle && onToggle('plates')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('plates')}
+          onClick={makeToggleHandler('plates')}
+          onKeyDown={makeKeyHandler('plates')}
         >
           <div className="legend-swatch">
             <span
@@ -213,7 +213,27 @@ function LegendContent({ active, onToggle }) {
           <div className="legend-meta">
             <div className="legend-label">{META.plates.label}</div>
             <div className="legend-source-line">{META.plates.source}</div>
-            <div className="legend-update-line">{platesLM ? `Last update: ${new Date(platesLM).toLocaleDateString()}` : 'Last update: —'}</div>
+            <div className="legend-update-line" title={platesLU?.tooltip || ''} aria-label={platesLU?.tooltip || ''}>
+              {platesLU ? (
+                <>
+                  Last updated: {platesLU.displayDate || 'Unknown'}
+                  {platesLU.source === 'github' && platesLU.commitUrl && platesLU.commitSha ? (
+                    <>
+                      {' '}· <a
+                        href={platesLU.commitUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
+                      >{platesLU.commitSha}</a>
+                    </>
+                  ) : null}
+                  {platesLU.source === 'cdn' ? ' (from CDN header)' : null}
+                </>
+              ) : 'Last updated: —'}
+            </div>
           </div>
         </div>
       )}
@@ -224,8 +244,8 @@ function LegendContent({ active, onToggle }) {
           role="button"
           tabIndex={0}
           title="Click to toggle"
-          onClick={() => onToggle && onToggle('population')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('population')}
+          onClick={makeToggleHandler('population')}
+          onKeyDown={makeKeyHandler('population')}
         >
           <div className="legend-swatch">
             {/* simple 4-step ramp */}
@@ -250,8 +270,8 @@ function LegendContent({ active, onToggle }) {
           role="button"
           tabIndex={0}
           title="Click to toggle"
-          onClick={() => onToggle && onToggle('stations')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('stations')}
+          onClick={makeToggleHandler('stations')}
+          onKeyDown={makeKeyHandler('stations')}
         >
           <div className="legend-swatch">
             <span className="swatch-triangle" aria-hidden />
@@ -268,8 +288,8 @@ function LegendContent({ active, onToggle }) {
           role="button"
           tabIndex={0}
           title="Click to toggle"
-          onClick={() => onToggle && onToggle('earthquakes')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggle && onToggle('earthquakes')}
+          onClick={makeToggleHandler('earthquakes')}
+          onKeyDown={makeKeyHandler('earthquakes')}
         >
           <div className="legend-swatch">
             <span className="swatch-circle" aria-hidden />

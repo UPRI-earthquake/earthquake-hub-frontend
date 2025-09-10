@@ -4,6 +4,8 @@ import { BASEMAPS, OVERLAYS, styles } from '../config/mapLayers';
 import './mapLayers.css';
 import RemoteGeoJSONOverlay from './RemoteGeoJSONOverlay';
 import { useOverlayState } from './OverlayStateContext';
+import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
+import { DATASETS } from '../config/datasets';
 
 const { BaseLayer, Overlay } = LayersControl;
 
@@ -375,6 +377,78 @@ export default function MapLayersControl({ children }) {
       if (input) input.setAttribute('aria-label', text);
     });
 
+    // Add/update "Last updated" metadata below the label text for specific overlays
+    const targets = [
+      { key: DATASETS.FAULTS.key, label: DATASETS.FAULTS.label, meta: partsForCdnUrl(DATASETS.FAULTS.cdnUrl) },
+      { key: DATASETS.PLATES.key, label: DATASETS.PLATES.label, meta: partsForCdnUrl(DATASETS.PLATES.cdnUrl) },
+    ];
+
+    const renderMeta = (lab, result) => {
+      if (!lab) return;
+      let row = lab.querySelector('.overlay-meta');
+      if (!row) {
+        row = document.createElement('div');
+        row.className = 'overlay-meta';
+        row.setAttribute('role', 'status');
+        row.setAttribute('aria-live', 'polite');
+        lab.appendChild(row);
+      }
+      // Clear and rebuild contents for accessibility
+      row.innerHTML = '';
+      const text = document.createElement('span');
+      text.className = 'meta-text';
+      const src = result?.source || 'unknown';
+      const display = result?.displayDate || 'Unknown';
+      text.textContent = `Last updated: ${display}`;
+      if (result?.tooltip) text.title = result.tooltip;
+      text.setAttribute('aria-label', result?.tooltip || `Last updated: ${display}`);
+      row.appendChild(text);
+      if (src === 'github' && result?.commitUrl && result?.commitSha) {
+        const sep = document.createElement('span');
+        sep.textContent = ' · ';
+        row.appendChild(sep);
+        const a = document.createElement('a');
+        a.href = result.commitUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = result.commitSha;
+        a.setAttribute('aria-label', `View commit ${result.commitSha} on GitHub`);
+        row.appendChild(a);
+      } else if (src === 'cdn') {
+        const warn = document.createElement('span');
+        warn.className = 'meta-fallback';
+        warn.setAttribute('title', 'From CDN Last-Modified header; may not match repo history');
+        warn.setAttribute('aria-label', 'From CDN Last-Modified header');
+        warn.textContent = ' (from CDN header)';
+        row.appendChild(warn);
+      } else if (src === 'unknown') {
+        const warn = document.createElement('span');
+        warn.className = 'meta-fallback';
+        warn.setAttribute('title', 'Last updated is unknown; GitHub and CDN metadata unavailable');
+        warn.setAttribute('aria-label', 'Last updated unknown');
+        warn.textContent = ' ⚠ (unknown)';
+        row.appendChild(warn);
+      }
+    };
+
+    const updateAll = async () => {
+      for (const t of targets) {
+        const lab = overlays.querySelector(`label[data-overlay="${t.key}"]`);
+        if (!lab) continue;
+        try {
+          // Render a placeholder immediately for a11y
+          renderMeta(lab, null);
+          const res = await getLastUpdated(t.meta);
+          renderMeta(lab, res);
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('Last updated fetch failed for', t.key, e);
+          renderMeta(lab, { source: 'unknown' });
+        }
+      }
+    };
+    updateAll();
+
     return undefined;
   }, [map, bases]);
 
@@ -501,7 +575,7 @@ export default function MapLayersControl({ children }) {
       <Overlay name="Fault Lines">
         <RemoteGeoJSONOverlay
           ref={setFaultsRef}
-          url="https://cdn.jsdelivr.net/gh/GEMScienceTools/gem-global-active-faults@master/geojson/gem_active_faults_harmonized.geojson"
+          url={DATASETS.FAULTS.cdnUrl}
           style={styles.faults}
           // Philippines bbox (lon/lat): 116..127E, 4.5..21.5N
           filterBbox={[116, 4.5, 127, 21.5]}
@@ -514,7 +588,7 @@ export default function MapLayersControl({ children }) {
       <Overlay name="Plate Boundaries">
         <RemoteGeoJSONOverlay
           ref={setPlatesRef}
-          url="https://cdn.jsdelivr.net/gh/fraxen/tectonicplates@master/GeoJSON/PB2002_boundaries.json"
+          url={DATASETS.PLATES.cdnUrl}
           style={styles.plates}
           worldCopies
           lineOnly
