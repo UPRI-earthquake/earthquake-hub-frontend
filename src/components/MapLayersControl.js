@@ -82,9 +82,7 @@ export default function MapLayersControl({ children }) {
           const focusFirst = () => {
             const f = getFocusables();
             const first = f[0];
-            const title = list.querySelector('.layers-title');
-            if (title && title.focus) title.focus();
-            else if (first && first.focus) first.focus();
+            if (first && first.focus) first.focus();
           };
           const onKeyDown = (e) => {
             if (e.key !== 'Tab') return;
@@ -260,13 +258,14 @@ export default function MapLayersControl({ children }) {
       header.className = 'layers-header';
       const title = document.createElement('div');
       title.className = 'layers-title';
-      title.textContent = 'Map layers';
+      title.textContent = '';
       const tools = document.createElement('div');
       tools.className = 'layers-tools';
       const closeBtn = document.createElement('button');
       closeBtn.type = 'button';
       closeBtn.className = 'layers-close';
-      closeBtn.setAttribute('aria-label', 'Close');
+      closeBtn.setAttribute('aria-label', 'Close layers panel');
+      closeBtn.setAttribute('data-close', 'layers');
       closeBtn.textContent = '×';
       tools.appendChild(closeBtn);
       header.appendChild(title);
@@ -281,8 +280,7 @@ export default function MapLayersControl({ children }) {
         if (btn2) btn2.setAttribute('aria-expanded', 'false');
       }, { passive: false });
 
-      // Make header focusable target
-      title.setAttribute('tabindex', '-1');
+      // No focusable title; keep only the close button visible
     }
 
     // Wrap base+overlays inside a dedicated scroll body so header never scrolls
@@ -306,10 +304,10 @@ export default function MapLayersControl({ children }) {
       return `url("${url}")`;
     };
     const baseMap = {
-      'OSM Standard': { key: 'osm', url: bases.osm.url },
-      'CartoDB Positron': { key: 'positron', url: bases.positron.url },
-      'CartoDB DarkMatter': { key: 'dark', url: bases.dark.url },
-      'Esri WorldImagery': { key: 'esri', url: bases.esri.url },
+      'Standard Map': { key: 'osm', url: bases.osm.url },
+      'Light Map': { key: 'positron', url: bases.positron.url },
+      'Dark Map': { key: 'dark', url: bases.dark.url },
+      'Satellite View': { key: 'esri', url: bases.esri.url },
     };
     base.querySelectorAll('label').forEach((lab) => {
       const text = (lab.textContent || '').trim();
@@ -366,19 +364,19 @@ export default function MapLayersControl({ children }) {
   return (
     <LayersControl position="topright" collapsed>
       {/* Basemaps */}
-      <BaseLayer name="OSM Standard">
+      <BaseLayer name="Standard Map">
         <TileLayer url={bases.osm.url} {...bases.osm.options} />
       </BaseLayer>
 
-      <BaseLayer checked name="CartoDB Positron">
+      <BaseLayer checked name="Light Map">
         <TileLayer url={bases.positron.url} {...bases.positron.options} />
       </BaseLayer>
 
-      <BaseLayer name="CartoDB DarkMatter">
+      <BaseLayer name="Dark Map">
         <TileLayer url={bases.dark.url} {...bases.dark.options} />
       </BaseLayer>
 
-      <BaseLayer name="Esri WorldImagery">
+      <BaseLayer name="Satellite View">
         <TileLayer url={bases.esri.url} {...bases.esri.options} />
       </BaseLayer>
 

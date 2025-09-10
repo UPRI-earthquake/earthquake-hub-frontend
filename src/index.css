@@ -30,5 +30,44 @@ code {
 
 /* Give bottom-right controls breathing room above attribution */
 @media (min-width: 768px) {
-  .leaflet-bottom.leaflet-right { margin-bottom: 56px; }
+  .leaflet-bottom.leaflet-right { margin-bottom: 50px; }
+}
+
+/* Context-aware styling for Zoom buttons (matches Layers/Legend themes) */
+.leaflet-container .leaflet-control-zoom {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  overflow: hidden; /* round inner corners */
+  border: 1px solid rgba(0,0,0,0.25);
+}
+.leaflet-container .leaflet-control-zoom a {
+  width: 40px;
+  height: 40px;
+  line-height: 38px;
+  background: #ffffff;
+  color: #111827; /* gray-900 */
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+}
+.leaflet-container .leaflet-control-zoom a:last-child { border-bottom: none; }
+.leaflet-container .leaflet-control-zoom a:hover { background: rgba(0,0,0,0.04); }
+.leaflet-container .leaflet-control-zoom a.leaflet-disabled { opacity: 0.5; cursor: default; }
+
+/* Dark/Imagery themes */
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom {
+  border-color: rgba(255,255,255,0.25);
+}
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom a,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a {
+  background: #1f2937; /* gray-800 */
+  color: #f3f4f6;       /* gray-100 */
+  border-bottom-color: rgba(255,255,255,0.12);
+}
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom a:hover,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a:hover {
+  background: #111827; /* gray-900 */
+}
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom a.leaflet-disabled,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a.leaflet-disabled {
+  opacity: 0.5;
 }

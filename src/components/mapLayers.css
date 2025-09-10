@@ -24,11 +24,11 @@
   --panel-border: rgba(255, 255, 255, 0.12);
 }
 /* List body */
-.leaflet-control-layers-list { padding: 0; overflow: visible; }
+.leaflet-control-layers-list { position: relative; padding: 0; overflow: visible; }
 .layers-body { padding: 8px 8px 8px 8px; max-height: 40vh; overflow: auto; scrollbar-gutter: stable; }
 /* Headings inside the control */
 .leaflet-control-layers-base::before {
-  content: 'Base maps';
+  content: 'Map Views';
   display: block;
   font-weight: 600;
   margin: 8px 0 6px 2px;
@@ -84,15 +84,16 @@
 .layers-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 12px 10px 12px;
-  position: sticky;
-  top: 0;
-  background: inherit; /* always match parent panel background */
-  z-index: 1;
+  justify-content: flex-end; /* no title, keep tools at right */
+  padding: 0; /* no vertical space reserved */
+  position: absolute; /* float over the panel */
+  top: 8px;
+  right: 8px;
+  background: transparent; /* don't paint a bar */
+  z-index: 2;
   pointer-events: auto;
 }
-.layers-title { font-weight: 600; font-size: 14px; }
+.layers-title { display: none; }
 .layers-tools { display: inline-flex; gap: 8px; align-items: center; }
 .layers-tools button {
   height: 30px;
@@ -207,8 +208,8 @@
   }
   /* Constrain body so it doesn't collide visually with the legend */
   .layers-body { max-height: 30vh; padding-bottom: 16px; }
-  /* Normal header (no draggable handle) */
-  .layers-header { text-align: left; }
+  /* Floating close stays in top-right */
+  .layers-header { right: 8px; top: 8px; }
   .layers-header::before { display: none; }
   .leaflet-control-layers label {
     min-height: 44px; /* larger hit area */
@@ -217,8 +218,8 @@
 
 /* Responsive panel width */
 @media (min-width: 1200px) {
-  .leaflet-control-layers.leaflet-control-layers-expanded { width: 360px; }
+  .leaflet-control-layers.leaflet-control-layers-expanded { min-width: 120px; }
 }
 @media (max-width: 900px) {
-  .leaflet-control-layers.leaflet-control-layers-expanded { width: 250px; min-width: 230px; }
+  .leaflet-control-layers.leaflet-control-layers-expanded { min-width: 200px; }
 }
