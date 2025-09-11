@@ -7,14 +7,15 @@ import ReactDOMServer from 'react-dom/server';
 import styles from "./EventMarker.module.css";
 import {ReactComponent as Circle} from './circle.svg';
 import {ReactComponent as CircleWithBorder} from './circleWithBorder.svg';
+import { eqSizePx } from '../config/mapStyles';
 
 function toRadius(magnitude) {
-  // 0th index is for mag<1, then mag=1+, and so on up to 33.32 for mag>8
-  const radiiPixels = [4, 4, 5, 6, 7, 8.5, 11, 13.5, 16]
-  return radiiPixels[magnitude < 8 ? Math.floor(magnitude) : 8]
+  // Convert desired diameter into a radius; DivIcon uses iconSize width/height
+  const d = eqSizePx(magnitude);
+  return d / 2;
 }
 
-const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification}) => {
+const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modification}) => {
 
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
@@ -50,18 +51,49 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
     }
   }, [status, last_modification]);
 
-  const divCircle = new DivIcon(animate 
+  // Depth ramp toggle listener
+  const [depthRamp, setDepthRamp] = useState(() => {
+    try { return sessionStorage.getItem('eqDepthRamp') === '1'; } catch (_) { return false; }
+  });
+  useEffect(() => {
+    const onToggle = (e) => setDepthRamp(!!(e && e.detail && e.detail.enabled));
+    window.addEventListener('eqDepthRamp:toggle', onToggle);
+    return () => window.removeEventListener('eqDepthRamp:toggle', onToggle);
+  }, []);
+
+  const depthColor = (() => {
+    const d = depthKm == null ? null : Number(depthKm);
+    if (d == null || Number.isNaN(d)) return null;
+    if (d <= 70) return '#FF6B6B';
+    if (d <= 300) return '#F4A261';
+    return '#2A9D8F';
+  })();
+
+  const fillColor = depthRamp && depthColor ? depthColor : undefined; // undefined → use CSS var theme color
+
+  const divCircle = new DivIcon(animate
     ? {
-        className: styles.radiate,
-        html: ReactDOMServer.renderToString(<CircleWithBorder />),
-        iconSize: [8*toRadius(mag),8*toRadius(mag)]
+        // Keep container class minimal to avoid overriding Leaflet's inline transform.
+        className: '',
+        html: ReactDOMServer.renderToString(
+          <CircleWithBorder
+            className={styles.radiate}
+            style={fillColor ? { fill: fillColor } : undefined}
+          />
+        ),
+        iconSize: [8 * toRadius(mag), 8 * toRadius(mag)],
       }
     : {
-        className: styles.default,
-        html: ReactDOMServer.renderToString(<Circle />),
-        iconSize: [2*toRadius(mag),2*toRadius(mag)]
+        className: '',
+        html: ReactDOMServer.renderToString(
+          <Circle
+            className={styles.default}
+            style={fillColor ? { fill: fillColor } : undefined}
+          />
+        ),
+        iconSize: [2 * toRadius(mag), 2 * toRadius(mag)],
       }
-  )
+  );
 
 
   return(
@@ -78,6 +110,9 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
             {lat.toFixed(3)}&#176;N&nbsp;
             {lng.toFixed(3)}&#176;E
           </p>
+          {depthKm != null && !Number.isNaN(Number(depthKm)) && (
+            <p>Depth {Number(depthKm).toFixed(0)} km</p>
+          )}
           <p style={{color:'gray'}}>
             Last updated {moment(time).fromNow()}
           </p>

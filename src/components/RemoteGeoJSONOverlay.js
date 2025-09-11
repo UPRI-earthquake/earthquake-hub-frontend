@@ -68,6 +68,7 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
     worldCopies = false,
     interactive = false,
     onEachFeature,
+    pane,
   },
   ref
 ) {
@@ -140,19 +141,30 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
   );
 
   if (!data) return null;
-  const mergedStyle = {
-    ...style,
-    fill: false,
-    fillOpacity: 0,
-    // Allow callers to opt-in to interaction for hover tooltips, etc.
-    interactive: Boolean(interactive),
-    className: 'remote-geojson-layer',
-  };
+  const isFn = typeof style === 'function';
+  const mergedStyle = isFn
+    ? (feat) => ({
+        ...(style ? style(feat) : {}),
+        fill: false,
+        fillOpacity: 0,
+        interactive: Boolean(interactive),
+        className: 'remote-geojson-layer',
+      })
+    : {
+        ...style,
+        fill: false,
+        fillOpacity: 0,
+        // Allow callers to opt-in to interaction for hover tooltips, etc.
+        interactive: Boolean(interactive),
+        className: 'remote-geojson-layer',
+      };
   const element = (
     <GeoJSON
       ref={gjRef}
       data={data}
       style={mergedStyle}
+      interactive={Boolean(interactive)}
+      pane={pane}
       // Pass through optional feature hook for tooltips/highlights
       onEachFeature={onEachFeature}
     />

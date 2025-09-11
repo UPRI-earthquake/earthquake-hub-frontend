@@ -1,11 +1,12 @@
 .static {
-    fill: #22c55e; /* green-500 on light */
-    stroke: #0f172a; /* slate-900 */
+    fill: var(--st-fill, #2E8B57);
+    stroke: var(--st-halo, #FFFFFF);
     stroke-width: 2px;
+    opacity: 0.9;
 }
 
 .dynamic {
-    fill: #22c55e;
+    fill: var(--st-fill, #2E8B57);
     stroke: #e86a73;
     animation-name: radiate;
     animation-duration: 1.5s;
@@ -77,14 +78,7 @@
     border-radius: 10px;
 }
 
-/* Theme-aware fill/stroke for stations */
-.leaflet-container[data-basemap-theme="dark"] .static,
-.leaflet-container[data-basemap-theme="imagery"] .static,
-.leaflet-container[data-basemap-theme="dark"] .dynamic,
-.leaflet-container[data-basemap-theme="imagery"] .dynamic {
-    fill: #86efac; /* green-300 */
-    stroke: #ffffff; /* white ring on dark/imagery */
-}
+/* Theme-aware fill/stroke handled by CSS variables from MapLayersControl */
 
 /* Lightly reduce visual weight at low zoom */
 .leaflet-container[data-zoom-lte4="1"] .static,

@@ -126,44 +126,7 @@
 .leaflet-container[data-basemap-theme="dark"] .leaflet-control-layers-base label.is-basemap:hover { background: rgba(255,255,255,0.06); }
 
 /* Overlay swatches */
-.leaflet-control-layers-overlays label.is-overlay {
-  position: relative;
-  grid-template-columns: 20px 30px 1fr; /* input | swatch | text */
-}
-.leaflet-control-layers-overlays label.is-overlay::before {
-  content: '';
-  width: 30px;
-  height: 12px;
-  border-radius: 2px;
-  margin-right: 2px;
-}
-.leaflet-control-layers-overlays label[data-overlay="earthquakes"]::before {
-  width: 12px; height: 12px; border-radius: 50%; background: #e53e3e; box-shadow: 0 0 0 2px #e5e7eb;
-}
-.leaflet-container[data-basemap-theme="dark"] .leaflet-control-layers-overlays label[data-overlay="earthquakes"]::before,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-layers-overlays label[data-overlay="earthquakes"]::before {
-  box-shadow: 0 0 0 2px #ffffff;
-}
-.leaflet-control-layers-overlays label[data-overlay="stations"]::before {
-  content: '';
-  width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #22c55e;
-}
-.leaflet-container[data-basemap-theme="dark"] .leaflet-control-layers-overlays label[data-overlay="stations"]::before,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-layers-overlays label[data-overlay="stations"]::before {
-  border-bottom-color: #86efac;
-  filter: drop-shadow(0 0 0 #fff);
-}
-.leaflet-control-layers-overlays label[data-overlay="faults"]::before {
-  width: 30px; height: 0; border-top: 3px solid #d94c3d;
-}
-.leaflet-control-layers-overlays label[data-overlay="plates"]::before {
-  width: 30px; height: 0; border-top: 3px dashed #0891b2;
-}
-.leaflet-control-layers-overlays label[data-overlay="population"]::before {
-  content: '';
-  display: inline-grid; grid-auto-flow: column; gap: 2px; width: 30px; height: 10px;
-  background: linear-gradient(90deg, #f7fbff, #c6dbef, #6baed6, #2171b5);
-}
+/* No overlay swatches in Layers panel – keep it clean (legend shows symbology) */
 
 /* Overlay meta row (Last updated) */
 .overlay-meta {
@@ -221,13 +184,13 @@
     max-width: 300px;
   }
   /* Constrain body so it doesn't collide visually with the legend */
-  .layers-body { max-height: 30vh; padding-bottom: 16px; }
+  .layers-body { max-height: 35vh; padding-bottom: 16px; }
   /* Floating close stays in top-right */
   .layers-header { right: 8px; top: 8px; }
   .layers-header::before { display: none; }
-  .leaflet-control-layers label {
-    min-height: 44px; /* larger hit area */
-  }
+  /* .leaflet-control-layers label { */
+    /* min-height: 44px; larger hit area */
+  /* } */
 }
 
 /* Responsive panel width */
@@ -236,4 +199,21 @@
 }
 @media (max-width: 900px) {
   .leaflet-control-layers.leaflet-control-layers-expanded { min-width: 200px; }
+}
+
+/* Pointer events tuning: limit hit overlay to stroke only */
+/* Default pointer events (visiblePainted) allow easier hover; no forcing stroke-only */
+
+/* Hover glow for line features (improves readability on dark/imagery) */
+.remote-geojson-layer.hover-glow { filter: drop-shadow(0 0 2px rgba(17,24,39,0.6)); }
+.leaflet-container[data-basemap-theme="dark"] .remote-geojson-layer.hover-glow,
+.leaflet-container[data-basemap-theme="imagery"] .remote-geojson-layer.hover-glow {
+  filter: drop-shadow(0 0 3px rgba(255,255,255,0.85));
+}
+
+/* Stronger glow when feature is explicitly selected (tap/click) */
+.remote-geojson-layer.selected-glow { filter: drop-shadow(0 0 3px rgba(17,24,39,0.75)); }
+.leaflet-container[data-basemap-theme="dark"] .remote-geojson-layer.selected-glow,
+.leaflet-container[data-basemap-theme="imagery"] .remote-geojson-layer.selected-glow {
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.95));
 }

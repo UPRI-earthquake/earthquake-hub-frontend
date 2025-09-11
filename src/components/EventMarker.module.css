@@ -1,10 +1,11 @@
 .default {
-    fill: #e53e3e; /* red-600 */
-    stroke: #e5e7eb; /* gray-200 as default ring on light */
-    stroke-width: 1px;
+    fill: var(--eq-fill, #E53935);
+    stroke: var(--eq-halo, #FFFFFF);
+    stroke-width: var(--eq-halo-w, 1.25px);
+    opacity: var(--eq-opacity, 0.65);
 }
 .radiate {
-    fill: #e53e3e;
+    fill: var(--eq-fill, #E53935);
     stroke: #e86a73;
     animation-name: radiate-outward;
     animation-duration: 1.5s;
@@ -23,17 +24,22 @@
     }
 }
 
-/* Theme-aware ring for dark/imagery to keep edge readable */
-.leaflet-container[data-basemap-theme="dark"] .default,
-.leaflet-container[data-basemap-theme="imagery"] .default {
-    stroke: #ffffff; /* 2px white ring on dark/imagery */
-    stroke-width: 2px;
-}
+/* Theme-aware ring provided by CSS variables applied on container */
 
 /* Reduce clutter at low zoom */
-.leaflet-container[data-zoom-lte4="1"] .default,
-.leaflet-container[data-zoom-lte4="1"] .radiate {
-    transform: scale(0.75);
+.leaflet-container :global(.leaflet-marker-icon) { will-change: transform; overflow: visible; }
+:global(.leaflet-container[data-zoom-lte4="1"]) { --eq-scale: 0.75; }
+
+/* While hovering a fault, dim EQ points for context */
+:global(.leaflet-container.fault-hovering) .default,
+:global(.leaflet-container.fault-hovering) .radiate {
+    opacity: 0.5;
+}
+
+/* Apply zoom-based scale directly to marker container classes */
+.default,
+.radiate {
+    transform: scale(var(--eq-scale, 1));
     transform-origin: center center;
 }
 

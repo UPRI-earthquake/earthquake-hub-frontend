@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import L from 'leaflet';
 import { useMap } from 'react-leaflet';
 import { useOverlayState } from './OverlayStateContext';
-import { styles } from '../config/mapLayers';
+import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
 import { DATASETS } from '../config/datasets';
 import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
 import './legend.css';
@@ -90,7 +90,53 @@ function useHeadLastModified(url) {
   return iso;
 }
 
-function LegendContent({ active, onToggle }) {
+// Depth ramp chips only (no toggle here)
+function DepthRampSub() {
+  const [enabled, setEnabled] = useState(() => {
+    try { return sessionStorage.getItem('eqDepthRamp') === '1'; } catch (_) { return false; }
+  });
+  useEffect(() => {
+    const on = (e) => setEnabled(!!(e && e.detail && e.detail.enabled));
+    window.addEventListener('eqDepthRamp:toggle', on);
+    return () => window.removeEventListener('eqDepthRamp:toggle', on);
+  }, []);
+  if (!enabled) return null;
+  return (
+    <div className="legend-subrow" onClick={(e) => e.stopPropagation()}>
+      <span className="legend-chip"><i style={{ background: '#FF6B6B' }} /> 0–70 km</span>
+      <span className="legend-chip"><i style={{ background: '#F4A261' }} /> 70–300 km</span>
+      <span className="legend-chip"><i style={{ background: '#2A9D8F' }} /> 300+ km</span>
+    </div>
+  );
+}
+
+// Inline-only toggle button (used next to Earthquakes label)
+function DepthRampToggleInline() {
+  const [enabled, setEnabled] = useState(() => {
+    try { return sessionStorage.getItem('eqDepthRamp') === '1'; } catch (_) { return false; }
+  });
+  useEffect(() => {
+    const on = (e) => setEnabled(!!(e && e.detail && e.detail.enabled));
+    window.addEventListener('eqDepthRamp:toggle', on);
+    return () => window.removeEventListener('eqDepthRamp:toggle', on);
+  }, []);
+  const toggle = (e) => {
+    e?.stopPropagation?.();
+    const next = !enabled;
+    setEnabled(next);
+    try {
+      sessionStorage.setItem('eqDepthRamp', next ? '1' : '0');
+      window.dispatchEvent(new CustomEvent('eqDepthRamp:toggle', { detail: { enabled: next } }));
+    } catch (_) {}
+  };
+  return (
+    <button type="button" className="legend-toggle-inline" onClick={toggle} aria-pressed={enabled} aria-label="Toggle depth color ramp">
+      Depth ramp: {enabled ? 'On' : 'Off'}
+    </button>
+  );
+}
+
+function LegendContent({ active, tokens }) {
   // Build a small map of active overlays we support
   const shown = useMemo(() => ({
     faults: active.has('faults'),
@@ -117,26 +163,16 @@ function LegendContent({ active, onToggle }) {
   const platesLU = useLastUpdatedGitHubFirst(shown.plates ? META.plates.lastUpdateHintUrl : null);
   const popLM = useHeadLastModified(shown.population ? popHeadUrl : null);
 
-  const isInteractive = (el) => {
-    try {
-      return !!(el && el.closest && el.closest('a,button,input,select,textarea,[role="button"],[contenteditable="true"]'));
-    } catch (_) { return false; }
-  };
-  const makeToggleHandler = (key) => (e) => {
-    if (!onToggle) return;
-    if (e && (e.defaultPrevented || isInteractive(e.target))) return;
-    onToggle(key);
-  };
-  const makeKeyHandler = (key) => (e) => {
-    if (!onToggle) return;
-    if (isInteractive(e.target)) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onToggle(key);
-    }
-  };
+  // Legend is display-only; no overlay toggling here for clarity
 
   const anyShown = shown.faults || shown.plates || shown.population || shown.stations || shown.earthquakes;
+  const hints = {
+    earthquakes: 'Past 30 days; size ∝ magnitude',
+    faults: 'Mapped active faults (GEM)',
+    plates: 'PB2002 (Bird, 2003)',
+    stations: 'UPRI sensor sites',
+  };
+
   return (
     <div className="map-legend" role="region" aria-label="Map legend">
       {!anyShown && (
@@ -146,21 +182,16 @@ function LegendContent({ active, onToggle }) {
         <div
           className="legend-item"
           data-key="faults"
-          role="button"
-          tabIndex={0}
-          title="Click to toggle"
-          onClick={makeToggleHandler('faults')}
-          onKeyDown={makeKeyHandler('faults')}
+          title={hints.faults}
         >
           <div className="legend-swatch">
             <span
               className="swatch-line"
               style={{
-                background: styles.faults.color,
-                opacity: styles.faults.opacity,
+                background: tokens.faults.color,
+                opacity: tokens.faults.opacity,
                 height: 0,
-                // Make a bit thicker than on map for readability
-                borderTop: `${Math.max(2, (styles.faults.weight || 1) * 2)}px ${(styles.faults.dashArray ? 'dashed' : 'solid')} ${styles.faults.color}`,
+                borderTop: `${Math.max(2, (tokens.faults.weight || 1) * 2)}px ${(tokens.faults.dashArray ? 'dashed' : 'solid')} ${tokens.faults.color}`,
               }}
             />
           </div>
@@ -195,18 +226,14 @@ function LegendContent({ active, onToggle }) {
         <div
           className="legend-item"
           data-key="plates"
-          role="button"
-          tabIndex={0}
-          title="Click to toggle"
-          onClick={makeToggleHandler('plates')}
-          onKeyDown={makeKeyHandler('plates')}
+          title={hints.plates}
         >
           <div className="legend-swatch">
             <span
               className="swatch-line"
               style={{
-                borderTop: `${Math.max(2, (styles.plates.weight || 1) * 2)}px ${(styles.plates.dashArray ? 'dashed' : 'solid')} ${styles.plates.color}`,
-                opacity: styles.plates.opacity,
+                borderTop: `${Math.max(2, (tokens.plates.weight || 1) * 2)}px ${(tokens.plates.dashArray ? 'dashed' : 'solid')} ${tokens.plates.color}`,
+                opacity: tokens.plates.opacity,
               }}
             />
           </div>
@@ -241,11 +268,7 @@ function LegendContent({ active, onToggle }) {
         <div
           className="legend-item"
           data-key="population"
-          role="button"
-          tabIndex={0}
-          title="Click to toggle"
-          onClick={makeToggleHandler('population')}
-          onKeyDown={makeKeyHandler('population')}
+          title="Population density"
         >
           <div className="legend-swatch">
             {/* simple 4-step ramp */}
@@ -267,14 +290,10 @@ function LegendContent({ active, onToggle }) {
         <div
           className="legend-item"
           data-key="stations"
-          role="button"
-          tabIndex={0}
-          title="Click to toggle"
-          onClick={makeToggleHandler('stations')}
-          onKeyDown={makeKeyHandler('stations')}
+          title={hints.stations}
         >
           <div className="legend-swatch">
-            <span className="swatch-triangle" aria-hidden />
+            <span className="swatch-triangle" aria-hidden style={{ borderBottomColor: tokens.stations.fill }} />
           </div>
           <div className="legend-meta">
             <div className="legend-label">Stations</div>
@@ -285,17 +304,26 @@ function LegendContent({ active, onToggle }) {
         <div
           className="legend-item"
           data-key="earthquakes"
-          role="button"
-          tabIndex={0}
-          title="Click to toggle"
-          onClick={makeToggleHandler('earthquakes')}
-          onKeyDown={makeKeyHandler('earthquakes')}
+          title={hints.earthquakes}
         >
           <div className="legend-swatch">
-            <span className="swatch-circle" aria-hidden />
+            <span
+              className="swatch-circle"
+              aria-hidden
+              style={{
+                background: tokens.eq.fill,
+                borderColor: tokens.eq.halo,
+                borderWidth: `${active.has('earthquakes') && !active.has('faults') ? tokens.eq.haloWidthOnlyEQ : tokens.eq.haloWidth}px`,
+                opacity: tokens.eq.fillOpacity,
+              }}
+            />
           </div>
           <div className="legend-meta">
-            <div className="legend-label">Earthquakes</div>
+            <div className="legend-label-with-toggle">
+              <div className="legend-label">Earthquakes</div>
+              <DepthRampToggleInline />
+            </div>
+            <DepthRampSub />
           </div>
         </div>
       )}
@@ -306,7 +334,7 @@ function LegendContent({ active, onToggle }) {
 
 export default function LegendControl({ position = 'bottomright' }) {
   const map = useMap();
-  const { activeIds, toggleOverlay } = useOverlayState();
+  const { activeIds } = useOverlayState();
   const containerRef = useRef(null);
   const [, forceRender] = useState(0); // trigger a re-render after control attaches
   const [collapsed, setCollapsed] = useState(() => {
@@ -434,7 +462,16 @@ export default function LegendControl({ position = 'bottomright' }) {
             </div>
           </div>
           <div className="legend-body">
-            <LegendContent active={activeIds} onToggle={toggleOverlay} />
+            <LegendContent
+              active={activeIds}
+              tokens={buildThemeTokens({
+                theme: themeFromMapContainer(map.getContainer()),
+                // Exclude the very-close 5x scaling in legend swatches
+                // so line symbols remain consistent regardless of map zoom.
+                zoom: Math.min(zoomFromMap(map), 13.99),
+                overlays: activeIds,
+              })}
+            />
           </div>
         </>
       )}

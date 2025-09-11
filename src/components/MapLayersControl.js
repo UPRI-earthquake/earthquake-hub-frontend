@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { LayersControl, TileLayer, useMap } from 'react-leaflet';
-import { BASEMAPS, OVERLAYS, styles } from '../config/mapLayers';
+import { BASEMAPS, OVERLAYS } from '../config/mapLayers';
+import { buildThemeTokens, faultsStyle, platesStyle, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
 import './mapLayers.css';
 import RemoteGeoJSONOverlay from './RemoteGeoJSONOverlay';
 import { useOverlayState } from './OverlayStateContext';
-import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
+// Removed metadata injection in Layers panel; keep lastUpdated utils for Legend only
 import { DATASETS } from '../config/datasets';
 
 const { BaseLayer, Overlay } = LayersControl;
 
 export default function MapLayersControl({ children }) {
   const map = useMap();
-  const { registerLayer } = useOverlayState();
+  const { registerLayer, activeIds } = useOverlayState();
   // Memoize basemap provider props so layers are not recreated
   const bases = useMemo(
     () => ({
@@ -260,6 +261,42 @@ export default function MapLayersControl({ children }) {
     return () => map.off('zoomend', setZoomAttr);
   }, [map]);
 
+  // Reflect active overlays as data-attrs for CSS-based tweaks
+  useEffect(() => {
+    if (!map) return undefined;
+    const el = map.getContainer();
+    try {
+      el.setAttribute('data-ovl-earthquakes', activeIds.has('earthquakes') ? '1' : '0');
+      el.setAttribute('data-ovl-faults', activeIds.has('faults') ? '1' : '0');
+      el.setAttribute('data-ovl-plates', activeIds.has('plates') ? '1' : '0');
+      el.setAttribute('data-ovl-stations', activeIds.has('stations') ? '1' : '0');
+    } catch (_) {}
+    return undefined;
+  }, [map, activeIds]);
+
+  // Theme tokens → CSS variables on map container (used by marker CSS)
+  useEffect(() => {
+    if (!map) return undefined;
+    const el = map.getContainer();
+    const apply = () => {
+      const theme = themeFromMapContainer(el);
+      const zoom = zoomFromMap(map);
+      const toks = buildThemeTokens({ theme, zoom, overlays: activeIds });
+      el.style.setProperty('--eq-fill', toks.eq.fill);
+      el.style.setProperty('--eq-halo', toks.eq.halo);
+      const haloW = (activeIds.has('earthquakes') && !activeIds.has('faults')) ? toks.eq.haloWidthOnlyEQ : toks.eq.haloWidth;
+      el.style.setProperty('--eq-halo-w', `${haloW}px`);
+      el.style.setProperty('--eq-opacity', String(toks.eq.fillOpacity));
+      el.style.setProperty('--eq-scale', String(toks.eq.scale || 1));
+      el.style.setProperty('--st-fill', toks.stations.fill);
+      el.style.setProperty('--st-halo', toks.stations.halo);
+    };
+    apply();
+    map.on('zoomend', apply);
+    map.on('baselayerchange', apply);
+    return () => { map.off('zoomend', apply); map.off('baselayerchange', apply); };
+  }, [map, activeIds]);
+
   // Enhance LayersControl UI: header, thumbnails, overlay swatches
   useEffect(() => {
     if (!map) return undefined;
@@ -359,95 +396,36 @@ export default function MapLayersControl({ children }) {
       }
     });
 
-    // Annotate overlay labels for swatches
-    const overlayMap = {
-      'Fault Lines': 'faults',
-      'Plate Boundaries': 'plates',
-      'Population Density': 'population',
-      'Earthquakes': 'earthquakes',
-      'Stations': 'stations',
-    };
+    // Basic a11y labels on overlay rows, no symbology or metadata in this panel
     overlays.querySelectorAll('label').forEach((lab) => {
       const text = (lab.textContent || '').trim();
-      const k = overlayMap[text];
-      if (!k) return;
-      lab.dataset.overlay = k;
-      lab.classList.add('is-overlay');
       const input = lab.querySelector('input[type="checkbox"]');
       if (input) input.setAttribute('aria-label', text);
     });
 
-    // Add/update "Last updated" metadata below the label text for specific overlays
-    const targets = [
-      { key: DATASETS.FAULTS.key, label: DATASETS.FAULTS.label, meta: partsForCdnUrl(DATASETS.FAULTS.cdnUrl) },
-      { key: DATASETS.PLATES.key, label: DATASETS.PLATES.label, meta: partsForCdnUrl(DATASETS.PLATES.cdnUrl) },
-    ];
-
-    const renderMeta = (lab, result) => {
-      if (!lab) return;
-      let row = lab.querySelector('.overlay-meta');
-      if (!row) {
-        row = document.createElement('div');
-        row.className = 'overlay-meta';
-        row.setAttribute('role', 'status');
-        row.setAttribute('aria-live', 'polite');
-        lab.appendChild(row);
-      }
-      // Clear and rebuild contents for accessibility
-      row.innerHTML = '';
-      const text = document.createElement('span');
-      text.className = 'meta-text';
-      const src = result?.source || 'unknown';
-      const display = result?.displayDate || 'Unknown';
-      text.textContent = `Last updated: ${display}`;
-      if (result?.tooltip) text.title = result.tooltip;
-      text.setAttribute('aria-label', result?.tooltip || `Last updated: ${display}`);
-      row.appendChild(text);
-      if (src === 'github' && result?.commitUrl && result?.commitSha) {
-        const sep = document.createElement('span');
-        sep.textContent = ' · ';
-        row.appendChild(sep);
-        const a = document.createElement('a');
-        a.href = result.commitUrl;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.textContent = result.commitSha;
-        a.setAttribute('aria-label', `View commit ${result.commitSha} on GitHub`);
-        row.appendChild(a);
-      } else if (src === 'cdn') {
-        const warn = document.createElement('span');
-        warn.className = 'meta-fallback';
-        warn.setAttribute('title', 'From CDN Last-Modified header; may not match repo history');
-        warn.setAttribute('aria-label', 'From CDN Last-Modified header');
-        warn.textContent = ' (from CDN header)';
-        row.appendChild(warn);
-      } else if (src === 'unknown') {
-        const warn = document.createElement('span');
-        warn.className = 'meta-fallback';
-        warn.setAttribute('title', 'Last updated is unknown; GitHub and CDN metadata unavailable');
-        warn.setAttribute('aria-label', 'Last updated unknown');
-        warn.textContent = ' ⚠ (unknown)';
-        row.appendChild(warn);
-      }
+    // Layer overlay tooltips/ARIA
+    const overlayHints = {
+      earthquakes: 'Past 30 days; size ∝ magnitude',
+      faults: 'Mapped active faults (GEM)',
+      plates: 'PB2002 (Bird, 2003)',
+      stations: 'UPRI sensor sites',
+      population: 'Population density (configured source)',
     };
-
-    const updateAll = async () => {
-      for (const t of targets) {
-        const lab = overlays.querySelector(`label[data-overlay="${t.key}"]`);
-        if (!lab) continue;
-        try {
-          // Render a placeholder immediately for a11y
-          renderMeta(lab, null);
-          const res = await getLastUpdated(t.meta);
-          renderMeta(lab, res);
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error('Last updated fetch failed for', t.key, e);
-          renderMeta(lab, { source: 'unknown' });
+    const applyOverlayHints = () => {
+      const rows = ctrl.querySelectorAll('.leaflet-control-layers-overlays label');
+      rows.forEach((row) => {
+        const id = row && row.getAttribute('data-overlay');
+        if (!id) return;
+        const hint = overlayHints[id];
+        if (hint) {
+          row.setAttribute('title', hint);
+          row.setAttribute('aria-label', `${row.textContent || id} – ${hint}`);
         }
-      }
+      });
     };
-    updateAll();
+    applyOverlayHints();
+
+    applyOverlayHints();
 
     return undefined;
   }, [map, bases]);
@@ -527,8 +505,51 @@ export default function MapLayersControl({ children }) {
     `;
   }, [escapeHtml]);
 
-  const makeOnEachWith = useCallback((baseStyle, buildTooltipFn) => {
-    const baseInteractiveStyle = { ...baseStyle, interactive: true };
+  // Keep line styles in sync with theme/zoom/overlay state
+  useEffect(() => {
+    if (!map) return undefined;
+    const restyle = () => {
+      const theme = themeFromMapContainer(map.getContainer());
+      const zoom = zoomFromMap(map);
+      const f = faultsStyle({ theme, zoom, overlays: activeIds });
+      const p = platesStyle({ theme, zoom });
+      try { faultsRef.current && faultsRef.current.setStyle && faultsRef.current.setStyle(f); } catch (_) {}
+      try { platesRef.current && platesRef.current.setStyle && platesRef.current.setStyle(p); } catch (_) {}
+    };
+    let id = null;
+    const schedule = () => { cancelAnimationFrame(id); id = requestAnimationFrame(restyle); };
+    schedule();
+    map.on('zoomend', schedule);
+    map.on('baselayerchange', schedule);
+    return () => { cancelAnimationFrame(id); map.off('zoomend', schedule); map.off('baselayerchange', schedule); };
+  }, [map, activeIds]);
+
+  // Keep faults visually above plates when both are on (shared pane)
+  useEffect(() => {
+    if (!map) return undefined;
+    const bumpFaults = () => {
+      try {
+        if (faultsRef.current && platesRef.current && map.hasLayer(faultsRef.current) && map.hasLayer(platesRef.current)) {
+          faultsRef.current.bringToFront && faultsRef.current.bringToFront();
+        }
+      } catch (_) {}
+    };
+    const id = setTimeout(bumpFaults, 0);
+    map.on('overlayadd', bumpFaults);
+    map.on('overlayremove', bumpFaults);
+    return () => { clearTimeout(id); map.off('overlayadd', bumpFaults); map.off('overlayremove', bumpFaults); };
+  }, [map]);
+
+  // Use default overlay pane for both vector overlays to allow hover on both
+  if (map) {
+    try { /* no custom panes */ } catch (_) {}
+  }
+
+  const makeOnEachWith = useCallback((baseStyle, buildTooltipFn, hoverClassName = null) => {
+    const getBase = () => {
+      const s = (typeof baseStyle === 'function') ? baseStyle() : baseStyle;
+      return { ...(s || {}), interactive: true };
+    };
     return (feature, layer) => {
       try {
         const html = buildTooltipFn(feature && feature.properties);
@@ -541,16 +562,85 @@ export default function MapLayersControl({ children }) {
         }
         layer.on('mouseover', () => {
           try {
-            layer.setStyle({ ...baseInteractiveStyle, weight: (baseStyle.weight || 2) + 1.5, opacity: 1 });
+            const el = map?.getContainer?.();
+            if (el && hoverClassName) el.classList.add(hoverClassName);
+            const baseNow = getBase();
+            const baseW = (baseNow.weight || 2);
+            layer.setStyle({ ...baseNow, weight: baseW + 1, opacity: 1 });
             if (layer.bringToFront) layer.bringToFront();
+            const pathEl = layer.getElement ? layer.getElement() : (layer._path || null);
+            if (pathEl) {
+              try { pathEl.classList.add('hover-glow'); } catch (_) {}
+            }
+            // keep the pane just below tooltip pane (650)
+            const paneName = layer?.options?.pane;
+            const paneEl = paneName && map?.getPane?.(paneName);
+            if (paneEl) {
+              if (paneEl._prevZ == null) paneEl._prevZ = paneEl.style.zIndex;
+              paneEl.style.zIndex = '645';
+            }
           } catch (_) {}
         });
-        layer.on('mouseout', () => {
-          try { layer.setStyle(baseInteractiveStyle); } catch (_) {}
+        const reset = () => {
+          // If tooltip is open (selected), keep selected styling
+          const open = typeof layer.isTooltipOpen === 'function' && layer.isTooltipOpen();
+          if (!open) {
+            try { layer.setStyle(getBase()); } catch (_) {}
+          } else {
+            const baseNow = getBase();
+            const baseW = (baseNow.weight || 2);
+            try { layer.setStyle({ ...baseNow, weight: baseW + 2, opacity: 1 }); } catch (_) {}
+          }
+          const el = map?.getContainer?.();
+          if (el && hoverClassName) el.classList.remove(hoverClassName);
+          const pathEl = layer.getElement ? layer.getElement() : (layer._path || null);
+          if (pathEl) {
+            try { if (!open) pathEl.classList.remove('hover-glow'); } catch (_) {}
+          }
+          const paneName = layer?.options?.pane;
+          const paneEl = paneName && map?.getPane?.(paneName);
+          if (paneEl && paneEl._prevZ != null) {
+            paneEl.style.zIndex = paneEl._prevZ;
+            paneEl._prevZ = null;
+          }
+        };
+        layer.on('mouseout', reset);
+        layer.on('tooltipclose', reset);
+        layer.on('remove', reset);
+        // Click/tap to toggle tooltip and apply a stronger selected highlight
+        const clickToggle = (e) => {
+          try {
+            const isOpen = typeof layer.isTooltipOpen === 'function' && layer.isTooltipOpen();
+            if (isOpen) {
+              layer.closeTooltip();
+              // reset will run via tooltipclose
+            } else {
+              const baseNow = getBase();
+              const baseW = (baseNow.weight || 2);
+              layer.setStyle({ ...baseNow, weight: baseW + 2, opacity: 1 });
+              if (layer.bringToFront) layer.bringToFront();
+              const pathEl = layer.getElement ? layer.getElement() : (layer._path || null);
+              if (pathEl) { try { pathEl.classList.add('selected-glow'); } catch (_) {} }
+              if (e && e.latlng && typeof layer.openTooltip === 'function') layer.openTooltip(e.latlng);
+              else if (typeof layer.openTooltip === 'function') layer.openTooltip();
+            }
+          } catch (_) {}
+        };
+        // Use only click; on mobile, Leaflet synthesizes click from tap.
+        // Using touchstart+click can toggle twice (open then close).
+        layer.on('click', clickToggle);
+        // Some touch devices emit a separate 'tap' event before/without 'click'. Support both.
+        let __lastTapTs = 0;
+        layer.on('tap', (ev) => { __lastTapTs = Date.now(); clickToggle(ev); });
+        layer.on('click', (ev) => { if (__lastTapTs && Date.now() - __lastTapTs < 350) return; clickToggle(ev); });
+        layer.on('tooltipclose', () => {
+          const pathEl = layer.getElement ? layer.getElement() : (layer._path || null);
+          if (pathEl) { try { pathEl.classList.remove('selected-glow'); } catch (_) {} }
+          try { layer.setStyle(getBase()); } catch (_) {}
         });
       } catch (_) {}
     };
-  }, []);
+  }, [map]);
 
   return (
     <LayersControl position="topright" collapsed>
@@ -576,12 +666,12 @@ export default function MapLayersControl({ children }) {
         <RemoteGeoJSONOverlay
           ref={setFaultsRef}
           url={DATASETS.FAULTS.cdnUrl}
-          style={styles.faults}
+          style={() => faultsStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom(), overlays: activeIds })}
           // Philippines bbox (lon/lat): 116..127E, 4.5..21.5N
           filterBbox={[116, 4.5, 127, 21.5]}
           lineOnly
           interactive
-          onEachFeature={makeOnEachWith(styles.faults, buildFaultTooltip)}
+          onEachFeature={makeOnEachWith(() => faultsStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom(), overlays: activeIds }), buildFaultTooltip, 'fault-hovering')}
         />
       </Overlay>
 
@@ -589,13 +679,15 @@ export default function MapLayersControl({ children }) {
         <RemoteGeoJSONOverlay
           ref={setPlatesRef}
           url={DATASETS.PLATES.cdnUrl}
-          style={styles.plates}
+          style={() => platesStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom() })}
           worldCopies
           lineOnly
           interactive
-          onEachFeature={makeOnEachWith(styles.plates, buildPlateTooltip)}
+          onEachFeature={makeOnEachWith(() => platesStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom() }), buildPlateTooltip, null)}
         />
       </Overlay>
+
+      {/* No hit-overlay: rely on pointer-events: stroke and hover weight bump */}
 
       {pop && pop.url ? (
         <Overlay name="Population Density">

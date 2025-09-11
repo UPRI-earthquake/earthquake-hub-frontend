@@ -108,8 +108,14 @@
 
 .legend-meta { display: flex; flex-direction: column; }
 .legend-label { font-weight: 600; margin-bottom: 2px; font-size: 13px; }
+.legend-label-with-toggle { display: flex; align-items: center; gap: 8px; }
 .legend-source-line { font-size: 11px; color: #555; margin-top: 2px; }
 .legend-update-line { font-size: 11px; color: #777; margin-top: 2px; }
+.legend-subrow { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.legend-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; }
+.legend-chip i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
+.legend-toggle-inline { appearance: none; border: 1px solid rgba(0,0,0,0.25); background: #fff; color: #111827; border-radius: 8px; padding: 2px 8px; cursor: pointer; font-size: 11px; }
+.legend-toggle-inline:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
 .legend-empty { color: #666; padding: 4px 0; }
 
 /* Focus styles */
@@ -121,6 +127,14 @@
   --panel-bg: #111827dd;
   --panel-text: #f3f4f6;
   --panel-border: rgba(255, 255, 255, 0.12);
+}
+
+/* Basemap-aware inline toggle styling */
+.leaflet-container[data-basemap-theme="dark"] .legend-toggle-inline,
+.leaflet-container[data-basemap-theme="imagery"] .legend-toggle-inline {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: rgba(255,255,255,0.25);
 }
 
 /* Legend chips match map styles */
