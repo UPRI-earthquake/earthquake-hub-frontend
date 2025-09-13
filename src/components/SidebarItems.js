@@ -3,7 +3,7 @@ import moment from 'moment';
 import SidebarItem from "./SidebarItem"
 import SSEContext from "../SSEContext";
 
-function SidebarItems({initData}) {
+function SidebarItems({initData, filters}) {
   const [items, setItems] = useState(initData.sort((a, b)=>{
     return new Date(b.OT) - new Date(a.OT);
   }))
@@ -52,7 +52,27 @@ function SidebarItems({initData}) {
     };
   }, [eventSource]);
 
-  return(items.map(item =>
+  // Client-side filtering (frontend only for now)
+  const f = filters || {};
+  const text = (f.searchText || '').trim().toLowerCase();
+  const magMin = typeof f.magMin === 'number' ? f.magMin : -Infinity;
+  const magMax = typeof f.magMax === 'number' ? f.magMax : Infinity;
+  const start = f.startDate ? moment(f.startDate, 'YYYY-MM-DD') : null;
+  const end = f.endDate ? moment(f.endDate, 'YYYY-MM-DD').endOf('day') : null;
+
+  const filtered = items.filter((item) => {
+    if (Number.isFinite(magMin) && item.magnitude_value < magMin) return false;
+    if (Number.isFinite(magMax) && item.magnitude_value > magMax) return false;
+    if (start && moment(item.OT).isBefore(start)) return false;
+    if (end && moment(item.OT).isAfter(end)) return false;
+    if (text) {
+      const str = `${item.place || ''} ${item.text || ''}`.toLowerCase();
+      if (!str.includes(text)) return false;
+    }
+    return true;
+  });
+
+  return(filtered.map(item =>
     <SidebarItem
       key={item.publicID}
       publicID={item.publicID}

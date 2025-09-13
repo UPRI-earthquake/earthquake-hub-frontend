@@ -66,7 +66,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   const hasFaults = overlays?.has?.('faults');
   // Interaction scale multiplier to enlarge targets at higher zoom
   // Scale targets up as zoom increases. Make them largest at z >= 14
-  const scale = (z >= 14 ? 5.0 : (z >= 12 ? 1.6 : (z >= 9 ? 1.35 : (z >= 6 ? 1.15 : 1.0))));
+  const scale = (z >= 14 ? 5.0 : (z >= 12 ? 2.5 : (z >= 9 ? 2.0 : (z >= 6 ? 1.5 : 1.0))));
 
   // Earthquakes
   const eqBase = (PALETTE.earthquakes[t] || PALETTE.earthquakes.light);

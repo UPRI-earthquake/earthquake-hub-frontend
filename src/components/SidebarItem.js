@@ -51,12 +51,13 @@ function SidebarItem({publicID, title, description,
       onClick={handleClick}
       ref={output}
     >
-      <h4>{title}</h4>
+      <div className={styles.magWrap}>
+        <div className={styles.mag}>{title}</div>
+      </div>
       <div>
         <p className={styles.desc}>{description}</p>
         <p className={styles.subDesc}>{subDescription}</p>
       </div>
-
     </div>
   )
 }

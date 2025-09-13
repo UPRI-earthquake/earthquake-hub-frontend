@@ -26,6 +26,17 @@ const HomePage = () => {
   const stationsRef = useRef([]);  // initial stations data
   const eventsRef = useRef([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
+  // Sidebar UI state (frontend-only)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [presetTitle, setPresetTitle] = useState('Latest Earthquakes (30 days)');
+  const [presetKey, setPresetKey] = useState('latest-30d');
+  const [filters, setFilters] = useState(() => ({
+    magMin: 0,
+    magMax: 10,
+    startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
+    endDate: moment().format('YYYY-MM-DD'),
+  }));
   useEffect(() => {
     // get initial eq-events from backend
     const backend_host = process.env.NODE_ENV === 'production'
@@ -113,9 +124,57 @@ const HomePage = () => {
           <Header initStations={stationsRef.current}/>
           <div className="App-body">
             <SSEContext.Provider value={eventSourceRef.current}>
-              <Sidebar >
-                <SidebarInfo/>
-                <SidebarItems initData={eventsRef.current}/>
+              <Sidebar>
+                <SidebarInfo
+                  title={presetTitle}
+                  collapsed={sidebarCollapsed}
+                  onToggle={() => setSidebarCollapsed(v => !v)}
+                  searchText={searchText}
+                  onSearch={setSearchText}
+                  defaultFilters={filters}
+                  onFiltersChange={(f) => setFilters(prev => ({ ...prev, ...f }))}
+                  selectedPresetKey={presetKey}
+                  onPresetChange={(key) => {
+                    if (key === 'latest-30d') {
+                      setPresetTitle('Latest Earthquakes (30 days)');
+                      setPresetKey('latest-30d');
+                      setFilters({
+                        magMin: 0,
+                        magMax: 10,
+                        startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
+                        endDate: moment().format('YYYY-MM-DD')
+                      });
+                    } else if (key === 'major-2022-2023') {
+                      setPresetTitle('Major Earthquakes (2022–2023)');
+                      setPresetKey('major-2022-2023');
+                      setFilters({
+                        magMin: 7,
+                        magMax: 10,
+                        startDate: moment('2022-01-01').format('YYYY-MM-DD'),
+                        endDate: moment('2023-12-31').format('YYYY-MM-DD')
+                      });
+                    } else if (key === 'year-2025') {
+                      setPresetTitle('2025 Earthquakes');
+                      setPresetKey('year-2025');
+                      setFilters({
+                        magMin: 0,
+                        magMax: 10,
+                        startDate: moment('2025-01-01').format('YYYY-MM-DD'),
+                        endDate: moment('2025-12-31').format('YYYY-MM-DD')
+                      });
+                    } else if (key === 'year-2024') {
+                      setPresetTitle('2024 Earthquakes');
+                      setPresetKey('year-2024');
+                      setFilters({
+                        magMin: 0,
+                        magMax: 10,
+                        startDate: moment('2024-01-01').format('YYYY-MM-DD'),
+                        endDate: moment('2024-12-31').format('YYYY-MM-DD')
+                      });
+                    }
+                  }}
+                />
+                <SidebarItems initData={eventsRef.current} filters={{ ...filters, searchText }} />
               </Sidebar>
               <MapContainer
                 center={[12.2795, 122.049]}

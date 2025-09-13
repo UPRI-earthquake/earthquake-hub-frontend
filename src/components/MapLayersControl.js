@@ -235,11 +235,14 @@ export default function MapLayersControl({ children }) {
           }
         }
         el.setAttribute('data-basemap-theme', theme);
+        try { document.documentElement.setAttribute('data-basemap-theme', theme); } catch (_) {}
       } catch (_) {}
     };
     setThemeFromActiveBase();
     const onBase = (e) => {
-      el.setAttribute('data-basemap-theme', themeForLayer(e.layer, e && e.name));
+      const t = themeForLayer(e.layer, e && e.name);
+      el.setAttribute('data-basemap-theme', t);
+      try { document.documentElement.setAttribute('data-basemap-theme', t); } catch (_) {}
     };
     map.on('baselayerchange', onBase);
     return () => {
