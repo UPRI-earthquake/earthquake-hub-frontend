@@ -257,9 +257,10 @@ function SidebarInfo({
         <div className={styles.menu} role="menu">
           {[
             { key: 'latest-30d', label: 'Latest Earthquakes (30 days)', tip: 'Past 30 days, all magnitudes' },
-            { key: 'major-2022-2023', label: 'Major Earthquakes (2022–2023)', tip: 'Curated set of 10 major earthquakes from 2022–2023' },
+            // { key: 'major-2022-2023', label: 'Major Earthquakes (2022–2023)', tip: 'Curated set of 10 major earthquakes from 2022–2023' },
             { key: 'year-2025', label: '2025 Earthquakes', tip: 'All earthquakes in 2025' },
             { key: 'year-2024', label: '2024 Earthquakes', tip: 'All earthquakes in 2024' },
+            { key: 'year-2023', label: '2023 Earthquakes', tip: 'All earthquakes in 2023' },
           ].map(opt => (
             <button
               key={opt.key}

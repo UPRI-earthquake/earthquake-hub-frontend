@@ -331,13 +331,18 @@ html[data-basemap-theme="imagery"] .menuItemSelected{
   left: 100%;
   top: 50%;
   transform: translate(8px, -50%);
-  max-width: 260px;
+  /* max-width: 260px; */
   background: #111827;
   color: #f3f4f6;
   border-radius: 6px;
   padding: 6px 8px;
   box-shadow: 0 6px 16px rgba(0,0,0,0.2);
   z-index: 1001;
+  font-size: 13px;
+  width: max-content;
+  white-space: nowrap;
+  /* Prevent tooltip from blocking hover on other items */
+  pointer-events: none;
 }
 html[data-basemap-theme="dark"] .menuItem[data-tip]:hover::after,
 html[data-basemap-theme="imagery"] .menuItem[data-tip]:hover::after{
