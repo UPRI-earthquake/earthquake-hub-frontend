@@ -26,6 +26,7 @@ function SidebarInfo({
   searchText,
   onSearch,
   defaultFilters,
+  filterBounds,
   onFiltersChange,
   onPresetChange,
   selectedPresetKey,
@@ -92,7 +93,21 @@ function SidebarInfo({
   }, []);
 
   const applyFilters = () => {
-    onFiltersChange && onFiltersChange(local);
+    // Clamp dates within allowed bounds if provided
+    const clampDate = (d, lo, hi) => {
+      if (!d) return d;
+      if (lo && d < lo) return lo;
+      if (hi && d > hi) return hi;
+      return d;
+    };
+    const minDate = filterBounds?.minDate || null;
+    const maxDate = filterBounds?.maxDate || null;
+    const next = {
+      ...local,
+      startDate: clampDate(local.startDate, minDate, maxDate),
+      endDate: clampDate(local.endDate, minDate, maxDate)
+    };
+    onFiltersChange && onFiltersChange(next);
     setFiltersOpen(false);
   };
 
@@ -229,8 +244,8 @@ function SidebarInfo({
           }}
           aria-expanded={menuOpen ? 'true' : 'false'}
         >
+          <span className={styles.titleText}>{title}</span>
           <CaretIcon className={styles.caret} />
-          <span>{title}</span>
         </button>
         <div className={styles.tools}>
           {/* Reserved for future buttons if needed */}
@@ -242,7 +257,7 @@ function SidebarInfo({
         <div className={styles.menu} role="menu">
           {[
             { key: 'latest-30d', label: 'Latest Earthquakes (30 days)', tip: 'Past 30 days, all magnitudes' },
-            { key: 'major-2022-2023', label: 'Major Earthquakes (2022–2023)', tip: 'Curated top significant earthquakes from 2022–2023' },
+            { key: 'major-2022-2023', label: 'Major Earthquakes (2022–2023)', tip: 'Curated set of 10 major earthquakes from 2022–2023' },
             { key: 'year-2025', label: '2025 Earthquakes', tip: 'All earthquakes in 2025' },
             { key: 'year-2024', label: '2024 Earthquakes', tip: 'All earthquakes in 2024' },
           ].map(opt => (
@@ -279,6 +294,7 @@ function SidebarInfo({
             onClick={() => { setMenuOpen(false); setFiltersOpen(v => !v); }}
             aria-expanded={filtersOpen ? 'true' : 'false'}
             aria-label="Open filters"
+            data-tip="Filter earthquakes by magnitude and date"
           >
             <FunnelIcon />
           </button>
@@ -347,14 +363,32 @@ function SidebarInfo({
               <div className={styles.label}>Start date</div>
               <input className={styles.dateInput} type="date"
                 value={local.startDate}
-                onChange={(e) => handleLocalChange({ startDate: e.target.value })}
+                min={filterBounds?.minDate || undefined}
+                max={filterBounds?.maxDate || undefined}
+                onChange={(e) => {
+                  const minD = filterBounds?.minDate;
+                  const maxD = filterBounds?.maxDate;
+                  let v = e.target.value;
+                  if (minD && v < minD) v = minD;
+                  if (maxD && v > maxD) v = maxD;
+                  handleLocalChange({ startDate: v });
+                }}
               />
             </div>
             <div className={styles.field}>
               <div className={styles.label}>End date</div>
               <input className={styles.dateInput} type="date"
                 value={local.endDate}
-                onChange={(e) => handleLocalChange({ endDate: e.target.value })}
+                min={filterBounds?.minDate || undefined}
+                max={filterBounds?.maxDate || undefined}
+                onChange={(e) => {
+                  const minD = filterBounds?.minDate;
+                  const maxD = filterBounds?.maxDate;
+                  let v = e.target.value;
+                  if (minD && v < minD) v = minD;
+                  if (maxD && v > maxD) v = maxD;
+                  handleLocalChange({ endDate: v });
+                }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

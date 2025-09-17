@@ -22,8 +22,9 @@ html[data-basemap-theme="imagery"] .sidebarInfo{
 }
 
 .titleBtn{
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: space-between; /* title at left, caret at right */
   gap: 8px;
   cursor: pointer;
   border: none;
@@ -32,6 +33,15 @@ html[data-basemap-theme="imagery"] .sidebarInfo{
   font-size: 16px; /* primary header */
   font-weight: 700;
   color: inherit;
+  width: 100%;
+}
+
+.titleText{
+  flex: 1 1 auto;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .caret{ transition: transform 150ms ease; display: inline-block; }
@@ -85,6 +95,7 @@ html[data-basemap-theme="imagery"] .search{
   background: #ffffff;
   color: #111827;
   cursor: pointer;
+  position: relative; /* anchor tooltip */
 }
 html[data-basemap-theme="dark"] .iconBtn,
 html[data-basemap-theme="imagery"] .iconBtn{
@@ -121,7 +132,7 @@ html[data-basemap-theme="imagery"] .sectionHeader{
   border: 1px solid rgba(0,0,0,0.2);
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.22);
-  z-index: 1000;
+  z-index: 2000; /* above leaflet controls */
 }
 html[data-basemap-theme="dark"] .popover,
 html[data-basemap-theme="imagery"] .popover{
@@ -278,8 +289,9 @@ html[data-basemap-theme="imagery"] .dateInput{ color-scheme: dark; }
   color: #111827;
   border: 1px solid rgba(0,0,0,0.2);
   border-radius: 8px;
-  overflow: hidden;
-  z-index: 1000;
+  /* Allow tooltips to extend outside */
+  overflow: visible;
+  z-index: 2000; /* above leaflet controls */
   display: grid;
   box-shadow: 0 10px 24px rgba(0,0,0,0.22);
 }
@@ -332,6 +344,26 @@ html[data-basemap-theme="imagery"] .menuItem[data-tip]:hover::after{
   background: #f3f4f6; color: #111827;
 }
 
+/* Tooltip for icon buttons (e.g., filter button) */
+.iconBtn[data-tip]:hover::after{
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 8px;
+  background: #111827;
+  color: #f3f4f6;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+  z-index: 3500; /* above map panes */
+}
+html[data-basemap-theme="dark"] .iconBtn[data-tip]:hover::after,
+html[data-basemap-theme="imagery"] .iconBtn[data-tip]:hover::after{
+  background: #f3f4f6; color: #111827;
+}
+
 .primaryBtn{
   border: 1px solid rgba(0,0,0,0.2);
   background: var(--accent);
@@ -348,9 +380,25 @@ html[data-basemap-theme="imagery"] .primaryBtn{
 
 @media (max-width: 768px) {
   .sidebarInfo {
-      width: 150px;
-      height: 100%;
-      border-bottom: none;
-      border-right: solid 1px lightgray;
+    width: 100%;
+    height: auto;
+    border: none;
+    padding: 10px 12px; /* a bit more breathing room on mobile */
+  }
+
+  /* On mobile the preset menu and filter popover should open upward
+     (sidebar sits at the bottom of the screen). */
+  .menu {
+    top: auto;
+    bottom: calc(100% + 6px);
+    left: 8px;
+    right: 8px;
+  }
+
+  .popover {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: 0;
+    right: 0;
   }
 }

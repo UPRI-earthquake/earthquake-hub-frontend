@@ -31,11 +31,17 @@ const HomePage = () => {
   const [searchText, setSearchText] = useState('');
   const [presetTitle, setPresetTitle] = useState('Latest Earthquakes (30 days)');
   const [presetKey, setPresetKey] = useState('latest-30d');
+  const [sseEnabled, setSseEnabled] = useState(true);
+  const [customEvents, setCustomEvents] = useState(null);
   const [filters, setFilters] = useState(() => ({
     magMin: 0,
     magMax: 10,
     startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     endDate: moment().format('YYYY-MM-DD'),
+  }));
+  const [filterBounds, setFilterBounds] = useState(() => ({
+    minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
+    maxDate: moment().format('YYYY-MM-DD'),
   }));
   useEffect(() => {
     // get initial eq-events from backend
@@ -132,49 +138,122 @@ const HomePage = () => {
                   searchText={searchText}
                   onSearch={setSearchText}
                   defaultFilters={filters}
+                  filterBounds={filterBounds}
                   onFiltersChange={(f) => setFilters(prev => ({ ...prev, ...f }))}
                   selectedPresetKey={presetKey}
                   onPresetChange={(key) => {
                     if (key === 'latest-30d') {
                       setPresetTitle('Latest Earthquakes (30 days)');
                       setPresetKey('latest-30d');
+                      setSseEnabled(true);
+                      setCustomEvents(null);
                       setFilters({
                         magMin: 0,
                         magMax: 10,
                         startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
                         endDate: moment().format('YYYY-MM-DD')
                       });
+                      setFilterBounds({
+                        minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
+                        maxDate: moment().format('YYYY-MM-DD')
+                      });
                     } else if (key === 'major-2022-2023') {
                       setPresetTitle('Major Earthquakes (2022–2023)');
                       setPresetKey('major-2022-2023');
+                      setSseEnabled(false);
                       setFilters({
                         magMin: 7,
                         magMax: 10,
                         startDate: moment('2022-01-01').format('YYYY-MM-DD'),
                         endDate: moment('2023-12-31').format('YYYY-MM-DD')
                       });
+                      setFilterBounds({
+                        minDate: moment('2022-01-01').format('YYYY-MM-DD'),
+                        maxDate: moment('2023-12-31').format('YYYY-MM-DD')
+                      });
+                      // Fetch curated significant EQs and transform to map/list shape
+                      (async () => {
+                        try {
+                          const backend_host = process.env.NODE_ENV === 'production'
+                            ? window['ENV'].REACT_APP_BACKEND
+                            : window['ENV'].REACT_APP_BACKEND_DEV;
+                          // Include cookies for backends that require auth/session
+                          try { axios.defaults.withCredentials = true; } catch (_) {}
+                          const res = await axios.get(`${backend_host}/significant-eqs/all`);
+                          const arr = (res.data?.payload || [])
+                            .map((x) => ({
+                              publicID: x._id || `${x.latitude},${x.longitude},${x.eventTime}`,
+                              OT: x.eventTime,
+                              latitude_value: x.latitude,
+                              longitude_value: x.longitude,
+                              magnitude_value: x.magnitude,
+                              depth_km: x.depth,
+                              place: x.location,
+                              text: x.eventSummary,
+                              eventType: undefined,
+                              last_modification: undefined,
+                            }))
+                            // ensure only 10, sorted by time desc
+                            .sort((a,b) => new Date(b.OT) - new Date(a.OT))
+                            .slice(0, 10);
+                          setCustomEvents(arr);
+                          // Optionally fit map to curated events so users can see them
+                          try {
+                            const map = window.__leaflet_map__;
+                            if (map && arr.length) {
+                              const lats = arr.map(e => Number(e.latitude_value)).filter(n => Number.isFinite(n));
+                              const lngs = arr.map(e => Number(e.longitude_value)).filter(n => Number.isFinite(n));
+                              if (lats.length && lngs.length) {
+                                const south = Math.min(...lats);
+                                const north = Math.max(...lats);
+                                const west = Math.min(...lngs);
+                                const east = Math.max(...lngs);
+                                map.fitBounds([[south, west], [north, east]], { padding: [24, 24] });
+                              }
+                            }
+                          } catch (err) {
+                            // non-fatal
+                          }
+                        } catch (e) {
+                          console.error('Failed fetching significant-eqs:', e);
+                          // Leave customEvents as null so UI falls back to latest feed
+                          setCustomEvents(null);
+                        }
+                      })();
                     } else if (key === 'year-2025') {
                       setPresetTitle('2025 Earthquakes');
                       setPresetKey('year-2025');
+                      setSseEnabled(true);
+                      setCustomEvents(null);
                       setFilters({
                         magMin: 0,
                         magMax: 10,
                         startDate: moment('2025-01-01').format('YYYY-MM-DD'),
                         endDate: moment('2025-12-31').format('YYYY-MM-DD')
                       });
+                      setFilterBounds({
+                        minDate: moment('2025-01-01').format('YYYY-MM-DD'),
+                        maxDate: moment('2025-12-31').format('YYYY-MM-DD')
+                      });
                     } else if (key === 'year-2024') {
                       setPresetTitle('2024 Earthquakes');
                       setPresetKey('year-2024');
+                      setSseEnabled(true);
+                      setCustomEvents(null);
                       setFilters({
                         magMin: 0,
                         magMax: 10,
                         startDate: moment('2024-01-01').format('YYYY-MM-DD'),
                         endDate: moment('2024-12-31').format('YYYY-MM-DD')
                       });
+                      setFilterBounds({
+                        minDate: moment('2024-01-01').format('YYYY-MM-DD'),
+                        maxDate: moment('2024-12-31').format('YYYY-MM-DD')
+                      });
                     }
                   }}
                 />
-                <SidebarItems initData={eventsRef.current} filters={{ ...filters, searchText }} />
+                <SidebarItems initData={customEvents || eventsRef.current} filters={{ ...filters, searchText }} sseEnabled={sseEnabled} />
               </Sidebar>
               <MapContainer
                 center={[12.2795, 122.049]}
@@ -195,7 +274,7 @@ const HomePage = () => {
                   <MapLayersControl>
                   <LayersControl.Overlay checked name="Earthquakes">
                     <RegisterableLayerGroup overlayId="earthquakes">
-                      <EventMarkers initEvents={eventsRef.current}/>
+                      <EventMarkers initEvents={customEvents || eventsRef.current} filters={filters} sseEnabled={sseEnabled} />
                     </RegisterableLayerGroup>
                   </LayersControl.Overlay>
                   <LayersControl.Overlay checked name="Stations">

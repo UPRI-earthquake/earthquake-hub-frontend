@@ -24,14 +24,18 @@ html[data-basemap-theme="imagery"] .sidebarItem{
 
 @media (max-width: 768px) {
   .sidebarItem {
-      width: 200px;
-      height: 100%;
-      border-bottom: none;
-      border-right: solid 1px lightgray;
+    width: 300px;                         /* card width */
+    height: 100%;
+    border-bottom: none;                  /* separators via right border */
+    border-right: 1px solid lightgray;
+    grid-template-columns: 56px 1fr;      /* same internals as desktop */
+    gap: 12px;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
-  .sidebarItem > div {
-      width: 120px;
-  }
+  .sidebarItem > div { width: auto; }
+  .magWrap { justify-content: center; }
+  .mag { font-size: 20px; }
 }
 
 .sidebarItem:hover{ background-color: rgba(0,0,0,0.04); }

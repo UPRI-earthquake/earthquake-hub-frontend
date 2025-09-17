@@ -3,13 +3,21 @@ import moment from 'moment';
 import SidebarItem from "./SidebarItem"
 import SSEContext from "../SSEContext";
 
-function SidebarItems({initData, filters}) {
-  const [items, setItems] = useState(initData.sort((a, b)=>{
-    return new Date(b.OT) - new Date(a.OT);
-  }))
+function SidebarItems({initData, filters, sseEnabled = true}) {
+  const [items, setItems] = useState(() => {
+    const arr = (initData || []).slice();
+    return arr.sort((a, b) => new Date(b.OT) - new Date(a.OT));
+  })
+
+  // Keep items in sync when initData changes (e.g., preset switch)
+  useEffect(() => {
+    const next = (initData || []).slice().sort((a, b) => new Date(b.OT) - new Date(a.OT));
+    setItems(next);
+  }, [initData]);
 
   const eventSource = useContext(SSEContext);
   useEffect(() => {
+    if (!sseEnabled) return; // disable live updates for curated presets
     const handleEQEvent = (event) => {
       const data = JSON.parse(event.data)// to parse to get valid json-obj
 
@@ -50,7 +58,7 @@ function SidebarItems({initData, filters}) {
     return () => {
       eventSource.removeEventListener('SC_EVENT', handleEQEvent);
     };
-  }, [eventSource]);
+  }, [eventSource, sseEnabled]);
 
   // Client-side filtering (frontend only for now)
   const f = filters || {};
@@ -72,11 +80,16 @@ function SidebarItems({initData, filters}) {
     return true;
   });
 
+  const magText = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toFixed(1) : String(v ?? '-');
+  };
+
   return(filtered.map(item =>
     <SidebarItem
       key={item.publicID}
       publicID={item.publicID}
-      title={item.magnitude_value.toFixed(1)}
+      title={magText(item.magnitude_value)}
       description={
         ['Unavailable',
          'Unable to geocode',

@@ -1,7 +1,10 @@
 .sidebar{
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* only list scrolls */
+  /* Allow overlays from header (preset/filter) to escape container */
+  overflow: visible;
+  position: relative; /* create stacking context for tooltips */
+  z-index: 3000;      /* ensure sidebar overlays map */
   -webkit-overflow-scrolling: touch;
   min-width: 320px;
   max-width: 320px;
@@ -32,17 +35,23 @@ html[data-basemap-theme="imagery"] .sidebar{
 
 @media (max-width: 768px) {
   .sidebar {
-    flex-direction: row;
-    min-height: 100px;
-    max-height: 100px;
+    flex-direction: column; /* header above scroller */
+    min-height: 180px;
+    max-height: 45vh; /* responsive height without covering map */
+    min-width: 100vw;
     max-width: 100vw;
     border-top: solid 1px #a6a5a9;
   }
-  .headerArea { flex: 0 0 180px; }
+  .headerArea { flex: 0 0 auto; }
   .itemsScroll {
     flex: 1 1 auto;
-    overflow-x: auto;
+    overflow-x: auto;     /* horizontal card scroll */
     overflow-y: hidden;
-    display: flex; /* allow horizontal flow of cards */
+    display: flex;        /* lay out cards in a row */
+    align-items: stretch;
+    gap: 0;               /* no visible gaps between cards */
+    padding: 0;           /* flush to edges */
   }
+  /* Ensure each sidebar item renders as a readable card */
+  .itemsScroll > * { flex: 0 0 300px; }
 }
