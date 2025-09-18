@@ -20,18 +20,26 @@ const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modif
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
   const selectedEvent = useSelector(state => state)
-  const popupRef = useRef();
-  const centerAndPopupEvent = useCallback((selectedEvent) => {
-    if(selectedEvent === publicID){
-      //center the event
-      map.flyTo([lat, lng], 9)
-      //show popup
-      map.openPopup(popupRef.current)
-    }else if(selectedEvent === null){
-      map.flyTo([12.2795, 122.049], 6)
-      map.closePopup(popupRef.current)
+  const popupRef = useRef(null);
+  const centerAndPopupEvent = useCallback((selectedEventId) => {
+    if (!map) return;
+
+    if (selectedEventId === publicID) {
+      map.flyTo([lat, lng], 9);
+      const popup = popupRef.current;
+      if (popup && typeof popup.openOn === 'function') {
+        popup.openOn(map);
+      } else if (popup) {
+        map.openPopup(popup);
+      }
+    } else if (selectedEventId === null) {
+      map.flyTo([12.2795, 122.049], 6);
+      const popup = popupRef.current;
+      if (popup) {
+        map.closePopup(popup);
+      }
     }
-  },[publicID, lat, lng, map]); //useCallback prevents recreat of this fn ever render
+  }, [map, publicID, lat, lng]);
   useEffect(() => {
     centerAndPopupEvent(selectedEvent)
   }, [selectedEvent, centerAndPopupEvent]);
