@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef }  from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo }  from 'react';
 import moment from 'moment';
 import { Marker, Popup, useMap } from "react-leaflet";
 import { DivIcon } from "leaflet";
@@ -35,12 +35,6 @@ const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modif
       const marker = markerRef.current;
       if (marker && typeof marker.openPopup === 'function') {
         marker.openPopup();
-      }
-    } else if (selectedEventId === null) {
-      map.flyTo([12.2795, 122.049], 6);
-      const marker = markerRef.current;
-      if (marker && typeof marker.closePopup === 'function') {
-        marker.closePopup();
       }
     }
   }, [map, publicID, lat, lng, hasValidCoords]);
@@ -83,29 +77,58 @@ const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modif
 
   const fillColor = depthRamp && depthColor ? depthColor : undefined; // undefined → use CSS var theme color
 
-  const divCircle = new DivIcon(animate
-    ? {
-        // Keep container class minimal to avoid overriding Leaflet's inline transform.
-        className: '',
-        html: ReactDOMServer.renderToString(
-          <CircleWithBorder
-            className={styles.radiate}
-            style={fillColor ? { fill: fillColor } : undefined}
-          />
-        ),
-        iconSize: [8 * toRadius(mag), 8 * toRadius(mag)],
-      }
-    : {
-        className: '',
-        html: ReactDOMServer.renderToString(
-          <Circle
-            className={styles.default}
-            style={fillColor ? { fill: fillColor } : undefined}
-          />
-        ),
-        iconSize: [2 * toRadius(mag), 2 * toRadius(mag)],
-      }
-  );
+  // Cache DivIcon instances to avoid re-creating DOM/HTML on every render
+  // Key on: animation flag, fill color bucket, and size bucket
+  const iconCacheRef = useRef(new Map());
+  const divCircle = useMemo(() => {
+    const radius = toRadius(mag);
+    // Bucket sizes to reduce unique icon churn while keeping visual fidelity
+    const sizeKey = Math.round(radius * (animate ? 8 : 2));
+    const colorKey = fillColor || 'theme';
+    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}`;
+
+    const cache = iconCacheRef.current;
+    const existing = cache.get(cacheKey);
+    if (existing) return existing;
+
+    const html = ReactDOMServer.renderToString(
+      animate ? (
+        <CircleWithBorder
+          className={styles.radiate}
+          style={fillColor ? { fill: fillColor } : undefined}
+        />
+      ) : (
+        <Circle
+          className={styles.default}
+          style={fillColor ? { fill: fillColor } : undefined}
+        />
+      )
+    );
+
+    const size = animate ? (8 * radius) : (2 * radius);
+    const icon = new DivIcon({
+      className: 'eq-marker', // stable container class to enable CSS transitions
+      html,
+      iconSize: [size, size],
+    });
+    cache.set(cacheKey, icon);
+    return icon;
+  }, [animate, mag, fillColor]);
+
+  // Gentle fade-in when marker icon mounts or changes
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker || typeof marker.getElement !== 'function') return;
+    const el = marker.getElement();
+    if (!el) return;
+    // Reset then re-apply to retrigger transition on icon swap
+    el.classList.remove('is-mounted');
+    // Next tick to ensure transition plays
+    const id = window.requestAnimationFrame(() => {
+      el.classList.add('is-mounted');
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [divCircle]);
 
   // If bad coords slipped through, skip rendering after hooks have been called
   if (!hasValidCoords) {
