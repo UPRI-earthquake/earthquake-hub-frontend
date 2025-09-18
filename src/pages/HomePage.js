@@ -24,7 +24,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true)
   const [serverError, setServerError] = useState(false)
   const stationsRef = useRef([]);  // initial stations data
-  const eventsRef = useRef([]);  // initial eq-events data
+  const [events, setEvents] = useState([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
   // Sidebar UI state (frontend-only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -43,6 +43,27 @@ const HomePage = () => {
     minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     maxDate: moment().format('YYYY-MM-DD'),
   }));
+
+  const fetchEventsForRange = async (startDateISO, endDateISO) => {
+    const backend_host = process.env.NODE_ENV === 'production'
+      ? window['ENV'].REACT_APP_BACKEND
+      : window['ENV'].REACT_APP_BACKEND_DEV;
+
+    // Normalize to whole-day bounds to be safe for date-only inputs
+    const startTs = moment(startDateISO).startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    const endTs   = moment(endDateISO).endOf('day').format('YYYY-MM-DD HH:mm:ss');
+
+    try { axios.defaults.withCredentials = true; } catch (_) {}
+
+    const res = await axios.get(`${backend_host}/eq-events`, {
+      params: { startTime: startTs, endTime: endTs },
+    });
+
+    // Replace with a new array reference so children see an update
+    setEvents((res.data?.payload || []).slice());
+    // console.log(`Fetched ${events.length} events for ${startDateISO} to ${endDateISO}`);
+  };
+
   useEffect(() => {
     // get initial eq-events from backend
     const backend_host = process.env.NODE_ENV === 'production'
@@ -86,7 +107,7 @@ const HomePage = () => {
           {...station, isPicked: false}
         ));
 
-        eventsRef.current = values[1].data.payload//fetchResult.data
+        setEvents(values[1].data.payload || []);//fetchResult.data
         //TODO: Get last_modification
 
         eventSourceRef.current = values[2]
@@ -145,130 +166,95 @@ const HomePage = () => {
                     if (key === 'latest-30d') {
                       setPresetTitle('Latest Earthquakes (30 days)');
                       setPresetKey('latest-30d');
-                      setSseEnabled(true);
+                      setSseEnabled(true);       // live mode
                       setCustomEvents(null);
+
+                      const start = moment().subtract(30, 'days').format('YYYY-MM-DD');
+                      const end   = moment().format('YYYY-MM-DD');
+
                       setFilters({
                         magMin: 0,
                         magMax: 10,
-                        startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
-                        endDate: moment().format('YYYY-MM-DD')
+                        startDate: start,
+                        endDate: end,
                       });
                       setFilterBounds({
-                        minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
-                        maxDate: moment().format('YYYY-MM-DD')
+                        minDate: start,
+                        maxDate: end,
                       });
-                    // } else if (key === 'major-2022-2023') {
-                      // setPresetTitle('Major Earthquakes (2022–2023)');
-                      // setPresetKey('major-2022-2023');
-                      // setSseEnabled(false);
-                      // setFilters({
-                      //   magMin: 6,
-                      //   magMax: 10,
-                      //   startDate: moment('2022-01-01').format('YYYY-MM-DD'),
-                      //   endDate: moment('2023-12-31').format('YYYY-MM-DD')
-                      // });
-                      // setFilterBounds({
-                      //   minDate: moment('2022-01-01').format('YYYY-MM-DD'),
-                      //   maxDate: moment('2023-12-31').format('YYYY-MM-DD')
-                      // });
-                      // // Fetch curated significant EQs and transform to map/list shape
-                      // (async () => {
-                      //   try {
-                      //     const backend_host = process.env.NODE_ENV === 'production'
-                      //       ? window['ENV'].REACT_APP_BACKEND
-                      //       : window['ENV'].REACT_APP_BACKEND_DEV;
-                      //     // Include cookies for backends that require auth/session
-                      //     try { axios.defaults.withCredentials = true; } catch (_) {}
-                      //     const res = await axios.get(`${backend_host}/significant-eqs/all`);
-                      //     const arr = (res.data?.payload || [])
-                      //       .map((x) => ({
-                      //         publicID: x._id || `${x.latitude},${x.longitude},${x.eventTime}`,
-                      //         OT: x.eventTime,
-                      //         latitude_value: x.latitude,
-                      //         longitude_value: x.longitude,
-                      //         magnitude_value: x.magnitude,
-                      //         depth_km: x.depth,
-                      //         place: x.location,
-                      //         text: x.eventSummary,
-                      //         eventType: undefined,
-                      //         last_modification: x.eventTime,
-                      //       }))
-                      //       // ensure only 10, sorted by time desc
-                      //       .sort((a,b) => new Date(b.OT) - new Date(a.OT))
-                      //       .slice(0, 10);
-                      //     setCustomEvents(arr);
-                      //     // Optionally fit map to curated events so users can see them
-                      //     try {
-                      //       const map = window.__leaflet_map__;
-                      //       if (map && arr.length) {
-                      //         const lats = arr.map(e => Number(e.latitude_value)).filter(n => Number.isFinite(n));
-                      //         const lngs = arr.map(e => Number(e.longitude_value)).filter(n => Number.isFinite(n));
-                      //         if (lats.length && lngs.length) {
-                      //           const south = Math.min(...lats);
-                      //           const north = Math.max(...lats);
-                      //           const west = Math.min(...lngs);
-                      //           const east = Math.max(...lngs);
-                      //           map.fitBounds([[south, west], [north, east]], { padding: [24, 24] });
-                      //         }
-                      //       }
-                      //     } catch (err) {
-                      //       // non-fatal
-                      //     }
-                      //   } catch (e) {
-                      //     console.error('Failed fetching significant-eqs:', e);
-                      //     // Leave customEvents as null so UI falls back to latest feed
-                      //     setCustomEvents(null);
-                      //   }
-                      // })();
+
+                      // Refetch events for the latest 30d whenever switching back
+                      fetchEventsForRange(start, end).catch(console.error);
+
                     } else if (key === 'year-2025') {
                       setPresetTitle('2025 Earthquakes');
                       setPresetKey('year-2025');
-                      setSseEnabled(true);
+                      setSseEnabled(false);      // historical view (freeze live stream)
                       setCustomEvents(null);
+
+                      const start = '2025-01-01';
+                      const end   = '2025-12-31';
+
                       setFilters({
                         magMin: 0,
                         magMax: 10,
-                        startDate: moment('2025-01-01').format('YYYY-MM-DD'),
-                        endDate: moment('2025-12-31').format('YYYY-MM-DD')
+                        startDate: start,
+                        endDate: end,
                       });
                       setFilterBounds({
-                        minDate: moment('2025-01-01').format('YYYY-MM-DD'),
-                        maxDate: moment('2025-12-31').format('YYYY-MM-DD')
+                        minDate: start,
+                        maxDate: end,
                       });
+
+                      fetchEventsForRange(start, end).catch(console.error);
+
                     } else if (key === 'year-2024') {
                       setPresetTitle('2024 Earthquakes');
                       setPresetKey('year-2024');
-                      setSseEnabled(true);
+                      setSseEnabled(false);
                       setCustomEvents(null);
+
+                      const start = '2024-01-01';
+                      const end   = '2024-12-31';
+
                       setFilters({
                         magMin: 0,
                         magMax: 10,
-                        startDate: moment('2024-01-01').format('YYYY-MM-DD'),
-                        endDate: moment('2024-12-31').format('YYYY-MM-DD')
+                        startDate: start,
+                        endDate: end,
                       });
                       setFilterBounds({
-                        minDate: moment('2024-01-01').format('YYYY-MM-DD'),
-                        maxDate: moment('2024-12-31').format('YYYY-MM-DD')
+                        minDate: start,
+                        maxDate: end,
                       });
+
+                      fetchEventsForRange(start, end).catch(console.error);
+
                     } else if (key === 'year-2023') {
                       setPresetTitle('2023 Earthquakes');
                       setPresetKey('year-2023');
-                      setSseEnabled(true);
+                      setSseEnabled(false);
                       setCustomEvents(null);
+
+                      const start = '2023-01-01';
+                      const end   = '2023-12-31';
+
                       setFilters({
                         magMin: 0,
                         magMax: 10,
-                        startDate: moment('2023-01-01').format('YYYY-MM-DD'),
-                        endDate: moment('2023-12-31').format('YYYY-MM-DD')
+                        startDate: start,
+                        endDate: end,
                       });
                       setFilterBounds({
-                        minDate: moment('2023-01-01').format('YYYY-MM-DD'),
-                        maxDate: moment('2023-12-31').format('YYYY-MM-DD')
+                        minDate: start,
+                        maxDate: end,
                       });
+
+                      fetchEventsForRange(start, end).catch(console.error);
                     }
                   }}
                 />
-                <SidebarItems initData={customEvents || eventsRef.current} filters={{ ...filters, searchText }} sseEnabled={sseEnabled} />
+                <SidebarItems initData={customEvents || events} filters={{ ...filters, searchText }} sseEnabled={sseEnabled} />
               </Sidebar>
               <MapContainer
                 center={[12.2795, 122.049]}
@@ -289,7 +275,7 @@ const HomePage = () => {
                   <MapLayersControl>
                   <LayersControl.Overlay checked name="Earthquakes">
                     <RegisterableLayerGroup overlayId="earthquakes">
-                      <EventMarkers initEvents={customEvents || eventsRef.current} filters={filters} sseEnabled={sseEnabled} />
+                      <EventMarkers initEvents={customEvents || events} filters={filters} sseEnabled={sseEnabled} />
                     </RegisterableLayerGroup>
                   </LayersControl.Overlay>
                   <LayersControl.Overlay checked name="Stations">

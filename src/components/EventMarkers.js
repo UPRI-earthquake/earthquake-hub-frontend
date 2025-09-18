@@ -40,18 +40,28 @@ const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true}) =
           break;
         case 'UPDATE':
           setEvents(prevEvents => prevEvents.map(event =>{
-            if (event.publicID === data.publicID){
-              return {
-                publicID: data.publicID,
-                OT: data.OT,
-                latitude_value: data.latitude_value,
-                longitude_value: data.longitude_value,
-                magnitude_value: data.magnitude_value,
-                depth_km: (data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth),
-                eventType: 'UPDATE',
-                last_modification: data.last_modification
+            if (event.publicID !== data.publicID){
+              return event;
+            }
+
+            const nextEvent = { ...event };
+            Object.entries(data).forEach(([key, value]) => {
+              if (value !== undefined) {
+                nextEvent[key] = value;
               }
-            }else{ return event  }
+            });
+
+            const mergedDepth = data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
+
+            nextEvent.OT = data.OT ?? event.OT;
+            nextEvent.latitude_value = data.latitude_value ?? event.latitude_value;
+            nextEvent.longitude_value = data.longitude_value ?? event.longitude_value;
+            nextEvent.magnitude_value = data.magnitude_value ?? event.magnitude_value;
+            nextEvent.depth_km = mergedDepth ?? event.depth_km ?? event.depthKm ?? event.depth_value ?? event.depthValue ?? event.depth ?? null;
+            nextEvent.eventType = 'UPDATE';
+            nextEvent.last_modification = data.last_modification ?? event.last_modification;
+
+            return nextEvent;
           }));
           break;
         default:
@@ -86,20 +96,41 @@ const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true}) =
     return ev.depth_km ?? ev.depthKm ?? ev.depth_value ?? ev.depthValue ?? ev.depth ?? null;
   };
 
+  const toFinite = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const eventsWithCoords = visible.filter((event) => {
+    return toFinite(event.latitude_value) != null && toFinite(event.longitude_value) != null;
+  });
+
   return (
-    visible.map(event => (
-      <EventMarker
-        key={event.publicID}
-        publicID={event.publicID}
-        time={event.OT}
-        lat={event.latitude_value}
-        lng={event.longitude_value}
-        mag={event.magnitude_value}
-        depthKm={pickDepth(event)}
-        status={event.eventType ? event.eventType : null}
-        last_modification={event.last_modification}
-      />
-    ))
+    eventsWithCoords.map(event => {
+      const lat = toFinite(event.latitude_value);
+      const lng = toFinite(event.longitude_value);
+      if (lat == null || lng == null) {
+        return null;
+      }
+
+      const magnitude = Number.isFinite(Number(event.magnitude_value))
+        ? Number(event.magnitude_value)
+        : 0;
+
+      return (
+        <EventMarker
+          key={event.publicID}
+          publicID={event.publicID}
+          time={event.OT}
+          lat={lat}
+          lng={lng}
+          mag={magnitude}
+          depthKm={pickDepth(event)}
+          status={event.eventType ? event.eventType : null}
+          last_modification={event.last_modification}
+        />
+      );
+    })
   );
 }
 
