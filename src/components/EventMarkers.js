@@ -26,18 +26,31 @@ const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true}) =
       const data = JSON.parse(event.data);// to parse to get valid json-obj
 
       switch (data.eventType){
-        case 'NEW':
-          setEvents(prevEvents => [{
-            publicID: data.publicID,
-            OT: data.OT,
-            latitude_value: data.latitude_value,
-            longitude_value: data.longitude_value,
-            magnitude_value: data.magnitude_value,
-            depth_km: (data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth),
-            eventType: 'NEW',
-            last_modification: data.last_modification
-          }, ...prevEvents])
+        case 'NEW': {
+          const depthValue = data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
+          setEvents(prevEvents => {
+            const nextEvent = {
+              publicID: data.publicID,
+              OT: data.OT,
+              latitude_value: data.latitude_value,
+              longitude_value: data.longitude_value,
+              magnitude_value: data.magnitude_value,
+              depth_km: depthValue,
+              eventType: 'NEW',
+              last_modification: data.last_modification
+            };
+
+            const existingIndex = prevEvents.findIndex(event => event.publicID === data.publicID);
+            if (existingIndex !== -1) {
+              const updated = [...prevEvents];
+              updated[existingIndex] = { ...prevEvents[existingIndex], ...nextEvent };
+              return updated;
+            }
+
+            return [nextEvent, ...prevEvents];
+          });
           break;
+        }
         case 'UPDATE':
           setEvents(prevEvents => prevEvents.map(event =>{
             if (event.publicID !== data.publicID){
