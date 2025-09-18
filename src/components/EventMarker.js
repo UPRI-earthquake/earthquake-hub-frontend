@@ -17,29 +17,33 @@ function toRadius(magnitude) {
 
 const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modification}) => {
 
+  // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
+  const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
   const selectedEvent = useSelector(state => state)
   const popupRef = useRef(null);
+  const markerRef = useRef(null);
   const centerAndPopupEvent = useCallback((selectedEventId) => {
     if (!map) return;
 
     if (selectedEventId === publicID) {
-      map.flyTo([lat, lng], 9);
-      const popup = popupRef.current;
-      if (popup && typeof popup.openOn === 'function') {
-        popup.openOn(map);
-      } else if (popup) {
-        map.openPopup(popup);
+      if (hasValidCoords) {
+        map.flyTo([lat, lng], 9);
+      }
+      const marker = markerRef.current;
+      if (marker && typeof marker.openPopup === 'function') {
+        marker.openPopup();
       }
     } else if (selectedEventId === null) {
       map.flyTo([12.2795, 122.049], 6);
-      const popup = popupRef.current;
-      if (popup) {
-        map.closePopup(popup);
+      const marker = markerRef.current;
+      if (marker && typeof marker.closePopup === 'function') {
+        marker.closePopup();
       }
     }
-  }, [map, publicID, lat, lng]);
+  }, [map, publicID, lat, lng, hasValidCoords]);
   useEffect(() => {
     centerAndPopupEvent(selectedEvent)
   }, [selectedEvent, centerAndPopupEvent]);
@@ -103,9 +107,18 @@ const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modif
       }
   );
 
+  // If bad coords slipped through, skip rendering after hooks have been called
+  if (!hasValidCoords) {
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.warn('EventMarker skipped due to invalid coords', { publicID, lat, lng });
+    }
+    return null;
+  }
 
   return(
     <Marker 
+      ref={markerRef}
       icon={divCircle}
       stroke={false}
       position={[lat, lng]}
