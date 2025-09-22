@@ -130,6 +130,24 @@ const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modif
     return () => window.cancelAnimationFrame(id);
   }, [divCircle]);
 
+  // Ensure fade-in re-applies when the marker layer is re-added (e.g., overlay toggled)
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker || typeof marker.on !== 'function') return undefined;
+    const onAdd = () => {
+      const el = marker.getElement && marker.getElement();
+      if (!el) return;
+      el.classList.remove('is-mounted');
+      window.requestAnimationFrame(() => {
+        el.classList.add('is-mounted');
+      });
+    };
+    marker.on('add', onAdd);
+    return () => {
+      marker.off('add', onAdd);
+    };
+  }, []);
+
   // If bad coords slipped through, skip rendering after hooks have been called
   if (!hasValidCoords) {
     if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {

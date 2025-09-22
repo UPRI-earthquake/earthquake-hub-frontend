@@ -85,7 +85,19 @@ function SidebarItems({initData, filters, sseEnabled = true}) {
     return Number.isFinite(n) ? n.toFixed(1) : String(v ?? '-');
   };
 
-  return(filtered.map(item =>
+  if (!filtered.length) {
+    // Empty-state indicator shown inside the scroll area
+    return (
+      <div className="sidebar-empty">
+        <div className="sidebar-empty-inner">
+          <div className="sidebar-empty-title">No results</div>
+          <div className="sidebar-empty-desc">Try adjusting search or filters.</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (filtered.map(item => (
     <SidebarItem
       key={item.publicID}
       publicID={item.publicID}
@@ -99,7 +111,7 @@ function SidebarItems({initData, filters, sseEnabled = true}) {
       status={item.eventType ? item.eventType : null}
       last_modification={item.last_modification}
     />
-  ))
+  )))
 }
 
 export default SidebarItems

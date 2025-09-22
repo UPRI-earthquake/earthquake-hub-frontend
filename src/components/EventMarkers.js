@@ -4,7 +4,7 @@ import { ZOOM } from '../config/mapStyles';
 import SSEContext from "../SSEContext";
 import EventMarker from "./EventMarker";
 
-const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true}) => {
+const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true, datasetKey}) => {
   const map = useMap();
   const [events, setEvents] = useState(initEvents)
   const [zoom, setZoom] = useState(() => (map ? map.getZoom() : 6));
@@ -132,7 +132,7 @@ const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true}) =
 
       return (
         <EventMarker
-          key={event.publicID}
+          key={(datasetKey ? `${datasetKey}-` : '') + event.publicID}
           publicID={event.publicID}
           time={event.OT}
           lat={lat}

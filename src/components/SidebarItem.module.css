@@ -91,3 +91,23 @@ html[data-basemap-theme="imagery"] .sidebarItem > div > .subDesc{ color: #d1d5db
   50% {background-color: rgba(255,0,0,0.15)}
   to {background-color: #ffffff;}
 }
+
+/* --- Selected state styles --- */
+.selected {
+  border-left: 4px solid #3a6a50; /* brand accent on light */
+  padding-left: 11px; /* compensate for thicker left border */
+  background-color: rgba(58,106,80,0.06);
+}
+.selected .mag { color: #3a6a50; }
+
+html[data-basemap-theme="dark"] .selected,
+html[data-basemap-theme="imagery"] .selected {
+  border-left-color: #86efac; /* readable on dark */
+  background-color: rgba(134,239,172,0.08);
+}
+html[data-basemap-theme="dark"] .selected .mag,
+html[data-basemap-theme="imagery"] .selected .mag { color: #86efac; }
+
+@media (max-width: 768px) {
+  .selected { border-left-width: 4px; }
+}

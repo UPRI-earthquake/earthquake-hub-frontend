@@ -255,10 +255,6 @@ html[data-basemap-theme="imagery"] .rangeWrap input[type="range"]::-moz-range-th
   /* Keep values on a single line to avoid awkward wraps
      like "8.0 –" on one line and "8.0" on the next */
   white-space: nowrap;
-  /* Smooth motion and faster fades */
-  /* transition: left 100ms ease, transform 100ms ease, opacity 100ms linear;
-  will-change: left, transform;
-  opacity: 1; */
 }
 html[data-basemap-theme="dark"] .bubble,
 html[data-basemap-theme="imagery"] .bubble{ color: #0b1220; }

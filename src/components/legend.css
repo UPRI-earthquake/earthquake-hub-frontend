@@ -165,5 +165,16 @@
 
 /* Mobile: limit legend height a bit more to avoid crowding */
 @media (max-width: 767px) {
-  .legend-body { max-height: 28vh; }
+  /* Constrain the legend panel height on small screens.
+     Keep some vertical headroom so it doesn't overlap with the
+     Map Layers panel when both are open. */
+  .custom-legend-control {
+    max-height: 42vh;
+    overflow: hidden; /* body scrolls */
+  }
+  .legend-body {
+    max-height: calc(42vh - 44px); /* leave room for header */
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
 }

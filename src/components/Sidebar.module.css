@@ -25,6 +25,26 @@
   display: block;
 }
 
+/* Empty-state indicator (desktop) */
+.sidebar :global(.sidebar-empty) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 16px;
+}
+.sidebar :global(.sidebar-empty-inner) {
+  text-align: center;
+  color: #6b7280; /* gray-500 */
+}
+.sidebar :global(.sidebar-empty-title) { font-weight: 600; margin-bottom: 4px; color: #374151; /* gray-700 */ }
+.sidebar :global(.sidebar-empty-desc) { font-size: 13px; }
+
+html[data-basemap-theme="dark"] .sidebar :global(.sidebar-empty-inner),
+html[data-basemap-theme="imagery"] .sidebar :global(.sidebar-empty-inner) { color: #9ca3af; }
+html[data-basemap-theme="dark"] .sidebar :global(.sidebar-empty-title),
+html[data-basemap-theme="imagery"] .sidebar :global(.sidebar-empty-title) { color: #e5e7eb; }
+
 /* Dark/Imagery themed sidebar via basemap theme attribute on <html> */
 html[data-basemap-theme="dark"] .sidebar,
 html[data-basemap-theme="imagery"] .sidebar{
@@ -54,4 +74,28 @@ html[data-basemap-theme="imagery"] .sidebar{
   }
   /* Ensure each sidebar item renders as a readable card */
   .itemsScroll > * { flex: 0 0 300px; }
+
+  /* Empty-state card (mobile) spans the viewport width and centers content */
+  .itemsScroll :global(.sidebar-empty) {
+    /* Override the 300px card width rule */
+    flex: 1 0 100% !important;
+    min-width: 100%;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;            /* fill the scroller's height exactly */
+    padding: 0 16px;         /* horizontal padding only */
+    box-sizing: border-box;  /* don't expand sidebar height */
+  }
+  .itemsScroll :global(.sidebar-empty-inner) {
+    width: 100%;
+    max-width: 90%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
 }

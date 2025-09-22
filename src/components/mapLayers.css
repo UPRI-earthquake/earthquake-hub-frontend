@@ -182,9 +182,19 @@
     width: auto;
     min-width: 0;
     max-width: 300px;
+    /* Constrain overall panel height on small screens to avoid
+       intersecting with the Legend panel anchored at bottom-right. */
+    max-height: 50vh;
+    overflow: hidden; /* body scrolls */
   }
   /* Constrain body so it doesn't collide visually with the legend */
-  .layers-body { max-height: 35vh; padding-bottom: 16px; }
+  .layers-body {
+    /* Leave space for header/tools inside the panel */
+    max-height: calc(38vh - 48px);
+    padding-bottom: 16px;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
   /* Floating close stays in top-right */
   .layers-header { right: 8px; top: 8px; }
   .layers-header::before { display: none; }

@@ -275,7 +275,7 @@ const HomePage = () => {
                   <MapLayersControl>
                   <LayersControl.Overlay checked name="Earthquakes">
                     <RegisterableLayerGroup overlayId="earthquakes">
-                      <EventMarkers initEvents={customEvents || events} filters={filters} sseEnabled={sseEnabled} />
+                      <EventMarkers initEvents={customEvents || events} filters={filters} sseEnabled={sseEnabled} datasetKey={presetKey} />
                     </RegisterableLayerGroup>
                   </LayersControl.Overlay>
                   <LayersControl.Overlay checked name="Stations">

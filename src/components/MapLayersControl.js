@@ -260,8 +260,10 @@ export default function MapLayersControl({ children }) {
       el.setAttribute('data-zoom-lte4', z <= 4 ? '1' : '0');
     };
     setZoomAttr();
+    // Update continuously during zoom for smoother CSS reactions
+    map.on('zoom', setZoomAttr);
     map.on('zoomend', setZoomAttr);
-    return () => map.off('zoomend', setZoomAttr);
+    return () => { map.off('zoom', setZoomAttr); map.off('zoomend', setZoomAttr); };
   }, [map]);
 
   // Reflect active overlays as data-attrs for CSS-based tweaks
@@ -295,9 +297,11 @@ export default function MapLayersControl({ children }) {
       el.style.setProperty('--st-halo', toks.stations.halo);
     };
     apply();
+    // Update scale tokens continuously during zoom to keep marker size/opacity responsive
+    map.on('zoom', apply);
     map.on('zoomend', apply);
     map.on('baselayerchange', apply);
-    return () => { map.off('zoomend', apply); map.off('baselayerchange', apply); };
+    return () => { map.off('zoom', apply); map.off('zoomend', apply); map.off('baselayerchange', apply); };
   }, [map, activeIds]);
 
   // Enhance LayersControl UI: header, thumbnails, overlay swatches
@@ -569,7 +573,9 @@ export default function MapLayersControl({ children }) {
             if (el && hoverClassName) el.classList.add(hoverClassName);
             const baseNow = getBase();
             const baseW = (baseNow.weight || 2);
-            layer.setStyle({ ...baseNow, weight: baseW + 1, opacity: 1 });
+            // Bump weight noticeably on hover to aid tooltip targeting
+            const hoverW = Math.max(baseW + 2.5, baseW * 2.5);
+            layer.setStyle({ ...baseNow, weight: hoverW, opacity: 1 });
             if (layer.bringToFront) layer.bringToFront();
             const pathEl = layer.getElement ? layer.getElement() : (layer._path || null);
             if (pathEl) {
@@ -592,7 +598,9 @@ export default function MapLayersControl({ children }) {
           } else {
             const baseNow = getBase();
             const baseW = (baseNow.weight || 2);
-            try { layer.setStyle({ ...baseNow, weight: baseW + 2, opacity: 1 }); } catch (_) {}
+            // Keep a stronger highlight when tooltip is pinned open
+            const selectedW = Math.max(baseW + 3, baseW * 3);
+            try { layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 }); } catch (_) {}
           }
           const el = map?.getContainer?.();
           if (el && hoverClassName) el.classList.remove(hoverClassName);
@@ -620,7 +628,8 @@ export default function MapLayersControl({ children }) {
             } else {
               const baseNow = getBase();
               const baseW = (baseNow.weight || 2);
-              layer.setStyle({ ...baseNow, weight: baseW + 2, opacity: 1 });
+              const selectedW = Math.max(baseW + 3, baseW * 3);
+              layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
               if (layer.bringToFront) layer.bringToFront();
               const pathEl = layer.getElement ? layer.getElement() : (layer._path || null);
               if (pathEl) { try { pathEl.classList.add('selected-glow'); } catch (_) {} }

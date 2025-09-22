@@ -79,10 +79,10 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   const faultColor = (t === 'dark' || t === 'satellite') ? PALETTE.faults.dark : PALETTE.faults.light;
   const faultOpacityBase = 0.9;
   const faultOpacity = (!hasEQ && hasFaults) ? Math.min(1, faultOpacityBase + 0.05) : faultOpacityBase;
-  const faultWeightBase = ZOOM.country(z) ? 1.1 : (ZOOM.regional(z) ? 1.8 : 2.2);
-  let faultWeight = (!hasEQ && hasFaults) ? (faultWeightBase + 0.25) : faultWeightBase;
-  faultWeight *= scale; // enlarge at higher zooms for easier tapping
-  if (z >= 14) faultWeight += 2; // extra thickness at very close zooms
+  // Keep base stroke weights thin to match basemap scale; do not up-scale with zoom.
+  // Hover/selection will temporarily increase weight for readability/tooltips.
+  const faultWeightBase = ZOOM.country(z) ? 0.6 : (ZOOM.regional(z) ? 0.8 : 1.0);
+  const faultWeight = faultWeightBase;
   const faultDashed = ZOOM.country(z) && hasEQ && hasFaults;
 
   // Plates
