@@ -187,8 +187,16 @@ const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modif
 /*
 export default EventMarker
 */
-export default React.memo(EventMarker, (prevProps, nextProps) => {
-  // render if status is NEW or was modified
-  return !(nextProps.status === 'NEW' 
-        || nextProps.last_modification !== prevProps.last_modification)
+export default React.memo(EventMarker, (prev, next) => {
+  // Only skip re-render when all relevant props are strictly equal
+  return (
+    prev.publicID === next.publicID &&
+    prev.time === next.time &&
+    prev.lat === next.lat &&
+    prev.lng === next.lng &&
+    prev.mag === next.mag &&
+    prev.depthKm === next.depthKm &&
+    prev.status === next.status &&
+    prev.last_modification === next.last_modification
+  );
 });

@@ -1,7 +1,6 @@
-import React, {useState, useContext, useEffect} from "react"
+import React, {useState, useEffect} from "react"
 import moment from 'moment';
 import SidebarItem from "./SidebarItem"
-import SSEContext from "../SSEContext";
 
 function SidebarItems({initData, filters, sseEnabled = true}) {
   const [items, setItems] = useState(() => {
@@ -14,51 +13,6 @@ function SidebarItems({initData, filters, sseEnabled = true}) {
     const next = (initData || []).slice().sort((a, b) => new Date(b.OT) - new Date(a.OT));
     setItems(next);
   }, [initData]);
-
-  const eventSource = useContext(SSEContext);
-  useEffect(() => {
-    if (!sseEnabled) return; // disable live updates for curated presets
-    const handleEQEvent = (event) => {
-      const data = JSON.parse(event.data)// to parse to get valid json-obj
-
-      switch (data.eventType){
-        case 'NEW':
-          setItems(prevItems => [{
-            publicID: data.publicID,
-            magnitude_value: data.magnitude_value,
-            place: data.place,
-            OT: data.OT,
-            text: data.text,
-            eventType: 'NEW',
-            last_modification: data.last_modification,
-
-          }, ...prevItems])
-          break;
-        case 'UPDATE':
-          setItems(prevItems => prevItems.map(item=>{
-            if (item.publicID === data.publicID){
-              return {
-                publicID: data.publicID,
-                magnitude_value: data.magnitude_value,
-                place: data.place,
-                OT: data.OT,
-                text: data.text,
-                eventType: 'UPDATE',
-                last_modification: data.last_modification,
-              }
-            }else{ return item }
-          }));
-          break;
-        default:
-          ;
-      }
-    }
-    eventSource.addEventListener('SC_EVENT', handleEQEvent);
-
-    return () => {
-      eventSource.removeEventListener('SC_EVENT', handleEQEvent);
-    };
-  }, [eventSource, sseEnabled]);
 
   // Client-side filtering (frontend only for now)
   const f = filters || {};

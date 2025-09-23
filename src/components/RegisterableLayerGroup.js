@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef } from 'react';
-import { LayerGroup } from 'react-leaflet';
+import { LayerGroup, useMap } from 'react-leaflet';
 import { useOverlayState } from './OverlayStateContext';
 
 // LayerGroup that registers itself with the overlay legend sync under a given overlayId
@@ -7,6 +7,7 @@ const RegisterableLayerGroup = forwardRef(function RegisterableLayerGroup(
   { overlayId, children },
   ref
 ) {
+  const map = useMap();
   const { registerLayer, unregisterLayer } = useOverlayState();
   const innerRef = useRef(null);
 
@@ -18,6 +19,23 @@ const RegisterableLayerGroup = forwardRef(function RegisterableLayerGroup(
       if (layer) unregisterLayer(layer);
     };
   }, [overlayId, registerLayer, unregisterLayer]);
+
+  // Defensive: when this overlay layer is re-added to the map via the LayersControl,
+  // clear any stale Leaflet children that might have been left by third-party states.
+  // React will immediately repopulate the group with the current children.
+  useEffect(() => {
+    if (!map) return undefined;
+    const node = innerRef.current;
+    const layer = node && (node.leafletElement || node);
+    if (!layer) return undefined;
+    const onOverlayAdd = (e) => {
+      if (e && e.layer === layer && typeof layer.clearLayers === 'function') {
+        try { layer.clearLayers(); } catch (_) {}
+      }
+    };
+    map.on('overlayadd', onOverlayAdd);
+    return () => { map.off('overlayadd', onOverlayAdd); };
+  }, [map]);
 
   // Pass-through ref support
   const setRef = (node) => {
@@ -31,4 +49,3 @@ const RegisterableLayerGroup = forwardRef(function RegisterableLayerGroup(
 });
 
 export default RegisterableLayerGroup;
-

@@ -1,17 +1,29 @@
-import React, { useEffect, useContext, useState }  from 'react';
+import React, { useEffect, useState, useMemo }  from 'react';
 import { useMap } from 'react-leaflet';
 import { ZOOM } from '../config/mapStyles';
-import SSEContext from "../SSEContext";
 import EventMarker from "./EventMarker";
+import { useOverlayState } from './OverlayStateContext';
 
 const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true, datasetKey}) => {
   const map = useMap();
+  const { activeIds } = useOverlayState();
+  // Treat overlay visibility as a first‑class state so logic can react to toggles
+  const earthquakesActive = useMemo(() => activeIds?.has?.('earthquakes') ?? true, [activeIds]);
   const [events, setEvents] = useState(initEvents)
   const [zoom, setZoom] = useState(() => (map ? map.getZoom() : 6));
-  // Keep events in sync when initEvents changes (e.g., preset switch)
+  // Keep events in sync when initEvents or dataset key changes (e.g., preset switch)
   useEffect(() => {
     setEvents(initEvents || []);
-  }, [initEvents]);
+  }, [initEvents, datasetKey]);
+
+  // Also resync when the overlay is toggled back on, to avoid any stale local
+  // cache from before it was hidden.
+  useEffect(() => {
+    if (earthquakesActive) {
+      setEvents(initEvents || []);
+    }
+  }, [earthquakesActive, initEvents, datasetKey]);
+
   useEffect(() => {
     if (!map) return undefined;
     const onZoom = () => setZoom(map.getZoom());
@@ -19,71 +31,8 @@ const EventMarkers = ({initEvents, selectedEvent, filters, sseEnabled = true, da
     return () => map.off('zoomend', onZoom);
   }, [map]);
 
-  const eventSource = useContext(SSEContext);
-  useEffect(() => {
-    if (!sseEnabled) return; // disable live updates for curated presets
-    const handleEQEvent = (event) => {
-      const data = JSON.parse(event.data);// to parse to get valid json-obj
-
-      switch (data.eventType){
-        case 'NEW': {
-          const depthValue = data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
-          setEvents(prevEvents => {
-            const nextEvent = {
-              publicID: data.publicID,
-              OT: data.OT,
-              latitude_value: data.latitude_value,
-              longitude_value: data.longitude_value,
-              magnitude_value: data.magnitude_value,
-              depth_km: depthValue,
-              eventType: 'NEW',
-              last_modification: data.last_modification
-            };
-
-            const existingIndex = prevEvents.findIndex(event => event.publicID === data.publicID);
-            if (existingIndex !== -1) {
-              const updated = [...prevEvents];
-              updated[existingIndex] = { ...prevEvents[existingIndex], ...nextEvent };
-              return updated;
-            }
-
-            return [nextEvent, ...prevEvents];
-          });
-          break;
-        }
-        case 'UPDATE':
-          setEvents(prevEvents => prevEvents.map(event =>{
-            if (event.publicID !== data.publicID){
-              return event;
-            }
-
-            const nextEvent = { ...event };
-            Object.entries(data).forEach(([key, value]) => {
-              if (value !== undefined) {
-                nextEvent[key] = value;
-              }
-            });
-
-            const mergedDepth = data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
-
-            nextEvent.OT = data.OT ?? event.OT;
-            nextEvent.latitude_value = data.latitude_value ?? event.latitude_value;
-            nextEvent.longitude_value = data.longitude_value ?? event.longitude_value;
-            nextEvent.magnitude_value = data.magnitude_value ?? event.magnitude_value;
-            nextEvent.depth_km = mergedDepth ?? event.depth_km ?? event.depthKm ?? event.depth_value ?? event.depthValue ?? event.depth ?? null;
-            nextEvent.eventType = 'UPDATE';
-            nextEvent.last_modification = data.last_modification ?? event.last_modification;
-
-            return nextEvent;
-          }));
-          break;
-        default:
-          ;
-      }
-    };
-    eventSource.addEventListener('SC_EVENT', handleEQEvent);
-    return () => eventSource.removeEventListener('SC_EVENT', handleEQEvent);
-  }, [eventSource, sseEnabled]);
+  // If overlay is off, render nothing from this layer group
+  if (!earthquakesActive) return null;
   // Client-side filters from sidebar (magnitude + date)
   const magMin = typeof filters?.magMin === 'number' ? filters.magMin : -Infinity;
   const magMax = typeof filters?.magMax === 'number' ? filters.magMax : Infinity;

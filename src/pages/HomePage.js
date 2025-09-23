@@ -26,6 +26,7 @@ const HomePage = () => {
   const stationsRef = useRef([]);  // initial stations data
   const [events, setEvents] = useState([]);  // initial eq-events data
   const eventSourceRef = useRef(null) // SSE-emitter
+  const sseEnabledRef = useRef(true);
   // Sidebar UI state (frontend-only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -63,6 +64,11 @@ const HomePage = () => {
     setEvents((res.data?.payload || []).slice());
     // console.log(`Fetched ${events.length} events for ${startDateISO} to ${endDateISO}`);
   };
+
+  useEffect(() => {
+    // keep a current ref so SSE handler can check live mode
+    sseEnabledRef.current = sseEnabled;
+  }, [sseEnabled]);
 
   useEffect(() => {
     // get initial eq-events from backend
@@ -119,7 +125,66 @@ const HomePage = () => {
           }
           //eventSourceRef.current.close()
         });
+        // Attach a single SC_EVENT handler that fans out into the shared events state.
+        // The handler respects the current sseEnabled mode via a ref, so presets
+        // can turn live updates on/off without re-binding listeners.
+        const handleEQEvent = (event) => {
+          try {
+            if (!sseEnabledRef.current) return;
+            const data = JSON.parse(event.data);
+            const depthVal = data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
+            if (data.eventType === 'NEW') {
+              setEvents((prev) => {
+                const idx = prev.findIndex((e) => e.publicID === data.publicID);
+                const nextEvent = {
+                  publicID: data.publicID,
+                  OT: data.OT,
+                  latitude_value: data.latitude_value,
+                  longitude_value: data.longitude_value,
+                  magnitude_value: data.magnitude_value,
+                  depth_km: depthVal,
+                  eventType: 'NEW',
+                  last_modification: data.last_modification,
+                };
+                if (idx !== -1) {
+                  const copy = prev.slice();
+                  copy[idx] = { ...prev[idx], ...nextEvent };
+                  return copy;
+                }
+                return [nextEvent, ...prev];
+              });
+            } else if (data.eventType === 'UPDATE') {
+              setEvents((prev) => prev.map((ev) => {
+                if (ev.publicID !== data.publicID) return ev;
+                const mergedDepth = depthVal ?? ev.depth_km ?? ev.depthKm ?? ev.depth_value ?? ev.depthValue ?? ev.depth ?? null;
+                return {
+                  ...ev,
+                  OT: data.OT ?? ev.OT,
+                  latitude_value: data.latitude_value ?? ev.latitude_value,
+                  longitude_value: data.longitude_value ?? ev.longitude_value,
+                  magnitude_value: data.magnitude_value ?? ev.magnitude_value,
+                  depth_km: mergedDepth,
+                  eventType: 'UPDATE',
+                  last_modification: data.last_modification ?? ev.last_modification,
+                };
+              }));
+            }
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn('SC_EVENT parse/handle error', err);
+          }
+        };
+        eventSourceRef.current.addEventListener('SC_EVENT', handleEQEvent);
+
         setLoading(false);
+
+        // Cleanup of SC_EVENT listener when component unmounts
+        // (EventSource is also closed below in the returned cleanup.)
+        const detach = () => {
+          try { eventSourceRef.current && eventSourceRef.current.removeEventListener('SC_EVENT', handleEQEvent); } catch (_) {}
+        };
+        // Stash on ref to call in outer cleanup
+        eventSourceRef.current.__detach_sc_event = detach;
       })
       .catch(errorArray => {
         setServerError(true);
@@ -129,6 +194,7 @@ const HomePage = () => {
     return () => {
       // clean up function 
       if(eventSourceRef.current){
+        try { eventSourceRef.current.__detach_sc_event && eventSourceRef.current.__detach_sc_event(); } catch (_) {}
         eventSourceRef.current.close()
       }
       //eventSource.removeEventListener('error',onError)
@@ -275,7 +341,13 @@ const HomePage = () => {
                   <MapLayersControl>
                   <LayersControl.Overlay checked name="Earthquakes">
                     <RegisterableLayerGroup overlayId="earthquakes">
-                      <EventMarkers initEvents={customEvents || events} filters={filters} sseEnabled={sseEnabled} datasetKey={presetKey} />
+                      {/* Render earthquake markers for the current dataset + filters */}
+                      <EventMarkers
+                        initEvents={customEvents || events}
+                        filters={filters}
+                        sseEnabled={sseEnabled}
+                        datasetKey={presetKey}
+                      />
                     </RegisterableLayerGroup>
                   </LayersControl.Overlay>
                   <LayersControl.Overlay checked name="Stations">
