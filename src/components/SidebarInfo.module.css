@@ -402,4 +402,11 @@ html[data-basemap-theme="imagery"] .primaryBtn{
     left: 0;
     right: 0;
   }
+
+  /* Disable CSS tooltips for presets and icon buttons on mobile */
+  .menuItem[data-tip]:hover::after,
+  .iconBtn[data-tip]:hover::after {
+    content: none;
+    display: none;
+  }
 }

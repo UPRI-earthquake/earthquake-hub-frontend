@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import axios from 'axios';
 import moment from 'moment';
-import { MapContainer, LayersControl } from "react-leaflet";
+import { MapContainer, LayersControl, ScaleControl, ZoomControl } from "react-leaflet";
 import "./homePage.css";
 import StationMarkers from "../components/StationMarkers";
 import EventMarkers from "../components/EventMarkers";
@@ -44,6 +44,13 @@ const HomePage = () => {
     minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     maxDate: moment().format('YYYY-MM-DD'),
   }));
+  // Responsive scalebar width to avoid overlap with Legend on small screens
+  const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1024));
+  useEffect(() => {
+    const onR = () => setVw(window.innerWidth || 1024);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
 
   const fetchEventsForRange = async (startDateISO, endDateISO) => {
     const backend_host = process.env.NODE_ENV === 'production'
@@ -326,6 +333,7 @@ const HomePage = () => {
                 center={[12.2795, 122.049]}
                 zoom={6}
                 minZoom={2}
+                zoomControl={false}
                 worldCopyJump
                 // Hard-stop vertically at WebMercator limits, but keep
                 // very wide longitudes so horizontal panning is not blocked.
@@ -334,6 +342,8 @@ const HomePage = () => {
                 preferCanvas
                 whenCreated={(m)=> (window.__leaflet_map__ = m)}
               >
+                {/* Zoom at top-left (requested) */}
+                <ZoomControl position="topleft" />
                 {/* Global attribution control without Leaflet prefix */}
                 <AttributionControl />
                 {/* Legend + Basemaps/Overlays with synced state */}
@@ -356,6 +366,13 @@ const HomePage = () => {
                     </RegisterableLayerGroup>
                   </LayersControl.Overlay>
                   </MapLayersControl>
+                  {/* Metric scalebar; bottom-left on desktop, top-center on mobile */}
+                  <ScaleControl
+                    position={vw < 768 ? "topleft" : "bottomleft"}
+                    metric
+                    imperial={false}
+                    maxWidth={vw < 480 ? 110 : (vw < 768 ? 140 : 200)}
+                  />
                   <LegendControl />
                 </OverlayStateProvider>
               </MapContainer>

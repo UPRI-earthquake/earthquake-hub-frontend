@@ -295,6 +295,11 @@ export default function MapLayersControl({ children }) {
       el.style.setProperty('--eq-scale', String(toks.eq.scale || 1));
       el.style.setProperty('--st-fill', toks.stations.fill);
       el.style.setProperty('--st-halo', toks.stations.halo);
+      if (toks.stations.haloWidth) {
+        el.style.setProperty('--st-halo-w', `${toks.stations.haloWidth}px`);
+      } else {
+        el.style.removeProperty('--st-halo-w');
+      }
     };
     apply();
     // Update scale tokens continuously during zoom to keep marker size/opacity responsive

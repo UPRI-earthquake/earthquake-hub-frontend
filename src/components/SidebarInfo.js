@@ -230,7 +230,7 @@ function SidebarInfo({
   const onTrackMouseDown = (e) => { jumpNearest(e.clientX); };
   const onTrackTouchStart = (e) => {
     if (e.touches && e.touches[0]) jumpNearest(e.touches[0].clientX);
-    e.preventDefault();
+    // e.preventDefault();
   };
 
   return (
