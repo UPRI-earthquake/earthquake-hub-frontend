@@ -26,6 +26,7 @@ const PALETTE = {
   },
   stations: {
     fill: '#2E8B57',
+    // Default halos; satellite will override to white for contrast
     haloLight: '#FFFFFF',
     haloDark: '#1A1A1A',
   },
@@ -92,9 +93,14 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   if (z >= 14) plateWeight += 2; // extra thickness at very close zooms
 
   // Stations
-  const stFill = PALETTE.stations.fill;
-  const stHalo = (t === 'dark' || t === 'satellite') ? PALETTE.stations.haloDark : PALETTE.stations.haloLight;
-  const stOpacity = 0.9;
+  // On satellite imagery, use a high-contrast fill and thicker white halo
+  // so markers remain visible over greens (land) and dark blues (water).
+  const stFill = (t === 'satellite') ? '#FFD54F' : PALETTE.stations.fill; // amber 300
+  const stHalo = (t === 'satellite')
+    ? '#FFFFFF'
+    : (t === 'dark' ? PALETTE.stations.haloDark : PALETTE.stations.haloLight);
+  const stHaloWidth = (t === 'satellite') ? 3 : (t === 'dark' ? 2.5 : 2);
+  const stOpacity = (t === 'satellite') ? 0.95 : 0.9;
 
   return {
     theme: t,
@@ -122,6 +128,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
     stations: {
       fill: stFill,
       halo: stHalo,
+      haloWidth: stHaloWidth,
       opacity: stOpacity,
     },
     zIndex: {

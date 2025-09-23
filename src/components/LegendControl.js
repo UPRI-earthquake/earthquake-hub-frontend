@@ -346,6 +346,30 @@ export default function LegendControl({ position = 'bottomright' }) {
     }
   });
 
+  // Track current basemap theme and map zoom so legend swatches react
+  const [legendTheme, setLegendTheme] = useState(() => {
+    try { return themeFromMapContainer(map?.getContainer?.()); } catch (_) { return 'light'; }
+  });
+  const [legendZoom, setLegendZoom] = useState(() => {
+    try { return zoomFromMap(map); } catch (_) { return 6; }
+  });
+
+  // Update on basemap or zoom changes
+  useEffect(() => {
+    if (!map) return undefined;
+    const el = map.getContainer();
+    const applyTheme = () => setLegendTheme(themeFromMapContainer(el));
+    const applyZoom = () => setLegendZoom(zoomFromMap(map));
+    applyTheme();
+    applyZoom();
+    map.on('baselayerchange', applyTheme);
+    map.on('zoomend', applyZoom);
+    return () => {
+      map.off('baselayerchange', applyTheme);
+      map.off('zoomend', applyZoom);
+    };
+  }, [map]);
+
   // Build/attach Leaflet control container
   useEffect(() => {
     if (!map) return undefined;
@@ -465,10 +489,10 @@ export default function LegendControl({ position = 'bottomright' }) {
             <LegendContent
               active={activeIds}
               tokens={buildThemeTokens({
-                theme: themeFromMapContainer(map.getContainer()),
+                theme: legendTheme,
                 // Exclude the very-close 5x scaling in legend swatches
                 // so line symbols remain consistent regardless of map zoom.
-                zoom: Math.min(zoomFromMap(map), 13.99),
+                zoom: Math.min(legendZoom, 13.99),
                 overlays: activeIds,
               })}
             />

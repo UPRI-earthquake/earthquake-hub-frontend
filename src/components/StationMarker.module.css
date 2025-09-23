@@ -1,13 +1,14 @@
 .static {
     fill: var(--st-fill, #2E8B57);
     stroke: var(--st-halo, #FFFFFF);
-    stroke-width: 2px;
+    stroke-width: var(--st-halo-w, 2px);
     opacity: 0.9;
 }
 
 .dynamic {
     fill: var(--st-fill, #2E8B57);
     stroke: #e86a73;
+    stroke-width: var(--st-halo-w, 2px);
     animation-name: radiate;
     animation-duration: 1.5s;
     animation-iteration-count: infinite;
