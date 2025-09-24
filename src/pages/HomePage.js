@@ -16,6 +16,7 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
 import MapLayersControl from '../components/MapLayersControl';
 import AttributionControl from '../components/AttributionControl';
 import LegendControl from '../components/LegendControl';
+import ResetViewControl from '../components/ResetViewControl';
 import { OverlayStateProvider } from '../components/OverlayStateContext';
 import RegisterableLayerGroup from '../components/RegisterableLayerGroup';
 
@@ -357,6 +358,8 @@ const HomePage = () => {
               >
                 {/* Zoom at top-left (requested) */}
                 <ZoomControl position="topleft" />
+                {/* Reset to Philippines bbox, placed under Zoom with spacing */}
+                <ResetViewControl position="topleft" />
                 {/* Global attribution control without Leaflet prefix */}
                 <AttributionControl />
                 {/* Legend + Basemaps/Overlays with synced state */}
