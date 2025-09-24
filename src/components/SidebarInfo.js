@@ -254,6 +254,7 @@ function SidebarInfo({
           className={styles.titleBtn}
           onClick={() => {
             setFiltersOpen(false); // collapse filter when opening presets
+            setSortOpen(false);    // also hide sort panel when presets open
             setMenuOpen(v => !v);
           }}
           aria-expanded={menuOpen ? 'true' : 'false'}
@@ -284,7 +285,10 @@ function SidebarInfo({
               data-tip={opt.tip}
               onClick={() => {
               onPresetChange && onPresetChange(opt.key);
+              // Hide all other panels when a preset is chosen
               setMenuOpen(false);
+              setFiltersOpen(false);
+              setSortOpen(false);
             }}
             >{opt.label}</button>
           ))}
