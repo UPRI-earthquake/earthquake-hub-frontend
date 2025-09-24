@@ -157,3 +157,43 @@ code {
 
 /* Indicate hoverable path */
 path.remote-geojson-layer.leaflet-interactive { cursor: help; }
+
+/* Reset-to-Philippines control (below Zoom) */
+.leaflet-container .leaflet-control-resetview {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  border: 1px solid rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.leaflet-container .leaflet-control-resetview a.resetview-btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #111827;
+  text-decoration: none;
+}
+.leaflet-container .leaflet-control-resetview a.resetview-btn:hover { background: rgba(0,0,0,0.04); }
+.leaflet-container .leaflet-control-resetview a.resetview-btn:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+.leaflet-container .leaflet-control-resetview .reset-icon { line-height: 1; display: inline-flex; }
+.leaflet-container .leaflet-control-resetview .reset-icon svg { width: 22px; height: 22px; display: block; }
+
+/* Dark/Imagery theme variants */
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-resetview,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-resetview {
+  border-color: rgba(255,255,255,0.25);
+}
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-resetview a.resetview-btn,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-resetview a.resetview-btn {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+.leaflet-container[data-basemap-theme="dark"] .leaflet-control-resetview a.resetview-btn:hover,
+.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-resetview a.resetview-btn:hover {
+  background: #111827;
+}
