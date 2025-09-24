@@ -17,6 +17,11 @@ const FunnelIcon = () => (
     <path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
   </svg>
 );
+const SortIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M6 3h2v14h3l-4 4-4-4h3V3zm7 2h8v2h-8V5zm0 6h6v2h-6v-2zm0 6h4v2h-4v-2z"/>
+  </svg>
+);
 
 function SidebarInfo({
   title = "Latest Earthquakes, Past 30 Days",
@@ -30,9 +35,17 @@ function SidebarInfo({
   onFiltersChange,
   onPresetChange,
   selectedPresetKey,
+  // Controls visibility for future presets
+  showFilter = true,
+  showSort = true,
+  // Sorting state is owned by the parent (e.g., HomePage)
+  sortBy = 'time',            // 'time' | 'mag'
+  sortOrder = 'desc',         // 'asc' | 'desc'
+  onSortChange,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   const rootRef = useRef(null);
   const [local, setLocal] = useState(() => ({
     magMin: 0,
@@ -77,10 +90,11 @@ function SidebarInfo({
       if (!rootRef.current.contains(e.target)) {
         setMenuOpen(false);
         setFiltersOpen(false);
+        setSortOpen(false);
       }
     };
     const onKey = (e) => {
-      if (e.key === 'Escape') { setMenuOpen(false); setFiltersOpen(false); }
+      if (e.key === 'Escape') { setMenuOpen(false); setFiltersOpen(false); setSortOpen(false); }
     };
     document.addEventListener('mousedown', onDoc, true);
     document.addEventListener('touchstart', onDoc, true);
@@ -290,15 +304,28 @@ function SidebarInfo({
               aria-label="Search earthquakes"
             />
           </div>
-          <button
-            className={styles.iconBtn}
-            onClick={() => { setMenuOpen(false); setFiltersOpen(v => !v); }}
-            aria-expanded={filtersOpen ? 'true' : 'false'}
-            aria-label="Open filters"
-            data-tip="Filter earthquakes by magnitude and date"
-          >
-            <FunnelIcon />
-          </button>
+          {showSort && (
+            <button
+              className={styles.iconBtn}
+              onClick={() => { setMenuOpen(false); setFiltersOpen(false); setSortOpen(v => !v); }}
+              aria-expanded={sortOpen ? 'true' : 'false'}
+              aria-label="Open sorting options"
+              data-tip="Sort list by time or magnitude"
+            >
+              <SortIcon />
+            </button>
+          )}
+          {showFilter && (
+            <button
+              className={styles.iconBtn}
+              onClick={() => { setMenuOpen(false); setSortOpen(false); setFiltersOpen(v => !v); }}
+              aria-expanded={filtersOpen ? 'true' : 'false'}
+              aria-label="Open filters"
+              data-tip="Filter earthquakes by magnitude and date"
+            >
+              <FunnelIcon />
+            </button>
+          )}
         </div>
       )}
 
@@ -306,7 +333,7 @@ function SidebarInfo({
       {filtersOpen && (
         <div className={styles.popover} role="dialog" aria-modal="true">
           <div className={styles.popHeader}>
-            <div>Filter</div>
+            <div>Filter by</div>
             <button className={styles.iconBtn} onClick={() => setFiltersOpen(false)} aria-label="Close filters">
               <FunnelIcon />
             </button>
@@ -394,6 +421,77 @@ function SidebarInfo({
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button className={styles.primaryBtn} onClick={applyFilters} aria-label="Apply filters">Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sort popover */}
+      {sortOpen && (
+        <div className={styles.popover} role="dialog" aria-modal="true" aria-label="Sort options">
+          <div className={styles.popHeader}>
+            <div>Sort By</div>
+            <button className={styles.iconBtn} onClick={() => setSortOpen(false)} aria-label="Close sort options">
+              <SortIcon />
+            </button>
+          </div>
+          <div className={styles.popBody}>
+            {/** Helper to humanize order labels */}
+            {(() => null)()}
+            {/** List of criteria with order toggles */}
+            <div className={styles.sortList} role="menu" aria-label="Sort criteria">
+              {[
+                { key: 'time', label: 'Event time' },
+                { key: 'mag',  label: 'Magnitude'  },
+              ].map(opt => {
+                const active = sortBy === opt.key;
+                const nextOrder = active ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc';
+                const arrow = active ? (sortOrder === 'asc' ? '↑' : '↓') : (nextOrder === 'asc' ? '↑' : '↓');
+                const orderLabel = (k, ord) => {
+                  if (k === 'time') return ord === 'asc' ? 'Oldest First' : 'Newest First';
+                  return ord === 'asc' ? 'Lowest First' : 'Highest First';
+                };
+                const labelText = active ? orderLabel(opt.key, sortOrder) : orderLabel(opt.key, nextOrder);
+                return (
+                  <div
+                    key={opt.key}
+                    className={`${styles.sortRow} ${active ? styles.sortRowActive : ''}`}
+                    role="menuitemradio"
+                    aria-checked={active}
+                  >
+                    <button
+                      onClick={() => onSortChange && onSortChange({ by: opt.key, order: active ? sortOrder : sortOrder })}
+                      aria-label={`Sort by ${opt.label}`}
+                      className={styles.sortLeftBtn}
+                    >
+                      {opt.label}
+                    </button>
+                    <div className={styles.sortRight}>
+                      <button
+                        className={`${styles.orderText} ${styles.orderTextBtn}`}
+                        onClick={() => onSortChange && onSortChange({ by: opt.key, order: nextOrder })}
+                        aria-label={`Flip order: ${orderLabel(opt.key, nextOrder)}`}
+                        title={`Flip order: ${orderLabel(opt.key, nextOrder)}`}
+                      >{labelText}</button>
+                      <button
+                        className={styles.sortToggleBtn}
+                        aria-label={`Flip order: ${orderLabel(opt.key, nextOrder)}`}
+                        onClick={() => onSortChange && onSortChange({ by: opt.key, order: nextOrder })}
+                        title={`Flip order: ${orderLabel(opt.key, nextOrder)}`}
+                      >
+                        <span aria-hidden>{arrow}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className={styles.sortFooter}>
+              <button
+                className={styles.primaryBtn}
+                onClick={() => { onSortChange && onSortChange({ by: 'time', order: 'desc' }); }}
+                aria-label="Reset sort to default"
+              >Reset to Default</button>
             </div>
           </div>
         </div>
