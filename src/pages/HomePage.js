@@ -40,6 +40,10 @@ const HomePage = () => {
     startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     endDate: moment().format('YYYY-MM-DD'),
   }));
+  // Sorting: default to recent-first by time
+  const [sort, setSort] = useState(() => ({ by: 'time', order: 'desc' }));
+  // Future preset-driven control visibility (default: show both)
+  const [controlVisibility, setControlVisibility] = useState(() => ({ showFilter: true, showSort: true }));
   const [filterBounds, setFilterBounds] = useState(() => ({
     minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     maxDate: moment().format('YYYY-MM-DD'),
@@ -235,12 +239,18 @@ const HomePage = () => {
                   filterBounds={filterBounds}
                   onFiltersChange={(f) => setFilters(prev => ({ ...prev, ...f }))}
                   selectedPresetKey={presetKey}
+                  showFilter={controlVisibility.showFilter}
+                  showSort={controlVisibility.showSort}
+                  sortBy={sort.by}
+                  sortOrder={sort.order}
+                  onSortChange={(next) => setSort(prev => ({ ...prev, ...next }))}
                   onPresetChange={(key) => {
                     if (key === 'latest-30d') {
                       setPresetTitle('Latest Earthquakes (30 days)');
                       setPresetKey('latest-30d');
                       setSseEnabled(true);       // live mode
                       setCustomEvents(null);
+                      setControlVisibility({ showFilter: true, showSort: true });
 
                       const start = moment().subtract(30, 'days').format('YYYY-MM-DD');
                       const end   = moment().format('YYYY-MM-DD');
@@ -264,6 +274,7 @@ const HomePage = () => {
                       setPresetKey('year-2025');
                       setSseEnabled(false);      // historical view (freeze live stream)
                       setCustomEvents(null);
+                      setControlVisibility({ showFilter: true, showSort: true });
 
                       const start = '2025-01-01';
                       const end   = '2025-12-31';
@@ -286,6 +297,7 @@ const HomePage = () => {
                       setPresetKey('year-2024');
                       setSseEnabled(false);
                       setCustomEvents(null);
+                      setControlVisibility({ showFilter: true, showSort: true });
 
                       const start = '2024-01-01';
                       const end   = '2024-12-31';
@@ -308,6 +320,7 @@ const HomePage = () => {
                       setPresetKey('year-2023');
                       setSseEnabled(false);
                       setCustomEvents(null);
+                      setControlVisibility({ showFilter: true, showSort: true });
 
                       const start = '2023-01-01';
                       const end   = '2023-12-31';
@@ -327,7 +340,7 @@ const HomePage = () => {
                     }
                   }}
                 />
-                <SidebarItems initData={customEvents || events} filters={{ ...filters, searchText }} sseEnabled={sseEnabled} />
+                <SidebarItems initData={customEvents || events} filters={{ ...filters, searchText }} sort={sort} sseEnabled={sseEnabled} />
               </Sidebar>
               <MapContainer
                 center={[12.2795, 122.049]}

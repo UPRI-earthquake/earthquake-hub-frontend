@@ -1,16 +1,13 @@
-import React, {useState, useEffect} from "react"
+import React, {useState, useEffect, useMemo} from "react"
 import moment from 'moment';
 import SidebarItem from "./SidebarItem"
 
-function SidebarItems({initData, filters, sseEnabled = true}) {
-  const [items, setItems] = useState(() => {
-    const arr = (initData || []).slice();
-    return arr.sort((a, b) => new Date(b.OT) - new Date(a.OT));
-  })
+function SidebarItems({initData, filters, sort = { by: 'time', order: 'desc' }, sseEnabled = true}) {
+  const [items, setItems] = useState(() => (initData || []).slice())
 
   // Keep items in sync when initData changes (e.g., preset switch)
   useEffect(() => {
-    const next = (initData || []).slice().sort((a, b) => new Date(b.OT) - new Date(a.OT));
+    const next = (initData || []).slice();
     setItems(next);
   }, [initData]);
 
@@ -34,12 +31,32 @@ function SidebarItems({initData, filters, sseEnabled = true}) {
     return true;
   });
 
+  const sorted = useMemo(() => {
+    const arr = filtered.slice();
+    const by = (sort?.by || 'time');
+    const order = (sort?.order || 'desc');
+    const dir = order === 'asc' ? 1 : -1;
+    const cmp = (a, b) => {
+      if (by === 'mag') {
+        const av = Number(a.magnitude_value) || 0;
+        const bv = Number(b.magnitude_value) || 0;
+        return (av - bv) * dir;
+      }
+      // default: time
+      const at = new Date(a.OT).getTime();
+      const bt = new Date(b.OT).getTime();
+      return (at - bt) * dir;
+    };
+    arr.sort(cmp);
+    return arr;
+  }, [filtered, sort]);
+
   const magText = (v) => {
     const n = Number(v);
     return Number.isFinite(n) ? n.toFixed(1) : String(v ?? '-');
   };
 
-  if (!filtered.length) {
+  if (!sorted.length) {
     // Empty-state indicator shown inside the scroll area
     return (
       <div className="sidebar-empty">
@@ -51,7 +68,7 @@ function SidebarItems({initData, filters, sseEnabled = true}) {
     );
   }
 
-  return (filtered.map(item => (
+  return (sorted.map(item => (
     <SidebarItem
       key={item.publicID}
       publicID={item.publicID}
