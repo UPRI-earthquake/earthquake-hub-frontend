@@ -11,22 +11,37 @@
 # production
 /build
 
-# misc
-.gitignore
+# OS / editors / caches
 .DS_Store
+Thumbs.db
+ehthumbs.db
+.eslintcache
+.vscode/
+.idea/
+*.iml
+*.swp
+
+# env files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-src/components/unused
-*.swp
+.env.*
+!.env.example
+.envrc
 
+# logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
+# generated at runtime
 public/config.js
+
+# project
+src/components/unused
 
 # mkcert 
 localhost+1-key.pem
