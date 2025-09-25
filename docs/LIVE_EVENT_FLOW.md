@@ -4,19 +4,19 @@
 sequenceDiagram
   autonumber
   participant Backend as BACKEND /messaging (SSE)
-  participant HomePage as HomePage (EventSource)
+  participant HomePage as HomePage.jsx (useEventsFeed)
   participant SSE as SSEContext.Provider
   participant EventMarkers
   participant SidebarItems
   participant StationMarker
 
-  Backend-->>HomePage: Connect SSE
+  Backend-->>HomePage: Connect SSE (EventSource)
   HomePage->>SSE: Provide event stream via context
 
   Note over Backend,SSE: SC_EVENT (earthquake events)\nFields: eventType, publicID, OT, last_modification,\nlatitude_value, longitude_value, magnitude_value, place, text
   Backend-->>SSE: SC_EVENT NEW/UPDATE
-  SSE-->>EventMarkers: update events[]
-  SSE-->>SidebarItems: update items[] (sorted by OT)
+  HomePage-->>EventMarkers: update events[]
+  HomePage-->>SidebarItems: update items[] (sorted by OT)
   EventMarkers->>EventMarkers: render markers (animate by eventType/last_modification)
   SidebarItems->>SidebarItems: render list (heartbeat by eventType/last_modification)
 
@@ -29,5 +29,3 @@ sequenceDiagram
   SidebarItems->>SidebarItems: remove listener
   StationMarker->>StationMarker: remove listener
 ```
-
-
