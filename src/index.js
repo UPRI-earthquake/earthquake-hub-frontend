@@ -4,23 +4,22 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
-import {subscribeUser} from './subscription';
+import { subscribeUser } from './services/subscription';
 
-import {createStore} from "redux";
-import {Provider} from "react-redux";
+import { createStore } from 'redux';
+import { Provider } from 'react-redux';
 
-const selectedEventReducer = (state=null, action) => {
+const selectedEventReducer = (state = null, action) => {
   switch (action.type) {
-    case "SELECT":
+    case 'SELECT':
       return action.payload;
-    case "DESELECT":
+    case 'DESELECT':
       return null;
     default:
       return state;
   }
-}
-const store = createStore(selectedEventReducer)
-console.log('start')
+};
+const store = createStore(selectedEventReducer);
 
 ReactDOM.render(
   <React.StrictMode>
@@ -28,7 +27,7 @@ ReactDOM.render(
       <App />
     </Provider>
   </React.StrictMode>,
-  document.getElementById('root')
+  document.getElementById('root'),
 );
 
 // If you want your app to work offline and load faster, you can change

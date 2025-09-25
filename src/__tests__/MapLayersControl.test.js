@@ -13,7 +13,7 @@ test('renders LayersControl on the map', () => {
           <MapLayersControl />
         </OverlayStateProvider>
       </MapContainer>
-    </div>
+    </div>,
   );
   const ctrl = container.querySelector('.leaflet-control-layers');
   expect(ctrl).toBeTruthy();

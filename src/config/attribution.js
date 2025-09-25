@@ -1,9 +1,7 @@
 // Centralized attribution strings for map layers and datasets
 export const ATTRIBUTIONS = {
-  OSM:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OSM contributors</a>',
-  Carto:
-    '&copy; <a href="https://carto.com/attributions">CARTO</a>',
+  OSM: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM contributors</a>',
+  Carto: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
   EsriWorldImagery:
     'Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
   WorldPop:
@@ -17,4 +15,3 @@ export const providerAttribution = [
   // Use this array to append additional sources (e.g., WorldPop) when needed.
   ATTRIBUTIONS.WorldPop,
 ].join(' | ');
-
