@@ -1,58 +1,71 @@
 .default {
-    fill: var(--eq-fill, #E53935);
-    stroke: var(--eq-halo, #FFFFFF);
-    stroke-width: var(--eq-halo-w, 1.25px);
-    opacity: var(--eq-opacity, 0.65);
-    /* Mount fade-in without touching transform (keeps Leaflet zoom smooth) */
-    animation: eq-fade-in 220ms ease-in both;
+  fill: var(--eq-fill, #e53935);
+  stroke: var(--eq-halo, #ffffff);
+  stroke-width: var(--eq-halo-w, 1.25px);
+  opacity: var(--eq-opacity, 0.65);
+  /* Mount fade-in without touching transform (keeps Leaflet zoom smooth) */
+  animation: eq-fade-in 220ms ease-in both;
 }
 .radiate {
-    fill: var(--eq-fill, #E53935);
-    stroke: #e86a73;
-    opacity: var(--eq-opacity, 0.65);
-    /* Run fade-in + the radiate loop together */
-    animation: eq-fade-in 220ms ease-in both, radiate-outward 1.5s linear infinite;
+  fill: var(--eq-fill, #e53935);
+  stroke: #e86a73;
+  opacity: var(--eq-opacity, 0.65);
+  /* Run fade-in + the radiate loop together */
+  animation: eq-fade-in 220ms ease-in both, radiate-outward 1.5s linear infinite;
 }
 
 @keyframes radiate-outward {
-    from {
-        stroke-width: 0;
-        stroke-opacity: 0.75;  
-    }
-    to {
-        stroke-width: 200;
-        stroke-opacity: 0;  
-    }
+  from {
+    stroke-width: 0;
+    stroke-opacity: 0.75;
+  }
+  to {
+    stroke-width: 200;
+    stroke-opacity: 0;
+  }
 }
 
 @keyframes eq-fade-in {
-    from { opacity: 0; }
-    to { opacity: var(--eq-opacity, 0.65); }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: var(--eq-opacity, 0.65);
+  }
 }
 
 /* Theme-aware ring provided by CSS variables applied on container */
 
 /* Reduce clutter at low zoom */
-.leaflet-container :global(.leaflet-marker-icon) { will-change: transform; overflow: visible; }
-:global(.leaflet-container[data-zoom-lte4="1"]) { --eq-scale: 0.75; }
+.leaflet-container :global(.leaflet-marker-icon) {
+  will-change: transform;
+  overflow: visible;
+}
+:global(.leaflet-container[data-zoom-lte4='1']) {
+  --eq-scale: 0.75;
+}
 
 /* While hovering a fault, dim EQ points for context */
 :global(.leaflet-container.fault-hovering) .default,
 :global(.leaflet-container.fault-hovering) .radiate {
-    opacity: 0.5;
+  opacity: 0.5;
 }
 
 /* Apply zoom-based scale directly to marker container classes */
 .default,
 .radiate {
-    transform: scale(var(--eq-scale, 1));
-    transform-origin: center center;
+  transform: scale(var(--eq-scale, 1));
+  transform-origin: center center;
 }
 
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-    .radiate { animation: none; }
+  .radiate {
+    animation: none;
+  }
 }
 
 /* Keep container free of transitions to preserve Leaflet zoom smoothness */
-:global(.leaflet-marker-icon.eq-marker) { will-change: transform; }
+:global(.leaflet-marker-icon.eq-marker) {
+  will-change: transform;
+}

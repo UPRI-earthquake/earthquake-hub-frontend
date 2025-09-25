@@ -9,7 +9,7 @@
 }
 
 .dashboardModal {
-  margin-top: 20px; 
+  margin-top: 20px;
   margin-right: 20px;
   background-color: rgb(255, 255, 255);
   padding-left: 20px;
@@ -23,7 +23,7 @@
   justify-content: center;
   overflow-y: auto;
   z-index: 2;
-  opacity: 0
+  opacity: 0;
 }
 
 @media (max-width: 600px) {
@@ -123,7 +123,6 @@
   background-color: #dfdfdf;
 }
 
-
 .profileContainer {
   opacity: 0;
   display: flex;
@@ -134,7 +133,6 @@
   overflow-y: auto;
 }
 
-
 /* Device List Table */
 .deviceListTableContainer {
   overflow-x: auto;
@@ -142,7 +140,7 @@
 }
 
 .deviceListTable {
-  border: none; 
+  border: none;
   width: 100%;
   background-color: #f2f2f2;
   border-radius: 4px;
@@ -164,7 +162,6 @@
   padding: 10px;
   color: #333333;
 }
-
 
 /* Tooltip */
 [data-tooltip] {
@@ -191,7 +188,6 @@
   visibility: visible;
 }
 
-
 /* Add Device Form */
 .addDeviceForm {
   opacity: 0;
@@ -201,7 +197,7 @@
   justify-content: center;
 }
 
-.addDeviceForm input[type="text"] {
+.addDeviceForm input[type='text'] {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -244,7 +240,7 @@
 }
 
 .addDeviceForm input:focus + .inputLabel,
-.addDeviceForm input:not(:placeholder-shown) + .inputLabel{
+.addDeviceForm input:not(:placeholder-shown) + .inputLabel {
   top: -20px;
   font-size: 12px;
   color: #333;
@@ -277,10 +273,9 @@
   opacity: 0.5;
 } */
 
-
 /*  */
 .errorPopup {
-  background-color: #eA6D7E;
+  background-color: #ea6d7e;
   border: 3px solid #d54c49;
   color: white;
   padding: 10px;
@@ -314,7 +309,6 @@
   cursor: pointer;
 }
 
-
 /* Add Device/Cancel Button */
 .addDeviceButtonDiv {
   padding: 20px;
@@ -347,12 +341,11 @@
   transform: scale(0.95);
 }
 
-
 .panelHeaderButtonDiv {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px; 
+  gap: 10px;
 }
 
 .signoutButton {

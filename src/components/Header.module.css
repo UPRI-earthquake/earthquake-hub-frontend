@@ -1,71 +1,70 @@
 .header {
-    height: 50px;
-    width:100vw;
-    background-color: #3a6a50;
-    /*background-color: #262a2b;*/
-    box-shadow: 0px 1px 8px rgba(0,0,0,.5);
-    position:fixed;
-    z-index:2;
+  height: 50px;
+  width: 100vw;
+  background-color: #3a6a50;
+  /*background-color: #262a2b;*/
+  box-shadow: 0px 1px 8px rgba(0, 0, 0, 0.5);
+  position: fixed;
+  z-index: 2;
 }
 
 .headerContent {
-    display: flex;
-    height: inherit;
-    align-items: center;
-    justify-content: space-between;
+  display: flex;
+  height: inherit;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.headerLeft{
-    display: flex;
-    align-items: center;
-    height: inherit;
-    padding-left:5px
+.headerLeft {
+  display: flex;
+  align-items: center;
+  height: inherit;
+  padding-left: 5px;
 }
 
 .headerLeft > p {
-    color: #ffffff;
-    margin: 20px;
+  color: #ffffff;
+  margin: 20px;
 }
 
 .headerRight {
-    display: flex;
-    align-items: center;
-    height: inherit;
-    padding-right:10px
+  display: flex;
+  align-items: center;
+  height: inherit;
+  padding-right: 10px;
 }
 
 .logo {
-    /*fill: #e8e6e3;*/
-    fill: #ffffff;
-    height: inherit;
-    width: auto;
+  /*fill: #e8e6e3;*/
+  fill: #ffffff;
+  height: inherit;
+  width: auto;
 }
 
 .header > .headerContent > .headerLeft > h1 {
-    /*color: #e8e6e3*/
-    color: #ffffff;
-    font-size: 37px;
-    font-family: "Times New Roman"
+  /*color: #e8e6e3*/
+  color: #ffffff;
+  font-size: 37px;
+  font-family: 'Times New Roman';
 }
 
 .menuToggle {
-    width: 35px;
-    height: 35px;
+  width: 35px;
+  height: 35px;
 }
 
 .burgerMenu {
-    width: 35px;
-    height: 35px;
+  width: 35px;
+  height: 35px;
 }
 
 .closeMenu {
-    width: 35px;
-    height: 35px;
+  width: 35px;
+  height: 35px;
 }
 
-
 @media (max-width: 768px) {
-    .headerLeft > p {
-        display: none;
-    }
+  .headerLeft > p {
+    display: none;
+  }
 }

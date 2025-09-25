@@ -44,7 +44,7 @@
 
 .App-body {
   display: flex;
-  top:50px;
+  top: 50px;
   left: 0;
   right: 0;
   bottom: 0;
@@ -53,7 +53,7 @@
 }
 
 @media (max-width: 768px) {
-    .App-body{
-        flex-direction: column-reverse;
-    }
+  .App-body {
+    flex-direction: column-reverse;
+  }
 }
