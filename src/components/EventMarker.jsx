@@ -61,6 +61,37 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     }
   }, [status, last_modification]);
 
+  // Numeric opacity resolved from CSS variable on the map container.
+  // Keeps markers consistent after overlay toggles where var() could be stale.
+  const [eqOpacity, setEqOpacity] = useState(0.65);
+  useEffect(() => {
+    if (!map || typeof map.getContainer !== 'function') return undefined;
+    const el = map.getContainer();
+    const read = () => {
+      try {
+        const v = getComputedStyle(el).getPropertyValue('--eq-opacity');
+        const n = parseFloat(String(v).trim());
+        setEqOpacity(Number.isFinite(n) ? n : 0.65);
+      } catch (_) {
+        setEqOpacity(0.65);
+      }
+    };
+    read();
+    // Update whenever map styling might change
+    map.on('zoom', read);
+    map.on('zoomend', read);
+    map.on('baselayerchange', read);
+    map.on('overlayadd', read);
+    map.on('overlayremove', read);
+    return () => {
+      map.off('zoom', read);
+      map.off('zoomend', read);
+      map.off('baselayerchange', read);
+      map.off('overlayadd', read);
+      map.off('overlayremove', read);
+    };
+  }, [map]);
+
   // Depth ramp toggle listener
   const [depthRamp, setDepthRamp] = useState(() => {
     try {
@@ -93,20 +124,22 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     // Bucket sizes to reduce unique icon churn while keeping visual fidelity
     const sizeKey = Math.round(radius * (animate ? 8 : 2));
     const colorKey = fillColor || 'theme';
-    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}`;
+    const opKey = Math.round(eqOpacity * 100); // two decimals precision
+    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}|op${opKey}`;
 
     const cache = iconCacheRef.current;
     const existing = cache.get(cacheKey);
     if (existing) return existing;
 
+    // Apply numeric opacity and also set the CSS variable locally so
+    // animations that reference var(--eq-opacity) resolve to the same value.
+    const baseStyle = { opacity: eqOpacity, '--eq-opacity': eqOpacity };
+    const svgStyle = fillColor ? { ...baseStyle, fill: fillColor } : baseStyle;
     const html = ReactDOMServer.renderToString(
       animate ? (
-        <CircleWithBorder
-          className={styles.radiate}
-          style={fillColor ? { fill: fillColor } : undefined}
-        />
+        <CircleWithBorder className={styles.radiate} style={svgStyle} />
       ) : (
-        <Circle className={styles.default} style={fillColor ? { fill: fillColor } : undefined} />
+        <Circle className={styles.default} style={svgStyle} />
       ),
     );
 
@@ -118,7 +151,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     });
     cache.set(cacheKey, icon);
     return icon;
-  }, [animate, mag, fillColor]);
+  }, [animate, mag, fillColor, eqOpacity]);
 
   // Gentle fade-in when marker icon mounts or changes
   useEffect(() => {

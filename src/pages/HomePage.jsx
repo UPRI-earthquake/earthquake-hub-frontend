@@ -239,7 +239,13 @@ const HomePage = () => {
                   <OverlayStateProvider>
                     <MapLayersControl>
                       <LayersControl.Overlay checked name="Earthquakes">
-                        <RegisterableLayerGroup overlayId="earthquakes">
+                        {/**
+                         * Key the LayerGroup by the active preset so Leaflet gets a
+                         * brand‑new group whenever presets switch. This prevents any
+                         * stale markers from a previous dataset lingering in the group
+                         * when the overlay is toggled off and later re‑enabled.
+                         */}
+                        <RegisterableLayerGroup overlayId="earthquakes" key={presetKey}>
                           {/* Render earthquake markers for the current dataset + filters */}
                           <EventMarkers
                             initEvents={customEvents || events}

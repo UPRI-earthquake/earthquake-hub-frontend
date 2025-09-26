@@ -345,10 +345,15 @@ export default function MapLayersControl({ children }) {
     map.on('zoom', apply);
     map.on('zoomend', apply);
     map.on('baselayerchange', apply);
+    // Also react immediately to overlay visibility changes to avoid stale styling
+    map.on('overlayadd', apply);
+    map.on('overlayremove', apply);
     return () => {
       map.off('zoom', apply);
       map.off('zoomend', apply);
       map.off('baselayerchange', apply);
+      map.off('overlayadd', apply);
+      map.off('overlayremove', apply);
     };
   }, [map, activeIds]);
 
@@ -465,11 +470,11 @@ export default function MapLayersControl({ children }) {
 
     // Layer overlay tooltips/ARIA
     const overlayHints = {
-      earthquakes: 'Past 30 days; size ∝ magnitude',
-      faults: 'Mapped active faults (GEM)',
-      plates: 'PB2002 (Bird, 2003)',
-      stations: 'UPRI sensor sites',
-      population: 'Population density (configured source)',
+      earthquakes: 'Earthquake markers',
+      faults: 'Active fault lines',
+      plates: 'Plate boundary lines',
+      stations: 'Station markers',
+      population: 'Population density shading',
     };
     const applyOverlayHints = () => {
       const rows = ctrl.querySelectorAll('.leaflet-control-layers-overlays label');
@@ -483,11 +488,51 @@ export default function MapLayersControl({ children }) {
         }
       });
     };
+    // Annotate overlay rows with stable ids and enforce a consistent order
+    const annotateOverlayRows = () => {
+      const mapRowToId = (labelText) => {
+        const t = String(labelText || '').trim().toLowerCase();
+        if (t === 'earthquakes') return 'earthquakes';
+        if (t === 'fault lines') return 'faults';
+        if (t === 'plate boundaries') return 'plates';
+        if (t === 'stations') return 'stations';
+        if (t === 'population density') return 'population';
+        return null;
+      };
+      overlays.querySelectorAll('label').forEach((lab) => {
+        const text = (lab.textContent || '').trim();
+        const id = mapRowToId(text);
+        if (id) lab.setAttribute('data-overlay', id);
+      });
+    };
+    const enforceOverlayOrder = () => {
+      // Keep Earthquakes at the top of overlays list
+      const rows = overlays.querySelectorAll('label');
+      if (!rows || rows.length === 0) return;
+      const eq = overlays.querySelector('label[data-overlay="earthquakes"]');
+      if (eq && overlays.firstElementChild !== eq) {
+        overlays.insertBefore(eq, overlays.firstElementChild);
+      }
+    };
+
+    // Initial annotate+order, then enhance with hints
+    annotateOverlayRows();
+    enforceOverlayOrder();
     applyOverlayHints();
 
-    applyOverlayHints();
+    // Observe overlay list for changes (e.g., preset switch re-renders children)
+    const mo = new MutationObserver(() => {
+      annotateOverlayRows();
+      enforceOverlayOrder();
+      applyOverlayHints();
+    });
+    mo.observe(overlays, { childList: true, subtree: false });
 
-    return undefined;
+    return () => {
+      try {
+        mo.disconnect();
+      } catch (_) {}
+    };
   }, [map, bases]);
 
   // ---- Tooltip builders moved to OverlayLayers; keep keyboard/ARIA helpers here ----

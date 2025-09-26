@@ -1,29 +1,13 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import moment from 'moment';
 import SidebarItem from './SidebarItem';
-import { FixedSizeList as List } from 'react-window';
 
 /**
  * Scrollable list of earthquake sidebar items with filtering and sorting.
  * @param {{initData: Array, filters?: Object, sort?: {by:'time'|'mag', order:'asc'|'desc'}, sseEnabled?: boolean}} props
  */
-function SidebarItems({
-  initData,
-  filters,
-  sort = { by: 'time', order: 'desc' },
-  sseEnabled: _sseEnabled = true,
-}) {
+function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' }, sseEnabled: _sseEnabled = true }) {
   const [items, setItems] = useState(() => (initData || []).slice());
-  const containerRef = useRef(null);
-  const [height, setHeight] = useState(0);
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const measure = () => setHeight(el.clientHeight || 0);
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
 
   // Keep items in sync when initData changes (e.g., preset switch)
   useEffect(() => {
@@ -77,9 +61,9 @@ function SidebarItems({
   };
 
   if (!sorted.length) {
-    // Empty-state indicator shown inside the scroll area
+    // Empty-state indicator shown inside the scroll area (direct child for mobile flex)
     return (
-      <div className="sidebar-empty" ref={containerRef}>
+      <div className="sidebar-empty">
         <div className="sidebar-empty-inner">
           <div className="sidebar-empty-title">No results</div>
           <div className="sidebar-empty-desc">Try adjusting search or filters.</div>
@@ -88,60 +72,22 @@ function SidebarItems({
     );
   }
 
-  const Row = ({ index, style, data }) => {
-    const item = data[index];
-    return (
-      <div style={style}>
-        <SidebarItem
-          key={item.publicID}
-          publicID={item.publicID}
-          title={magText(item.magnitude_value)}
-          description={
-            ['Unavailable', 'Unable to geocode', ''].includes(item.place) ? item.text : item.place
-          }
-          subDescription={moment(item.OT).fromNow()}
-          status={item.eventType ? item.eventType : null}
-          last_modification={item.last_modification}
-        />
-      </div>
-    );
-  };
-
-  const shouldVirtualize = sorted.length >= 100 && height > 0;
-  if (!shouldVirtualize) {
-    return (
-      <div ref={containerRef} style={{ height: '100%' }}>
-        {sorted.map((item) => (
-          <SidebarItem
-            key={item.publicID}
-            publicID={item.publicID}
-            title={magText(item.magnitude_value)}
-            description={
-              ['Unavailable', 'Unable to geocode', ''].includes(item.place) ? item.text : item.place
-            }
-            subDescription={moment(item.OT).fromNow()}
-            status={item.eventType ? item.eventType : null}
-            last_modification={item.last_modification}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  // Virtualized list for large datasets
-  return (
-    <div ref={containerRef} style={{ height: '100%' }}>
-      <List
-        height={height}
-        itemCount={sorted.length}
-        itemSize={68}
-        width={'100%'}
-        itemData={sorted}
-      >
-        {Row}
-      </List>
-    </div>
-  );
+  // Render items directly (no nested scroll wrappers). This keeps
+  // desktop to a single vertical scrollbar, and on mobile the
+  // Sidebar CSS displays each item as a horizontal card scroller.
+  return sorted.map((item) => (
+    <SidebarItem
+      key={item.publicID}
+      publicID={item.publicID}
+      title={magText(item.magnitude_value)}
+      description={
+        ['Unavailable', 'Unable to geocode', ''].includes(item.place) ? item.text : item.place
+      }
+      subDescription={moment(item.OT).fromNow()}
+      status={item.eventType ? item.eventType : null}
+      last_modification={item.last_modification}
+    />
+  ));
 }
 
 export default SidebarItems;

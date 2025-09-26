@@ -19,6 +19,13 @@ const EventMarkers = ({
   const { activeIds } = useOverlayState();
   // Treat overlay visibility as a first‑class state so logic can react to toggles
   const earthquakesActive = useMemo(() => activeIds?.has?.('earthquakes') ?? true, [activeIds]);
+  // Bump a version whenever the overlay is re-enabled to ensure fresh marker icons
+  const [overlayCycle, setOverlayCycle] = useState(0);
+  useEffect(() => {
+    // Increment only on transitions from disabled -> enabled
+    setOverlayCycle((prev) => (earthquakesActive ? prev + 1 : prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [earthquakesActive]);
   const [events, setEvents] = useState(initEvents);
   const [zoom, setZoom] = useState(() => (map ? map.getZoom() : 6));
   // Keep events in sync when initEvents or dataset key changes (e.g., preset switch)
@@ -30,7 +37,12 @@ const EventMarkers = ({
   // cache from before it was hidden.
   useEffect(() => {
     if (earthquakesActive) {
+      // Repopulate from the latest props when re-enabling the overlay
       setEvents(initEvents || []);
+    } else {
+      // Proactively clear local cache when overlay is disabled so no prior
+      // preset’s markers can linger inside the LayerGroup when it is re-added
+      setEvents([]);
     }
   }, [earthquakesActive, initEvents, datasetKey]);
 
@@ -90,7 +102,7 @@ const EventMarkers = ({
 
     return (
       <EventMarker
-        key={(datasetKey ? `${datasetKey}-` : '') + event.publicID}
+        key={`${datasetKey || 'ds'}-${overlayCycle}-${event.publicID}`}
         publicID={event.publicID}
         time={event.OT}
         lat={lat}
