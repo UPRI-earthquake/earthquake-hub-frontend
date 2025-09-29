@@ -1,0 +1,135 @@
+/* SECTION CONTAINER */
+.section-container {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto; /* Center the content horizontally */
+  padding: 60px 50px;
+  color:#333333;
+  background-color: white; /* Background color for the content */
+  border-radius: 8px; /* Optional for rounded corners */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Optional for shadow */
+}
+
+/* Adding colored margins on larger screens */
+.section {
+  background-color: #f0f0f0; /* Light grey background for margins */
+  padding-left: 75px;
+  padding-right: 75px;
+}
+
+/* TABLE */
+.table-container{
+  overflow-x: auto;
+}
+
+/* REFERENCE */
+.reference{
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+
+
+ul.station {
+  list-style-type: none;
+  padding: 0;
+  vertical-align: top;
+  height: 120px;
+  overflow-y: scroll;
+}
+
+.station li {
+  font-size: 14px;
+}
+
+  
+.main-content h2 {
+    align-self: flex-start;  
+    margin: 0;  
+    padding: 0 0 10px 0;
+  }
+
+.list-items {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    margin: -10px 0;
+}
+
+
+
+table th{
+  border-bottom: 1px solid black;
+  padding-bottom: 10px;
+}
+table tr{
+  padding: 10px;
+}
+
+table td{
+  text-align: start;
+  padding: 20px 0;
+}
+
+table td:first-child{
+  width: 25%;
+}
+table td:nth-child(2) {
+  width: 50%; /* Adjust the width as needed */
+  padding: 0 10px;
+}
+
+.info-table .first-column {
+  font-weight: bold;
+  padding-right: 10px;
+  border-right: 2px solid #000;
+  vertical-align: top;
+}
+
+table, td, th {
+  border-collapse: collapse;
+}
+
+/*reports section*/
+.info-details > h2{
+  margin: 30px 0px;
+  width: 100%;
+  text-align: center;
+}
+
+
+
+.table-container{
+  overflow-x: scroll;
+}
+
+.instrument td{
+  vertical-align: top;
+  align-self: flex-start;
+  min-width: max-content;
+}
+
+
+@media (min-width: 1024px) {
+  /* Laptop and larger screens */
+  .section-container {
+    background-color: white; /* Ensure content is white on larger screens */
+    margin-left: 150px;
+    margin-right: 150px; /* Add margins on larger screens */
+  }
+
+  .body {
+    background-color: #eaeaea; /* Colored margins for larger screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .body {
+    background-color: white;
+    padding-left: 0px;
+    padding-right: 0px;
+  }
+}

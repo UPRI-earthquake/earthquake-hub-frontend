@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from "./Header.module.css";
 import {ReactComponent as Logo} from './upri-logo.svg';
 import Button from "./Button";
+import FloatingButton from "./FloatingButton";
 import { SignInForm, SignUpForm } from "./Form";
 import { Dashboard } from "./Dashboard";
 import { ReactComponent as BurgerMenu } from './burger-menu-white.svg';
@@ -9,7 +11,10 @@ import { ReactComponent as CloseMenu } from './close-menu-white.svg';
 import axios from 'axios';
 import Toast from "./Toast";
 
-function Header() {
+const Header = ({ initStations = [] }) => {
+  const [stations] = useState(initStations)
+  const stationsCount = stations.filter(station => station.activity === "active").length;
+  
   const [loggedInUser, setLoggedInUser] = useState('');
   const [showSignInForm, setShowSignInForm] = useState(false);
   const [showSignUpForm, setShowSignUpForm] = useState(false);
@@ -19,6 +24,18 @@ function Header() {
   // Toasts
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
+
+  const location = useLocation();  // Get the current path
+  const navigate = useNavigate();  // For navigation
+  
+  // Check if the current path is either /significant-eqs or /significant-eq-info
+  const isSignificantEQPage = location.pathname === '/significant-eqs' || location.pathname === '/significant-eq-info';
+
+  // Handle Home button click
+  const handleHomeClick = () => {
+    navigate('/');  // Navigate to the home page
+  };
+
 
   const handleSignInClick = () => setShowSignInForm(true);
   const handleSignInClose = () => setShowSignInForm(false);
@@ -88,6 +105,14 @@ function Header() {
       <div className={styles.headerLeft}>
         <Logo className={styles.logo}/>
         <h1>CS•UPRI</h1>
+        <>
+          {isSignificantEQPage ? (
+            // Hide online stations count if page is on /significant-eqs or /significant-eq-info
+            <p></p>
+          ) : (
+            <p><i>Stations Online: </i>{stationsCount}</p>
+          )}
+        </>
       </div>
         <div className={styles.headerRight}>
           {isLoggedIn ? (
@@ -100,12 +125,25 @@ function Header() {
             </div>
           ) : (
             <>
-              <Button hasOutline={false} onClick={handleSignInClick}>
-                Sign in
-              </Button>
-              <Button hasOutline={true} onClick={handleSignUpClick}>
-                Sign up
-              </Button>
+              {isSignificantEQPage ? (
+                // Show Home button if on /significant-eqs or /significant-eq-info
+                <Button hasOutline={false} onClick={handleHomeClick}>
+                  Home
+                </Button>
+              ) : (
+                // Show Sign in and Sign up buttons for other pages
+                <>
+                  <Button hasOutline={false} onClick={handleSignInClick}>
+                    Sign in
+                  </Button>
+                  <Button hasOutline={true} onClick={handleSignUpClick}>
+                    Sign up
+                  </Button>
+                  
+                  {/* Show Floating Action Button (temporarily disabled to avoid overlapping Legend control) */}
+                  {false && !showSignInForm && !showSignUpForm && !showDashboard &&  <FloatingButton />}
+                </>
+              )}
             </>
           )}
         </div>

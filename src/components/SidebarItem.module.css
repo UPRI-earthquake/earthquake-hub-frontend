@@ -1,52 +1,69 @@
 .sidebarItem{
-  display: flex;  
+  display: grid;  
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
   align-items: center;
   cursor: pointer;
   box-sizing: border-box;
+  /* padding: 12px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.12); */
   padding-left: 15px;
   padding-right: 15px;
   border-bottom: solid 1px lightgray;
+
   background-color: #ffffff;
+  color: #1f2937;
+}
+
+html[data-basemap-theme="dark"] .sidebarItem,
+html[data-basemap-theme="imagery"] .sidebarItem{
+  background-color: #0b1220;
+  color: #f3f4f6;
+  border-bottom-color: rgba(255,255,255,0.12);
 }
 
 @media (max-width: 768px) {
   .sidebarItem {
-      width: 180px;
-      height: 100%;
-      border-bottom: none;
-      border-right: solid 1px lightgray;
+    width: 300px;                         /* card width */
+    height: 100%;
+    border-bottom: none;                  /* separators via right border */
+    border-right: 1px solid lightgray;
+    grid-template-columns: 56px 1fr;      /* same internals as desktop */
+    gap: 12px;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
-  .sidebarItem > div {
-      width: 110px;
-  }
+  .sidebarItem > div { width: auto; }
+  .magWrap { justify-content: center; }
+  .mag { font-size: 20px; }
 }
 
-.sidebarItem:hover{
-  background-color: lightgray;
-}
+.sidebarItem:hover{ background-color: rgba(0,0,0,0.04); }
+html[data-basemap-theme="dark"] .sidebarItem:hover,
+html[data-basemap-theme="imagery"] .sidebarItem:hover{ background-color: rgba(255,255,255,0.06); }
 
-.sidebarItem > div {
-  margin-left: 20px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.magWrap{ display:flex; align-items:center; justify-content:center; }
+.mag{ font-size: 20px; font-weight: 700; }
+
+.sidebarItem > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .sidebarItem > div > .desc {
-  margin-bottom: 0px ;
+  margin-bottom: 0px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .sidebarItem > div > .subDesc {
-  margin-top: 2px ;
+  margin-top: 4px;
   font-size: 12px;
-  color: dimgray;
+  color: #6b7280; /* gray-500 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+html[data-basemap-theme="dark"] .sidebarItem > div > .subDesc,
+html[data-basemap-theme="imagery"] .sidebarItem > div > .subDesc{ color: #d1d5db; opacity: 0.85; }
 
 .heartBeat{
   animation: redBeat;
@@ -73,4 +90,24 @@
   from {background-color: #ffffff;}
   50% {background-color: rgba(255,0,0,0.15)}
   to {background-color: #ffffff;}
+}
+
+/* --- Selected state styles --- */
+.selected {
+  border-left: 4px solid #3a6a50; /* brand accent on light */
+  padding-left: 11px; /* compensate for thicker left border */
+  background-color: rgba(58,106,80,0.06);
+}
+.selected .mag { color: #3a6a50; }
+
+html[data-basemap-theme="dark"] .selected,
+html[data-basemap-theme="imagery"] .selected {
+  border-left-color: #86efac; /* readable on dark */
+  background-color: rgba(134,239,172,0.08);
+}
+html[data-basemap-theme="dark"] .selected .mag,
+html[data-basemap-theme="imagery"] .selected .mag { color: #86efac; }
+
+@media (max-width: 768px) {
+  .selected { border-left-width: 4px; }
 }

@@ -26,6 +26,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# mkcert
+public/config.js
+
+# mkcert 
 localhost+1-key.pem
 localhost+1.pem

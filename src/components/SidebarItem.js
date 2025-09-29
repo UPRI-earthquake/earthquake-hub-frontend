@@ -8,6 +8,7 @@ function SidebarItem({publicID, title, description,
   // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
   const selectedEvent = useSelector(state => state)
+  const isSelected = selectedEvent === publicID;
   function handleClick(){
     if(selectedEvent !== publicID){
       console.log('dispatch select')
@@ -47,16 +48,17 @@ function SidebarItem({publicID, title, description,
 
   return(
     <div 
-      className={`${styles.sidebarItem}`}
+      className={`${styles.sidebarItem} ${isSelected ? styles.selected : ''}`}
       onClick={handleClick}
       ref={output}
     >
-      <h4>{title}</h4>
+      <div className={styles.magWrap}>
+        <div className={styles.mag}>{title}</div>
+      </div>
       <div>
         <p className={styles.desc}>{description}</p>
         <p className={styles.subDesc}>{subDescription}</p>
       </div>
-
     </div>
   )
 }

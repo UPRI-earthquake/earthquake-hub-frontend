@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef }  from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo }  from 'react';
 import moment from 'moment';
 import { Marker, Popup, useMap } from "react-leaflet";
 import { DivIcon } from "leaflet";
@@ -7,30 +7,37 @@ import ReactDOMServer from 'react-dom/server';
 import styles from "./EventMarker.module.css";
 import {ReactComponent as Circle} from './circle.svg';
 import {ReactComponent as CircleWithBorder} from './circleWithBorder.svg';
+import { eqSizePx } from '../config/mapStyles';
 
 function toRadius(magnitude) {
-  // 0th index is for mag<1, then mag=1+, and so on up to 33.32 for mag>8
-  const radiiPixels = [4, 4, 5, 6, 7, 8.5, 11, 13.5, 16]
-  return radiiPixels[magnitude < 8 ? Math.floor(magnitude) : 8]
+  // Convert desired diameter into a radius; DivIcon uses iconSize width/height
+  const d = eqSizePx(magnitude);
+  return d / 2;
 }
 
-const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification}) => {
+const EventMarker = ({publicID, time, lat, lng, mag, depthKm, status, last_modification}) => {
+
+  // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
+  const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
   const selectedEvent = useSelector(state => state)
-  const popupRef = useRef();
-  const centerAndPopupEvent = useCallback((selectedEvent) => {
-    if(selectedEvent === publicID){
-      //center the event
-      map.flyTo([lat, lng], 9)
-      //show popup
-      map.openPopup(popupRef.current)
-    }else if(selectedEvent === null){
-      map.flyTo([12.2795, 122.049], 6)
-      map.closePopup(popupRef.current)
+  const popupRef = useRef(null);
+  const markerRef = useRef(null);
+  const centerAndPopupEvent = useCallback((selectedEventId) => {
+    if (!map) return;
+
+    if (selectedEventId === publicID) {
+      if (hasValidCoords) {
+        map.flyTo([lat, lng], 9);
+      }
+      const marker = markerRef.current;
+      if (marker && typeof marker.openPopup === 'function') {
+        marker.openPopup();
+      }
     }
-  },[publicID, lat, lng, map]); //useCallback prevents recreat of this fn ever render
+  }, [map, publicID, lat, lng, hasValidCoords]);
   useEffect(() => {
     centerAndPopupEvent(selectedEvent)
   }, [selectedEvent, centerAndPopupEvent]);
@@ -50,22 +57,109 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
     }
   }, [status, last_modification]);
 
-  const divCircle = new DivIcon(animate 
-    ? {
-        className: styles.radiate,
-        html: ReactDOMServer.renderToString(<CircleWithBorder />),
-        iconSize: [8*toRadius(mag),8*toRadius(mag)]
-      }
-    : {
-        className: styles.default,
-        html: ReactDOMServer.renderToString(<Circle />),
-        iconSize: [2*toRadius(mag),2*toRadius(mag)]
-      }
-  )
+  // Depth ramp toggle listener
+  const [depthRamp, setDepthRamp] = useState(() => {
+    try { return sessionStorage.getItem('eqDepthRamp') === '1'; } catch (_) { return false; }
+  });
+  useEffect(() => {
+    const onToggle = (e) => setDepthRamp(!!(e && e.detail && e.detail.enabled));
+    window.addEventListener('eqDepthRamp:toggle', onToggle);
+    return () => window.removeEventListener('eqDepthRamp:toggle', onToggle);
+  }, []);
 
+  const depthColor = (() => {
+    const d = depthKm == null ? null : Number(depthKm);
+    if (d == null || Number.isNaN(d)) return null;
+    if (d <= 70) return '#FF6B6B';
+    if (d <= 300) return '#F4A261';
+    return '#2A9D8F';
+  })();
+
+  const fillColor = depthRamp && depthColor ? depthColor : undefined; // undefined → use CSS var theme color
+
+  // Cache DivIcon instances to avoid re-creating DOM/HTML on every render
+  // Key on: animation flag, fill color bucket, and size bucket
+  const iconCacheRef = useRef(new Map());
+  const divCircle = useMemo(() => {
+    const radius = toRadius(mag);
+    // Bucket sizes to reduce unique icon churn while keeping visual fidelity
+    const sizeKey = Math.round(radius * (animate ? 8 : 2));
+    const colorKey = fillColor || 'theme';
+    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}`;
+
+    const cache = iconCacheRef.current;
+    const existing = cache.get(cacheKey);
+    if (existing) return existing;
+
+    const html = ReactDOMServer.renderToString(
+      animate ? (
+        <CircleWithBorder
+          className={styles.radiate}
+          style={fillColor ? { fill: fillColor } : undefined}
+        />
+      ) : (
+        <Circle
+          className={styles.default}
+          style={fillColor ? { fill: fillColor } : undefined}
+        />
+      )
+    );
+
+    const size = animate ? (8 * radius) : (2 * radius);
+    const icon = new DivIcon({
+      className: 'eq-marker', // stable container class to enable CSS transitions
+      html,
+      iconSize: [size, size],
+    });
+    cache.set(cacheKey, icon);
+    return icon;
+  }, [animate, mag, fillColor]);
+
+  // Gentle fade-in when marker icon mounts or changes
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker || typeof marker.getElement !== 'function') return;
+    const el = marker.getElement();
+    if (!el) return;
+    // Reset then re-apply to retrigger transition on icon swap
+    el.classList.remove('is-mounted');
+    // Next tick to ensure transition plays
+    const id = window.requestAnimationFrame(() => {
+      el.classList.add('is-mounted');
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [divCircle]);
+
+  // Ensure fade-in re-applies when the marker layer is re-added (e.g., overlay toggled)
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker || typeof marker.on !== 'function') return undefined;
+    const onAdd = () => {
+      const el = marker.getElement && marker.getElement();
+      if (!el) return;
+      el.classList.remove('is-mounted');
+      window.requestAnimationFrame(() => {
+        el.classList.add('is-mounted');
+      });
+    };
+    marker.on('add', onAdd);
+    return () => {
+      marker.off('add', onAdd);
+    };
+  }, []);
+
+  // If bad coords slipped through, skip rendering after hooks have been called
+  if (!hasValidCoords) {
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.warn('EventMarker skipped due to invalid coords', { publicID, lat, lng });
+    }
+    return null;
+  }
 
   return(
     <Marker 
+      ref={markerRef}
       icon={divCircle}
       stroke={false}
       position={[lat, lng]}
@@ -78,6 +172,9 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
             {lat.toFixed(3)}&#176;N&nbsp;
             {lng.toFixed(3)}&#176;E
           </p>
+          {depthKm != null && !Number.isNaN(Number(depthKm)) && (
+            <p>Depth {Number(depthKm).toFixed(0)} km</p>
+          )}
           <p style={{color:'gray'}}>
             Last updated {moment(time).fromNow()}
           </p>
@@ -90,8 +187,16 @@ const EventMarker = ({publicID, time, lat, lng, mag, status, last_modification})
 /*
 export default EventMarker
 */
-export default React.memo(EventMarker, (prevProps, nextProps) => {
-  // render if status is NEW or was modified
-  return !(nextProps.status === 'NEW' 
-        || nextProps.last_modification !== prevProps.last_modification)
+export default React.memo(EventMarker, (prev, next) => {
+  // Only skip re-render when all relevant props are strictly equal
+  return (
+    prev.publicID === next.publicID &&
+    prev.time === next.time &&
+    prev.lat === next.lat &&
+    prev.lng === next.lng &&
+    prev.mag === next.mag &&
+    prev.depthKm === next.depthKm &&
+    prev.status === next.status &&
+    prev.last_modification === next.last_modification
+  );
 });

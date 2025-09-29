@@ -1,0 +1,88 @@
+.card {
+    /* background-color: #fff; */
+    background-image: url("UPRI_sultan_kudarat.png");
+    background-size: cover; 
+    background-position: center; 
+    background-repeat: no-repeat; 
+    border-radius: 8px;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+    /* border: 0.2px solid #000; */
+    overflow: hidden;
+    margin: 16px;
+    width: 350px;
+    height: 350px;
+}
+
+.card:hover {
+    cursor: pointer;
+}
+
+.card-content {
+    padding: 0px 25px 40px 25px;
+    text-align: center;
+    height: 280px;
+    width: 300px;
+    color: #fff;
+    text-shadow: 10px 10px 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+    top: 57%;
+    background-color: #333333;
+    opacity: 0.8;
+    transition: opacity 1s ease, top 1s ease;
+}
+
+.card:hover .card-content{
+    justify-content: center;
+    top: 0%;
+    opacity: 0.4;
+    padding: 40px 25px 40px 25px;
+}
+
+.card-content .hover-details {
+    border-top: 1px solid #fff;
+}
+
+.card-content h3 {
+    margin: 0;
+    font-size: 1.8em;
+    text-align: left;
+    padding-bottom: 15px;
+    max-width: 250px;
+    color: #fff;
+    line-height: 1.01;
+    transition: font-size 1s ease, max-width 1s ease;
+}
+
+.card:hover .card-content h3 {
+    max-width: 160px;
+    font-size: 1.4em;
+}
+
+.card-content h4 {
+    margin: 50px 0 10px 0;
+    text-align: left;
+    font-size: 1.2em;
+    transition: margin-top 1s ease;
+}
+
+.card:hover .card-content h4 {
+    margin-top: 10px;
+}
+
+
+.card-content h5 {
+    margin: 5px 0 5px 0;
+    text-align: left;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.card-content p {
+    text-align: left;
+    margin: auto;
+    font-size: 0.8em;
+    line-height: 1.01;
+}
