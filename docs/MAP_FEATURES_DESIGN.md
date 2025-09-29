@@ -153,23 +153,6 @@ Acceptance Criteria
 - Changing preset updates results within ~1s on broadband.
 - Legend symbology and metadata reflect active overlays.
 
-## Optional: Feedback Button
-
-Purpose: Allow users to report issues or suggest improvements with current map context attached.
-
-Placement: Bottom-right floating button (envelope icon) stacked with other utilities (see Figma).
-
-Behavior
-
-- Click opens modal: name (optional), email, message (required), consent checkbox.
-- Auto-attaches context: current URL (with filters), viewport center/zoom, enabled layers, browser info.
-- Submit to `POST /feedback` (proposed). Fallback: `mailto:` if API unavailable.
-- Show toast on success; disable during submission; handle offline by queueing to `localStorage` and retrying on next load.
-
-Security & Abuse
-
-- Consider CAPTCHA or simple rate-limit by IP if API introduced.
-
 ## Scalebar
 
 Purpose: Provide distance scale for spatial context.
