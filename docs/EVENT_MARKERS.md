@@ -17,6 +17,7 @@ Renders earthquake events as circle markers with magnitude styling and selection
 - Scales marker radius by magnitude; supports optional depth ramp (Legend setting)
 - Animates on NEW/UPDATE events using `eventType` and `last_modification`
 - When selected (Redux), opens popup and `flyTo` to marker
+- On deselect (Redux set to `null` or different id), the previously selected marker closes its popup
 
 ### Styling
 
@@ -27,4 +28,3 @@ Renders earthquake events as circle markers with magnitude styling and selection
 
 - Add new visual encodings in `EventMarker` based on props (e.g., depth, uncertainty)
 - Keep heavy computations outside render loop; memoize styles by zoom/theme
-

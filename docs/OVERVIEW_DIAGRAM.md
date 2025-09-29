@@ -69,6 +69,7 @@ flowchart LR
   SItems -->|"SELECT(publicID)"| Redux
   EMarks -->|DE/SELECT| Redux
   Redux -->|open popup, flyTo| EMarks
+  Redux -->|deselect → close popup| EMarks
 
   %% Data flow
   Home --> UAD

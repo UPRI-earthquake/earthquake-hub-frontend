@@ -27,19 +27,28 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   const selectedEvent = useSelector((state) => state);
   const popupRef = useRef(null);
   const markerRef = useRef(null);
+  const prevSelectedRef = useRef(null);
   const centerAndPopupEvent = useCallback(
     (selectedEventId) => {
       if (!map) return;
 
+      const marker = markerRef.current;
+      // On select: center and open this marker's popup
       if (selectedEventId === publicID) {
         if (hasValidCoords) {
           map.flyTo([lat, lng], 9);
         }
-        const marker = markerRef.current;
         if (marker && typeof marker.openPopup === 'function') {
           marker.openPopup();
         }
+      } else if (prevSelectedRef.current === publicID) {
+        // On deselect (or selection changed away from this id): close the popup
+        if (marker && typeof marker.closePopup === 'function') {
+          marker.closePopup();
+        }
       }
+      // update previous selection tracker after handling
+      prevSelectedRef.current = selectedEventId;
     },
     [map, publicID, lat, lng, hasValidCoords],
   );

@@ -19,7 +19,8 @@ The sidebar hosts search, filters, presets, and the live event list.
 ## Selection Flow
 
 - Clicking a row dispatches `SELECT(publicID)` to Redux
-- Map markers listen with `useSelector`; if matching, they open the popup and fly to location
+- Clicking an already-selected row dispatches `DESELECT` (toggle off)
+- Map markers listen with `useSelector`; if matching, they open the popup and fly to location; on deselect, the previously selected marker closes its popup
 
 See also: `docs/SELECTION_STATE_FLOW.md`
 
@@ -28,4 +29,3 @@ See also: `docs/SELECTION_STATE_FLOW.md`
 - Add new preset options in `HomePage.jsx` alongside `onPresetChange` handler.
 - Consider list virtualization (e.g., `react-window`) for very large datasets.
 - Keep row height accessible (min 44px) and ensure focus ring visibility.
-
