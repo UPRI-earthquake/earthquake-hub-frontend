@@ -673,6 +673,21 @@ export default function MapLayersControl({ children }) {
     };
   }, [map]);
 
+  // Create a dedicated pane for earthquake markers so they render above stations/overlays
+  useEffect(() => {
+    if (!map || !map.createPane) return undefined;
+    try {
+      const name = 'eqMarkers';
+      const existing = map.getPane && map.getPane(name);
+      const pane = existing || map.createPane(name);
+      // Default Leaflet z-indexes: overlayPane 400, markerPane 600, tooltip 650, popup 700
+      // Keep EQ markers above default markers (stations) but below tooltips/popups
+      pane.style.zIndex = '620';
+      pane.style.pointerEvents = 'auto';
+    } catch (_) {}
+    return undefined;
+  }, [map]);
+
   // Use default overlay pane for both vector overlays to allow hover on both
   if (map) {
     try {

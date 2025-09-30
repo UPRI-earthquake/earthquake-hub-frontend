@@ -66,6 +66,9 @@
 }
 
 /* Keep container free of transitions to preserve Leaflet zoom smoothness */
-:global(.leaflet-marker-icon.eq-marker) {
+:global(.leaflet-div-icon.eq-marker), :global(.leaflet-marker-icon.eq-marker) {
   will-change: transform;
+  /* Ensure no solid background/border when overlay toggles */
+  background: transparent !important;
+  border: 0 !important;
 }

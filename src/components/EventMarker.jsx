@@ -142,7 +142,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
 
     // Apply numeric opacity and also set the CSS variable locally so
     // animations that reference var(--eq-opacity) resolve to the same value.
-    const baseStyle = { opacity: eqOpacity, '--eq-opacity': eqOpacity };
+    const baseStyle = { fillOpacity: eqOpacity, '--eq-opacity': eqOpacity };
     const svgStyle = fillColor ? { ...baseStyle, fill: fillColor } : baseStyle;
     const html = ReactDOMServer.renderToString(
       animate ? (
@@ -154,7 +154,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
 
     const size = animate ? 8 * radius : 2 * radius;
     const icon = new DivIcon({
-      className: 'eq-marker', // stable container class to enable CSS transitions
+      className: 'leaflet-div-icon eq-marker', // stable container class to enable CSS transitions
       html,
       iconSize: [size, size],
     });
@@ -205,7 +205,13 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   }
 
   return (
-    <Marker ref={markerRef} icon={divCircle} stroke={false} position={[lat, lng]}>
+    <Marker
+      ref={markerRef}
+      icon={divCircle}
+      stroke={false}
+      position={[lat, lng]}
+      pane="eqMarkers" // render in dedicated high-z pane so EQs stay above stations
+    >
       <Popup ref={popupRef}>
         <div>
           <h2>Magnitude {+mag.toFixed(1)}</h2>

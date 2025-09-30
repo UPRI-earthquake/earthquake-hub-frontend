@@ -78,6 +78,11 @@ code {
   font-family: var(--font-primary) !important;
 }
 
+/* Default EQ marker opacity variable so markers render semi-transparent on first mount */
+.leaflet-container {
+  --eq-opacity: 0.65;
+}
+
 /* Ensure top-right controls don’t collide with fixed header (50px) */
 /* .leaflet-top.leaflet-right { margin-top: 20px; margin-right: 20px; } */
 @media (max-height: 420px) {
