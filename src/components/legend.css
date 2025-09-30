@@ -85,8 +85,9 @@
 .custom-legend-control.is-collapsed .legend-toggle {
   position: static;
   height: 48px;
+  width: 48px; /* icon-only button like other controls */
   min-width: 48px;
-  padding: 0 12px;
+  padding: 0; /* center the icon */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,6 +99,12 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   z-index: 1000;
 }
+.custom-legend-control.is-collapsed .legend-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.custom-legend-control.is-collapsed .legend-toggle:active {
+  transform: scale(0.98);
+}
 .leaflet-container[data-basemap-theme='dark'] .custom-legend-control.is-collapsed .legend-toggle,
 .leaflet-container[data-basemap-theme='imagery']
   .custom-legend-control.is-collapsed
@@ -105,6 +112,14 @@
   background: #1f2937;
   color: #f3f4f6;
   border-color: rgba(255, 255, 255, 0.25);
+}
+.leaflet-container[data-basemap-theme='dark']
+  .custom-legend-control.is-collapsed
+  .legend-toggle:hover,
+.leaflet-container[data-basemap-theme='imagery']
+  .custom-legend-control.is-collapsed
+  .legend-toggle:hover {
+  background: #111827;
 }
 .legend-toggle:focus {
   outline: 2px solid #4aa96c;

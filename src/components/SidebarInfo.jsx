@@ -29,6 +29,11 @@ const SortIcon = () => (
     <path d="M6 3h2v14h3l-4 4-4-4h3V3zm7 2h8v2h-8V5zm0 6h6v2h-6v-2zm0 6h4v2h-4v-2z" />
   </svg>
 );
+const CloseIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M18.3 5.71L12 12.01l6.3 6.28-1.42 1.42L10.6 13.4l-6.3 6.31-1.42-1.42 6.3-6.3-6.3-6.28 1.42-1.42 6.3 6.3 6.29-6.3z" />
+  </svg>
+);
 
 /**
  * Sidebar header: preset selector, search, filters and sort controls.
@@ -348,7 +353,7 @@ function SidebarInfo({
               aria-label="Open sorting options"
               data-tip="Sort list by time or magnitude"
             >
-              <SortIcon />
+              {sortOpen ? <CloseIcon /> : <SortIcon />}
             </button>
           )}
           {showFilter && (
@@ -363,7 +368,7 @@ function SidebarInfo({
               aria-label="Open filters"
               data-tip="Filter earthquakes by magnitude and date"
             >
-              <FunnelIcon />
+              {filtersOpen ? <CloseIcon /> : <FunnelIcon />}
             </button>
           )}
         </div>
@@ -375,11 +380,12 @@ function SidebarInfo({
           <div className={styles.popHeader}>
             <div>Filter by</div>
             <button
-              className={styles.iconBtn}
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
               onClick={() => setFiltersOpen(false)}
               aria-label="Close filters"
+              title="Close"
             >
-              <FunnelIcon />
+              ×
             </button>
           </div>
           <div className={styles.popBody}>
@@ -516,11 +522,12 @@ function SidebarInfo({
           <div className={styles.popHeader}>
             <div>Sort By</div>
             <button
-              className={styles.iconBtn}
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
               onClick={() => setSortOpen(false)}
               aria-label="Close sort options"
+              title="Close"
             >
-              <SortIcon />
+              ×
             </button>
           </div>
           <div className={styles.popBody}>

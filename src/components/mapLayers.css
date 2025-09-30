@@ -13,6 +13,10 @@
 .leaflet-control-layers.leaflet-control-layers-expanded {
   min-width: 180px;
 }
+/* Hide the built-in Layers control when collapsed; we use a custom button */
+.leaflet-control-layers:not(.leaflet-control-layers-expanded) {
+  display: none;
+}
 /* Panel background with theme-aware variant */
 .leaflet-container .leaflet-control-layers {
   background: var(--panel-bg);
@@ -83,6 +87,11 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.25);
+  background-image: none !important; /* remove Leaflet default image */
+  display: inline-flex; /* center custom SVG */
+  align-items: center;
+  justify-content: center;
+  color: #111827; /* ensure SVG currentColor is consistent */
 }
 .leaflet-control-layers:hover .leaflet-control-layers-toggle {
   transform: scale(1.03);
@@ -92,14 +101,64 @@
   color: #fff;
   border-color: transparent;
 }
+/* Always hide the default toggle when using our custom button */
+.leaflet-control-layers .leaflet-control-layers-toggle {
+  display: none;
+}
 .leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers-toggle,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers-toggle {
   background-color: #1f2937;
   color: #f3f4f6;
   border-color: rgba(255, 255, 255, 0.25); /* match Legend collapsed pill */
 }
+/* Size the injected SVG icon */
+.leaflet-control-layers-toggle svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+/* Custom layers toggle control (uniform with other buttons) */
+.custom-layers-toggle .layers-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+}
+.custom-layers-toggle .layers-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.custom-layers-toggle .layers-btn:active {
+  transform: scale(0.98);
+}
+.custom-layers-toggle .layers-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+.leaflet-container[data-basemap-theme='dark'] .custom-layers-toggle .layers-btn,
+.leaflet-container[data-basemap-theme='imagery'] .custom-layers-toggle .layers-btn {
+  background-color: #1f2937;
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.leaflet-container[data-basemap-theme='dark'] .custom-layers-toggle .layers-btn:hover,
+.leaflet-container[data-basemap-theme='imagery'] .custom-layers-toggle .layers-btn:hover {
+  background: #111827;
+}
 /* Hide toggle icon when expanded (use header Close) */
 .leaflet-control-layers.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+  display: none;
+}
+
+/* When layers panel is open, hide the custom toggle button */
+.leaflet-container[data-layers-expanded='1'] .custom-layers-toggle {
   display: none;
 }
 
@@ -204,6 +263,7 @@
 /* Focus styles */
 .legend-toggle:focus-visible,
 .leaflet-control-layers-toggle:focus-visible,
+.custom-layers-toggle .layers-btn:focus-visible,
 .layers-tools button:focus-visible,
 .leaflet-control-layers label:focus-within,
 .leaflet-control-layers label:focus-visible {

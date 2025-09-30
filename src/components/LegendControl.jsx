@@ -397,6 +397,26 @@ function LegendContent({ active, tokens }) {
   );
 }
 
+// Outline-only folded map icon, similar to screenshot shape
+const LegendIcon = ({ size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    {/* Outer folded map silhouette (zig-zag top/bottom) */}
+    <path d="M3 6l5-2 4 2 5-2 4 2v12l-5-2-4 2-5-2-4 2V6z" />
+    {/* Fold lines */}
+    <path d="M8 4v12M17 4v12M12 6v12" />
+  </svg>
+);
+
 export default function LegendControl({ position = 'bottomright' }) {
   const map = useMap();
   const { activeIds } = useOverlayState();
@@ -542,7 +562,7 @@ export default function LegendControl({ position = 'bottomright' }) {
             } catch (_) {}
           }}
         >
-          Legend ▸
+          <LegendIcon size={22} />
         </button>
       ) : (
         <>

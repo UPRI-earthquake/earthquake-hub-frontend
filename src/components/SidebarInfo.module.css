@@ -304,6 +304,28 @@ html[data-basemap-theme='imagery'] .popover {
   padding: 12px 12px 4px 12px;
   font-weight: 700;
 }
+/* Close button style matching Legend/Layers */
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  padding: 0;
+  background: #f3f4f6; /* same as legend/layers tools */
+  color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  font-size: 18px; /* same visual weight as × glyph */
+  line-height: 1;
+}
+.closeBtn:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+html[data-basemap-theme='dark'] .closeBtn,
+html[data-basemap-theme='imagery'] .closeBtn {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.2);
+}
 .popBody {
   padding: 8px 12px 12px 12px;
   display: grid;

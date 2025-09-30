@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import L from 'leaflet';
 import { LayersControl, useMap } from 'react-leaflet';
 import { BASEMAPS } from '../config/mapLayers';
 import {
@@ -40,6 +41,8 @@ export default function MapLayersControl({ children }) {
   const faultsRef = useRef(null);
   const platesRef = useRef(null);
   const popRef = useRef(null);
+  const customLayersToggleRef = useRef(null);
+  const cleanupRefs = useRef({});
 
   const setFaultsRef = useCallback(
     (node) => {
@@ -71,6 +74,8 @@ export default function MapLayersControl({ children }) {
   // Ensure Layers opens/closes on click (not hover) and add tooltip/ARIA
   useEffect(() => {
     if (!map) return undefined;
+    // Snapshot for cleanup to avoid reading ref in cleanup
+    let refsSnapshot = null;
     // Defer to next tick to ensure control is in the DOM
     const id = setTimeout(() => {
       const container = map.getContainer ? map.getContainer() : document;
@@ -83,9 +88,61 @@ export default function MapLayersControl({ children }) {
           ctrl.setAttribute('id', 'layers-panel');
           btn.setAttribute('aria-controls', 'layers-panel');
         }
+        // Always hide default Leaflet toggle; we provide a custom one
+        btn.style.display = 'none';
       }
       // Disable hover expand/collapse by stopping Leaflet's mouseover/mouseout handlers
       if (ctrl) {
+        // Create custom toggle control once
+        if (!customLayersToggleRef.current) {
+          const CustomToggle = L.Control.extend({
+            onAdd: () => {
+              const wrap = L.DomUtil.create('div', 'leaflet-control custom-layers-toggle');
+              const a = L.DomUtil.create('a', 'layers-btn', wrap);
+              a.href = '#';
+              a.setAttribute('role', 'button');
+              a.setAttribute('aria-label', 'Layers');
+              a.setAttribute('title', 'Layers (L)');
+              a.setAttribute('aria-controls', 'layers-panel');
+              a.setAttribute('aria-expanded', 'false');
+              a.innerHTML = `
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden>
+                  <path d="M12 2l10 6-10 6L2 8l10-6z"></path>
+                  <path d="M2 12l10 6 10-6"></path>
+                  <path d="M2 17l10 6 10-6"></path>
+                </svg>`;
+              const togglePanel = () => {
+                const expanded = ctrl.classList.contains('leaflet-control-layers-expanded');
+                if (expanded) ctrl.classList.remove('leaflet-control-layers-expanded');
+                else ctrl.classList.add('leaflet-control-layers-expanded');
+                a.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                try {
+                  const el = map.getContainer();
+                  el.setAttribute('data-layers-expanded', expanded ? '0' : '1');
+                } catch (_) {}
+              };
+              L.DomEvent.on(a, 'click', (e) => {
+                L.DomEvent.stop(e);
+                togglePanel();
+              });
+              L.DomEvent.on(a, 'keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  L.DomEvent.stop(e);
+                  togglePanel();
+                }
+              });
+              L.DomEvent.disableClickPropagation(wrap);
+              L.DomEvent.disableScrollPropagation(wrap);
+              customLayersToggleRef.current = a;
+              try { map.__customLayersToggleRef = a; } catch (_) {}
+              return wrap;
+            },
+          });
+          const customCtrl = new CustomToggle({ position: 'topright' });
+          customCtrl.addTo(map);
+          cleanupRefs.current.customCtrl = customCtrl;
+        }
+
         const stop = (e) => {
           e.stopImmediatePropagation();
           e.stopPropagation();
@@ -141,6 +198,12 @@ export default function MapLayersControl({ children }) {
         const syncAria = () => {
           const expanded = ctrl.classList.contains('leaflet-control-layers-expanded');
           if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          if (customLayersToggleRef.current)
+            customLayersToggleRef.current.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          try {
+            const el = map.getContainer();
+            el.setAttribute('data-layers-expanded', expanded ? '1' : '0');
+          } catch (_) {}
           if (expanded) {
             if (!trapCleanup) trapCleanup = installFocusTrap();
           } else if (trapCleanup) {
@@ -151,9 +214,26 @@ export default function MapLayersControl({ children }) {
         const mo = new MutationObserver(syncAria);
         mo.observe(ctrl, { attributes: true, attributeFilter: ['class'] });
         syncAria();
+        cleanupRefs.current.mo = mo;
+        cleanupRefs.current.ctrl = ctrl;
+        // Create a snapshot for effect cleanup
+        refsSnapshot = { mo, ctrl, customCtrl: cleanupRefs.current.customCtrl };
       }
     }, 0);
-    return () => clearTimeout(id);
+    return () => {
+      clearTimeout(id);
+      // Use the snapshot instead of reading the ref at cleanup time
+      const moRef = refsSnapshot && refsSnapshot.mo;
+      const customCtrlRef = refsSnapshot && refsSnapshot.customCtrl;
+      try {
+        if (moRef) moRef.disconnect();
+        if (customCtrlRef && typeof customCtrlRef.remove === 'function') customCtrlRef.remove();
+        try {
+          const el = map.getContainer();
+          el.removeAttribute('data-layers-expanded');
+        } catch (_) {}
+      } catch (_) {}
+    };
   }, [map]);
 
   // Keyboard shortcuts: L toggles Layers; Esc collapses only if focus is inside
@@ -167,7 +247,8 @@ export default function MapLayersControl({ children }) {
 
       const container = map?.getContainer?.() || document;
       const ctrl = container && container.querySelector('.leaflet-control-layers');
-      const btn = container && container.querySelector('.leaflet-control-layers-toggle');
+      const btn = customLayersToggleRef.current ||
+        (container && container.querySelector('.leaflet-control-layers-toggle'));
       if (!ctrl || !btn) return;
 
       const isExpanded = () => ctrl.classList.contains('leaflet-control-layers-expanded');
