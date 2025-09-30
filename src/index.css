@@ -13,6 +13,59 @@ body {
   color: var(--text-light);
 }
 
+/* Global, theme-aware scrollbar styling */
+/*
+  We style scrollbars across the app and react to the
+  same theme attribute already used elsewhere:
+  html[data-basemap-theme='light' | 'dark' | 'imagery']
+
+  - WebKit/Blink: ::-webkit-scrollbar* selectors
+  - Firefox: scrollbar-color + scrollbar-width
+*/
+html {
+  /* Defaults for light theme */
+  --sb-size: 10px;
+  --sb-radius: 8px;
+  --sb-track: #e5e7eb; /* gray-200 */
+  --sb-thumb: #9ca3af; /* gray-400 */
+  --sb-thumb-hover: #6b7280; /* gray-500 */
+  color-scheme: light;
+}
+html[data-basemap-theme='dark'],
+html[data-basemap-theme='imagery'] {
+  /* Subtle, higher-contrast look for dark/imagery */
+  --sb-track: #0b1220; /* slate-950 approximation used elsewhere */
+  --sb-thumb: #64748b; /* slate-500 */
+  --sb-thumb-hover: #94a3b8; /* slate-400 */
+  color-scheme: dark;
+}
+
+/* WebKit/Blink engines */
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+*::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+  border-radius: var(--sb-radius);
+  border: 2px solid var(--sb-track);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sb-thumb-hover);
+}
+*::-webkit-scrollbar-corner {
+  background: var(--sb-track);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
