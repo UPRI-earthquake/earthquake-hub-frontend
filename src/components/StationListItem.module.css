@@ -1,0 +1,99 @@
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: baseline;
+  /* Match event item paddings */
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid lightgray;
+  cursor: pointer;
+  background-color: #ffffff;
+  color: #1f2937;
+}
+html[data-basemap-theme='dark'] .row,
+html[data-basemap-theme='imagery'] .row {
+  background-color: #0b1220;
+  color: #f3f4f6;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+html[data-basemap-theme='dark'] .row,
+html[data-basemap-theme='imagery'] .row {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+html[data-basemap-theme='dark'] .row:hover,
+html[data-basemap-theme='imagery'] .row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.titleLine {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.code { font-weight: 700; font-size: 16px; letter-spacing: 0.3px; }
+.deviceName { color: #6b7280; }
+html[data-basemap-theme='dark'] .deviceName,
+html[data-basemap-theme='imagery'] .deviceName { color: #9ca3af; }
+.metaLine {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html[data-basemap-theme='dark'] .metaLine,
+html[data-basemap-theme='imagery'] .metaLine {
+  color: #9ca3af;
+}
+.sep { opacity: 0.6; }
+.net { white-space: nowrap; }
+.status { display: inline-flex; align-items: center; gap: 6px; }
+.dot { font-size: 14px; line-height: 1; }
+.dotActive { color: #5cb85c; }  /* match station popup */
+.dotInactive { color: #d9534f; }
+.activeText { color: #5cb85c; font-weight: 600; }
+.inactiveText { color: #d9534f; font-weight: 600; }
+
+.selected {
+  border-left: 4px solid #3a6a50; /* brand accent, match EQ item */
+  padding-left: 11px; /* compensate for thicker left border */
+  background: rgba(58, 106, 80, 0.12);
+}
+.selected .code { color: #3a6a50; }
+
+html[data-basemap-theme='dark'] .selected,
+html[data-basemap-theme='imagery'] .selected {
+  border-left-color: #86efac; /* readable on dark */
+  background-color: rgba(134, 239, 172, 0.08);
+}
+html[data-basemap-theme='dark'] .selected .code,
+html[data-basemap-theme='imagery'] .selected .code {
+  color: #86efac;
+}
+
+/* Mobile card look (match event items) */
+@media (max-width: 768px) {
+  .row {
+    width: 300px;
+    height: 100%;
+    border-bottom: none; /* separators via right border */
+    border-right: 1px solid lightgray;
+    /* Avoid large vertical gaps caused by CSS Grid distributing extra space */
+    align-content: start; /* pack rows at the top like desktop */
+    gap: 6px; /* match desktop row spacing */
+    align-items: baseline; /* keep text baselines aligned */
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .selected { border-left-width: 4px; }
+  .titleLine { display: flex; align-items: baseline; gap: 8px; }
+  .metaLine { display: flex; align-items: center; }
+}

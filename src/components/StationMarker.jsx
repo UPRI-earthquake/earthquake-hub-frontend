@@ -9,6 +9,7 @@ import moment from 'moment';
 import axios from 'axios';
 import * as sp from 'seisplotjs';
 import { devlog, deverror } from '../utils/devlog';
+import { useSelector } from 'react-redux';
 
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
@@ -246,10 +247,24 @@ const StationMarker = ({ network, code, latLng, description }) => {
     '&network=AM&station=' +
     code +
     '&level=resp&format=sc3ml';
+  const markerRef = useRef(null);
+  const selectedId = useSelector((state) => state);
+  const isSelected = selectedId === `station:${code}`;
+
+  useEffect(() => {
+    const m = markerRef.current;
+    if (!m || typeof m.openPopup !== 'function') return;
+    try {
+      if (isSelected) m.openPopup();
+      else m.closePopup();
+    } catch (_) {}
+  }, [isSelected]);
+
   return (
     <Marker
       position={latLng}
       icon={divTriangle}
+      ref={markerRef}
       eventHandlers={{
         click: handleStationClick,
         popupclose: handlePopupClose,

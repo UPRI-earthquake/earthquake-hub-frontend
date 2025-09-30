@@ -7,6 +7,7 @@ import EventMarkers from '../components/EventMarkers';
 import Sidebar from '../components/Sidebar';
 import SidebarInfo from '../components/SidebarInfo';
 import SidebarItems from '../components/SidebarItems';
+import SidebarStations from '../components/SidebarStations';
 import Header from '../components/Header';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
@@ -37,8 +38,8 @@ const HomePage = () => {
   // Sidebar UI state (frontend-only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [presetTitle, setPresetTitle] = useState('Latest Earthquakes (30 days)');
-  const [presetKey, setPresetKey] = useState('latest-30d');
+  const [datasetTitle, setDatasetTitle] = useState('Latest Earthquakes (30 days)');
+  const [datasetKey, setDatasetKey] = useState('latest-30d');
   const [sseEnabled, setSseEnabled] = useState(true);
   const [customEvents, setCustomEvents] = useState(null);
   const [filters, setFilters] = useState(() => ({
@@ -49,15 +50,18 @@ const HomePage = () => {
   }));
   // Sorting: default to recent-first by time
   const [sort, setSort] = useState(() => ({ by: 'time', order: 'desc' }));
-  // Future preset-driven control visibility (default: show both)
+  // Dataset-driven control visibility (default: show both)
   const [controlVisibility, setControlVisibility] = useState(() => ({
     showFilter: true,
     showSort: true,
   }));
+  const [stationActiveOnly, setStationActiveOnly] = useState(false);
   const [filterBounds, setFilterBounds] = useState(() => ({
     minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     maxDate: moment().format('YYYY-MM-DD'),
   }));
+  const [lastEqKey, setLastEqKey] = useState('latest-30d');
+  const eqBadgeLabel = lastEqKey === 'all-eqs' ? 'All EQs' : 'Latest EQs';
   // Responsive scalebar width to avoid overlap with Legend on small screens
   const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1024));
   useEffect(() => {
@@ -99,7 +103,7 @@ const HomePage = () => {
               <SSEContext.Provider value={eventSourceRef.current}>
                 <Sidebar>
                   <SidebarInfo
-                    title={presetTitle}
+                    title={datasetTitle}
                     collapsed={sidebarCollapsed}
                     onToggle={() => setSidebarCollapsed((v) => !v)}
                     searchText={searchText}
@@ -107,16 +111,17 @@ const HomePage = () => {
                     defaultFilters={filters}
                     filterBounds={filterBounds}
                     onFiltersChange={(f) => setFilters((prev) => ({ ...prev, ...f }))}
-                    selectedPresetKey={presetKey}
+                    selectedDatasetKey={datasetKey}
                     showFilter={controlVisibility.showFilter}
                     showSort={controlVisibility.showSort}
                     sortBy={sort.by}
                     sortOrder={sort.order}
                     onSortChange={(next) => setSort((prev) => ({ ...prev, ...next }))}
-                    onPresetChange={(key) => {
+                    onDatasetChange={(key) => {
                       if (key === 'latest-30d') {
-                        setPresetTitle('Latest Earthquakes (30 days)');
-                        setPresetKey('latest-30d');
+                        setLastEqKey('latest-30d');
+                        setDatasetTitle('Latest Earthquakes (30 days)');
+                        setDatasetKey('latest-30d');
                         setSseEnabled(true); // live mode
                         setCustomEvents(null);
                         setControlVisibility({ showFilter: true, showSort: true });
@@ -137,81 +142,70 @@ const HomePage = () => {
 
                         // Refetch events for the latest 30d whenever switching back
                         fetchEventsForRange(start, end).catch(console.error);
-                      } else if (key === 'year-2025') {
-                        setPresetTitle('2025 Earthquakes');
-                        setPresetKey('year-2025');
-                        setSseEnabled(false); // historical view (freeze live stream)
+                      } else if (key === 'all-eqs') {
+                        setLastEqKey('all-eqs');
+                        setDatasetTitle('All Earthquakes');
+                        setDatasetKey('all-eqs');
+                        setSseEnabled(false); // archive view
                         setCustomEvents(null);
                         setControlVisibility({ showFilter: true, showSort: true });
 
-                        const start = '2025-01-01';
-                        const end = '2025-12-31';
-
-                        setFilters({
-                          magMin: 0,
-                          magMax: 10,
-                          startDate: start,
-                          endDate: end,
-                        });
-                        setFilterBounds({
-                          minDate: start,
-                          maxDate: end,
-                        });
-
-                        fetchEventsForRange(start, end).catch(console.error);
-                      } else if (key === 'year-2024') {
-                        setPresetTitle('2024 Earthquakes');
-                        setPresetKey('year-2024');
+                        const end = moment().format('YYYY-MM-DD');
+                        const earliestStart = '1900-01-01';
+                        fetchEventsForRange(earliestStart, end)
+                          .then((arr) => {
+                            const minOT = (arr || [])
+                              .map((e) => (e.OT ? new Date(e.OT) : null))
+                              .filter((d) => d && !isNaN(d))
+                              .reduce((min, d) => (min && min < d ? min : d), null);
+                            const minDate = minOT ? moment(minOT).format('YYYY-MM-DD') : earliestStart;
+                            setFilters({
+                              magMin: 0,
+                              magMax: 10,
+                              startDate: minDate,
+                              endDate: end,
+                            });
+                            setFilterBounds({
+                              minDate,
+                              maxDate: end,
+                            });
+                          })
+                          .catch(console.error);
+                      } else if (key === 'all-stations') {
+                        setDatasetTitle('All Stations');
+                        setDatasetKey('all-stations');
                         setSseEnabled(false);
                         setCustomEvents(null);
-                        setControlVisibility({ showFilter: true, showSort: true });
-
-                        const start = '2024-01-01';
-                        const end = '2024-12-31';
-
-                        setFilters({
-                          magMin: 0,
-                          magMax: 10,
-                          startDate: start,
-                          endDate: end,
-                        });
-                        setFilterBounds({
-                          minDate: start,
-                          maxDate: end,
-                        });
-
-                        fetchEventsForRange(start, end).catch(console.error);
-                      } else if (key === 'year-2023') {
-                        setPresetTitle('2023 Earthquakes');
-                        setPresetKey('year-2023');
-                        setSseEnabled(false);
-                        setCustomEvents(null);
-                        setControlVisibility({ showFilter: true, showSort: true });
-
-                        const start = '2023-01-01';
-                        const end = '2023-12-31';
-
-                        setFilters({
-                          magMin: 0,
-                          magMax: 10,
-                          startDate: start,
-                          endDate: end,
-                        });
-                        setFilterBounds({
-                          minDate: start,
-                          maxDate: end,
-                        });
-
-                        fetchEventsForRange(start, end).catch(console.error);
+                        setControlVisibility({ showFilter: false, showSort: false });
+                        setStationActiveOnly(false);
                       }
                     }}
+                    eqBadgeLabel={eqBadgeLabel}
+                    stationCounts={{
+                      active: stationsRef.current.filter(
+                        (s) => String(s.activity || '').toLowerCase() === 'active',
+                      ).length,
+                      inactive: stationsRef.current.filter(
+                        (s) => String(s.activity || '').toLowerCase() !== 'active',
+                      ).length,
+                    }}
+                    activeOnlyStations={stationActiveOnly}
+                    onActiveOnlyChange={setStationActiveOnly}
                   />
-                  <SidebarItems
-                    initData={customEvents || events}
-                    filters={{ ...filters, searchText }}
-                    sort={sort}
-                    sseEnabled={sseEnabled}
-                  />
+                  {datasetKey === 'all-stations' ? (
+                    <SidebarStations
+                      initStations={stationsRef.current}
+                      searchText={searchText}
+                      activeOnly={stationActiveOnly}
+                    />
+                  ) : (
+                    <SidebarItems
+                      initData={customEvents || events}
+                      filters={{ ...filters, searchText }}
+                      sort={sort}
+                      sseEnabled={sseEnabled}
+                    />
+                  )}
                 </Sidebar>
                 <MapContainer
                   center={[12.2795, 122.049]}
@@ -240,18 +234,18 @@ const HomePage = () => {
                     <MapLayersControl>
                       <LayersControl.Overlay checked name="Earthquakes">
                         {/**
-                         * Key the LayerGroup by the active preset so Leaflet gets a
-                         * brand‑new group whenever presets switch. This prevents any
+                         * Key the LayerGroup by the active dataset so Leaflet gets a
+                         * brand‑new group whenever datasets switch. This prevents any
                          * stale markers from a previous dataset lingering in the group
                          * when the overlay is toggled off and later re‑enabled.
                          */}
-                        <RegisterableLayerGroup overlayId="earthquakes" key={presetKey}>
+                        <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
                           {/* Render earthquake markers for the current dataset + filters */}
                           <EventMarkers
                             initEvents={customEvents || events}
                             filters={filters}
                             sseEnabled={sseEnabled}
-                            datasetKey={presetKey}
+                            datasetKey={datasetKey}
                           />
                         </RegisterableLayerGroup>
                       </LayersControl.Overlay>

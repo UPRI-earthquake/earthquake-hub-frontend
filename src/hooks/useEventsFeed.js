@@ -25,7 +25,9 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
       const res = await axios.get(`${backendHost()}/eq-events`, {
         params: { startTime: startTs, endTime: endTs },
       });
-      setEvents((res.data?.payload || []).slice());
+      const arr = (res.data?.payload || []).slice();
+      setEvents(arr);
+      return arr;
     },
     [setEvents],
   );

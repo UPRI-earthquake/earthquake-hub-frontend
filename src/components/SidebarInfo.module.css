@@ -66,6 +66,27 @@ html[data-basemap-theme='imagery'] .sidebarInfo {
   flex-wrap: nowrap; /* desktop: stay on one line */
 }
 
+/* Stations online + toggle row */
+.stationStatsRow {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #374151; /* gray-700 */
+}
+html[data-basemap-theme='dark'] .stationStatsRow,
+html[data-basemap-theme='imagery'] .stationStatsRow {
+  color: #e5e7eb; /* gray-200 */
+}
+.stationStats { display: inline-flex; gap: 10px; align-items: center; font-size: 13px; }
+.statSep { opacity: 0.6; }
+.statActive { color: #5cb85c; font-weight: 600; }
+.statInactive { color: #d9534f; font-weight: 600; }
+.stationToggle { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+.stationToggle { white-space: nowrap; margin-left: auto; }
+.stationToggle input[type='checkbox'] { accent-color: var(--accent); }
+
 .search {
   display: flex;
   align-items: center;
@@ -650,15 +671,18 @@ html[data-basemap-theme='imagery'] .primaryBtn {
     display: none;
   }
 
-  /* Allow the action buttons to wrap below when space is extremely tight */
-  .searchWrap {
-    flex-wrap: wrap;
-  }
+  /* Keep search + stations toggle on a single row on mobile */
+  .searchWrap { flex-wrap: nowrap; }
   .iconBtn {
     order: 2;
   } /* move buttons after the input on wrap */
   .search {
     order: 1;
     flex: 1 1 60%;
+  }
+  /* Ensure the stations toggle stays at the right side like desktop */
+  .stationToggle {
+    order: 2; /* after the search input */
+    margin-left: auto; /* push to the far right */
   }
 }

@@ -36,28 +36,33 @@ const CloseIcon = () => (
 );
 
 /**
- * Sidebar header: preset selector, search, filters and sort controls.
- * TODO(frontend-team): Split presets, filters, and sort into subcomponents — this file is dense.
+ * Sidebar header: dataset selector, search, filters and sort controls.
+ * TODO(frontend-team): Split datasets, filters, and sort into subcomponents — this file is dense.
  */
 function SidebarInfo({
   title = 'Latest Earthquakes, Past 30 Days',
   collapsed = false,
-  // onToggle now opens presets dropdown
+  // onToggle now opens dataset dropdown
   onToggle: _onToggle = () => {},
   searchText,
   onSearch,
   defaultFilters,
   filterBounds,
   onFiltersChange,
-  onPresetChange,
-  selectedPresetKey,
-  // Controls visibility for future presets
+  onDatasetChange,
+  selectedDatasetKey,
+  // Controls visibility for future dataset options
   showFilter = true,
   showSort = true,
   // Sorting state is owned by the parent (e.g., HomePage)
   sortBy = 'time', // 'time' | 'mag'
   sortOrder = 'desc', // 'asc' | 'desc'
   onSortChange,
+  // Stations-specific UI
+  stationCounts, // {active:number, inactive:number}
+  activeOnlyStations = false,
+  onActiveOnlyChange,
+  eqBadgeLabel,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -274,49 +279,56 @@ function SidebarInfo({
     // e.preventDefault();
   };
 
+  const displayTitle =
+    selectedDatasetKey === 'all-stations' && !menuOpen && eqBadgeLabel
+      ? `${title} [${eqBadgeLabel}]`
+      : title;
+
   return (
     <div className={containerCls} ref={rootRef}>
       <div className={styles.headerRow}>
         <button
           className={styles.titleBtn}
           onClick={() => {
-            setFiltersOpen(false); // collapse filter when opening presets
-            setSortOpen(false); // also hide sort panel when presets open
+            setFiltersOpen(false); // collapse filter when opening dataset menu
+            setSortOpen(false); // also hide sort panel when dataset menu open
             setMenuOpen((v) => !v);
           }}
           aria-expanded={menuOpen ? 'true' : 'false'}
         >
-          <span className={styles.titleText}>{title}</span>
+          <span className={styles.titleText}>{displayTitle}</span>
           <CaretIcon className={styles.caret} />
         </button>
         <div className={styles.tools}>{/* Reserved for future buttons if needed */}</div>
       </div>
 
-      {/* Preset dropdown */}
+      {/* Dataset dropdown */}
       {menuOpen && (
         <div className={styles.menu} role="menu">
           {[
             {
               key: 'latest-30d',
               label: 'Latest Earthquakes (30 days)',
-              tip: 'Past 30 days, all magnitudes (with live updates)',
+              tip: 'Earthquakes from the past 30 days, updates live.',
             },
-            // { key: 'major-2022-2023', label: 'Major Earthquakes (2022–2023)', tip: 'Curated set of 10 major earthquakes from 2022–2023' },
-            { key: 'year-2025', label: '2025 Earthquakes', tip: 'All earthquakes in 2025' },
-            { key: 'year-2024', label: '2024 Earthquakes', tip: 'All earthquakes in 2024' },
-            { key: 'year-2023', label: '2023 Earthquakes', tip: 'All earthquakes in 2023' },
+            { key: 'all-eqs', label: 'All Earthquakes', tip: 'All recorded earthquakes in the network\'s archive.' },
+            {
+              key: 'all-stations',
+              label: `All Stations${eqBadgeLabel ? ` [${eqBadgeLabel}]` : ''}`,
+              tip: 'View all monitoring stations in the network.',
+            },
           ].map((opt) => (
             <button
               key={opt.key}
               className={`${styles.menuItem} ${
-                selectedPresetKey === opt.key ? styles.menuItemSelected : ''
+                selectedDatasetKey === opt.key ? styles.menuItemSelected : ''
               }`}
               role="menuitemradio"
-              aria-checked={selectedPresetKey === opt.key ? 'true' : 'false'}
+              aria-checked={selectedDatasetKey === opt.key ? 'true' : 'false'}
               data-tip={opt.tip}
               onClick={() => {
-                onPresetChange && onPresetChange(opt.key);
-                // Hide all other panels when a preset is chosen
+                onDatasetChange && onDatasetChange(opt.key);
+                // Hide all other panels when a dataset is chosen
                 setMenuOpen(false);
                 setFiltersOpen(false);
                 setSortOpen(false);
@@ -328,6 +340,16 @@ function SidebarInfo({
         </div>
       )}
 
+      {/* Stations online row (only for stations dataset) */}
+      {selectedDatasetKey === 'all-stations' && !collapsed && (
+        <div className={styles.stationStatsRow}>
+          <div className={styles.stationStats}>
+            <span className={styles.statActive}>● {stationCounts?.active ?? 0} Online</span>
+            <span className={styles.statInactive}>● {stationCounts?.inactive ?? 0} Offline</span>
+          </div>
+        </div>
+      )}
+
       {/* Search + Filter row */}
       {!collapsed && (
         <div className={styles.searchWrap}>
@@ -335,13 +357,32 @@ function SidebarInfo({
             <SearchIcon />
             <input
               type="text"
-              placeholder="Search"
+              placeholder={
+                selectedDatasetKey === 'all-stations'
+                  ? 'Search by ID or name'
+                  : 'Search earthquakes'
+              }
               value={searchText || ''}
               onChange={(e) => onSearch && onSearch(e.target.value)}
-              aria-label="Search earthquakes"
+              aria-label={
+                selectedDatasetKey === 'all-stations'
+                  ? 'Search stations by ID or name'
+                  : 'Search earthquakes'
+              }
             />
           </div>
-          {showSort && (
+          {selectedDatasetKey === 'all-stations' && (
+            <label className={styles.stationToggle} title="Show only active stations">
+              <input
+                type="checkbox"
+                checked={!!activeOnlyStations}
+                onChange={(e) => onActiveOnlyChange && onActiveOnlyChange(e.target.checked)}
+                aria-label="Filter active stations only"
+              />
+              <span>Active only</span>
+            </label>
+          )}
+          {showSort && selectedDatasetKey !== 'all-stations' && (
             <button
               className={styles.iconBtn}
               onClick={() => {
@@ -356,7 +397,7 @@ function SidebarInfo({
               {sortOpen ? <CloseIcon /> : <SortIcon />}
             </button>
           )}
-          {showFilter && (
+          {showFilter && selectedDatasetKey !== 'all-stations' && (
             <button
               className={styles.iconBtn}
               onClick={() => {

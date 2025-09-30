@@ -111,17 +111,13 @@ const Header = ({ initStations = [] }) => {
         <div className={styles.headerLeft}>
           <Logo className={styles.logo} role="img" aria-label="UPRI logo" />
           <h1>CS•UPRI</h1>
-          <>
-            {isSignificantEQPage ? (
-              // Hide online stations count if page is on /significant-eqs or /significant-eq-info
-              <p></p>
-            ) : (
-              <p>
-                <i>Stations Online: </i>
-                {stationsCount}
-              </p>
-            )}
-          </>
+          {/* Temporarily hide header stations online indicator to avoid redundancy with sidebar */}
+          {false && (
+            <p>
+              <i>Stations Online: </i>
+              {stationsCount}
+            </p>
+          )}
         </div>
         <div className={styles.headerRight}>
           {isLoggedIn ? (
