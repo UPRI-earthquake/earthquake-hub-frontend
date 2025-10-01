@@ -68,11 +68,6 @@ function SidebarInfo({
   const [menuOpen, setMenuOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const rootRef = useRef(null);
-  const [local, setLocal] = useState(() => ({
-    magMin: 0,
-    startDate: '',
-    endDate: '',
-  }));
 
   // Measure the slider width so bubbles can align with the actual thumb center
   const rangeWrapRef = useRef(null);
@@ -97,12 +92,7 @@ function SidebarInfo({
     };
   }, [filtersOpen]);
 
-  // Initialize local filter defaults from parent
-  useEffect(() => {
-    if (defaultFilters) {
-      setLocal((prev) => ({ ...prev, ...defaultFilters }));
-    }
-  }, [defaultFilters]);
+  // No local filter copy; inputs are controlled by parent via defaultFilters
 
   // Close menus on outside interactions
   useEffect(() => {
@@ -131,8 +121,11 @@ function SidebarInfo({
     };
   }, []);
 
-  const applyFilters = () => {
-    // Clamp dates within allowed bounds if provided
+  // Helper: clamp and forward changes directly to parent
+  const clampAndSend = (patch) => {
+    if (!onFiltersChange) return;
+    const current = defaultFilters || {};
+    const nextState = { ...current, ...patch };
     const clampDate = (d, lo, hi) => {
       if (!d) return d;
       if (lo && d < lo) return lo;
@@ -142,36 +135,42 @@ function SidebarInfo({
     const minDate = filterBounds?.minDate || null;
     const maxDate = filterBounds?.maxDate || null;
     const next = {
-      ...local,
-      startDate: clampDate(local.startDate, minDate, maxDate),
-      endDate: clampDate(local.endDate, minDate, maxDate),
+      ...nextState,
+      startDate: clampDate(nextState.startDate, minDate, maxDate),
+      endDate: clampDate(nextState.endDate, minDate, maxDate),
     };
-    onFiltersChange && onFiltersChange(next);
-    setFiltersOpen(false);
+    onFiltersChange(next);
   };
 
   const clamp01 = (n) => Math.max(0, Math.min(10, n));
-  const handleLocalChange = (patch) => setLocal((prev) => ({ ...prev, ...patch }));
-  const setMagMin = (val) =>
-    setLocal((prev) => {
-      const v = clamp01(val);
-      const max = typeof prev.magMax === 'number' ? prev.magMax : 10;
-      return { ...prev, magMin: Math.min(v, max) };
+  const setMagMin = (val) => {
+    const v = clamp01(val);
+    const max = typeof defaultFilters?.magMax === 'number' ? defaultFilters.magMax : 10;
+    clampAndSend({ magMin: Math.min(v, max) });
+  };
+  const setMagMax = (val) => {
+    const v = clamp01(val);
+    const min = typeof defaultFilters?.magMin === 'number' ? defaultFilters.magMin : 0;
+    clampAndSend({ magMax: Math.max(v, min) });
+  };
+
+  // Reset to dataset bounds and full magnitude range
+  const resetFilters = () => {
+    clampAndSend({
+      magMin: 0,
+      magMax: 10,
+      startDate: filterBounds?.minDate || '',
+      endDate: filterBounds?.maxDate || '',
     });
-  const setMagMax = (val) =>
-    setLocal((prev) => {
-      const v = clamp01(val);
-      const min = typeof prev.magMin === 'number' ? prev.magMin : 0;
-      return { ...prev, magMax: Math.max(v, min) };
-    });
+  };
 
   const containerCls = useMemo(
     () => `${styles.sidebarInfo} ${collapsed ? styles.collapsed : ''}`,
     [collapsed],
   );
 
-  const min = typeof local.magMin === 'number' ? local.magMin : 0;
-  const max = typeof local.magMax === 'number' ? local.magMax : 10;
+  const min = typeof defaultFilters?.magMin === 'number' ? defaultFilters.magMin : 0;
+  const max = typeof defaultFilters?.magMax === 'number' ? defaultFilters.magMax : 10;
   const pct = (v) => (v / 10) * 100;
   const minPct = pct(min);
   const maxPct = pct(max);
@@ -513,7 +512,7 @@ function SidebarInfo({
               <input
                 className={styles.dateInput}
                 type="date"
-                value={local.startDate}
+                value={defaultFilters?.startDate || ''}
                 min={filterBounds?.minDate || undefined}
                 max={filterBounds?.maxDate || undefined}
                 onChange={(e) => {
@@ -522,7 +521,7 @@ function SidebarInfo({
                   let v = e.target.value;
                   if (minD && v < minD) v = minD;
                   if (maxD && v > maxD) v = maxD;
-                  handleLocalChange({ startDate: v });
+                  clampAndSend({ startDate: v });
                 }}
               />
             </div>
@@ -531,7 +530,7 @@ function SidebarInfo({
               <input
                 className={styles.dateInput}
                 type="date"
-                value={local.endDate}
+                value={defaultFilters?.endDate || ''}
                 min={filterBounds?.minDate || undefined}
                 max={filterBounds?.maxDate || undefined}
                 onChange={(e) => {
@@ -540,17 +539,18 @@ function SidebarInfo({
                   let v = e.target.value;
                   if (minD && v < minD) v = minD;
                   if (maxD && v > maxD) v = maxD;
-                  handleLocalChange({ endDate: v });
+                  clampAndSend({ endDate: v });
                 }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button
                 className={styles.primaryBtn}
-                onClick={applyFilters}
-                aria-label="Apply filters"
+                onClick={resetFilters}
+                aria-label="Reset filters to defaults"
+                title="Reset filters to defaults"
               >
-                Apply
+                Reset to defaults
               </button>
             </div>
           </div>

@@ -239,11 +239,11 @@ const HomePage = () => {
                          * stale markers from a previous dataset lingering in the group
                          * when the overlay is toggled off and later re‑enabled.
                          */}
-                        <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
+                        <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey} clearOnRemove>
                           {/* Render earthquake markers for the current dataset + filters */}
                           <EventMarkers
                             initEvents={customEvents || events}
-                            filters={filters}
+                            filters={{ ...filters, searchText }}
                             sseEnabled={sseEnabled}
                             datasetKey={datasetKey}
                           />

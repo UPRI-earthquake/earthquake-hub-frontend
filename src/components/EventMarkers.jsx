@@ -55,11 +55,12 @@ const EventMarkers = ({
 
   // If overlay is off, render nothing from this layer group
   if (!earthquakesActive) return null;
-  // Client-side filters from sidebar (magnitude + date)
+  // Client-side filters from sidebar (magnitude + date + text)
   const magMin = typeof filters?.magMin === 'number' ? filters.magMin : -Infinity;
   const magMax = typeof filters?.magMax === 'number' ? filters.magMax : Infinity;
   const startDate = filters?.startDate ? new Date(filters.startDate) : null;
   const endDate = filters?.endDate ? new Date(filters.endDate + 'T23:59:59') : null;
+  const text = String(filters?.searchText || '').trim().toLowerCase();
 
   const filtered = (events || []).filter((e) => {
     const mag = Number(e.magnitude_value) || 0;
@@ -68,6 +69,10 @@ const EventMarkers = ({
     const t = e.OT ? new Date(e.OT) : null;
     if (startDate && t && t < startDate) return false;
     if (endDate && t && t > endDate) return false;
+    if (text) {
+      const hay = `${e.place || ''} ${e.text || ''}`.toLowerCase();
+      if (!hay.includes(text)) return false;
+    }
     return true;
   });
 
