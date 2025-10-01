@@ -266,7 +266,9 @@ const StationMarker = ({ network, code, latLng, description }) => {
       icon={divTriangle}
       ref={markerRef}
       eventHandlers={{
-        click: handleStationClick,
+        // Fetch status and start graph whenever the popup actually opens
+        // (works for both map-click and programmatic open from sidebar)
+        popupopen: handleStationClick,
         popupclose: handlePopupClose,
       }}
     >
