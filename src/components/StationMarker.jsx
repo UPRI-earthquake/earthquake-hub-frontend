@@ -247,6 +247,34 @@ const StationMarker = ({ network, code, latLng, description }) => {
     '&network=AM&station=' +
     code +
     '&level=resp&format=sc3ml';
+  const handleDownloadMetadata = async (e) => {
+    // Attempt to download XML directly with a custom filename
+    // Falls back to opening the URL if CORS prevents fetching
+    try {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const filename = `${network.toUpperCase()}.${code.toUpperCase()}.00.MULTI.xml`;
+
+      const resp = await axios.get(metadata_download_URL, {
+        responseType: 'blob',
+        withCredentials: false, // ensure no cookies/credentials so CORS wildcard works
+      });
+      const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data], { type: 'application/xml' });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (_) {
+      // If CORS blocks the fetch, open the URL as a fallback
+      try {
+        window.open(metadata_download_URL, '_blank', 'noreferrer');
+      } catch (_) {}
+    }
+  };
   const markerRef = useRef(null);
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
@@ -305,7 +333,12 @@ const StationMarker = ({ network, code, latLng, description }) => {
             Get past 24hrs data
           </a>
           <br />
-          <a href={metadata_download_URL} target="_blank" rel="noreferrer">
+          <a
+            href={metadata_download_URL}
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleDownloadMetadata}
+          >
             Get station metadata
           </a>
           <br />
