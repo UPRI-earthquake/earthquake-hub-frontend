@@ -246,21 +246,41 @@ const StationMarker = ({ network, code, latLng, description }) => {
     '/station/1/query?' +
     '&network=AM&station=' +
     code +
-    '&level=resp&format=sc3ml';
+    '&level=resp&format=sc3ml&nodata=404';
   const handleDownloadMetadata = async (e) => {
     // Attempt to download XML directly with a custom filename
-    // Falls back to opening the URL if CORS prevents fetching
+    // Do NOT download if response is 404/empty/non-XML; open the link instead
     try {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
-      const filename = `${network.toUpperCase()}.${code.toUpperCase()}.00.MULTI.xml`;
 
       const resp = await axios.get(metadata_download_URL, {
         responseType: 'blob',
-        withCredentials: false, // ensure no cookies/credentials so CORS wildcard works
+        withCredentials: false,
+        validateStatus: () => true, // we will handle non-200 statuses ourselves
       });
-      const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data], { type: 'application/xml' });
-      const url = window.URL.createObjectURL(blob);
 
+      // If not OK (e.g., 404 from nodata), open the URL instead of downloading
+      if (resp.status !== 200) {
+        try {
+          window.open(metadata_download_URL, '_blank', 'noreferrer');
+        } catch (_) {}
+        return;
+      }
+
+      const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data]);
+      const contentType = (resp.headers && resp.headers['content-type']) || '';
+      const looksXml = typeof contentType === 'string' && contentType.toLowerCase().includes('xml');
+
+      // If empty or not xml-ish, open the link instead of downloading
+      if (!blob || blob.size === 0 || (!looksXml && blob.size < 64)) {
+        try {
+          window.open(metadata_download_URL, '_blank', 'noreferrer');
+        } catch (_) {}
+        return;
+      }
+
+      const filename = `${network.toUpperCase()}.${code.toUpperCase()}.00.MULTI.xml`;
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -269,7 +289,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (_) {
-      // If CORS blocks the fetch, open the URL as a fallback
+      // If CORS or other error occurs, open the URL as a fallback
       try {
         window.open(metadata_download_URL, '_blank', 'noreferrer');
       } catch (_) {}
