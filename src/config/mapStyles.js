@@ -41,6 +41,41 @@ const PALETTE = {
   },
 };
 
+// Depth ramp colors chosen to avoid conflict with station markers
+// and to maintain contrast on satellite imagery.
+// Order: [shallow (0–70), intermediate (70–300), deep (300+)]
+// Define core ramps and alias to all basemap variants for easy editing
+const DR_LIGHT = ['#FF6B6B', '#FF8A65', '#CC3A3A'];
+const DR_DARK = ['#FF6B6B', '#FF8A65', '#CC3A3A'];
+const DR_SAT = ['#FF6B6B', '#FF8A65', '#CC3A3A'];
+export const DEPTH_RAMP = {
+  // canonical keys
+  light: DR_LIGHT,
+  dark: DR_DARK,
+  satellite: DR_SAT,
+  // aliases for basemap names so editing is one place
+  standard: DR_LIGHT,
+  osm: DR_LIGHT,
+  positron: DR_LIGHT,
+  carto_positron: DR_LIGHT,
+  darkmatter: DR_DARK,
+  carto_dark: DR_DARK,
+  carto_darkmatter: DR_DARK,
+  imagery: DR_SAT,
+  esri: DR_SAT,
+  esri_worldimagery: DR_SAT,
+};
+
+export function eqDepthColor(theme, depthKm) {
+  const t = normalizeTheme(theme);
+  const ramp = DEPTH_RAMP[t] || DEPTH_RAMP.light;
+  const d = depthKm == null ? null : Number(depthKm);
+  if (d == null || Number.isNaN(d)) return null;
+  if (d <= 70) return ramp[0];
+  if (d <= 300) return ramp[1];
+  return ramp[2];
+}
+
 // Earthquake size scale (diameter in px used by icons)
 // Provide a continuous, piecewise‑linear scale so sizes reflect
 // decimal magnitudes precisely while preserving previous anchors:

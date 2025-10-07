@@ -7,7 +7,7 @@ import ReactDOMServer from 'react-dom/server';
 import styles from './EventMarker.module.css';
 import { ReactComponent as Circle } from './circle.svg';
 import { ReactComponent as CircleWithBorder } from './circleWithBorder.svg';
-import { eqSizePx } from '../config/mapStyles';
+import { eqSizePx, themeFromMapContainer, eqDepthColor } from '../config/mapStyles';
 
 function toRadius(magnitude) {
   // Convert desired diameter into a radius; DivIcon uses iconSize width/height
@@ -87,13 +87,36 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     return () => window.removeEventListener('eqDepthRamp:toggle', onToggle);
   }, []);
 
-  const depthColor = (() => {
-    const d = depthKm == null ? null : Number(depthKm);
-    if (d == null || Number.isNaN(d)) return null;
-    if (d <= 70) return '#FF6B6B';
-    if (d <= 300) return '#F4A261';
-    return '#2A9D8F';
-  })();
+  // Track basemap theme to ensure depth colors update when switching base layers
+  const [themeKey, setThemeKey] = useState(() => {
+    try {
+      return themeFromMapContainer(map?.getContainer?.());
+    } catch (_) {
+      return 'light';
+    }
+  });
+  useEffect(() => {
+    if (!map) return undefined;
+    const update = () => {
+      try {
+        setThemeKey(themeFromMapContainer(map.getContainer()));
+      } catch (_) {}
+    };
+    map.on('baselayerchange', update);
+    // Also observe attribute change as a fallback in case theme attribute updates without event
+    let mo = null;
+    try {
+      const el = map.getContainer();
+      mo = new MutationObserver(update);
+      mo.observe(el, { attributes: true, attributeFilter: ['data-basemap-theme'] });
+    } catch (_) {}
+    return () => {
+      try { map.off('baselayerchange', update); } catch (_) {}
+      try { if (mo) mo.disconnect(); } catch (_) {}
+    };
+  }, [map]);
+
+  const depthColor = eqDepthColor(themeKey, depthKm);
 
   const fillColor = depthRamp && depthColor ? depthColor : undefined; // undefined → use CSS var theme color
 

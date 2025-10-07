@@ -7,6 +7,7 @@ import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/
 import { DATASETS } from '../config/datasets';
 import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
 import './legend.css';
+import { DEPTH_RAMP } from '../config/mapStyles';
 
 /**
  * Legend and metadata control synced with overlay visibility.
@@ -115,6 +116,7 @@ function useHeadLastModified(url) {
 
 // Depth ramp chips only (no toggle here)
 function DepthRampSub() {
+  const map = useMap();
   const [enabled, setEnabled] = useState(() => {
     try {
       return sessionStorage.getItem('eqDepthRamp') === '1';
@@ -128,16 +130,21 @@ function DepthRampSub() {
     return () => window.removeEventListener('eqDepthRamp:toggle', on);
   }, []);
   if (!enabled) return null;
+  let theme = 'light';
+  try {
+    theme = themeFromMapContainer(map?.getContainer?.());
+  } catch (_) {}
+  const [c1, c2, c3] = (DEPTH_RAMP && DEPTH_RAMP[theme]) || DEPTH_RAMP.light;
   return (
     <div className="legend-subrow" onClick={(e) => e.stopPropagation()}>
       <span className="legend-chip">
-        <i style={{ background: '#FF6B6B' }} /> 0–70 km
+        <i style={{ background: c1 }} /> 0–70 km
       </span>
       <span className="legend-chip">
-        <i style={{ background: '#F4A261' }} /> 70–300 km
+        <i style={{ background: c2 }} /> 70–300 km
       </span>
       <span className="legend-chip">
-        <i style={{ background: '#2A9D8F' }} /> 300+ km
+        <i style={{ background: c3 }} /> 300+ km
       </span>
     </div>
   );
