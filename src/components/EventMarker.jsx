@@ -70,36 +70,8 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     }
   }, [status, last_modification]);
 
-  // Numeric opacity resolved from CSS variable on the map container.
-  // Keeps markers consistent after overlay toggles where var() could be stale.
-  const [eqOpacity, setEqOpacity] = useState(0.65);
-  useEffect(() => {
-    if (!map || typeof map.getContainer !== 'function') return undefined;
-    const el = map.getContainer();
-    const read = () => {
-      try {
-        const v = getComputedStyle(el).getPropertyValue('--eq-opacity');
-        const n = parseFloat(String(v).trim());
-        setEqOpacity(Number.isFinite(n) ? n : 0.65);
-      } catch (_) {
-        setEqOpacity(0.65);
-      }
-    };
-    read();
-    // Update whenever map styling might change
-    map.on('zoom', read);
-    map.on('zoomend', read);
-    map.on('baselayerchange', read);
-    map.on('overlayadd', read);
-    map.on('overlayremove', read);
-    return () => {
-      map.off('zoom', read);
-      map.off('zoomend', read);
-      map.off('baselayerchange', read);
-      map.off('overlayadd', read);
-      map.off('overlayremove', read);
-    };
-  }, [map]);
+  // Opacity is now driven purely by CSS var --eq-opacity on the map container.
+  // Avoid binding it into the icon to prevent DivIcon churn on zoom changes.
 
   // Depth ramp toggle listener
   const [depthRamp, setDepthRamp] = useState(() => {
@@ -125,24 +97,31 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
 
   const fillColor = depthRamp && depthColor ? depthColor : undefined; // undefined → use CSS var theme color
 
+  // Fallback to default marker pane if custom pane does not yet exist
+  const paneName = useMemo(() => {
+    try {
+      return map && map.getPane && map.getPane('eqMarkers') ? 'eqMarkers' : undefined;
+    } catch (_) {
+      return undefined;
+    }
+  }, [map]);
+
   // Cache DivIcon instances to avoid re-creating DOM/HTML on every render
-  // Key on: animation flag, fill color bucket, and size bucket
+  // Key on: animation flag, fill color bucket, and size bucket (0.1px precision)
   const iconCacheRef = useRef(new Map());
   const divCircle = useMemo(() => {
     const radius = toRadius(mag);
-    // Bucket sizes to reduce unique icon churn while keeping visual fidelity
-    const sizeKey = Math.round(radius * (animate ? 8 : 2));
+    // Bucket sizes at 0.1px precision to reflect decimal magnitudes precisely
+    const sizeKey = Math.round((animate ? 8 : 2) * radius * 10); // tenths of a px
     const colorKey = fillColor || 'theme';
-    const opKey = Math.round(eqOpacity * 100); // two decimals precision
-    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}|op${opKey}`;
+    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}`;
 
     const cache = iconCacheRef.current;
     const existing = cache.get(cacheKey);
     if (existing) return existing;
 
-    // Apply numeric opacity and also set the CSS variable locally so
-    // animations that reference var(--eq-opacity) resolve to the same value.
-    const baseStyle = { fillOpacity: eqOpacity, '--eq-opacity': eqOpacity };
+    // Do not attach explicit opacity; rely on CSS vars set on map container.
+    const baseStyle = {};
     const svgStyle = fillColor ? { ...baseStyle, fill: fillColor } : baseStyle;
     const html = ReactDOMServer.renderToString(
       animate ? (
@@ -160,7 +139,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     });
     cache.set(cacheKey, icon);
     return icon;
-  }, [animate, mag, fillColor, eqOpacity]);
+  }, [animate, mag, fillColor]);
 
   // Gentle fade-in when marker icon mounts or changes
   useEffect(() => {
@@ -210,7 +189,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
       icon={divCircle}
       stroke={false}
       position={[lat, lng]}
-      pane="eqMarkers" // render in dedicated high-z pane so EQs stay above stations
+      {...(paneName ? { pane: paneName } : {})} // only pass pane when available
     >
       <Popup ref={popupRef}>
         <div>

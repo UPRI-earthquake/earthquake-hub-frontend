@@ -8,6 +8,7 @@ import {
   platesStyle,
   themeFromMapContainer,
   zoomFromMap,
+  eqScaleForZoom,
 } from '../config/mapStyles';
 import './mapLayers.css';
 import { useOverlayState } from './OverlayStateContext';
@@ -374,11 +375,9 @@ export default function MapLayersControl({ children }) {
       el.setAttribute('data-zoom-lte4', z <= 4 ? '1' : '0');
     };
     setZoomAttr();
-    // Update continuously during zoom for smoother CSS reactions
-    map.on('zoom', setZoomAttr);
+    // Update only at the end of zoom to avoid thrashing many markers
     map.on('zoomend', setZoomAttr);
     return () => {
-      map.off('zoom', setZoomAttr);
       map.off('zoomend', setZoomAttr);
     };
   }, [map]);
@@ -422,21 +421,41 @@ export default function MapLayersControl({ children }) {
       }
     };
     apply();
-    // Update scale tokens continuously during zoom to keep marker size/opacity responsive
-    map.on('zoom', apply);
+    // Update tokens only when zoom settles to avoid re-styling thousands of markers per frame
     map.on('zoomend', apply);
     map.on('baselayerchange', apply);
     // Also react immediately to overlay visibility changes to avoid stale styling
     map.on('overlayadd', apply);
     map.on('overlayremove', apply);
     return () => {
-      map.off('zoom', apply);
       map.off('zoomend', apply);
       map.off('baselayerchange', apply);
       map.off('overlayadd', apply);
       map.off('overlayremove', apply);
     };
   }, [map, activeIds]);
+
+  // Keep only the EQ scale var in sync continuously during zoom animations for smoothness
+  useEffect(() => {
+    if (!map) return undefined;
+    const el = map.getContainer();
+    let raf = null;
+    const onZoom = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        try {
+          const z = map.getZoom();
+          const s = eqScaleForZoom(z);
+          el.style.setProperty('--eq-scale', String(s));
+        } catch (_) {}
+      });
+    };
+    map.on('zoom', onZoom);
+    return () => {
+      cancelAnimationFrame(raf);
+      map.off('zoom', onZoom);
+    };
+  }, [map]);
 
   // Enhance LayersControl UI: header, thumbnails, overlay swatches
   useEffect(() => {
@@ -673,20 +692,8 @@ export default function MapLayersControl({ children }) {
     };
   }, [map]);
 
-  // Create a dedicated pane for earthquake markers so they render above stations/overlays
-  useEffect(() => {
-    if (!map || !map.createPane) return undefined;
-    try {
-      const name = 'eqMarkers';
-      const existing = map.getPane && map.getPane(name);
-      const pane = existing || map.createPane(name);
-      // Default Leaflet z-indexes: overlayPane 400, markerPane 600, tooltip 650, popup 700
-      // Keep EQ markers above default markers (stations) but below tooltips/popups
-      pane.style.zIndex = '620';
-      pane.style.pointerEvents = 'auto';
-    } catch (_) {}
-    return undefined;
-  }, [map]);
+  // Pane for earthquake markers is created by a dedicated <Pane name="eqMarkers" />
+  // added in HomePage.jsx before any markers mount.
 
   // Use default overlay pane for both vector overlays to allow hover on both
   if (map) {

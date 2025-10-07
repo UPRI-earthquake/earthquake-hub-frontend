@@ -14,6 +14,12 @@
   animation: eq-fade-in 220ms ease-in both, radiate-outward 1.5s linear infinite;
 }
 
+/* Disable marker animations while Leaflet performs zoom animation */
+:global(.leaflet-container.leaflet-zoom-anim) .radiate,
+:global(.leaflet-container.leaflet-zoom-anim) .default {
+  animation: none !important;
+}
+
 @keyframes radiate-outward {
   from {
     stroke-width: 0;
@@ -71,4 +77,12 @@
   /* Ensure no solid background/border when overlay toggles */
   background: transparent !important;
   border: 0 !important;
+  /* Tiny transition for non-animated scale jumps (e.g., programmatic zoom steps) */
+  transition: transform 120ms ease-out;
+}
+
+/* Disable transform transition during Leaflet zoom animations to avoid jitter */
+:global(.leaflet-container.leaflet-zoom-anim) .leaflet-div-icon.eq-marker,
+:global(.leaflet-container.leaflet-zoom-anim) .leaflet-marker-icon.eq-marker {
+  transition: none !important;
 }

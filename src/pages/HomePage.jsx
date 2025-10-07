@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import moment from 'moment';
-import { MapContainer, LayersControl, ScaleControl, ZoomControl } from 'react-leaflet';
+import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane } from 'react-leaflet';
 import './homePage.css';
 import StationMarkers from '../components/StationMarkers';
 import EventMarkers from '../components/EventMarkers';
@@ -223,6 +223,8 @@ const HomePage = () => {
                   preferCanvas
                   whenCreated={(m) => (window.__leaflet_map__ = m)}
                 >
+                  {/* Ensure the custom EQ pane exists before any markers mount */}
+                  <Pane name="eqMarkers" style={{ zIndex: 620, pointerEvents: 'auto' }} />
                   {/* Zoom at top-left (requested) */}
                   <ZoomControl position="topleft" />
                   {/* Reset to Philippines bbox, placed under Zoom with spacing */}
@@ -239,7 +241,7 @@ const HomePage = () => {
                          * stale markers from a previous dataset lingering in the group
                          * when the overlay is toggled off and later re‑enabled.
                          */}
-                        <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey} clearOnRemove>
+                        <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
                           {/* Render earthquake markers for the current dataset + filters */}
                           <EventMarkers
                             initEvents={customEvents || events}

@@ -42,15 +42,19 @@ const PALETTE = {
 };
 
 // Earthquake size scale (diameter in px used by icons)
-// M3=6, M5=10, M7=16, M8+=20
+// Provide a continuous, piecewise‑linear scale so sizes reflect
+// decimal magnitudes precisely while preserving previous anchors:
+// M1≈5, M3≈6, M5≈10, M7≈16, M8+≈20. Below M1, taper to 4px at M0.
 export function eqSizePx(mag) {
   const m = Math.max(0, Number(mag) || 0);
-  if (m >= 8) return 20;
-  if (m >= 7) return 16;
-  if (m >= 5) return 10;
-  if (m >= 3) return 6;
-  if (m >= 1) return 5;
-  return 4;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  if (m <= 0) return 4;
+  if (m <= 1) return lerp(4, 5, m / 1);
+  if (m <= 3) return lerp(5, 6, (m - 1) / 2);
+  if (m <= 5) return lerp(6, 10, (m - 3) / 2);
+  if (m <= 7) return lerp(10, 16, (m - 5) / 2);
+  if (m <= 8) return lerp(16, 20, (m - 7) / 1);
+  return 20; // cap at large magnitudes
 }
 
 // Opacity by zoom (fill opacity target for EQs)
@@ -60,14 +64,28 @@ export function eqFillOpacityForZoom(z) {
   return 0.6; // city
 }
 
+// Smooth, continuous scale multiplier for marker SVGs based on zoom.
+// Keeps interaction targets readable across zoom while avoiding jumps.
+export function eqScaleForZoom(z) {
+  const zz = Math.max(0, Number(z) || 0);
+  // Anchors: z<=5 -> 1.0, z=6 -> 1.5, z=9 -> 2.0, z=12 -> 2.5, z=14 -> 5.0
+  const lerp = (a, b, t) => a + (b - a) * t;
+  if (zz <= 5) return 1.0;
+  if (zz <= 6) return lerp(1.0, 1.5, zz - 5);
+  if (zz <= 9) return lerp(1.5, 2.0, (zz - 6) / 3);
+  if (zz <= 12) return lerp(2.0, 2.5, (zz - 9) / 3);
+  if (zz <= 14) return lerp(2.5, 5.0, (zz - 12) / 2);
+  return 5.0;
+}
+
 export function buildThemeTokens({ theme, zoom, overlays }) {
   const t = normalizeTheme(theme);
   const z = Math.max(0, Number(zoom) || 0);
   const hasEQ = overlays?.has?.('earthquakes');
   const hasFaults = overlays?.has?.('faults');
   // Interaction scale multiplier to enlarge targets at higher zoom
-  // Scale targets up as zoom increases. Make them largest at z >= 14
-  const scale = z >= 14 ? 5.0 : z >= 12 ? 2.5 : z >= 9 ? 2.0 : z >= 6 ? 1.5 : 1.0;
+  // Smooth scale up as zoom increases using continuous function
+  const scale = eqScaleForZoom(z);
 
   // Earthquakes
   const eqBase = PALETTE.earthquakes[t] || PALETTE.earthquakes.light;

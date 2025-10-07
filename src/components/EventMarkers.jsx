@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMap } from 'react-leaflet';
 import { ZOOM } from '../config/mapStyles';
 import EventMarker from './EventMarker';
-import { useOverlayState } from './OverlayStateContext';
 
 /**
  * Renders earthquake markers filtered by magnitude/date and current zoom level.
@@ -16,35 +15,12 @@ const EventMarkers = ({
   datasetKey,
 }) => {
   const map = useMap();
-  const { activeIds } = useOverlayState();
-  // Treat overlay visibility as a first‑class state so logic can react to toggles
-  const earthquakesActive = useMemo(() => activeIds?.has?.('earthquakes') ?? true, [activeIds]);
-  // Bump a version whenever the overlay is re-enabled to ensure fresh marker icons
-  const [overlayCycle, setOverlayCycle] = useState(0);
-  useEffect(() => {
-    // Increment only on transitions from disabled -> enabled
-    setOverlayCycle((prev) => (earthquakesActive ? prev + 1 : prev));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [earthquakesActive]);
   const [events, setEvents] = useState(initEvents);
   const [zoom, setZoom] = useState(() => (map ? map.getZoom() : 6));
   // Keep events in sync when initEvents or dataset key changes (e.g., preset switch)
   useEffect(() => {
     setEvents(initEvents || []);
   }, [initEvents, datasetKey]);
-
-  // Also resync when the overlay is toggled back on, to avoid any stale local
-  // cache from before it was hidden.
-  useEffect(() => {
-    if (earthquakesActive) {
-      // Repopulate from the latest props when re-enabling the overlay
-      setEvents(initEvents || []);
-    } else {
-      // Proactively clear local cache when overlay is disabled so no prior
-      // preset’s markers can linger inside the LayerGroup when it is re-added
-      setEvents([]);
-    }
-  }, [earthquakesActive, initEvents, datasetKey]);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -53,8 +29,6 @@ const EventMarkers = ({
     return () => map.off('zoomend', onZoom);
   }, [map]);
 
-  // If overlay is off, render nothing from this layer group
-  if (!earthquakesActive) return null;
   // Client-side filters from sidebar (magnitude + date + text)
   const magMin = typeof filters?.magMin === 'number' ? filters.magMin : -Infinity;
   const magMax = typeof filters?.magMax === 'number' ? filters.magMax : Infinity;
@@ -107,7 +81,7 @@ const EventMarkers = ({
 
     return (
       <EventMarker
-        key={`${datasetKey || 'ds'}-${overlayCycle}-${event.publicID}`}
+        key={`${datasetKey || 'ds'}-${event.publicID}`}
         publicID={event.publicID}
         time={event.OT}
         lat={lat}
