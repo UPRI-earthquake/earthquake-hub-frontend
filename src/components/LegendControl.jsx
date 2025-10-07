@@ -422,13 +422,14 @@ export default function LegendControl({ position = 'bottomright' }) {
   const { activeIds } = useOverlayState();
   const containerRef = useRef(null);
   const [, forceRender] = useState(0); // trigger a re-render after control attaches
-  // Open legend by default on first load
-  const [collapsed, setCollapsed] = useState(false);
-  useEffect(() => {
+  // Collapse legend by default on first load; persist if available
+  const [collapsed, setCollapsed] = useState(() => {
     try {
-      sessionStorage.setItem('legendCollapsed', '0');
+      const v = sessionStorage.getItem('legendCollapsed');
+      if (v === '0' || v === '1') return v === '1';
     } catch (_) {}
-  }, []);
+    return true; // collapsed by default
+  });
 
   // Track current basemap theme and map zoom so legend swatches react
   const [legendTheme, setLegendTheme] = useState(() => {
