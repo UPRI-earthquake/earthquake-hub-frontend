@@ -246,7 +246,47 @@ code {
 
 /* Indicate hoverable path */
 path.remote-geojson-layer.leaflet-interactive {
-  cursor: help;
+  cursor: pointer;
+}
+
+/* Feature info popups (faults) */
+.leaflet-popup.feature-popup {
+  --pp-bg: #ffffff;
+  --pp-text: #111827;
+  --pp-border: rgba(17, 24, 39, 0.18);
+  color: var(--pp-text);
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup.feature-popup,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup.feature-popup {
+  --pp-bg: #111827;
+  --pp-text: #f3f4f6;
+  --pp-border: rgba(255, 255, 255, 0.15);
+}
+.leaflet-popup.feature-popup .leaflet-popup-content-wrapper {
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+.leaflet-popup.feature-popup .leaflet-popup-content {
+  margin: 8px 10px;
+}
+.leaflet-popup.feature-popup .ft-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.leaflet-popup.feature-popup .ft-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+}
+.leaflet-popup.feature-popup .ft-k {
+  color: #6b7280;
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup.feature-popup .ft-k,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup.feature-popup .ft-k {
+  color: #d1d5db;
+  opacity: 0.8;
 }
 
 /* Reset-to-Philippines control (below Zoom) */

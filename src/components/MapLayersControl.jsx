@@ -703,7 +703,7 @@ export default function MapLayersControl({ children }) {
   }
 
   const makeOnEachWith = useCallback(
-    (baseStyle, buildTooltipFn, hoverClassName = null) => {
+    (baseStyle, buildTooltipFn, hoverClassName = null, options = {}) => {
       const getBase = () => {
         const s = typeof baseStyle === 'function' ? baseStyle() : baseStyle;
         return { ...(s || {}), interactive: true };
@@ -711,21 +711,34 @@ export default function MapLayersControl({ children }) {
       return (feature, layer) => {
         try {
           const html = buildTooltipFn(feature && feature.properties);
+          const usePopup = Boolean(options && options.usePopup);
           if (html) {
-            layer.bindTooltip(html, {
-              sticky: true,
-              direction: 'top',
-              className: 'feature-tooltip',
-            });
+            if (usePopup) {
+              layer.bindPopup(html, {
+                className: 'feature-popup',
+                autoPan: true,
+                closeButton: true,
+                maxWidth: 280,
+              });
+            } else {
+              layer.bindTooltip(html, {
+                sticky: true,
+                direction: 'top',
+                className: 'feature-tooltip',
+              });
+            }
           }
+          const hoverWeightFor = (baseW) =>
+            usePopup ? Math.max(baseW + 1.25, baseW * 1.75) : Math.max(baseW + 2.5, baseW * 2.5);
+
           layer.on('mouseover', () => {
             try {
               const el = map?.getContainer?.();
               if (el && hoverClassName) el.classList.add(hoverClassName);
               const baseNow = getBase();
               const baseW = baseNow.weight || 2;
-              // Bump weight noticeably on hover to aid tooltip targeting
-              const hoverW = Math.max(baseW + 2.5, baseW * 2.5);
+              // Slight bump on hover for readability; keep same scale for selected
+              const hoverW = hoverWeightFor(baseW);
               layer.setStyle({ ...baseNow, weight: hoverW, opacity: 1 });
               if (layer.bringToFront) layer.bringToFront();
               const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
@@ -745,8 +758,11 @@ export default function MapLayersControl({ children }) {
           });
           const reset = () => {
             // If tooltip is open (selected), keep selected styling
-            const tip = typeof layer.getTooltip === 'function' ? layer.getTooltip() : null;
-            const open = !!(tip && typeof tip.isOpen === 'function' && tip.isOpen());
+            const tip = !usePopup && typeof layer.getTooltip === 'function' ? layer.getTooltip() : null;
+            const pop = usePopup && typeof layer.getPopup === 'function' ? layer.getPopup() : null;
+            const isTipOpen = !!(tip && typeof tip.isOpen === 'function' && tip.isOpen());
+            const isPopOpen = !!(pop && typeof pop.isOpen === 'function' && pop.isOpen());
+            const open = usePopup ? isPopOpen : isTipOpen;
             if (!open) {
               try {
                 layer.setStyle(getBase());
@@ -754,8 +770,8 @@ export default function MapLayersControl({ children }) {
             } else {
               const baseNow = getBase();
               const baseW = baseNow.weight || 2;
-              // Keep a stronger highlight when tooltip is pinned open
-              const selectedW = Math.max(baseW + 3, baseW * 3);
+              // Keep a highlight when info is pinned open, same scale as hover
+              const selectedW = hoverWeightFor(baseW);
               try {
                 layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
               } catch (_) {}
@@ -776,30 +792,49 @@ export default function MapLayersControl({ children }) {
             }
           };
           layer.on('mouseout', reset);
-          layer.on('tooltipclose', reset);
+          if (usePopup) {
+            layer.on('popupclose', reset);
+          } else {
+            layer.on('tooltipclose', reset);
+          }
           layer.on('remove', reset);
-          // Click/tap to toggle tooltip and apply a stronger selected highlight
+          // Click/tap to toggle info and apply a stronger selected highlight
           const clickToggle = (e) => {
             try {
-              const isOpen = typeof layer.isTooltipOpen === 'function' && layer.isTooltipOpen();
-              if (isOpen) {
-                layer.closeTooltip();
-                // reset will run via tooltipclose
-              } else {
-                const baseNow = getBase();
-                const baseW = baseNow.weight || 2;
-                const selectedW = Math.max(baseW + 3, baseW * 3);
-                layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
-                if (layer.bringToFront) layer.bringToFront();
-                const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-                if (pathEl) {
-                  try {
-                    pathEl.classList.add('selected-glow');
-                  } catch (_) {}
+              if (usePopup) {
+                const isOpen = typeof layer.isPopupOpen === 'function' && layer.isPopupOpen();
+                if (isOpen) {
+                  layer.closePopup();
+                } else {
+                  const baseNow = getBase();
+                  const baseW = baseNow.weight || 2;
+                  const selectedW = hoverWeightFor(baseW);
+                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                  if (layer.bringToFront) layer.bringToFront();
+                  const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                  if (pathEl) {
+                    try { pathEl.classList.add('selected-glow'); } catch (_) {}
+                  }
+                  if (e && e.latlng && typeof layer.openPopup === 'function') layer.openPopup(e.latlng);
+                  else if (typeof layer.openPopup === 'function') layer.openPopup();
                 }
-                if (e && e.latlng && typeof layer.openTooltip === 'function')
-                  layer.openTooltip(e.latlng);
-                else if (typeof layer.openTooltip === 'function') layer.openTooltip();
+              } else {
+                const isOpen = typeof layer.isTooltipOpen === 'function' && layer.isTooltipOpen();
+                if (isOpen) {
+                  layer.closeTooltip();
+                } else {
+                  const baseNow = getBase();
+                  const baseW = baseNow.weight || 2;
+                  const selectedW = hoverWeightFor(baseW);
+                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                  if (layer.bringToFront) layer.bringToFront();
+                  const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                  if (pathEl) {
+                    try { pathEl.classList.add('selected-glow'); } catch (_) {}
+                  }
+                  if (e && e.latlng && typeof layer.openTooltip === 'function') layer.openTooltip(e.latlng);
+                  else if (typeof layer.openTooltip === 'function') layer.openTooltip();
+                }
               }
             } catch (_) {}
           };
@@ -816,17 +851,27 @@ export default function MapLayersControl({ children }) {
             if (__lastTapTs && Date.now() - __lastTapTs < 350) return;
             clickToggle(ev);
           });
-          layer.on('tooltipclose', () => {
-            const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-            if (pathEl) {
+          if (!usePopup) {
+            layer.on('tooltipclose', () => {
+              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+              if (pathEl) {
+                try {
+                  pathEl.classList.remove('selected-glow');
+                } catch (_) {}
+              }
               try {
-                pathEl.classList.remove('selected-glow');
+                layer.setStyle(getBase());
               } catch (_) {}
-            }
-            try {
-              layer.setStyle(getBase());
-            } catch (_) {}
-          });
+            });
+          } else {
+            layer.on('popupclose', () => {
+              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+              if (pathEl) {
+                try { pathEl.classList.remove('selected-glow'); } catch (_) {}
+              }
+              try { layer.setStyle(getBase()); } catch (_) {}
+            });
+          }
         } catch (_) {}
       };
     },

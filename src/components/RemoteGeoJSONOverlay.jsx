@@ -78,6 +78,7 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
     interactive = false,
     onEachFeature,
     pane,
+    renderer,
   },
   ref,
 ) {
@@ -172,6 +173,7 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
       style={mergedStyle}
       interactive={Boolean(interactive)}
       pane={pane}
+      renderer={renderer}
       // Pass through optional feature hook for tooltips/highlights
       onEachFeature={onEachFeature}
     />

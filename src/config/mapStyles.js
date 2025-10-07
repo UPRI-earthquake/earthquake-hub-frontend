@@ -105,7 +105,8 @@ export function eqScaleForZoom(z) {
   const zz = Math.max(0, Number(z) || 0);
   // Anchors: z<=5 -> 1.0, z=6 -> 1.5, z=9 -> 2.0, z=12 -> 2.5, z=14 -> 5.0
   const lerp = (a, b, t) => a + (b - a) * t;
-  if (zz <= 5) return 1.0;
+  if (zz <= 3) return 0.5;
+  if (zz <= 5) return 0.8;
   if (zz <= 6) return lerp(1.0, 1.5, zz - 5);
   if (zz <= 9) return lerp(1.5, 2.0, (zz - 6) / 3);
   if (zz <= 12) return lerp(2.0, 2.5, (zz - 9) / 3);
