@@ -249,45 +249,85 @@ path.remote-geojson-layer.leaflet-interactive {
   cursor: pointer;
 }
 
-/* Feature info popups (faults) */
-.leaflet-popup.feature-popup {
-  --pp-bg: #ffffff;
-  --pp-text: #111827;
-  --pp-border: rgba(17, 24, 39, 0.18);
-  color: var(--pp-text);
+/*
+  Themed popups (all): stations, earthquakes, faults, plates
+  Keep defaults for light; add dark/imagery variants to match Layers panel.
+*/
+.leaflet-container .leaflet-popup-content-wrapper {
+  border-radius: 10px;
 }
-.leaflet-container[data-basemap-theme='dark'] .leaflet-popup.feature-popup,
-.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup.feature-popup {
-  --pp-bg: #111827;
-  --pp-text: #f3f4f6;
-  --pp-border: rgba(255, 255, 255, 0.15);
+.leaflet-container .leaflet-popup-content {
+  margin: 10px 12px;
 }
-.leaflet-popup.feature-popup .leaflet-popup-content-wrapper {
-  background: var(--pp-bg);
-  border: 1px solid var(--pp-border);
-  border-radius: 8px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+.leaflet-container .leaflet-popup-content a {
+  color: #3a6a50; /* brand green on light */
 }
-.leaflet-popup.feature-popup .leaflet-popup-content {
-  margin: 8px 10px;
+.leaflet-container .leaflet-popup-content a:hover {
+  text-decoration: underline;
 }
-.leaflet-popup.feature-popup .ft-title {
-  font-weight: 600;
-  margin-bottom: 4px;
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-content,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-content {
+  color: #f3f4f6; /* white text */
 }
-.leaflet-popup.feature-popup .ft-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 10px;
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-content-wrapper,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-content-wrapper {
+  background: #111827; /* layers panel */
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36);
 }
-.leaflet-popup.feature-popup .ft-k {
-  color: #6b7280;
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-content hr,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-content hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-tip,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-tip {
+  background: #111827;
+  box-shadow: -1px -1px 0 rgba(255, 255, 255, 0.15);
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-content a,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-content a {
+  color: #86efac; /* green used for controls on dark */
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-content input[type='checkbox'],
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-content input[type='radio'],
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-content input[type='checkbox'],
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-content input[type='radio'] {
+  accent-color: #86efac; /* align with layers panel */
+}
+
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-close-button,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-close-button {
+  color: #e5e7eb;
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-popup-close-button:hover,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup-close-button:hover {
+  color: #86efac;
+}
+
+/* Minor structure helpers for faults/plates popup content */
+.leaflet-popup.feature-popup .ft-title { font-weight: 600; margin-bottom: 4px; }
+.leaflet-popup.feature-popup .ft-row { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; }
+.leaflet-popup.feature-popup .ft-k { color: #6b7280; }
 .leaflet-container[data-basemap-theme='dark'] .leaflet-popup.feature-popup .ft-k,
-.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup.feature-popup .ft-k {
-  color: #d1d5db;
-  opacity: 0.8;
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-popup.feature-popup .ft-k { color: #d1d5db; opacity: 0.85; }
+
+/* Themed station seismograph container */
+.leaflet-container .realtimeGraphDiv:not(:empty) {
+  background: #f4f4f4; /* default light */
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
+.leaflet-container[data-basemap-theme='dark'] .realtimeGraphDiv:not(:empty),
+.leaflet-container[data-basemap-theme='imagery'] .realtimeGraphDiv:not(:empty) {
+  background: #0b1220; /* slate-950-ish */
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #e5e7eb;
+}
+/* If the seismograph draws to <canvas>, invert for visibility on dark themes. */
+/* Do not invert seismograph canvas; keep default light plot for parity with prod */
 
 /* Reset-to-Philippines control (below Zoom) */
 .leaflet-container .leaflet-control-resetview {

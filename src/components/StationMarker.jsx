@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useContext } from 'react';
+import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import { ReactComponent as Logo } from './triangle.svg';
 import styles from './StationMarker.module.css';
@@ -8,18 +8,23 @@ import SSEContext from '../SSEContext';
 import moment from 'moment';
 import axios from 'axios';
 import * as sp from 'seisplotjs';
+import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector } from 'react-redux';
+import { themeFromMapContainer } from '../config/mapStyles';
 
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
 const StationMarker = ({ network, code, latLng, description }) => {
+  const map = useMap();
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
   const connected = useRef(false); // flag used in connectDataLinkWS(), ws is not connected by default
+  const demoTimerRef = useRef(null);
+  const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
   const ringserver_ws =
     process.env.NODE_ENV === 'production'
       ? window['ENV'].REACT_APP_RINGSERVER_WS
@@ -38,6 +43,41 @@ const StationMarker = ({ network, code, latLng, description }) => {
   seisPlotConfig.isRelativeTime = true; // Display the time to be relative from the current time (in millis)
   seisPlotConfig.xLabel = 'Time (seconds)';
 
+  const applySeismographTheme = useCallback((plot) => {
+    try {
+      const theme = themeFromMapContainer(map?.getContainer?.());
+      const dark = theme === 'dark' || theme === 'satellite';
+      const axis = dark ? '#e5e7eb' : '#111827';
+      const label = axis;
+      const sublbl = dark ? 'rgba(229,231,235,0.7)' : 'rgba(17,24,39,0.7)';
+      const grid = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.25)';
+      const title = dark ? '#7dd3fc' : '#0891b2';
+      const css = `
+        svg.seismograph g.title.label text { fill: ${title}; color: ${title}; }
+        /* tick numbers */
+        svg.seismograph g.axis text { fill: ${axis}; color: ${axis}; }
+        /* axis lines and ticks */
+        svg.seismograph g.axis path.domain { stroke: ${axis}; }
+        svg.seismograph g.axis line { stroke: ${axis}; }
+        /* grid (if enabled by config) */
+        svg.seismograph g.grid line { stroke: ${grid}; }
+        /* main axis labels */
+        svg.seismograph g.xLabel text { fill: ${label}; color: ${label}; }
+        svg.seismograph g.yLabel.left text { fill: ${label}; color: ${label}; }
+        svg.seismograph g.yLabel.right text { fill: ${label}; color: ${label}; }
+        /* sublabels/units */
+        svg.seismograph g.xSublabel text { fill: ${sublbl}; color: ${sublbl}; }
+        svg.seismograph g.ySublabel text { fill: ${sublbl}; color: ${sublbl}; }
+      `;
+      // Replace existing theme style to avoid duplicates
+      try {
+        const existing = plot.shadowRoot && plot.shadowRoot.getElementById('app-seismo-theme');
+        if (existing) existing.remove();
+      } catch (_) {}
+      plot.addStyle(css, 'app-seismo-theme');
+    } catch (_) {}
+  }, [map]);
+
   const packetHandler = function (packet) {
     if (packet.isMiniseed()) {
       let seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed()); // Create a SeismogramSegment from the packet
@@ -55,6 +95,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
         seisPlot = new sp.seismograph.Seismograph([seisData], seisPlotConfig); // Create a new Seismograph with the SeismogramDisplayData and SeismographConfig
         realtimeDivRef.current.appendChild(seisPlot); // Append the Seismograph to the realtimeDiv
         graphListRef.current.set(codes, seisPlot); // Store the Seismograph in the graphListRef for future reference
+        applySeismographTheme(seisPlot);
 
         devlog(`new plot: ${codes}`);
       } else {
@@ -160,6 +201,98 @@ const StationMarker = ({ network, code, latLng, description }) => {
   };
   /* End of graph data from DataLink WebSocket */
 
+  const stopDemoMseed = () => {
+    try { clearInterval(demoTimerRef.current); } catch (_) {}
+    demoTimerRef.current = null;
+    const { plot } = demoPlaybackRef.current || {};
+    if (plot && plot.remove && plot.parentNode) {
+      try { plot.parentNode.removeChild(plot); } catch (_) {}
+    }
+    demoPlaybackRef.current = { plot: null, sdd: null, alignStart: null, alignEnd: null };
+  };
+
+  // MiniSEED demo playback using seisplotjs, looping through file time
+  const startDemoFromMseed = async () => {
+    try {
+      stopDemoMseed();
+      const url = (window.ENV && window.ENV.REACT_APP_SEIS_DEMO_URL) || demoMseedUrl;
+      const resp = await fetch(url, { cache: 'no-store' });
+      const buf = await resp.arrayBuffer();
+      const ms = sp.miniseed || {};
+      let records = [];
+      try {
+        if (typeof ms.parseDataRecords === 'function') records = ms.parseDataRecords(buf);
+        else if (typeof ms.parseMiniseed === 'function') records = ms.parseMiniseed(buf);
+        else if (typeof ms.parse === 'function') records = ms.parse(buf);
+      } catch (e) {
+        records = [];
+      }
+      if (!Array.isArray(records) || records.length === 0) throw new Error('No MiniSEED records parsed');
+
+      // Create a single segment from records
+      const seg = sp.miniseed.createSeismogramSegment(records);
+      const codes = seg.codes ? seg.codes() : `${network}_${code}_00_EHZ/MSEED`;
+
+      // Build display data and plot, matching production config
+      const seis = new sp.seismogram.Seismogram([seg]);
+      const sdd = sp.seismogram.SeismogramDisplayData.fromSeismogram(seis);
+      sdd.alignmentTime = sp.luxon.DateTime.utc();
+
+      try {
+        const theme = themeFromMapContainer(map?.getContainer?.());
+        const dark = theme === 'dark' || theme === 'satellite';
+        seisPlotConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
+      } catch (_) {}
+      const plot = new sp.seismograph.Seismograph([sdd], seisPlotConfig);
+      realtimeDivRef.current.appendChild(plot);
+      graphListRef.current.set(codes, plot);
+      applySeismographTheme(plot);
+      try { plot.calcTimeScaleDomain && plot.calcTimeScaleDomain(); } catch (_) {}
+      try { plot.recheckAmpScaleDomain && plot.recheckAmpScaleDomain(); } catch (_) {}
+      try { plot.draw && plot.draw(); } catch (_) {}
+      // Draw once more shortly after layout settles (popup open animation)
+      setTimeout(() => {
+        try {
+          plot.calcTimeScaleDomain && plot.calcTimeScaleDomain();
+          plot.recheckAmpScaleDomain && plot.recheckAmpScaleDomain();
+          plot.draw && plot.draw();
+        } catch (_) {}
+      }, 60);
+
+      // Determine segment time range for looping
+      const segStart = seg.start || seg.startTime || (seg.timeRange && seg.timeRange.start) || null;
+      const segEnd = seg.end || seg.endTime || (seg.timeRange && seg.timeRange.end) || null;
+      if (!segStart || !segEnd) {
+        // Fallback: static render only
+        demoPlaybackRef.current = { plot, sdd, alignStart: null, alignEnd: null };
+        plot.draw && plot.draw();
+        return;
+      }
+
+      // We want window [-graphDuration .. 0] relative to a moving alignment time.
+      const alignStart = segStart.plus(graphDuration);
+      const alignEnd = segEnd;
+      demoPlaybackRef.current = { plot, sdd, alignStart, alignEnd };
+
+      // Advance alignment time based on real time; loop at end
+      let alignNow = alignStart;
+      const stepMs = 250;
+      const advanceAndDraw = () => {
+        try {
+          alignNow = alignNow.plus({ milliseconds: stepMs });
+          if (alignNow > alignEnd) alignNow = alignStart;
+          sdd.alignmentTime = alignNow;
+          plot.draw && plot.draw();
+        } catch (_) {}
+      };
+      // Kick once immediately so the trace moves without waiting for first interval tick
+      advanceAndDraw();
+      demoTimerRef.current = setInterval(advanceAndDraw, stepMs);
+    } catch (e) {
+      // Swallow demo errors; do not fallback to canvas demo
+    }
+  };
+
   const [pick, setPick] = useState(false);
   const timerId = useRef(null); // hold running timeout-id across renders
   const eventSource = useContext(SSEContext);
@@ -214,8 +347,18 @@ const StationMarker = ({ network, code, latLng, description }) => {
         statusSince: payload.statusSince,
       });
 
-      if (payload.status === 'Streaming') {
+      const demoFlag = window.ENV && window.ENV.REACT_APP_SEIS_DEMO === '1';
+      if (payload.status === 'Streaming' && demoFlag) {
+        // Demo enabled and station is streaming: show demo
+        stopDemoMseed();
+        await startDemoFromMseed();
+      } else if (payload.status === 'Streaming') {
+        // Non-demo mode: start the real streaming graph
+        stopDemoMseed();
         startGraph(network, code);
+      } else {
+        // Not streaming: ensure no demo lingering
+        stopDemoMseed();
       }
     } catch (error) {
       deverror(
@@ -223,11 +366,17 @@ const StationMarker = ({ network, code, latLng, description }) => {
         error,
       );
       setStatusState({ status: null, statusSince: null });
+      // In case backend is unavailable, still allow demo for styling verification (.env only)
+      try {
+        const demoFlag = window.ENV && window.ENV.REACT_APP_SEIS_DEMO === '1';
+        if (demoFlag) await startDemoFromMseed();
+      } catch (_) {}
     }
   };
 
   const handlePopupClose = async () => {
     await disconnectDataLinkWS();
+    stopDemoMseed();
   };
 
   const start_time = moment().subtract(1, 'days');
@@ -298,6 +447,37 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const markerRef = useRef(null);
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
+
+  // Re-apply seismograph theme on basemap theme changes while popup remains open
+  useEffect(() => {
+    if (!map) return undefined;
+    const retheme = () => {
+      try {
+        const theme = themeFromMapContainer(map.getContainer());
+        const dark = theme === 'dark' || theme === 'satellite';
+        graphListRef.current.forEach((plot) => {
+          try {
+            if (plot && plot.seismographConfig) {
+              plot.seismographConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
+            }
+          } catch (_) {}
+          try { applySeismographTheme(plot); } catch (_) {}
+          try { plot && plot.draw && plot.draw(); } catch (_) {}
+        });
+      } catch (_) {}
+    };
+    map.on('baselayerchange', retheme);
+    let mo = null;
+    try {
+      const el = map.getContainer();
+      mo = new MutationObserver(retheme);
+      mo.observe(el, { attributes: true, attributeFilter: ['data-basemap-theme'] });
+    } catch (_) {}
+    return () => {
+      try { map.off('baselayerchange', retheme); } catch (_) {}
+      try { mo && mo.disconnect(); } catch (_) {}
+    };
+  }, [map, applySeismographTheme]);
 
   useEffect(() => {
     const m = markerRef.current;

@@ -74,9 +74,18 @@
 
 .realtimeGraphDiv:not(:empty) {
   background-color: #f4f4f4;
-  padding: 5px;
+  padding: 6px;
   border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
+
+/* Dark/Imagery themed variant (scoped to Leaflet container) */
+:global(.leaflet-container[data-basemap-theme='dark']) .realtimeGraphDiv:not(:empty),
+:global(.leaflet-container[data-basemap-theme='imagery']) .realtimeGraphDiv:not(:empty) {
+  background-color: #0b1220;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+/* No canvas inversion; match default seisplotjs appearance */
 
 /* Theme-aware fill/stroke handled by CSS variables from MapLayersControl */
 
