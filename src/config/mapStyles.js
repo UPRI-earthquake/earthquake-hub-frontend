@@ -145,11 +145,12 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   const faultDashed = ZOOM.country(z) && hasEQ && hasFaults;
 
   // Plates
+  // Make plate boundaries only slightly thicker than faults and
+  // keep thickness stable across zooms (no scale multiplier).
+  // This aligns with the visual goal: plates ≈ faults, just a touch heavier.
   const plateDash = '6,6';
-  let plateWeight = ZOOM.country(z) ? 1.25 : ZOOM.regional(z) ? 1.5 : 1.75;
-  plateWeight *= scale;
-  if (t === 'satellite') plateWeight += 0.4; // improve readability over imagery
-  if (z >= 14) plateWeight += 2; // extra thickness at very close zooms
+  let plateWeight = faultWeight + 0.3; // subtle emphasis over faults
+  if (t === 'satellite') plateWeight += 0.2; // minor boost for imagery contrast
 
   // Stations
   // On satellite imagery, use a high-contrast fill and thicker white halo
