@@ -5,7 +5,7 @@ import styles from './Sidebar.module.css';
  * Sidebar two‑pane layout where the first child is the header and the rest scroll.
  * @param {{children: React.ReactNode}} props
  */
-function Sidebar({ children }) {
+function Sidebar({ children, scrollResetKey }) {
   const first = Array.isArray(children) ? children[0] : children;
   const rest = Array.isArray(children) ? children.slice(1) : null;
   const listRef = useRef(null);
@@ -28,6 +28,20 @@ function Sidebar({ children }) {
     window.addEventListener('selection:fromMarker', onMarkerSelect);
     return () => window.removeEventListener('selection:fromMarker', onMarkerSelect);
   }, []);
+  // Reset scroll position to top/left with a smooth transition when the provided key changes
+  useEffect(() => {
+    try {
+      const root = listRef.current;
+      if (root) {
+        if (typeof root.scrollTo === 'function') {
+          root.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        } else {
+          root.scrollTop = 0;
+          root.scrollLeft = 0;
+        }
+      }
+    } catch (_) {}
+  }, [scrollResetKey]);
   return (
     <div className={styles.sidebar}>
       <div className={styles.headerArea}>{first}</div>

@@ -133,7 +133,7 @@ const HomePage = () => {
             <Header initStations={stationsRef.current} />
             <div className="App-body">
               <SSEContext.Provider value={eventSourceRef.current}>
-                <Sidebar>
+                <Sidebar scrollResetKey={datasetKey}>
                   <SidebarInfo
                     title={datasetTitle}
                     collapsed={sidebarCollapsed}
