@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './ErrorScreen.module.css';
-import { ReactComponent as Logo } from './upri-logo.svg';
+import { ReactComponent as Logo } from '../assets/upri-logo.svg';
 
 /**
  * Fullscreen error panel used when backend requests fail at app start.

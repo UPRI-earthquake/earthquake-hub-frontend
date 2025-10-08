@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Article.css';
-import defaultThumbnail from './thumbnail.jpg';
+import defaultThumbnail from '../assets/thumbnail.jpg';
 
 /**
  * Component to display article information with hover effects.

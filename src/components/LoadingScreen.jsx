@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './LoadingScreen.module.css';
 import './upri-logo-animation.css';
-import { ReactComponent as Logo } from './upri-logo-loading.svg';
+import { ReactComponent as Logo } from '../assets/upri-logo-loading.svg';
 
 /**
  * Fullscreen loading panel with animated UPRI logo.

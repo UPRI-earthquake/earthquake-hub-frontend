@@ -1,6 +1,6 @@
 .card {
   /* background-color: #fff; */
-  background-image: url('UPRI_sultan_kudarat.png');
+  /* Background image is applied inline via Card.jsx to avoid URL resolution issues */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

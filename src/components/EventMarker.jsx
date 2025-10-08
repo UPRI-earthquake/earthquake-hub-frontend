@@ -5,8 +5,8 @@ import { DivIcon } from 'leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactDOMServer from 'react-dom/server';
 import styles from './EventMarker.module.css';
-import { ReactComponent as Circle } from './circle.svg';
-import { ReactComponent as CircleWithBorder } from './circleWithBorder.svg';
+import { ReactComponent as Circle } from '../assets/circle.svg';
+import { ReactComponent as CircleWithBorder } from '../assets/circleWithBorder.svg';
 import { eqSizePx, themeFromMapContainer, eqDepthColor } from '../config/mapStyles';
 
 function toRadius(magnitude) {

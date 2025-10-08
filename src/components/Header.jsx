@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Header.module.css';
-import { ReactComponent as Logo } from './upri-logo.svg';
+import { ReactComponent as Logo } from '../assets/upri-logo.svg';
 import Button from './Button';
 import FloatingButton from './FloatingButton';
 import { SignInForm, SignUpForm } from './Form';
 import { Dashboard } from './Dashboard';
-import { ReactComponent as BurgerMenu } from './burger-menu-white.svg';
-import { ReactComponent as CloseMenu } from './close-menu-white.svg';
+import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
+import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
 import axios from 'axios';
 import Toast from './Toast';
 

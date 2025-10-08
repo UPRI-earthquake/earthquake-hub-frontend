@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useContext, useCallback } from 'rea
 import ReactDOMServer from 'react-dom/server';
 import { Marker, Popup, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
-import { ReactComponent as Logo } from './triangle.svg';
+import { ReactComponent as Logo } from '../assets/triangle.svg';
 import styles from './StationMarker.module.css';
 import SSEContext from '../SSEContext';
 import moment from 'moment';

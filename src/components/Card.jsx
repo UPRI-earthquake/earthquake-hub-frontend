@@ -1,12 +1,13 @@
 import React from 'react';
 import './Card.css';
+import bgImage from '../assets/UPRI_sultan_kudarat.png';
 
 /**
  * Card used in Significant Earthquakes list.
  */
 const Card = ({ title, magnitude, location, date, time, description, onClick }) => {
   return (
-    <div className="card" onClick={onClick}>
+    <div className="card" style={{ backgroundImage: `url(${bgImage})` }} onClick={onClick}>
       <div className="card-content">
         <h4>{title}</h4>
         <div className="hover-details">

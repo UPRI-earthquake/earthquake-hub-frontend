@@ -1,6 +1,6 @@
 import React from 'react';
 import './BackIcon.css'; // Adjust the path as needed
-import backIcon from './backIcon.png';
+import backIcon from '../assets/backIcon.png';
 /**
  * Decorative back icon image used in headers.
  */
