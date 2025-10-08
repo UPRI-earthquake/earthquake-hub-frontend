@@ -8,7 +8,6 @@ import {
   platesStyle,
   themeFromMapContainer,
   zoomFromMap,
-  eqScaleForZoom,
 } from '../config/mapStyles';
 import './mapLayers.css';
 import { useOverlayState } from './OverlayStateContext';
@@ -449,7 +448,7 @@ export default function MapLayersControl({ children }) {
           : toks.eq.haloWidth;
       el.style.setProperty('--eq-halo-w', `${haloW}px`);
       el.style.setProperty('--eq-opacity', String(toks.eq.fillOpacity));
-      el.style.setProperty('--eq-scale', String(toks.eq.scale || 1));
+      // No zoom-based EQ marker scaling; keep size constant for smoother zooms
       el.style.setProperty('--st-fill', toks.stations.fill);
       el.style.setProperty('--st-halo', toks.stations.halo);
       if (toks.stations.haloWidth) {
@@ -473,27 +472,7 @@ export default function MapLayersControl({ children }) {
     };
   }, [map, activeIds]);
 
-  // Keep only the EQ scale var in sync continuously during zoom animations for smoothness
-  useEffect(() => {
-    if (!map) return undefined;
-    const el = map.getContainer();
-    let raf = null;
-    const onZoom = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        try {
-          const z = map.getZoom();
-          const s = eqScaleForZoom(z);
-          el.style.setProperty('--eq-scale', String(s));
-        } catch (_) {}
-      });
-    };
-    map.on('zoom', onZoom);
-    return () => {
-      cancelAnimationFrame(raf);
-      map.off('zoom', onZoom);
-    };
-  }, [map]);
+  // Removed continuous EQ marker scale updates to avoid zoom jitter
 
   // Enhance LayersControl UI: header, thumbnails, overlay swatches
   useEffect(() => {
