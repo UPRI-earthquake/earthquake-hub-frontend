@@ -19,10 +19,6 @@ html[data-basemap-theme='imagery'] .row {
   color: #f3f4f6;
   border-bottom-color: rgba(255, 255, 255, 0.12);
 }
-html[data-basemap-theme='dark'] .row,
-html[data-basemap-theme='imagery'] .row {
-  border-bottom-color: rgba(255, 255, 255, 0.12);
-}
 .row:hover {
   background-color: rgba(0, 0, 0, 0.04);
 }
@@ -92,6 +88,7 @@ html[data-basemap-theme='imagery'] .selected .code {
     align-items: baseline; /* keep text baselines aligned */
     padding-top: 12px;
     padding-bottom: 12px;
+    max-width: max-content;
   }
   .selected { border-left-width: 4px; }
   .titleLine { display: flex; align-items: baseline; gap: 8px; }

@@ -6,7 +6,7 @@ import SidebarItem from './SidebarItem';
  * Scrollable list of earthquake sidebar items with filtering and sorting.
  * @param {{initData: Array, filters?: Object, sort?: {by:'time'|'mag', order:'asc'|'desc'}, sseEnabled?: boolean}} props
  */
-function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' }, sseEnabled: _sseEnabled = true }) {
+function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' }, sseEnabled: _sseEnabled = true, loading = false }) {
   const [items, setItems] = useState(() => (initData || []).slice());
 
   // Keep items in sync when initData changes (e.g., preset switch)
@@ -59,6 +59,15 @@ function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' },
     const n = Number(v);
     return Number.isFinite(n) ? n.toFixed(1) : String(v ?? '-');
   };
+
+  if (loading) {
+    return (
+      <div className="sidebar-loader" role="status" aria-live="polite" aria-label="Loading results">
+        <div className="sidebar-spinner" aria-hidden />
+        <div className="sidebar-loader-text">Fetching earthquakes…</div>
+      </div>
+    );
+  }
 
   if (!sorted.length) {
     // Empty-state indicator shown inside the scroll area (direct child for mobile flex)

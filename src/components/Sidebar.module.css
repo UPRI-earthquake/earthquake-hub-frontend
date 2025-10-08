@@ -27,6 +27,34 @@
   display: block;
 }
 
+/* Inline loader shown while fetching dataset items */
+.sidebar :global(.sidebar-loader) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 16px;
+  gap: 10px;
+  color: #374151;
+}
+.sidebar :global(.sidebar-loader-text) {
+  font-size: 14px;
+  color: #6b7280;
+}
+.sidebar :global(.sidebar-spinner) {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #3a6a50; /* brand green */
+  border-radius: 50%;
+  animation: sidebarSpin 0.9s linear infinite;
+}
+@keyframes sidebarSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Empty-state indicator (desktop) */
 .sidebar :global(.sidebar-empty) {
   display: flex;
@@ -113,5 +141,18 @@ html[data-basemap-theme='imagery'] .sidebar {
     align-items: center;
     justify-content: center;
     gap: 4px;
+  }
+  /* Loader card behavior on mobile */
+  .itemsScroll :global(.sidebar-loader) {
+    flex: 1 0 100% !important;
+    min-width: 100%;
+    min-height: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+    color: #e5e7eb;
   }
 }

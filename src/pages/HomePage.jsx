@@ -40,6 +40,7 @@ const HomePage = () => {
   const [searchText, setSearchText] = useState('');
   const [datasetTitle, setDatasetTitle] = useState('Latest Earthquakes (30 days)');
   const [datasetKey, setDatasetKey] = useState('latest-30d');
+  const [listLoading, setListLoading] = useState(false);
   const [sseEnabled, setSseEnabled] = useState(true);
   const [customEvents, setCustomEvents] = useState(null);
   const [filters, setFilters] = useState(() => ({
@@ -62,6 +63,8 @@ const HomePage = () => {
   }));
   const [lastEqKey, setLastEqKey] = useState('latest-30d');
   const eqBadgeLabel = lastEqKey === 'all-eqs' ? 'All EQs' : 'Latest EQs';
+  // Cache for the expensive All EQs dataset to avoid refetching
+  const allEqsCacheRef = useRef(null);
   // Responsive scalebar width to avoid overlap with Legend on small screens
   const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1024));
   useEffect(() => {
@@ -88,6 +91,30 @@ const HomePage = () => {
   }, [sseEnabled]);
 
   useEffect(() => performInitialLoad(), [performInitialLoad]);
+
+  // Helper to set filter bounds for All EQs using the fetched data
+  const applyAllEqsBounds = useCallback(
+    (arr) => {
+      const end = moment().format('YYYY-MM-DD');
+      const earliestStart = '1900-01-01';
+      const minOT = (arr || [])
+        .map((e) => (e.OT ? new Date(e.OT) : null))
+        .filter((d) => d && !isNaN(d))
+        .reduce((min, d) => (min && min < d ? min : d), null);
+      const minDate = minOT ? moment(minOT).format('YYYY-MM-DD') : earliestStart;
+      setFilters({
+        magMin: 0,
+        magMax: 10,
+        startDate: minDate,
+        endDate: end,
+      });
+      setFilterBounds({
+        minDate,
+        maxDate: end,
+      });
+    },
+    [setFilters, setFilterBounds],
+  );
 
   return (
     <>
@@ -141,7 +168,10 @@ const HomePage = () => {
                         });
 
                         // Refetch events for the latest 30d whenever switching back
-                        fetchEventsForRange(start, end).catch(console.error);
+                        setListLoading(true);
+                        fetchEventsForRange(start, end)
+                          .catch(console.error)
+                          .finally(() => setListLoading(false));
                       } else if (key === 'all-eqs') {
                         setLastEqKey('all-eqs');
                         setDatasetTitle('All Earthquakes');
@@ -152,25 +182,21 @@ const HomePage = () => {
 
                         const end = moment().format('YYYY-MM-DD');
                         const earliestStart = '1900-01-01';
-                        fetchEventsForRange(earliestStart, end)
-                          .then((arr) => {
-                            const minOT = (arr || [])
-                              .map((e) => (e.OT ? new Date(e.OT) : null))
-                              .filter((d) => d && !isNaN(d))
-                              .reduce((min, d) => (min && min < d ? min : d), null);
-                            const minDate = minOT ? moment(minOT).format('YYYY-MM-DD') : earliestStart;
-                            setFilters({
-                              magMin: 0,
-                              magMax: 10,
-                              startDate: minDate,
-                              endDate: end,
-                            });
-                            setFilterBounds({
-                              minDate,
-                              maxDate: end,
-                            });
-                          })
-                          .catch(console.error);
+                        // Use cached All EQs if available; otherwise fetch and cache
+                        if (allEqsCacheRef.current && Array.isArray(allEqsCacheRef.current)) {
+                          // Use cached data and update the visible list immediately
+                          applyAllEqsBounds(allEqsCacheRef.current);
+                          setEvents(allEqsCacheRef.current);
+                        } else {
+                          setListLoading(true);
+                          fetchEventsForRange(earliestStart, end)
+                            .then((arr) => {
+                              allEqsCacheRef.current = arr || [];
+                              applyAllEqsBounds(arr || []);
+                            })
+                            .catch(console.error)
+                            .finally(() => setListLoading(false));
+                        }
                       } else if (key === 'all-stations') {
                         setDatasetTitle('All Stations');
                         setDatasetKey('all-stations');
@@ -178,6 +204,7 @@ const HomePage = () => {
                         setCustomEvents(null);
                         setControlVisibility({ showFilter: false, showSort: false });
                         setStationActiveOnly(false);
+                        setListLoading(false);
                       }
                     }}
                     eqBadgeLabel={eqBadgeLabel}
@@ -204,6 +231,7 @@ const HomePage = () => {
                       filters={{ ...filters, searchText }}
                       sort={sort}
                       sseEnabled={sseEnabled}
+                      loading={listLoading}
                     />
                   )}
                 </Sidebar>
