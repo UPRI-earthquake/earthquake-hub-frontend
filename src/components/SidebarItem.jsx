@@ -15,6 +15,10 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
     if (selectedEvent !== publicID) {
       devlog('dispatch select');
       dispatch({ type: 'SELECT', payload: publicID });
+      try {
+        const ev = new CustomEvent('selection:fromList', { detail: { id: publicID } });
+        window.dispatchEvent(ev);
+      } catch (_) {}
     } else {
       devlog('dispatch deselect');
       dispatch({ type: 'DESELECT' });

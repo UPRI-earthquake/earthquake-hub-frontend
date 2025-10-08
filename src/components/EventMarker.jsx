@@ -29,6 +29,28 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   const popupRef = useRef(null);
   const markerRef = useRef(null);
   const prevSelectedRef = useRef(null);
+  // Track origin of selection to control flyTo animation
+  const selectionOriginRef = useRef({ type: 'unknown', id: null });
+  useEffect(() => {
+    const onSelFromMarker = (e) => {
+      try {
+        const id = e && e.detail && e.detail.id;
+        selectionOriginRef.current = { type: 'marker', id: id || null };
+      } catch (_) {}
+    };
+    const onSelFromList = (e) => {
+      try {
+        const id = e && e.detail && e.detail.id;
+        selectionOriginRef.current = { type: 'list', id: id || null };
+      } catch (_) {}
+    };
+    window.addEventListener('selection:fromMarker', onSelFromMarker);
+    window.addEventListener('selection:fromList', onSelFromList);
+    return () => {
+      window.removeEventListener('selection:fromMarker', onSelFromMarker);
+      window.removeEventListener('selection:fromList', onSelFromList);
+    };
+  }, []);
   const centerAndPopupEvent = useCallback(
     (selectedEventId) => {
       if (!map) return;
@@ -36,8 +58,12 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
       const marker = markerRef.current;
       // On select: center and open this marker's popup
       if (selectedEventId === publicID) {
+        // Only animate when selection originated from the list, not from marker
+        const origin = selectionOriginRef.current || {};
         if (hasValidCoords) {
-          map.flyTo([lat, lng], 9);
+          if (!(origin.type === 'marker' && origin.id === publicID)) {
+            map.flyTo([lat, lng], 9);
+          }
         }
         if (marker && typeof marker.openPopup === 'function') {
           try { window.__openBySidebar = true; } catch (_) {}
@@ -231,6 +257,8 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
         },
         popupopen: () => {
           try {
+            // Any popup opening should collapse Layers/Legend panels
+            try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
             // Do not emit scroll/select if this popup was opened programmatically from sidebar
             const bySidebar = typeof window !== 'undefined' && window.__openBySidebar;
             if (!bySidebar) {
@@ -252,7 +280,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
         },
       }}
     >
-      <Popup ref={popupRef}>
+      <Popup ref={popupRef} autoPan={!(typeof window !== 'undefined' && window.innerWidth <= 767)}>
         <div>
           <h2>Magnitude {+mag.toFixed(1)}</h2>
           <p>{moment(time).format('YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]')}</p>

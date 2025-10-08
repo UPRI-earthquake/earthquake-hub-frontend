@@ -335,6 +335,8 @@ const StationMarker = ({ network, code, latLng, description }) => {
   });
 
   const handleStationClick = async () => {
+    // Ensure map UI panels (Layers/Legend) collapse when a popup opens
+    try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
     try {
       const response = await axios.get(
         `${backend_host}/device/status?network=${network.toUpperCase()}&station=${code.toUpperCase()}`,
@@ -518,7 +520,10 @@ const StationMarker = ({ network, code, latLng, description }) => {
         popupclose: handlePopupClose,
       }}
     >
-      <Popup className={styles.popUp}>
+      <Popup className={styles.popUp}
+        autoPan
+        autoPanPaddingTopLeft={[0, Math.max(0, map.getSize().y / 2 )]}
+        autoPanPaddingBottomRight={[0, Math.max(0, map.getSize().y / 2 )]}>
         <div className={styles.popUpBody}>
           <div>
             <b>Station {code} </b>

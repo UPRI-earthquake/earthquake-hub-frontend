@@ -121,6 +121,15 @@ export default function MapLayersControl({ children }) {
                   const el = map.getContainer();
                   el.setAttribute('data-layers-expanded', expanded ? '0' : '1');
                 } catch (_) {}
+                // When opening Layers, ensure Legend is closed and popups hidden
+                if (!expanded) {
+                  try {
+                    map.closePopup();
+                  } catch (_) {}
+                  try {
+                    window.dispatchEvent(new CustomEvent('ui:layers:open'));
+                  } catch (_) {}
+                }
               };
               L.DomEvent.on(a, 'click', (e) => {
                 L.DomEvent.stop(e);
@@ -205,6 +214,7 @@ export default function MapLayersControl({ children }) {
             const el = map.getContainer();
             el.setAttribute('data-layers-expanded', expanded ? '1' : '0');
           } catch (_) {}
+          // Reflect open state to others (Legend) and manage focus trap
           if (expanded) {
             if (!trapCleanup) trapCleanup = installFocusTrap();
           } else if (trapCleanup) {
@@ -275,6 +285,8 @@ export default function MapLayersControl({ children }) {
         if (!wasExpanded) {
           // Just opened → move initial focus to the Close (×) button
           setTimeout(focusCloseButton, 0); // allow DOM to paint first
+          try { map.closePopup(); } catch (_) {}
+          try { window.dispatchEvent(new CustomEvent('ui:layers:open')); } catch (_) {}
         } else {
           // Just closed → return focus to the toggle
           btn.focus();
@@ -296,6 +308,32 @@ export default function MapLayersControl({ children }) {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, [map]);
+
+  // Listen for Legend open or Popup open to collapse Layers
+  useEffect(() => {
+    if (!map) return undefined;
+    const container = map.getContainer ? map.getContainer() : document;
+    const ctrl = container && container.querySelector('.leaflet-control-layers');
+    if (!ctrl) return undefined;
+    const collapse = () => {
+      try {
+        ctrl.classList.remove('leaflet-control-layers-expanded');
+        const btn = customLayersToggleRef.current ||
+          (container && container.querySelector('.leaflet-control-layers-toggle'));
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        const el = map.getContainer();
+        el.setAttribute('data-layers-expanded', '0');
+      } catch (_) {}
+    };
+    const onLegendOpen = () => collapse();
+    const onPopupOpen = () => collapse();
+    window.addEventListener('ui:legend:open', onLegendOpen);
+    window.addEventListener('ui:popup:open', onPopupOpen);
+    return () => {
+      window.removeEventListener('ui:legend:open', onLegendOpen);
+      window.removeEventListener('ui:popup:open', onPopupOpen);
+    };
   }, [map]);
 
   // Track basemap theme (light | dark | imagery) and set on map container for CSS

@@ -497,6 +497,14 @@ export default function LegendControl({ position = 'bottomright' }) {
     };
   }, [map, position]);
 
+  // Keep map container annotated with legend open/closed state for CSS/interop
+  useEffect(() => {
+    try {
+      const el = map?.getContainer?.();
+      if (el) el.setAttribute('data-legend-expanded', collapsed ? '0' : '1');
+    } catch (_) {}
+  }, [map, collapsed]);
+
   // Keyboard shortcuts: G toggles Legend, Esc collapses
   useEffect(() => {
     const onKey = (e) => {
@@ -508,16 +516,33 @@ export default function LegendControl({ position = 'bottomright' }) {
       if (editable) return;
       if (e.key === 'g' || e.key === 'G') {
         e.preventDefault();
-        setCollapsed((c) => !c);
+        setCollapsed((c) => {
+          const next = !c;
+          if (!next) {
+            try { map.closePopup(); } catch (_) {}
+            try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
+          }
+          return next;
+        });
       } else if (e.key === 'Escape') {
         setCollapsed(true);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [map]);
 
-  // Removed cross-panel coupling: no external collapse listeners
+  // Collapse when Layers opens or when any popup opens
+  useEffect(() => {
+    const onLayersOpen = () => setCollapsed(true);
+    const onPopupOpen = () => setCollapsed(true);
+    window.addEventListener('ui:layers:open', onLayersOpen);
+    window.addEventListener('ui:popup:open', onPopupOpen);
+    return () => {
+      window.removeEventListener('ui:layers:open', onLayersOpen);
+      window.removeEventListener('ui:popup:open', onPopupOpen);
+    };
+  }, []);
 
   // Focus trap inside the legend when expanded
   useEffect(() => {
@@ -567,6 +592,10 @@ export default function LegendControl({ position = 'bottomright' }) {
             try {
               sessionStorage.setItem('legendCollapsed', next ? '1' : '0');
             } catch (_) {}
+            if (!next) {
+              try { map.closePopup(); } catch (_) {}
+              try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
+            }
           }}
         >
           <LegendIcon size={22} />

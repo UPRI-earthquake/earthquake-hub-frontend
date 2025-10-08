@@ -44,6 +44,8 @@ export default function ResetViewControl({ position = 'topleft', padding = [20, 
 
       const doReset = () => {
         try {
+          // Collapse Layers and Legend panels for a clean view reset
+          try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
           // Deselect any currently selected event in the sidebar
           try {
             dispatch({ type: 'DESELECT' });

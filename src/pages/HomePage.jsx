@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import moment from 'moment';
 import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane } from 'react-leaflet';
 import './homePage.css';
@@ -29,6 +30,7 @@ import { useAppData } from '../hooks/useAppData';
  * @returns {JSX.Element}
  */
 const HomePage = () => {
+  const dispatch = useDispatch();
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true);
   const [serverError, setServerError] = useState(false);
@@ -86,6 +88,15 @@ const HomePage = () => {
 
   useEffect(() => performInitialLoad(), [performInitialLoad]);
 
+  // Helper: clear any current selection and close any open popup
+  const clearSelectionAndPopups = useCallback(() => {
+    try { dispatch({ type: 'DESELECT' }); } catch (_) {}
+    try {
+      const map = window.__leaflet_map__;
+      if (map && typeof map.closePopup === 'function') map.closePopup();
+    } catch (_) {}
+  }, [dispatch]);
+
   // Helper to set filter bounds for All EQs using the fetched data
   const applyAllEqsBounds = useCallback(
     (arr) => {
@@ -140,6 +151,7 @@ const HomePage = () => {
                     onSortChange={(next) => setSort((prev) => ({ ...prev, ...next }))}
                     onDatasetChange={(key) => {
                       if (key === 'latest-30d') {
+                        clearSelectionAndPopups();
                         setLastEqKey('latest-30d');
                         setDatasetTitle('Latest Earthquakes (30 days)');
                         setDatasetKey('latest-30d');
@@ -167,6 +179,7 @@ const HomePage = () => {
                           .catch(console.error)
                           .finally(() => setListLoading(false));
                       } else if (key === 'all-eqs') {
+                        clearSelectionAndPopups();
                         setLastEqKey('all-eqs');
                         setDatasetTitle('All Earthquakes');
                         setDatasetKey('all-eqs');
@@ -192,6 +205,7 @@ const HomePage = () => {
                             .finally(() => setListLoading(false));
                         }
                       } else if (key === 'all-stations') {
+                        clearSelectionAndPopups();
                         setDatasetTitle('All Stations');
                         setDatasetKey('all-stations');
                         setSseEnabled(false);
