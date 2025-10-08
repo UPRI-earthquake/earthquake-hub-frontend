@@ -61,6 +61,8 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
               longitude_value: data.longitude_value,
               magnitude_value: data.magnitude_value,
               depth_km: depthVal,
+              // Include descriptive text so Sidebar can display it
+              text: data.text,
               eventType: 'NEW',
               last_modification: data.last_modification,
             };
@@ -90,6 +92,8 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
                 longitude_value: data.longitude_value ?? ev.longitude_value,
                 magnitude_value: data.magnitude_value ?? ev.magnitude_value,
                 depth_km: mergedDepth,
+                // Preserve previous text if not provided in update
+                text: data.text ?? ev.text,
                 eventType: 'UPDATE',
                 last_modification: data.last_modification ?? ev.last_modification,
               };

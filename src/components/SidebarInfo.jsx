@@ -402,7 +402,7 @@ function SidebarInfo({
                 setFiltersOpen(false);
                 setSortOpen((v) => {
                   const next = !v;
-                  setSortTip(next ? 'Close sort options' : 'Sort list by time or magnitude');
+                  setSortTip(next ? 'Sort list by time or magnitude' : 'Close sort options');
                   return next;
                 });
               }}
@@ -421,7 +421,7 @@ function SidebarInfo({
                 setSortOpen(false);
                 setFiltersOpen((v) => {
                   const next = !v;
-                  setFilterTip(next ? 'Close filters' : 'Filter earthquakes by magnitude and date');
+                  setFilterTip(next ? 'Filter earthquakes by magnitude and date' : 'Close filters');
                   return next;
                 });
               }}

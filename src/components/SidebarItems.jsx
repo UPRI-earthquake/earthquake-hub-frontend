@@ -99,7 +99,10 @@ function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' },
       publicID={item.publicID}
       title={magText(item.magnitude_value)}
       description={
-        ['Unavailable', 'Unable to geocode', ''].includes(item.place) ? item.text : item.place
+        // Prefer geocoded place; if missing or unusable, fall back to raw text
+        item && item.place && !['Unavailable', 'Unable to geocode', ''].includes(item.place)
+          ? item.place
+          : (item?.text || '')
       }
       subDescription={moment(item.OT).fromNow()}
       status={item.eventType ? item.eventType : null}
