@@ -38,8 +38,17 @@ const EventMarkers = ({
 
   const filtered = (events || []).filter((e) => {
     const mag = Number(e.magnitude_value) || 0;
-    if (Number.isFinite(magMin) && mag < magMin) return false;
-    if (Number.isFinite(magMax) && mag > magMax) return false;
+    // If both knobs are at the same value, treat it as a bin rounded to 1 decimal
+    const isClosedRange =
+      Number.isFinite(magMin) && Number.isFinite(magMax) && Math.abs(magMax - magMin) < 1e-9;
+    if (isClosedRange) {
+      const target = Math.round(magMin * 10) / 10;
+      const roundedMag = Math.round(mag * 10) / 10;
+      if (roundedMag !== target) return false;
+    } else {
+      if (Number.isFinite(magMin) && mag < magMin) return false;
+      if (Number.isFinite(magMax) && mag > magMax) return false;
+    }
     const t = e.OT ? new Date(e.OT) : null;
     if (startDate && t && t < startDate) return false;
     if (endDate && t && t > endDate) return false;

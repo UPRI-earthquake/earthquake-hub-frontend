@@ -24,8 +24,17 @@ function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' },
   const end = f.endDate ? moment(f.endDate, 'YYYY-MM-DD').endOf('day') : null;
 
   const filtered = items.filter((item) => {
-    if (Number.isFinite(magMin) && item.magnitude_value < magMin) return false;
-    if (Number.isFinite(magMax) && item.magnitude_value > magMax) return false;
+    const mag = Number(item.magnitude_value);
+    const isClosedRange =
+      Number.isFinite(magMin) && Number.isFinite(magMax) && Math.abs(magMax - magMin) < 1e-9;
+    if (isClosedRange) {
+      const target = Math.round(magMin * 10) / 10;
+      const roundedMag = Math.round((Number.isFinite(mag) ? mag : 0) * 10) / 10;
+      if (roundedMag !== target) return false;
+    } else {
+      if (Number.isFinite(magMin) && (Number.isFinite(mag) ? mag : -Infinity) < magMin) return false;
+      if (Number.isFinite(magMax) && (Number.isFinite(mag) ? mag : Infinity) > magMax) return false;
+    }
     if (start && moment(item.OT).isBefore(start)) return false;
     if (end && moment(item.OT).isAfter(end)) return false;
     if (text) {
