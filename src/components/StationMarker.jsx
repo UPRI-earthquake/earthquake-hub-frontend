@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { Marker, Popup, useMap } from 'react-leaflet';
+import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import { ReactComponent as Logo } from '../assets/triangle.svg';
 import styles from './StationMarker.module.css';
@@ -12,7 +12,6 @@ import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
 import { themeFromMapContainer } from '../config/mapStyles';
-
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
@@ -335,6 +334,8 @@ const StationMarker = ({ network, code, latLng, description }) => {
   });
 
   const handleStationClick = async () => {
+    try { setTooltipDisabled(true); } catch (_) {}
+    try { const el = map && map.getContainer && map.getContainer(); el && el.classList.add('hide-marker-tooltips'); } catch (_) {}
     // Ensure map UI panels (Layers/Legend) collapse when a popup opens
     try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
     try {
@@ -377,6 +378,8 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const handlePopupClose = async () => {
     await disconnectDataLinkWS();
     stopDemoMseed();
+    try { setTooltipDisabled(false); } catch (_) {}
+    try { const el = map && map.getContainer && map.getContainer(); el && el.classList.remove('hide-marker-tooltips'); } catch (_) {}
     try {
       if (selectedId === `station:${code}`) {
         dispatch({ type: 'DESELECT' });
@@ -453,6 +456,46 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const dispatch = useDispatch();
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
+  const [tooltipDisabled, setTooltipDisabled] = useState(false);
+
+  /* Tooltip text mirrors Sidebar station list items */
+  const statusCacheRef = useRef(
+    (typeof window !== 'undefined' && (window.__stationStatusCache || (window.__stationStatusCache = new Map()))) ||
+      new Map(),
+  );
+  const [tooltipText, setTooltipText] = useState('Loading status…');
+  const computeTooltip = useCallback((status, statusSince) => {
+    const s = (status || '').toLowerCase();
+    const m = statusSince ? moment(statusSince) : null;
+    if (s === 'streaming') {
+      return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
+    }
+    if (m && m.isAfter(moment().subtract(1, 'month'))) {
+      return `Not streaming since ${m.fromNow()}`;
+    }
+    return 'Device Offline';
+  }, []);
+  const refreshTooltipFromAPI = useCallback(async () => {
+    try {
+      const key = `${(network || 'AM').toUpperCase()}:${(code || '').toUpperCase()}`;
+      const cache = statusCacheRef.current;
+      const now = Date.now();
+      const cached = cache.get(key);
+      if (cached && now - cached.t < 60_000) {
+        setTooltipText(computeTooltip(cached.status, cached.statusSince));
+        return;
+      }
+      const url = `${backend_host}/device/status?network=${(network || 'AM').toUpperCase()}&station=${(code || '').toUpperCase()}`;
+      const resp = await axios.get(url);
+      const payload = resp?.data?.payload || {};
+      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince });
+      setTooltipText(computeTooltip(payload.status, payload.statusSince));
+    } catch (_) {
+      // Keep previous tooltip on failure
+    }
+  }, [network, code, backend_host, computeTooltip]);
+
+  // Tooltips stay mounted; on mobile they are visually hidden via CSS
 
   // Re-apply seismograph theme on basemap theme changes while popup remains open
   useEffect(() => {
@@ -516,14 +559,27 @@ const StationMarker = ({ network, code, latLng, description }) => {
         },
         // Fetch status and start graph whenever the popup actually opens
         // (works for both map-click and programmatic open from sidebar)
+        mouseover: refreshTooltipFromAPI,
+        tooltipopen: refreshTooltipFromAPI,
         popupopen: handleStationClick,
         popupclose: handlePopupClose,
       }}
     >
+      <Tooltip
+        direction="top"
+        offset={[0, -2]}
+        opacity={1}
+        sticky
+        className={`feature-tooltip marker-tooltip ${tooltipDisabled ? 'tt-hidden' : ''}`}
+      >
+        <div>
+          <div><strong>Station {code}</strong></div>
+          <div>{tooltipText}</div>
+        </div>
+      </Tooltip>
       <Popup className={styles.popUp}
         autoPan
-        autoPanPaddingTopLeft={[0, Math.max(0, map.getSize().y / 2 )]}
-        autoPanPaddingBottomRight={[0, Math.max(0, map.getSize().y / 2 )]}>
+        >
         <div className={styles.popUpBody}>
           <div>
             <b>Station {code} </b>

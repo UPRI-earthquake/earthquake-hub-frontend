@@ -41,8 +41,7 @@ export default function OverlayLayers({
           onEachFeature={makeOnEachWith(
             faultsStyleFor,
             buildFaultTooltip,
-            'fault-hovering',
-            { usePopup: true }
+            'fault-hovering'
           )}
         />
       </Overlay>
@@ -56,7 +55,7 @@ export default function OverlayLayers({
           worldCopies
           lineOnly
           interactive
-          onEachFeature={makeOnEachWith(platesStyleFor, buildPlateTooltip, null, { usePopup: true })}
+          onEachFeature={makeOnEachWith(platesStyleFor, buildPlateTooltip)}
         />
       </Overlay>
 

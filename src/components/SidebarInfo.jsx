@@ -67,6 +67,9 @@ function SidebarInfo({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  // Tooltip text state for header icon buttons (match site pattern)
+  const [sortTip, setSortTip] = useState('Sort list by time or magnitude');
+  const [filterTip, setFilterTip] = useState('Filter earthquakes by magnitude and date');
   const rootRef = useRef(null);
 
   // Measure the slider width so bubbles can align with the actual thumb center
@@ -308,13 +311,13 @@ function SidebarInfo({
             {
               key: 'latest-30d',
               label: 'Latest Earthquakes (30 days)',
-              tip: 'Earthquakes from the past 30 days, updates live.',
+              tip: 'Earthquakes from the past 30 days, updates live',
             },
-            { key: 'all-eqs', label: 'All Earthquakes', tip: 'All recorded earthquakes in the network\'s archive.' },
+            { key: 'all-eqs', label: 'All Earthquakes', tip: 'All recorded earthquakes in the network' },
             {
               key: 'all-stations',
               label: `All Stations${eqBadgeLabel ? ` [${eqBadgeLabel}]` : ''}`,
-              tip: 'View all monitoring stations in the network.',
+              tip: 'View all monitoring stations in the network',
             },
           ].map((opt) => (
             <button
@@ -324,7 +327,7 @@ function SidebarInfo({
               }`}
               role="menuitemradio"
               aria-checked={selectedDatasetKey === opt.key ? 'true' : 'false'}
-              data-tip={opt.tip}
+              title={opt.tip}
               onClick={() => {
                 onDatasetChange && onDatasetChange(opt.key);
                 // Hide all other panels when a dataset is chosen
@@ -351,25 +354,35 @@ function SidebarInfo({
 
       {/* Search + Filter row */}
       {!collapsed && (
-        <div className={styles.searchWrap}>
-          <div className={styles.search}>
-            <SearchIcon />
-            <input
-              type="text"
-              placeholder={
-                selectedDatasetKey === 'all-stations'
-                  ? 'Search by ID or name'
-                  : 'Search earthquakes'
-              }
-              value={searchText || ''}
-              onChange={(e) => onSearch && onSearch(e.target.value)}
-              aria-label={
-                selectedDatasetKey === 'all-stations'
-                  ? 'Search stations by ID or name'
-                  : 'Search earthquakes'
-              }
-            />
-          </div>
+          <div className={styles.searchWrap}>
+            <div className={styles.search}>
+              <SearchIcon />
+              <input
+                type="text"
+                placeholder={
+                  selectedDatasetKey === 'all-stations'
+                    ? 'Search by ID or name'
+                    : 'Search earthquakes'
+                }
+                value={searchText || ''}
+                onChange={(e) => onSearch && onSearch(e.target.value)}
+                aria-label={
+                  selectedDatasetKey === 'all-stations'
+                    ? 'Search stations by ID or name'
+                    : 'Search earthquakes'
+                }
+                title={
+                  selectedDatasetKey === 'all-stations'
+                    ? 'Search stations by ID or name'
+                    : 'Search earthquakes'
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    try { e.currentTarget.blur(); } catch (_) {}
+                  }
+                }}
+              />
+            </div>
           {selectedDatasetKey === 'all-stations' && (
             <label className={styles.stationToggle} title="Show only active stations">
               <input
@@ -387,11 +400,15 @@ function SidebarInfo({
               onClick={() => {
                 setMenuOpen(false);
                 setFiltersOpen(false);
-                setSortOpen((v) => !v);
+                setSortOpen((v) => {
+                  const next = !v;
+                  setSortTip(next ? 'Close sort options' : 'Sort list by time or magnitude');
+                  return next;
+                });
               }}
               aria-expanded={sortOpen ? 'true' : 'false'}
               aria-label="Open sorting options"
-              data-tip="Sort list by time or magnitude"
+              title={sortTip}
             >
               {sortOpen ? <CloseIcon /> : <SortIcon />}
             </button>
@@ -402,11 +419,15 @@ function SidebarInfo({
               onClick={() => {
                 setMenuOpen(false);
                 setSortOpen(false);
-                setFiltersOpen((v) => !v);
+                setFiltersOpen((v) => {
+                  const next = !v;
+                  setFilterTip(next ? 'Close filters' : 'Filter earthquakes by magnitude and date');
+                  return next;
+                });
               }}
               aria-expanded={filtersOpen ? 'true' : 'false'}
               aria-label="Open filters"
-              data-tip="Filter earthquakes by magnitude and date"
+              title={filterTip}
             >
               {filtersOpen ? <CloseIcon /> : <FunnelIcon />}
             </button>
@@ -436,6 +457,7 @@ function SidebarInfo({
                   className={styles.rangeTrack}
                   onMouseDown={onTrackMouseDown}
                   onTouchStart={onTrackTouchStart}
+                  title="Drag to select magnitude range"
                 >
                   {/* Paint highlight exactly between min and max using a gradient */}
                   <div
@@ -459,6 +481,7 @@ function SidebarInfo({
                   onChange={(e) => setMagMin(parseFloat(e.target.value))}
                   style={{ zIndex: min === max && max === 10 ? 3 : 2 }}
                   aria-label="Minimum magnitude"
+                  title="Minimum magnitude"
                 />
                 <input
                   type="range"
@@ -469,6 +492,7 @@ function SidebarInfo({
                   onChange={(e) => setMagMax(parseFloat(e.target.value))}
                   style={{ zIndex: min === max && min === 0 ? 3 : 2 }}
                   aria-label="Maximum magnitude"
+                  title="Maximum magnitude"
                 />
                 {/* Individual bubbles (kept in DOM for measurement) */}
                 <div
@@ -515,6 +539,8 @@ function SidebarInfo({
                 value={defaultFilters?.startDate || ''}
                 min={filterBounds?.minDate || undefined}
                 max={filterBounds?.maxDate || undefined}
+                aria-label="Filter start date"
+                title="Filter start date"
                 onChange={(e) => {
                   const minD = filterBounds?.minDate;
                   const maxD = filterBounds?.maxDate;
@@ -533,6 +559,8 @@ function SidebarInfo({
                 value={defaultFilters?.endDate || ''}
                 min={filterBounds?.minDate || undefined}
                 max={filterBounds?.maxDate || undefined}
+                aria-label="Filter end date"
+                title="Filter end date"
                 onChange={(e) => {
                   const minD = filterBounds?.minDate;
                   const maxD = filterBounds?.maxDate;
@@ -602,6 +630,7 @@ function SidebarInfo({
                     className={`${styles.sortRow} ${active ? styles.sortRowActive : ''}`}
                     role="menuitemradio"
                     aria-checked={active}
+                    aria-label={`Sort criterion: ${opt.label}`}
                   >
                     <button
                       onClick={() =>
@@ -609,6 +638,7 @@ function SidebarInfo({
                         onSortChange({ by: opt.key, order: active ? sortOrder : sortOrder })
                       }
                       aria-label={`Sort by ${opt.label}`}
+                      title={`Sort by ${opt.label}`}
                       className={styles.sortLeftBtn}
                     >
                       {opt.label}

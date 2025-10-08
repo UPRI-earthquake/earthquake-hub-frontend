@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import moment from 'moment';
-import { Marker, Popup, useMap } from 'react-leaflet';
+import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactDOMServer from 'react-dom/server';
@@ -229,6 +229,9 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     };
   }, []);
 
+  // Tooltips stay mounted; mobile visibility handled via CSS to avoid Leaflet race conditions
+  const [tooltipDisabled, setTooltipDisabled] = useState(false);
+
   // If bad coords slipped through, skip rendering after hooks have been called
   if (!hasValidCoords) {
     if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
@@ -256,6 +259,8 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
           } catch (_) {}
         },
         popupopen: () => {
+          try { setTooltipDisabled(true); } catch (_) {}
+          try { const el = map && map.getContainer && map.getContainer(); el && el.classList.add('hide-marker-tooltips'); } catch (_) {}
           try {
             // Any popup opening should collapse Layers/Legend panels
             try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
@@ -277,9 +282,23 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
               dispatch({ type: 'DESELECT' });
             }
           } catch (_) {}
+          try { setTooltipDisabled(false); } catch (_) {}
+          try { const el = map && map.getContainer && map.getContainer(); el && el.classList.remove('hide-marker-tooltips'); } catch (_) {}
         },
       }}
     >
+      <Tooltip
+        direction="top"
+        offset={[0, -2]}
+        opacity={1}
+        sticky
+        className={`feature-tooltip marker-tooltip ${tooltipDisabled ? 'tt-hidden' : ''}`}
+      >
+        <div>
+          <div><strong>Magnitude {(+mag).toFixed(1)}</strong></div>
+          <div>{moment(time).format('YYYY-MM-DD hh:mm:ss A')}</div>
+        </div>
+      </Tooltip>
       <Popup ref={popupRef} autoPan={!(typeof window !== 'undefined' && window.innerWidth <= 767)}>
         <div>
           <h2>Magnitude {+mag.toFixed(1)}</h2>

@@ -202,12 +202,30 @@ code {
   padding: 8px 10px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
+/* Ensure tooltip pointer (triangle) matches themed background */
+.leaflet-tooltip.feature-tooltip.leaflet-tooltip-top:before { border-top-color: var(--tt-bg); }
+.leaflet-tooltip.feature-tooltip.leaflet-tooltip-bottom:before { border-bottom-color: var(--tt-bg); }
+.leaflet-tooltip.feature-tooltip.leaflet-tooltip-left:before { border-left-color: var(--tt-bg); }
+.leaflet-tooltip.feature-tooltip.leaflet-tooltip-right:before { border-right-color: var(--tt-bg); }
 .leaflet-container[data-basemap-theme='dark'] .leaflet-tooltip.feature-tooltip,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-tooltip.feature-tooltip {
   --tt-bg: #111827;
   --tt-text: #f3f4f6;
   --tt-border: rgba(255, 255, 255, 0.15);
 }
+/* Marker tooltips should not intercept mouse/touch events */
+.leaflet-tooltip.marker-tooltip { pointer-events: none; }
+
+/* Hide only marker tooltips on small screens to avoid clash with popups */
+@media (max-width: 767px) {
+  .leaflet-tooltip.marker-tooltip { display: none !important; }
+}
+
+/* Hide a marker's tooltip while its popup is open */
+.leaflet-tooltip.marker-tooltip.tt-hidden { display: none !important; }
+
+/* Global guard: when a station/earthquake popup is open, hide all marker tooltips */
+.leaflet-container.hide-marker-tooltips .leaflet-tooltip.marker-tooltip { display: none !important; }
 .leaflet-tooltip.feature-tooltip .ft-title {
   font-weight: 600;
   margin-bottom: 4px;

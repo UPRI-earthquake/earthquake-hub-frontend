@@ -836,10 +836,10 @@ export default function MapLayersControl({ children }) {
             layer.on('tooltipclose', reset);
           }
           layer.on('remove', reset);
-          // Click/tap to toggle info and apply a stronger selected highlight
-          const clickToggle = (e) => {
-            try {
-              if (usePopup) {
+          // Click/tap toggling only for popups. Tooltips should be hover-only.
+          if (usePopup) {
+            const clickToggle = (e) => {
+              try {
                 const isOpen = typeof layer.isPopupOpen === 'function' && layer.isPopupOpen();
                 if (isOpen) {
                   layer.closePopup();
@@ -856,39 +856,19 @@ export default function MapLayersControl({ children }) {
                   if (e && e.latlng && typeof layer.openPopup === 'function') layer.openPopup(e.latlng);
                   else if (typeof layer.openPopup === 'function') layer.openPopup();
                 }
-              } else {
-                const isOpen = typeof layer.isTooltipOpen === 'function' && layer.isTooltipOpen();
-                if (isOpen) {
-                  layer.closeTooltip();
-                } else {
-                  const baseNow = getBase();
-                  const baseW = baseNow.weight || 2;
-                  const selectedW = hoverWeightFor(baseW);
-                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
-                  if (layer.bringToFront) layer.bringToFront();
-                  const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-                  if (pathEl) {
-                    try { pathEl.classList.add('selected-glow'); } catch (_) {}
-                  }
-                  if (e && e.latlng && typeof layer.openTooltip === 'function') layer.openTooltip(e.latlng);
-                  else if (typeof layer.openTooltip === 'function') layer.openTooltip();
-                }
-              }
-            } catch (_) {}
-          };
-          // Use only click; on mobile, Leaflet synthesizes click from tap.
-          // Using touchstart+click can toggle twice (open then close).
-          layer.on('click', clickToggle);
-          // Some touch devices emit a separate 'tap' event before/without 'click'. Support both.
-          let __lastTapTs = 0;
-          layer.on('tap', (ev) => {
-            __lastTapTs = Date.now();
-            clickToggle(ev);
-          });
-          layer.on('click', (ev) => {
-            if (__lastTapTs && Date.now() - __lastTapTs < 350) return;
-            clickToggle(ev);
-          });
+              } catch (_) {}
+            };
+            layer.on('click', clickToggle);
+            let __lastTapTs = 0;
+            layer.on('tap', (ev) => {
+              __lastTapTs = Date.now();
+              clickToggle(ev);
+            });
+            layer.on('click', (ev) => {
+              if (__lastTapTs && Date.now() - __lastTapTs < 350) return;
+              clickToggle(ev);
+            });
+          }
           if (!usePopup) {
             layer.on('tooltipclose', () => {
               const pathEl = layer.getElement ? layer.getElement() : layer._path || null;

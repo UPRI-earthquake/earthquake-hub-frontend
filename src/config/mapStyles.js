@@ -36,10 +36,13 @@ const PALETTE = {
     satellite: '#FFA07A',
     secondary: '#B36B5E',
   },
-  plates: {
-    stroke: '#1C88B6',
-  },
+  // Default plate stroke retained for light; per-theme overrides below
+  plates: { stroke: '#1C88B6' },
 };
+
+// Theme-specific colors that are easy to extend when adding new basemaps
+const FAULT_COLORS = { light: PALETTE.faults.light, dark: PALETTE.faults.dark, satellite: PALETTE.faults.dark };
+const PLATE_COLORS = { light: PALETTE.plates.stroke, dark: '#7DD3FC', satellite: '#22D3EE' };
 
 // Depth ramp colors chosen to avoid conflict with station markers
 // and to maintain contrast on satellite imagery.
@@ -131,7 +134,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   const eqHaloWidthOnlyEQ = t === 'dark' || t === 'satellite' ? eqHaloWidth + 0.5 : eqHaloWidth; // applied if only EQ
 
   // Faults
-  const faultColor = t === 'dark' || t === 'satellite' ? PALETTE.faults.dark : PALETTE.faults.light;
+  const faultColor = FAULT_COLORS[t] || FAULT_COLORS.light;
   const faultOpacityBase = 0.9;
   const faultOpacity =
     !hasEQ && hasFaults ? Math.min(1, faultOpacityBase + 0.05) : faultOpacityBase;
@@ -145,6 +148,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   const plateDash = '6,6';
   let plateWeight = ZOOM.country(z) ? 1.25 : ZOOM.regional(z) ? 1.5 : 1.75;
   plateWeight *= scale;
+  if (t === 'satellite') plateWeight += 0.4; // improve readability over imagery
   if (z >= 14) plateWeight += 2; // extra thickness at very close zooms
 
   // Stations
@@ -178,7 +182,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
       dashArray: faultDashed ? '6,6' : null,
     },
     plates: {
-      color: PALETTE.plates.stroke,
+      color: PLATE_COLORS[t] || PLATE_COLORS.light,
       weight: plateWeight,
       opacity: 0.85,
       dashArray: plateDash,
