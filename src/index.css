@@ -162,7 +162,7 @@ code {
   background: transparent;
   color: #111827; /* gray-900 */
   border: 2px solid #3a6a50;
-  border-top: none;
+  border-bottom: none; /* use mobile (top-anchored) style globally */
   padding: 4px 8px;
   line-height: 1.1;
   font-size: 11px;
@@ -175,37 +175,19 @@ code {
   color: #f3f4f6; /* gray-100 */
   border-color: rgba(255, 255, 255, 0.45);
 }
-/* Tweak mobile spacing so scalebar doesn't crowd edges */
-@media (max-width: 767px) {
-  /* Align both corners and keep consistent offsets w/ Legend button */
-  /* .leaflet-bottom.leaflet-left { margin-left: 12px; margin-bottom: 0px; } */
-  /* .leaflet-bottom.leaflet-right { margin-bottom: 5px; } */
-  .leaflet-control-scale-line {
-    font-size: 11px;
-    padding: 4px 8px;
-    /* Flip borders for top-anchored mobile style */
-    border-top: 2px solid #3a6a50;
-    border-bottom: none;
-  }
-  .leaflet-container[data-basemap-theme='dark'] .leaflet-control-scale-line,
-  .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-scale-line {
-    border-top-color: rgba(255, 255, 255, 0.45);
-  }
-
-  /* Center the scalebar between Zoom (left) and Layers (right) on mobile */
-  /* We render it into the top-left corner and absolutely center it */
-  .leaflet-top.leaflet-left {
-    width: 100%;
-  }
-  .leaflet-top.leaflet-left .leaflet-control-scale {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 10px; /* align vertically with other top controls */
-    bottom: auto;
-    margin: 0; /* override Leaflet margin so centering is precise */
-    z-index: 400; /* keep above map tiles, below layer popovers */
-  }
+/* Center the scalebar between Zoom (left) and Layers (right) universally */
+/* Render into top-left and absolutely center it */
+.leaflet-top.leaflet-left {
+  width: 100%;
+}
+.leaflet-top.leaflet-left .leaflet-control-scale {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10px; /* align vertically with other top controls */
+  bottom: auto;
+  margin: 0; /* override Leaflet margin so centering is precise */
+  z-index: 400; /* keep above map tiles, below layer popovers */
 }
 
 /* Feature hover tooltips (faults, plates) */

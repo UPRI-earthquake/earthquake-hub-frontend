@@ -65,13 +65,7 @@ const HomePage = () => {
   const eqBadgeLabel = lastEqKey === 'all-eqs' ? 'All EQs' : 'Latest EQs';
   // Cache for the expensive All EQs dataset to avoid refetching
   const allEqsCacheRef = useRef(null);
-  // Responsive scalebar width to avoid overlap with Legend on small screens
-  const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1024));
-  useEffect(() => {
-    const onR = () => setVw(window.innerWidth || 1024);
-    window.addEventListener('resize', onR);
-    return () => window.removeEventListener('resize', onR);
-  }, []);
+  // Scalebar: use a single, consistent mobile-style configuration
 
   // Extract initial load + SSE wiring and range fetching into a hook
   const setStationsRefStable = useCallback((arr) => {
@@ -285,13 +279,8 @@ const HomePage = () => {
                         </RegisterableLayerGroup>
                       </LayersControl.Overlay>
                     </MapLayersControl>
-                    {/* Metric scalebar; bottom-left on desktop, top-center on mobile */}
-                    <ScaleControl
-                      position={vw < 768 ? 'topleft' : 'bottomleft'}
-                      metric
-                      imperial={false}
-                      maxWidth={vw < 480 ? 110 : vw < 768 ? 140 : 200}
-                    />
+                    {/* Metric scalebar; always top-center (mobile style) */}
+                    <ScaleControl position="topleft" metric imperial={false} maxWidth={140} />
                     <LegendControl />
                   </OverlayStateProvider>
                 </MapContainer>
