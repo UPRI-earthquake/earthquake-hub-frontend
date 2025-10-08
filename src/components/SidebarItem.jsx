@@ -48,12 +48,15 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
     // run effect when a modification is made
   }, [status, last_modification]);
 
+  // Auto-scroll is handled globally from Sidebar when selecting a marker.
+
   return (
     <div
       className={`${styles.sidebarItem} ${isSelected ? styles.selected : ''}`}
       onClick={handleClick}
       ref={output}
       data-publicid={publicID}
+      data-selectid={publicID}
     >
       <div className={styles.magWrap}>
         <div className={styles.mag}>{title}</div>

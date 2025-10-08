@@ -10,7 +10,7 @@ import axios from 'axios';
 import * as sp from 'seisplotjs';
 import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { themeFromMapContainer } from '../config/mapStyles';
 
 /**
@@ -51,9 +51,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
       const label = axis;
       const sublbl = dark ? 'rgba(229,231,235,0.7)' : 'rgba(17,24,39,0.7)';
       const grid = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.25)';
-      const title = dark ? '#7dd3fc' : '#0891b2';
       const css = `
-        svg.seismograph g.title.label text { fill: ${title}; color: ${title}; }
         /* tick numbers */
         svg.seismograph g.axis text { fill: ${axis}; color: ${axis}; }
         /* axis lines and ticks */
@@ -95,7 +93,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
         seisPlot = new sp.seismograph.Seismograph([seisData], seisPlotConfig); // Create a new Seismograph with the SeismogramDisplayData and SeismographConfig
         realtimeDivRef.current.appendChild(seisPlot); // Append the Seismograph to the realtimeDiv
         graphListRef.current.set(codes, seisPlot); // Store the Seismograph in the graphListRef for future reference
-        applySeismographTheme(seisPlot);
+        // applySeismographTheme(seisPlot);
 
         devlog(`new plot: ${codes}`);
       } else {
@@ -377,6 +375,11 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const handlePopupClose = async () => {
     await disconnectDataLinkWS();
     stopDemoMseed();
+    try {
+      if (selectedId === `station:${code}`) {
+        dispatch({ type: 'DESELECT' });
+      }
+    } catch (_) {}
   };
 
   const start_time = moment().subtract(1, 'days');
@@ -445,6 +448,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
     }
   };
   const markerRef = useRef(null);
+  const dispatch = useDispatch();
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
 
@@ -453,16 +457,20 @@ const StationMarker = ({ network, code, latLng, description }) => {
     if (!map) return undefined;
     const retheme = () => {
       try {
-        const theme = themeFromMapContainer(map.getContainer());
-        const dark = theme === 'dark' || theme === 'satellite';
         graphListRef.current.forEach((plot) => {
           try {
+            const theme = themeFromMapContainer(map?.getContainer?.());
+            const dark = theme === 'dark' || theme === 'satellite';
             if (plot && plot.seismographConfig) {
               plot.seismographConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
             }
           } catch (_) {}
+          const css = plot.seismographConfig.createCSSForLineColors();
+          const sr = plot.shadowRoot; 
+          if (sr) sr.getElementById('seismographcolors')?.remove();
+          plot.addStyle(css, 'seismographcolors');
+          try { plot.draw && plot.draw(); } catch (_) {}
           try { applySeismographTheme(plot); } catch (_) {}
-          try { plot && plot.draw && plot.draw(); } catch (_) {}
         });
       } catch (_) {}
     };
@@ -494,6 +502,16 @@ const StationMarker = ({ network, code, latLng, description }) => {
       icon={divTriangle}
       ref={markerRef}
       eventHandlers={{
+        click: () => {
+          try {
+            const id = `station:${code}`;
+            dispatch({ type: 'SELECT', payload: id });
+            try {
+              const ev = new CustomEvent('selection:fromMarker', { detail: { id } });
+              window.dispatchEvent(ev);
+            } catch (_) {}
+          } catch (_) {}
+        },
         // Fetch status and start graph whenever the popup actually opens
         // (works for both map-click and programmatic open from sidebar)
         popupopen: handleStationClick,

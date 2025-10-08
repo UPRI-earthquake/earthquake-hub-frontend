@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import moment from 'moment';
 import { Marker, Popup, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import ReactDOMServer from 'react-dom/server';
 import styles from './EventMarker.module.css';
 import { ReactComponent as Circle } from './circle.svg';
@@ -24,6 +24,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
 
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
+  const dispatch = useDispatch();
   const selectedEvent = useSelector((state) => state);
   const popupRef = useRef(null);
   const markerRef = useRef(null);
@@ -39,7 +40,12 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
           map.flyTo([lat, lng], 9);
         }
         if (marker && typeof marker.openPopup === 'function') {
+          try { window.__openBySidebar = true; } catch (_) {}
           marker.openPopup();
+          try {
+            // Reset the flag on next tick so user-driven opens are not affected
+            setTimeout(() => { try { window.__openBySidebar = false; } catch (_) {} }, 0);
+          } catch (_) {}
         }
       } else if (prevSelectedRef.current === publicID) {
         // On deselect (or selection changed away from this id): close the popup
@@ -213,6 +219,38 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
       stroke={false}
       position={[lat, lng]}
       {...(paneName ? { pane: paneName } : {})} // only pass pane when available
+      eventHandlers={{
+        click: () => {
+          try {
+            dispatch({ type: 'SELECT', payload: publicID });
+          } catch (_) {}
+          try {
+            const ev = new CustomEvent('selection:fromMarker', { detail: { id: publicID } });
+            window.dispatchEvent(ev);
+          } catch (_) {}
+        },
+        popupopen: () => {
+          try {
+            // Do not emit scroll/select if this popup was opened programmatically from sidebar
+            const bySidebar = typeof window !== 'undefined' && window.__openBySidebar;
+            if (!bySidebar) {
+              dispatch({ type: 'SELECT', payload: publicID });
+              try {
+                const ev = new CustomEvent('selection:fromMarker', { detail: { id: publicID } });
+                window.dispatchEvent(ev);
+              } catch (_) {}
+            }
+          } catch (_) {}
+        },
+        popupclose: () => {
+          try {
+            // only deselect if this marker is currently selected
+            if (selectedEvent === publicID) {
+              dispatch({ type: 'DESELECT' });
+            }
+          } catch (_) {}
+        },
+      }}
     >
       <Popup ref={popupRef}>
         <div>

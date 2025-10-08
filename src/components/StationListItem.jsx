@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import styles from './StationListItem.module.css';
 import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
 
 /**
  * Station list visual optimized for the Stations dataset in the sidebar.
@@ -14,23 +15,61 @@ export default function StationListItem({ station }) {
   const network = `${netRaw} Network`;
   const isActive = String(station.activity || '').toLowerCase() === 'active';
   const statusLabel = isActive ? 'Active' : 'Inactive';
-  const since = station.statusSince ? moment(station.statusSince) : null;
-  const tooltip = (() => {
-    if (isActive) {
-      if (since) return `Streaming since ${since.fromNow()}`;
-      return 'Streaming';
+  const since = useMemo(() => (station.statusSince ? moment(station.statusSince) : null), [station.statusSince]);
+
+  const initialTooltip = useMemo(() => {
+    if (isActive) return since ? `Streaming since ${since.fromNow()}` : 'Streaming';
+    if (since) return since.isAfter(moment().subtract(1, 'month')) ? `Not streaming since ${since.fromNow()}` : 'Device Offline';
+    return 'Device Offline';
+  }, [isActive, since]);
+
+  const [tooltipText, setTooltipText] = useState(initialTooltip);
+
+  // Lazy-fetch live status on hover/focus to mirror popup text exactly
+  const statusCacheRef = useRef(
+    (typeof window !== 'undefined' && (window.__stationStatusCache || (window.__stationStatusCache = new Map()))) ||
+      new Map(),
+  );
+  const backendHost = useCallback(() => {
+    return (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
+      ? window['ENV'].REACT_APP_BACKEND
+      : window['ENV'].REACT_APP_BACKEND_DEV;
+  }, []);
+  const computeTooltip = useCallback((status, statusSince) => {
+    const s = (status || '').toLowerCase();
+    const m = statusSince ? moment(statusSince) : null;
+    if (s === 'streaming' || (s === '' && isActive)) {
+      return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
     }
-    if (since && since.isAfter(moment().subtract(1, 'month'))) {
-      // recent enough to show last report
-      const hrs = Math.max(0, Math.round(moment.duration(moment().diff(since)).asHours()));
-      return `Currently inactive (last report ${hrs} hrs ago).`;
+    if (m && m.isAfter(moment().subtract(1, 'month'))) {
+      return `Not streaming since ${m.fromNow()}`;
     }
     return 'Device Offline';
-  })();
+  }, [isActive]);
+  const refreshTooltipFromAPI = useCallback(async () => {
+    try {
+      const key = `${(station.network || 'AM').toUpperCase()}:${(station.code || '').toUpperCase()}`;
+      const cache = statusCacheRef.current;
+      const now = Date.now();
+      const cached = cache.get(key);
+      if (cached && now - cached.t < 60_000) {
+        setTooltipText(computeTooltip(cached.status, cached.statusSince));
+        return;
+      }
+      const url = `${backendHost()}/device/status?network=${(station.network || 'AM').toUpperCase()}&station=${(station.code || '').toUpperCase()}`;
+      const resp = await axios.get(url);
+      const payload = resp?.data?.payload || {};
+      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince });
+      setTooltipText(computeTooltip(payload.status, payload.statusSince));
+    } catch (_) {
+      // keep initial tooltip on failure
+    }
+  }, [station.network, station.code, backendHost, computeTooltip]);
 
   const dispatch = useDispatch();
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
+  const rowRef = useRef(null);
   const flyTo = () => {
     const lat = Number(station.latitude);
     const lng = Number(station.longitude);
@@ -49,13 +88,19 @@ export default function StationListItem({ station }) {
     else dispatch({ type: 'DESELECT' });
   };
 
+  // Auto-scroll is handled globally from Sidebar when selecting a marker.
+
   return (
     <div
       className={`${styles.row} ${isSelected ? styles.selected : ''}`}
-      title={tooltip}
-      data-tip={tooltip}
+      title={tooltipText}
+      data-tip={tooltipText}
       role="button"
       onClick={onClick}
+      onMouseEnter={refreshTooltipFromAPI}
+      onFocus={refreshTooltipFromAPI}
+      data-selectid={`station:${code}`}
+      ref={rowRef}
     >
       <div className={styles.titleLine}>
         <div className={styles.code}>{code}</div>
