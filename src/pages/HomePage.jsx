@@ -67,8 +67,7 @@ const HomePage = () => {
     minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     maxDate: moment().format('YYYY-MM-DD'),
   }));
-  const [lastEqKey, setLastEqKey] = useState('latest-30d');
-  const eqBadgeLabel = lastEqKey === 'all-eqs' ? 'All EQs' : 'Latest EQs';
+  const [setLastEqKey] = useState('latest-30d');
   // Cache for the expensive All EQs dataset to avoid refetching
   const allEqsCacheRef = useRef(null);
   // Scalebar: use a single, consistent mobile-style configuration
@@ -292,7 +291,6 @@ const HomePage = () => {
                         try { setHoldEqMarkers(false); } catch (_) {}
                       }
                     }}
-                    eqBadgeLabel={eqBadgeLabel}
                     stationCounts={{
                       active: (stations || []).filter(
                         (s) => String(s.activity || '').toLowerCase() === 'active',

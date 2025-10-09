@@ -62,7 +62,6 @@ function SidebarInfo({
   stationCounts, // {active:number, inactive:number}
   activeOnlyStations = false,
   onActiveOnlyChange,
-  eqBadgeLabel,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -281,10 +280,7 @@ function SidebarInfo({
     // e.preventDefault();
   };
 
-  const displayTitle =
-    selectedDatasetKey === 'all-stations' && !menuOpen && eqBadgeLabel
-      ? `${title} [${eqBadgeLabel}]`
-      : title;
+  const displayTitle = title;
 
   return (
     <div className={containerCls} ref={rootRef}>
@@ -316,7 +312,7 @@ function SidebarInfo({
             { key: 'all-eqs', label: 'All Earthquakes', tip: 'All recorded earthquakes in the network' },
             {
               key: 'all-stations',
-              label: `All Stations${eqBadgeLabel ? ` [${eqBadgeLabel}]` : ''}`,
+              label: `All Stations`,
               tip: 'View all monitoring stations in the network',
             },
           ].map((opt) => (
