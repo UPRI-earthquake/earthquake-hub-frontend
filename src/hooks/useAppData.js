@@ -13,6 +13,7 @@ export function useAppData({
   setStationsRef,
   setLoading,
   setServerError,
+  applyStationUpdate,
 }) {
   const { fetchStations } = useStations();
   const { eventSourceRef, fetchEventsForRange, bindSSE, closeSSE } = useEventsFeed({
@@ -63,6 +64,49 @@ export function useAppData({
       const okEvents = ev && ev.ok !== false;
       const { unbind: un } = bindSSE();
       unbind = un;
+      // Attach station-status listeners to the shared EventSource, if provided
+      try {
+        const src = eventSourceRef.current;
+        if (src && typeof src.addEventListener === 'function' && applyStationUpdate) {
+          const onStationStatus = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              applyStationUpdate(data);
+            } catch (_) {}
+          };
+          const names = [
+            'STATION_STATUS',
+            'SC_STATION_STATUS',
+            'SC_STATION',
+            'SC_DEVICE',
+            'DEVICE_STATUS',
+            'STATION_EVENT',
+          ];
+          names.forEach((n) => src.addEventListener(n, onStationStatus));
+
+          // Optional fallback: if only picks are emitted, treat pick as "active"
+          const onPick = (event) => {
+            try {
+              const d = JSON.parse(event.data);
+              if (!d) return;
+              applyStationUpdate({
+                stationCode: d.stationCode,
+                network: d.networkCode,
+                activity: 'active',
+                status: 'Streaming',
+                statusSince: d.timestamp,
+              });
+            } catch (_) {}
+          };
+          src.addEventListener('SC_PICK', onPick);
+
+          // Save a tiny unbinder on the instance for cleanup
+          src.__station_unbind__ = () => {
+            try { names.forEach((n) => src.removeEventListener(n, onStationStatus)); } catch (_) {}
+            try { src.removeEventListener('SC_PICK', onPick); } catch (_) {}
+          };
+        }
+      } catch (_) {}
       if (isMounted) {
         if (!okStations && !okEvents) setServerError(true);
         setLoading(false);
@@ -71,9 +115,8 @@ export function useAppData({
 
     return () => {
       isMounted = false;
-      try {
-        unbind && unbind();
-      } catch (_) {}
+      try { unbind && unbind(); } catch (_) {}
+      try { eventSourceRef.current && eventSourceRef.current.__station_unbind__ && eventSourceRef.current.__station_unbind__(); } catch (_) {}
       closeSSE();
     };
   }, [
@@ -84,7 +127,9 @@ export function useAppData({
     setStationsRef,
     setLoading,
     setServerError,
+    applyStationUpdate,
+    eventSourceRef,
   ]);
 
-  return { eventSourceRef, fetchEventsForRange, performInitialLoad };
+  return { eventSourceRef, fetchEventsForRange, performInitialLoad, fetchStations };
 }

@@ -17,7 +17,21 @@ export function useStations() {
     } catch (_) {}
     const res = await axios.get(`${backendHost()}/device/all`);
     const arr = res.data?.payload || [];
-    return arr.map((s) => ({ ...s, isPicked: false }));
+    // Normalize fields for consistent UI behavior
+    return arr.map((s) => {
+      const activityRaw = String(s.activity || '').toLowerCase();
+      const activity = activityRaw === 'active' || activityRaw === 'streaming' || activityRaw === 'online'
+        ? 'active'
+        : 'inactive';
+      return {
+        ...s,
+        // Ensure stable shape
+        network: (s.network || 'AM').toUpperCase(),
+        code: String(s.code || s.station || '').toUpperCase(),
+        activity,
+        isPicked: false,
+      };
+    });
   }, []);
 
   return { fetchStations };

@@ -17,6 +17,7 @@ import MapLayersControl from '../components/MapLayersControl';
 import AttributionControl from '../components/AttributionControl';
 import LegendControl from '../components/LegendControl';
 import ResetViewControl from '../components/ResetViewControl';
+import { resetToPH } from '../utils/resetView';
 import { OverlayStateProvider } from '../components/OverlayStateContext';
 import RegisterableLayerGroup from '../components/RegisterableLayerGroup';
 import { useAppData } from '../hooks/useAppData';
@@ -34,7 +35,8 @@ const HomePage = () => {
   // use loading screen (with min time) to wait for events and eventsSource
   const [loading, setLoading] = useState(true);
   const [serverError, setServerError] = useState(false);
-  const stationsRef = useRef([]); // initial stations data
+  const stationsRef = useRef([]); // initial stations data (for markers)
+  const [stations, setStations] = useState([]); // reactive list for sidebar + counts
   const [events, setEvents] = useState([]); // initial eq-events data
   const sseEnabledRef = useRef(true);
   // Sidebar UI state (frontend-only)
@@ -45,6 +47,8 @@ const HomePage = () => {
   const [listLoading, setListLoading] = useState(false);
   const [sseEnabled, setSseEnabled] = useState(true);
   const [customEvents, setCustomEvents] = useState(null);
+  // Gate EQ markers during dataset switches until the map finishes returning to PH
+  const [holdEqMarkers, setHoldEqMarkers] = useState(false);
   const [filters, setFilters] = useState(() => ({
     magMin: 0,
     magMax: 10,
@@ -72,13 +76,48 @@ const HomePage = () => {
   // Extract initial load + SSE wiring and range fetching into a hook
   const setStationsRefStable = useCallback((arr) => {
     stationsRef.current = arr;
+    setStations(arr);
   }, []);
-  const { eventSourceRef, fetchEventsForRange, performInitialLoad } = useAppData({
+  const applyStationUpdate = useCallback((raw) => {
+    try {
+      const code = String(
+        raw.stationCode || raw.station || raw.code || raw.station_id || '',
+      ).toUpperCase();
+      if (!code) return;
+      const network = String(raw.network || 'AM').toUpperCase();
+      let activity = null;
+      const s = String(raw.status || raw.activity || '').toLowerCase();
+      if (s === 'streaming' || s === 'active' || s === 'online') activity = 'active';
+      else if (s === 'not streaming' || s === 'inactive' || s === 'offline') activity = 'inactive';
+      else if (typeof raw.isActive === 'boolean') activity = raw.isActive ? 'active' : 'inactive';
+      const since = raw.statusSince || raw.timestamp || raw.time || null;
+      setStations((prev) => {
+        const idx = prev.findIndex(
+          (st) => String(st.code || '').toUpperCase() === code && String(st.network || 'AM').toUpperCase() === network,
+        );
+        if (idx === -1) return prev;
+        const curr = prev[idx];
+        const next = { ...curr };
+        if (activity) next.activity = activity;
+        // Prefer provided statusSince; if switching to active with none, set now
+        const becameActive = activity === 'active' && String(curr.activity || '') !== 'active';
+        if (since) next.statusSince = since;
+        else if (becameActive) next.statusSince = new Date().toISOString();
+        const arr = prev.slice();
+        arr[idx] = next;
+        stationsRef.current = arr;
+        return arr;
+      });
+    } catch (_) {}
+  }, []);
+
+  const { eventSourceRef, fetchEventsForRange, performInitialLoad, fetchStations } = useAppData({
     sseEnabledRef,
     setEvents,
     setStationsRef: setStationsRefStable,
     setLoading,
     setServerError,
+    applyStationUpdate,
   });
 
   useEffect(() => {
@@ -88,14 +127,7 @@ const HomePage = () => {
 
   useEffect(() => performInitialLoad(), [performInitialLoad]);
 
-  // Helper: clear any current selection and close any open popup
-  const clearSelectionAndPopups = useCallback(() => {
-    try { dispatch({ type: 'DESELECT' }); } catch (_) {}
-    try {
-      const map = window.__leaflet_map__;
-      if (map && typeof map.closePopup === 'function') map.closePopup();
-    } catch (_) {}
-  }, [dispatch]);
+  // No longer need a separate clear helper; reuse shared resetToPH
 
   // Helper to set filter bounds for All EQs using the fetched data
   const applyAllEqsBounds = useCallback(
@@ -150,8 +182,25 @@ const HomePage = () => {
                     sortOrder={sort.order}
                     onSortChange={(next) => setSort((prev) => ({ ...prev, ...next }))}
                     onDatasetChange={(key) => {
+                      // Hold EQ markers until map finishes flyTo to reduce clutter
+                      try {
+                        setHoldEqMarkers(true);
+                        const map = typeof window !== 'undefined' ? window.__leaflet_map__ : null;
+                        if (map && typeof map.once === 'function') {
+                          const release = () => {
+                            try { setHoldEqMarkers(false); } catch (_) {}
+                          };
+                          map.once('moveend', release);
+                          // Safety: also release if no move occurred within 1.2s
+                          setTimeout(release, 1200);
+                        } else {
+                          // Fallback release on next tick if map not yet ready
+                          setTimeout(() => setHoldEqMarkers(false), 0);
+                        }
+                      } catch (_) {}
                       if (key === 'latest-30d') {
-                        clearSelectionAndPopups();
+                        // Reset map to PH and clear selection/popup
+                        resetToPH({ dispatch });
                         setLastEqKey('latest-30d');
                         setDatasetTitle('Latest Earthquakes (30 days)');
                         setDatasetKey('latest-30d');
@@ -179,11 +228,12 @@ const HomePage = () => {
                           .catch(console.error)
                           .finally(() => setListLoading(false));
                       } else if (key === 'all-eqs') {
-                        clearSelectionAndPopups();
+                        // Reset map to PH and clear selection/popup
+                        resetToPH({ dispatch });
                         setLastEqKey('all-eqs');
                         setDatasetTitle('All Earthquakes');
                         setDatasetKey('all-eqs');
-                        setSseEnabled(false); // archive view
+                        setSseEnabled(true); // keep live SSE updates enabled
                         setCustomEvents(null);
                         setControlVisibility({ showFilter: true, showSort: true });
 
@@ -205,22 +255,32 @@ const HomePage = () => {
                             .finally(() => setListLoading(false));
                         }
                       } else if (key === 'all-stations') {
-                        clearSelectionAndPopups();
+                        // Reset map to PH and clear selection/popup
+                        resetToPH({ dispatch });
                         setDatasetTitle('All Stations');
                         setDatasetKey('all-stations');
-                        setSseEnabled(false);
+                        setSseEnabled(true);
                         setCustomEvents(null);
                         setControlVisibility({ showFilter: false, showSort: false });
                         setStationActiveOnly(false);
                         setListLoading(false);
+                        // Refresh station list from backend so counts and status are current
+                        try {
+                          fetchStations()
+                            .then((arr) => setStationsRefStable(arr || []))
+                            .catch(() => {})
+                            .finally(() => {});
+                        } catch (_) {}
+                        // No EQ markers for stations dataset; safe to release immediately
+                        try { setHoldEqMarkers(false); } catch (_) {}
                       }
                     }}
                     eqBadgeLabel={eqBadgeLabel}
                     stationCounts={{
-                      active: stationsRef.current.filter(
+                      active: (stations || []).filter(
                         (s) => String(s.activity || '').toLowerCase() === 'active',
                       ).length,
-                      inactive: stationsRef.current.filter(
+                      inactive: (stations || []).filter(
                         (s) => String(s.activity || '').toLowerCase() !== 'active',
                       ).length,
                     }}
@@ -228,11 +288,7 @@ const HomePage = () => {
                     onActiveOnlyChange={setStationActiveOnly}
                   />
                   {datasetKey === 'all-stations' ? (
-                    <SidebarStations
-                      initStations={stationsRef.current}
-                      searchText={searchText}
-                      activeOnly={stationActiveOnly}
-                    />
+                    <SidebarStations initStations={stations} searchText={searchText} activeOnly={stationActiveOnly} />
                   ) : (
                     <SidebarItems
                       initData={customEvents || events}
@@ -278,13 +334,15 @@ const HomePage = () => {
                          * when the overlay is toggled off and later re‑enabled.
                          */}
                         <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
-                          {/* Render earthquake markers for the current dataset + filters */}
-                          <EventMarkers
-                            initEvents={customEvents || events}
-                            filters={{ ...filters, searchText }}
-                            sseEnabled={sseEnabled}
-                            datasetKey={datasetKey}
-                          />
+                          {/* Render earthquake markers after map settles back to PH */}
+                          {!holdEqMarkers && (
+                            <EventMarkers
+                              initEvents={customEvents || events}
+                              filters={{ ...filters, searchText }}
+                              sseEnabled={sseEnabled}
+                              datasetKey={datasetKey}
+                            />
+                          )}
                         </RegisterableLayerGroup>
                       </LayersControl.Overlay>
                       <LayersControl.Overlay checked name="Stations">

@@ -92,14 +92,21 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   const [animate, setAnimate] = useState(false);
   const timerId = useRef(null); // hold running timeout-id across renders
   useEffect(() => {
+    let isMounted = true;
     if (status === 'NEW' || status === 'UPDATE') {
       setAnimate(true);
       clearTimeout(timerId.current); // it's ok to clear on null
       timerId.current = setTimeout(() => {
+        if (!isMounted) return; // avoid state update after unmount
         setAnimate(false);
         timerId.current = null; // to avoid clearing other ids
       }, 7500);
     }
+    return () => {
+      isMounted = false;
+      try { clearTimeout(timerId.current); } catch (_) {}
+      timerId.current = null;
+    };
   }, [status, last_modification]);
 
   // Opacity is now driven purely by CSS var --eq-opacity on the map container.

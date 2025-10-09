@@ -311,7 +311,7 @@ function SidebarInfo({
             {
               key: 'latest-30d',
               label: 'Latest Earthquakes (30 days)',
-              tip: 'Earthquakes from the past 30 days, updates live',
+              tip: 'Earthquakes from the past 30 days',
             },
             { key: 'all-eqs', label: 'All Earthquakes', tip: 'All recorded earthquakes in the network' },
             {

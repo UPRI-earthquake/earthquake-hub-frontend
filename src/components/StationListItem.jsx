@@ -15,7 +15,10 @@ export default function StationListItem({ station }) {
   const network = `${netRaw} Network`;
   const isActive = String(station.activity || '').toLowerCase() === 'active';
   const statusLabel = isActive ? 'Active' : 'Inactive';
-  const since = useMemo(() => (station.statusSince ? moment(station.statusSince) : null), [station.statusSince]);
+  const since = useMemo(() => {
+    const v = station.statusSince || station.activityToggleTime || null;
+    return v ? moment(v) : null;
+  }, [station.statusSince, station.activityToggleTime]);
 
   const initialTooltip = useMemo(() => {
     if (isActive) return since ? `Streaming since ${since.fromNow()}` : 'Streaming';

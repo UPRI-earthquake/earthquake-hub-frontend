@@ -321,6 +321,8 @@ const StationMarker = ({ network, code, latLng, description }) => {
     } catch (_) {}
 
     return () => {
+      try { clearTimeout(timerId.current); } catch (_) {}
+      timerId.current = null;
       try {
         eventSource.removeEventListener('SC_PICK', handlePickEvent);
       } catch (_) {}

@@ -3,8 +3,12 @@ import StationListItem from './StationListItem';
 
 /**
  * Scrollable list that renders stations in the sidebar.
- * Sorts by online/active first, then station code ascending. Supports search.
- * @param {{initStations: Array, searchText?: string, activeOnly?: boolean}} props
+ * Live-refreshes from backend and sorts so newly-active appear first.
+ * @param {{
+ *   initStations: Array,
+ *   searchText?: string,
+ *   activeOnly?: boolean
+ * }} props
  */
 function SidebarStations({ initStations, searchText = '', activeOnly = false }) {
   const [items, setItems] = useState(() => (initStations || []).slice());
@@ -21,13 +25,19 @@ function SidebarStations({ initStations, searchText = '', activeOnly = false }) 
       const hay = `${s.code || ''} ${s.description || ''}`.toLowerCase(); // search by ID or name
       return hay.includes(text);
     });
-    // online/active first, then code asc
+    // Sort: online/active first, and among active sort by most-recently active
+    // (statusSince descending) so newly-active bubble to the top; fallback by code asc.
     return list
       .slice()
       .sort((a, b) => {
-        const aOnline = (a.activity || '').toLowerCase() === 'active' ? 1 : 0;
-        const bOnline = (b.activity || '').toLowerCase() === 'active' ? 1 : 0;
+        const aOnline = (a.activity || '').toLowerCase() === 'active';
+        const bOnline = (b.activity || '').toLowerCase() === 'active';
         if (aOnline !== bOnline) return bOnline - aOnline; // online first
+        if (aOnline && bOnline) {
+          const at = new Date(a.statusSince || a.activityToggleTime || a.lastActive || 0).getTime();
+          const bt = new Date(b.statusSince || b.activityToggleTime || b.lastActive || 0).getTime();
+          if (isFinite(at) && isFinite(bt) && at !== bt) return bt - at; // recent first
+        }
         const ac = String(a.code || '').toUpperCase();
         const bc = String(b.code || '').toUpperCase();
         if (ac < bc) return -1;

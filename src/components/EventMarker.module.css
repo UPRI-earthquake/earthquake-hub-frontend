@@ -75,8 +75,6 @@
   /* Ensure no solid background/border when overlay toggles */
   background: transparent !important;
   border: 0 !important;
-  /* Tiny transition for non-animated scale jumps (e.g., programmatic zoom steps) */
-  transition: transform 120ms ease-out;
 }
 
 /* Disable transform transition during Leaflet zoom animations to avoid jitter */
