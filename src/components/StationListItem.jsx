@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import styles from './StationListItem.module.css';
 import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
@@ -73,6 +73,20 @@ export default function StationListItem({ station }) {
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
   const rowRef = useRef(null);
+  const prevActiveRef = useRef(isActive);
+  const [pulse, setPulse] = useState(null); // 'pulseActive' | 'pulseInactive' | null
+  useEffect(() => {
+    const was = prevActiveRef.current;
+    if (was !== isActive) {
+      const cls = isActive ? 'pulseActive' : 'pulseInactive';
+      setPulse(cls);
+      const id = setTimeout(() => setPulse(null), 800);
+      prevActiveRef.current = isActive;
+      return () => clearTimeout(id);
+    }
+    prevActiveRef.current = isActive;
+    return undefined;
+  }, [isActive]);
   const flyTo = () => {
     const lat = Number(station.latitude);
     const lng = Number(station.longitude);
@@ -95,7 +109,7 @@ export default function StationListItem({ station }) {
 
   return (
     <div
-      className={`${styles.row} ${isSelected ? styles.selected : ''}`}
+      className={`${styles.row} ${isSelected ? styles.selected : ''} ${pulse ? styles[pulse] : ''}`}
       title={tooltipText}
       data-tip={tooltipText}
       role="button"

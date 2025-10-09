@@ -68,6 +68,50 @@
   background-color: #d9534f;
 }
 
+/* One-shot pulse animations on state change */
+.went-online {
+  animation: statusOnlinePulse 0.9s ease-out;
+}
+.went-offline {
+  animation: statusOfflinePulse 0.9s ease-out;
+}
+
+@keyframes statusOnlinePulse {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    opacity: 0.85;
+  }
+  60% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes statusOfflinePulse {
+  0% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    opacity: 1;
+  }
+}
+
 .not-linked {
   background-color: gray;
 }
@@ -98,6 +142,11 @@
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .dynamic {
+    animation: none;
+  }
+  .went-online,
+  .went-offline,
+  .streaming {
     animation: none;
   }
 }

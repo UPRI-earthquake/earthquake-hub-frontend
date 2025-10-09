@@ -80,17 +80,21 @@ const HomePage = () => {
   }, []);
   const applyStationUpdate = useCallback((raw) => {
     try {
+      // Normalize incoming payload across various SSE event types
       const code = String(
-        raw.stationCode || raw.station || raw.code || raw.station_id || '',
+        raw.stationCode || raw.station || raw.code || raw.station_id || raw.stationcode || '',
       ).toUpperCase();
       if (!code) return;
-      const network = String(raw.network || 'AM').toUpperCase();
+      const network = String(
+        raw.network || raw.networkCode || raw.network_code || raw.net || 'AM',
+      ).toUpperCase();
       let activity = null;
       const s = String(raw.status || raw.activity || '').toLowerCase();
       if (s === 'streaming' || s === 'active' || s === 'online') activity = 'active';
       else if (s === 'not streaming' || s === 'inactive' || s === 'offline') activity = 'inactive';
       else if (typeof raw.isActive === 'boolean') activity = raw.isActive ? 'active' : 'inactive';
-      const since = raw.statusSince || raw.timestamp || raw.time || null;
+      const since =
+        raw.statusSince || raw.status_since || raw.timestamp || raw.time || raw.lastActive || null;
       setStations((prev) => {
         const idx = prev.findIndex(
           (st) => String(st.code || '').toUpperCase() === code && String(st.network || 'AM').toUpperCase() === network,
@@ -99,13 +103,26 @@ const HomePage = () => {
         const curr = prev[idx];
         const next = { ...curr };
         if (activity) next.activity = activity;
-        // Prefer provided statusSince; if switching to active with none, set now
-        const becameActive = activity === 'active' && String(curr.activity || '') !== 'active';
+        // Prefer provided statusSince; if switching state with none, set now
+        const wasActive = String(curr.activity || '').toLowerCase() === 'active';
+        const becameActive = activity === 'active' && !wasActive;
+        const becameInactive = activity === 'inactive' && wasActive;
         if (since) next.statusSince = since;
-        else if (becameActive) next.statusSince = new Date().toISOString();
+        else if (becameActive || becameInactive) next.statusSince = new Date().toISOString();
         const arr = prev.slice();
         arr[idx] = next;
         stationsRef.current = arr;
+        // Also refresh the shared tooltip cache so hover shows latest immediately
+        try {
+          const key = `${network}:${code}`;
+          const cache =
+            (typeof window !== 'undefined' && (window.__stationStatusCache || (window.__stationStatusCache = new Map()))) ||
+            new Map();
+          const statusStr = (raw.status && String(raw.status).toLowerCase()) ||
+            (next.activity === 'active' ? 'streaming' : 'not streaming');
+          cache.set(key, { t: Date.now(), status: statusStr, statusSince: next.statusSince || null });
+          if (typeof window !== 'undefined') window.__stationStatusCache = cache;
+        } catch (_) {}
         return arr;
       });
     } catch (_) {}

@@ -294,6 +294,9 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const timerId = useRef(null); // hold running timeout-id across renders
   const eventSource = useContext(SSEContext);
   const [statusState, setStatusState] = useState({ status: null, statusSince: null });
+  const prevStatusRef = useRef(null);
+  const [statusChange, setStatusChange] = useState(null); // 'went-online' | 'went-offline' | null
+  const statusAnimTimerRef = useRef(null);
   const backend_host =
     process.env.NODE_ENV === 'production'
       ? window['ENV'].REACT_APP_BACKEND
@@ -345,10 +348,22 @@ const StationMarker = ({ network, code, latLng, description }) => {
         `${backend_host}/device/status?network=${network.toUpperCase()}&station=${code.toUpperCase()}`,
       );
       const payload = response.data.payload;
+      const nextStatus = payload.status;
+      const prevStatus = prevStatusRef.current;
       setStatusState({
-        status: payload.status,
+        status: nextStatus,
         statusSince: payload.statusSince,
       });
+      // Trigger a one-shot animation when status changes (online/offline)
+      try {
+        if (prevStatus && prevStatus !== nextStatus) {
+          const cls = nextStatus === 'Streaming' ? 'went-online' : 'went-offline';
+          setStatusChange(cls);
+          if (statusAnimTimerRef.current) clearTimeout(statusAnimTimerRef.current);
+          statusAnimTimerRef.current = setTimeout(() => setStatusChange(null), 900);
+        }
+      } catch (_) {}
+      prevStatusRef.current = nextStatus;
 
       const demoFlag = window.ENV && window.ENV.REACT_APP_SEIS_DEMO === '1';
       if (payload.status === 'Streaming' && demoFlag) {
@@ -380,6 +395,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const handlePopupClose = async () => {
     await disconnectDataLinkWS();
     stopDemoMseed();
+    try { if (statusAnimTimerRef.current) clearTimeout(statusAnimTimerRef.current); } catch (_) {}
     try { setTooltipDisabled(false); } catch (_) {}
     try { const el = map && map.getContainer && map.getContainer(); el && el.classList.remove('hide-marker-tooltips'); } catch (_) {}
     try {
@@ -592,12 +608,10 @@ const StationMarker = ({ network, code, latLng, description }) => {
           <p>
             <span
               className={
-                // Show green or red indicator status indicator
                 `
                 ${styles.statusIndicator}
-                ${
-                  statusState.status === 'Streaming' ? styles['streaming'] : styles['not-streaming']
-                }
+                ${statusState.status === 'Streaming' ? styles['streaming'] : styles['not-streaming']}
+                ${statusChange ? styles[statusChange] : ''}
               `
               }
             ></span>

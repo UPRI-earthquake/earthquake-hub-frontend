@@ -12,6 +12,9 @@
 /* Apply width only when expanded so the collapsed toggle is not stretched */
 .leaflet-control-layers.leaflet-control-layers-expanded {
   min-width: 180px;
+  /* Smooth entrance when expanding */
+  animation: layersPanelIn 0.18s ease-out;
+  transform-origin: top right;
 }
 /* Hide the built-in Layers control when collapsed; we use a custom button */
 .leaflet-control-layers:not(.leaflet-control-layers-expanded) {
@@ -104,6 +107,24 @@
 /* Always hide the default toggle when using our custom button */
 .leaflet-control-layers .leaflet-control-layers-toggle {
   display: none;
+}
+
+/* Opening animation */
+@keyframes layersPanelIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-control-layers.leaflet-control-layers-expanded {
+    animation: none;
+  }
 }
 .leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers-toggle,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers-toggle {

@@ -33,6 +33,29 @@
   min-width: auto;
 }
 
+/* Smooth entrance when expanding */
+.legend-shell:not(.is-collapsed) {
+  animation: legendPanelIn 0.2s ease-out;
+  transform-origin: bottom right;
+}
+
+@keyframes legendPanelIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legend-shell:not(.is-collapsed) {
+    animation: none;
+  }
+}
+
 /* Toggle button inside expanded panel (Collapse) */
 /* Expanded header */
 .legend-header {

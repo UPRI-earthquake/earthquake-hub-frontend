@@ -58,7 +58,7 @@ function SidebarStations({ initStations, searchText = '', activeOnly = false }) 
   }
 
   return filtered.map((s) => (
-    <StationListItem key={`station:${s.code}`} station={s} />
+    <StationListItem key={`station:${(s.network || 'AM').toUpperCase()}:${(s.code || '').toUpperCase()}`} station={s} />
   ));
 }
 
