@@ -119,23 +119,17 @@ export default function StationListItem({ station }) {
       data-selectid={`station:${code}`}
       ref={rowRef}
     >
-      <div className={styles.titleLine}>
-        <div className={styles.code}>{code}</div>
-        <div className={styles.deviceName}>
-          <em>{name}</em>
+      <div className={styles.leftWrap}>
+        <div className={styles.codeText} aria-label={`Station ${code}`} title={`Station ${code}`}>
+          {code}
         </div>
       </div>
-      <div className={styles.metaLine}>
-        <div className={styles.metaLeft}>
-          <span className={styles.net} title={network} aria-label={network}>
-            {network}
-          </span>
-        </div>
-        <div className={styles.metaRight}>
+      <div className={styles.rightWrap}>
+        <p className={styles.desc}>{name}</p>
+        <div className={styles.metaRow}>
+          <span className={styles.subDesc} title={network} aria-label={network}>{network}</span>
           <span
-            className={`${styles.statusPill} ${
-              isActive ? styles.statusPillActive : styles.statusPillInactive
-            }`}
+            className={`${styles.statusPill} ${isActive ? styles.statusPillActive : styles.statusPillInactive}`}
             role="status"
             aria-label={`Status: ${statusLabel}`}
             title={`Status: ${statusLabel}`}

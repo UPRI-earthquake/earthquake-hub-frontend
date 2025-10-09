@@ -6,7 +6,7 @@ import { devlog } from '../utils/devlog';
 /**
  * Single earthquake item entry used in the sidebar list.
  */
-function SidebarItem({ publicID, title, description, subDescription, status, last_modification }) {
+function SidebarItem({ publicID, title, description, subDescription, status, last_modification, depthKm }) {
   // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
   const selectedEvent = useSelector((state) => state);
@@ -65,11 +65,28 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
       aria-label={isSelected ? 'Deselect earthquake' : 'Fly to earthquake'}
     >
       <div className={styles.magWrap}>
-        <div className={styles.mag}>{title}</div>
+        <div className={styles.magText} title={`Magnitude ${title}`} aria-label={`Magnitude ${title}`}>
+          <span className={styles.magM} aria-hidden>M</span>
+          <span className={styles.magValue}>{title}</span>
+        </div>
       </div>
-      <div>
+      <div className={styles.rightWrap}>
         <p className={styles.desc}>{description}</p>
-        <p className={styles.subDesc}>{subDescription}</p>
+        <div className={styles.metaRow}>
+          <span className={styles.subDesc}>{subDescription}</span>
+          {Number.isFinite(depthKm) && (
+            <div
+              className={styles.depthBadge}
+              title={`Depth: ${depthKm.toFixed(1)} km`}
+              aria-label={`Depth ${depthKm.toFixed(1)} kilometers`}
+            >
+              <svg className={styles.depthIcon} width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                <path d="M10 2a1 1 0 011 1v10.586l3.293-3.293 1.414 1.414L10 17.414l-5.707-5.707 1.414-1.414L9 13.586V3a1 1 0 011-1z" />
+              </svg>
+              <span className={styles.depthText}>{depthKm.toFixed(1)} km</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

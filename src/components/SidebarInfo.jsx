@@ -67,7 +67,7 @@ function SidebarInfo({
   const [menuOpen, setMenuOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   // Tooltip text state for header icon buttons (match site pattern)
-  const [sortTip, setSortTip] = useState('Sort list by time or magnitude');
+  const [sortTip, setSortTip] = useState('Sort list by time, magnitude, or depth');
   const [filterTip, setFilterTip] = useState('Filter earthquakes by magnitude and date');
   const rootRef = useRef(null);
 
@@ -293,6 +293,7 @@ function SidebarInfo({
             setMenuOpen((v) => !v);
           }}
           aria-expanded={menuOpen ? 'true' : 'false'}
+          title="Change dataset"
         >
           <span className={styles.titleText}>{displayTitle}</span>
           <CaretIcon className={styles.caret} />
@@ -377,7 +378,7 @@ function SidebarInfo({
                 setFiltersOpen(false);
                 setSortOpen((v) => {
                   const next = !v;
-                  setSortTip(next ? 'Sort list by time or magnitude' : 'Close sort options');
+                  setSortTip(next ? 'Sort list by time, magnitude, or depth' : 'Close sort options');
                   return next;
                 });
               }}
@@ -464,7 +465,7 @@ function SidebarInfo({
           </div>
           <div className={styles.popBody}>
             <div className={styles.field}>
-              <div className={styles.label}>Magnitude</div>
+              <div className={styles.label} title="Adjust magnitude range">Magnitude</div>
               <div className={styles.rangeWrap} ref={rangeWrapRef}>
                 <div
                   className={styles.rangeTrack}
@@ -545,7 +546,7 @@ function SidebarInfo({
               </div>
             </div>
             <div className={styles.field}>
-              <div className={styles.label}>Start date</div>
+              <div className={styles.label} title="Filter start date">Start date</div>
               <input
                 className={styles.dateInput}
                 type="date"
@@ -565,7 +566,7 @@ function SidebarInfo({
               />
             </div>
             <div className={styles.field}>
-              <div className={styles.label}>End date</div>
+              <div className={styles.label} title="Filter end date">End date</div>
               <input
                 className={styles.dateInput}
                 type="date"
@@ -620,6 +621,7 @@ function SidebarInfo({
               {[
                 { key: 'time', label: 'Event time' },
                 { key: 'mag', label: 'Magnitude' },
+                { key: 'depth', label: 'Depth' },
               ].map((opt) => {
                 const active = sortBy === opt.key;
                 const nextOrder = active ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc';
@@ -632,6 +634,7 @@ function SidebarInfo({
                   : '↓';
                 const orderLabel = (k, ord) => {
                   if (k === 'time') return ord === 'asc' ? 'Oldest First' : 'Newest First';
+                  if (k === 'depth') return ord === 'asc' ? 'Shallowest First' : 'Deepest First';
                   return ord === 'asc' ? 'Lowest First' : 'Highest First';
                 };
                 const labelText = active
@@ -689,6 +692,7 @@ function SidebarInfo({
                   onSortChange && onSortChange({ by: 'time', order: 'desc' });
                 }}
                 aria-label="Reset sort to default"
+                title="Reset sort to default"
               >
                 Reset to Default
               </button>

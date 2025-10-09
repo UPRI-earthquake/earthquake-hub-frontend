@@ -312,7 +312,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
           <p>{moment(time).format('YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]')}</p>
           <p>
             {lat.toFixed(3)}&#176;N&nbsp;
-            {lng.toFixed(3)}&#176;E&nbsp;,&nbsp;
+            {lng.toFixed(3)}&#176;E,&nbsp;
             {depthKm != null && !Number.isNaN(Number(depthKm)) && (
               <>Depth {Number(depthKm).toFixed(0)} km</>
             )}

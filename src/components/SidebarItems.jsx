@@ -4,7 +4,7 @@ import SidebarItem from './SidebarItem';
 
 /**
  * Scrollable list of earthquake sidebar items with filtering and sorting.
- * @param {{initData: Array, filters?: Object, sort?: {by:'time'|'mag', order:'asc'|'desc'}, sseEnabled?: boolean}} props
+ * @param {{initData: Array, filters?: Object, sort?: {by:'time'|'mag'|'depth', order:'asc'|'desc'}, sseEnabled?: boolean}} props
  */
 function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' }, sseEnabled: _sseEnabled = true, loading = false }) {
   const [items, setItems] = useState(() => (initData || []).slice());
@@ -54,6 +54,14 @@ function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' },
         const av = Number(a.magnitude_value) || 0;
         const bv = Number(b.magnitude_value) || 0;
         return (av - bv) * dir;
+      } else if (by === 'depth') {
+        const getDepth = (it) =>
+          Number(
+            it.depth_km ?? it.depthKm ?? it.depth_value ?? it.depthValue ?? it.depth ?? Infinity,
+          );
+        const av = getDepth(a);
+        const bv = getDepth(b);
+        return (av - bv) * dir;
       }
       // default: time
       const at = new Date(a.OT).getTime();
@@ -98,6 +106,11 @@ function SidebarItems({ initData, filters, sort = { by: 'time', order: 'desc' },
       key={item.publicID}
       publicID={item.publicID}
       title={magText(item.magnitude_value)}
+      depthKm={
+        Number(
+          item.depth_km ?? item.depthKm ?? item.depth_value ?? item.depthValue ?? item.depth ?? NaN,
+        )
+      }
       description={
         // Prefer geocoded place; if missing or unusable, fall back to raw text
         item && item.place && !['Unavailable', 'Unable to geocode', ''].includes(item.place)

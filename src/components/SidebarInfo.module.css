@@ -119,12 +119,17 @@ html[data-basemap-theme='dark'] .pillActive,
 html[data-basemap-theme='imagery'] .pillActive {
   color: #ffffff; /* ensure strong contrast on dark */
 }
-/* Dark theme: give Online a deeper green for better contrast */
+/* Online (toggled) matches the soft depth badge styling */
+.pillOnline.pillActive {
+  background: rgba(58, 106, 80, 0.12);
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #111827;
+}
 html[data-basemap-theme='dark'] .pillOnline.pillActive,
 html[data-basemap-theme='imagery'] .pillOnline.pillActive {
-  background: #2d6a4f; /* deeper green */
-  border-color: #214f3b;
-  color: #ffffff;
+  background: rgba(134, 239, 172, 0.18);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f3f4f6;
 }
 .pillOffline.pillActive {
   background: #e5e7eb; /* gray-200 */
@@ -279,9 +284,11 @@ html[data-basemap-theme='imagery'] .segBtnActive {
   grid-template-columns: 1fr auto; /* left: criterion; right: order label + icon */
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
   cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
 .sortRow:hover {
   background: rgba(0, 0, 0, 0.04);
@@ -291,11 +298,13 @@ html[data-basemap-theme='imagery'] .sortRow:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 .sortRowActive {
-  background: rgba(58, 106, 80, 0.14);
+  background: rgba(58, 106, 80, 0.12);
+  border-color: rgba(58, 106, 80, 0.35);
 }
 html[data-basemap-theme='dark'] .sortRowActive,
 html[data-basemap-theme='imagery'] .sortRowActive {
-  background: rgba(156, 200, 178, 0.25);
+  background: rgba(156, 200, 178, 0.20);
+  border-color: rgba(156, 200, 178, 0.55);
 }
 .sortLeftBtn {
   text-align: left;
@@ -348,16 +357,20 @@ html[data-basemap-theme='imagery'] .orderText {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
+  border-radius: 8px;
   color: inherit;
   cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms ease, filter 120ms ease;
 }
 html[data-basemap-theme='dark'] .sortToggleBtn,
 html[data-basemap-theme='imagery'] .sortToggleBtn {
+  background: #0b1220;
   border-color: rgba(255, 255, 255, 0.2);
 }
+.sortToggleBtn:hover { filter: brightness(1.05); }
+.sortToggleBtn:active { transform: translateY(1px); }
 .sortFooter {
   margin-top: 6px;
   display: flex;
@@ -391,6 +404,8 @@ html[data-basemap-theme='imagery'] .sectionHeader {
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   z-index: 2000; /* above leaflet controls */
+  animation: popOverIn 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: top center;
 }
 html[data-basemap-theme='dark'] .popover,
 html[data-basemap-theme='imagery'] .popover {
@@ -402,8 +417,9 @@ html[data-basemap-theme='imagery'] .popover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 12px 4px 12px;
+  padding: 12px 12px 8px 12px;
   font-weight: 700;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 /* Close button style matching Legend/Layers */
 .closeBtn {
@@ -431,6 +447,32 @@ html[data-basemap-theme='imagery'] .closeBtn {
   padding: 8px 12px 12px 12px;
   display: grid;
   gap: 12px;
+}
+
+/* Refined popover animation (fade + slight slide/scale) */
+@keyframes popOverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* When the sidebar is at the bottom on mobile, animate upward nicely */
+@media (max-width: 768px) {
+  .popover { transform-origin: bottom center; }
+  @keyframes popOverIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .popover { animation: none; }
 }
 .field {
   display: grid;
