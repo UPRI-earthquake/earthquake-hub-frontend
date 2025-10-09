@@ -60,8 +60,8 @@ function SidebarInfo({
   onSortChange,
   // Stations-specific UI
   stationCounts, // {active:number, inactive:number}
-  activeOnlyStations = false,
-  onActiveOnlyChange,
+  stationStatusFilter = null, // 'active' | 'inactive' | null
+  onStationStatusFilterChange,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -338,17 +338,7 @@ function SidebarInfo({
         </div>
       )}
 
-      {/* Stations online row (only for stations dataset) */}
-      {selectedDatasetKey === 'all-stations' && !collapsed && (
-        <div className={styles.stationStatsRow}>
-          <div className={styles.stationStats}>
-            <span className={styles.statActive}>● {stationCounts?.active ?? 0} Online</span>
-            <span className={styles.statInactive}>● {stationCounts?.inactive ?? 0} Offline</span>
-          </div>
-        </div>
-      )}
-
-      {/* Search + Filter row */}
+      {/* Search + Filter row (now above counters) */}
       {!collapsed && (
           <div className={styles.searchWrap}>
             <div className={styles.search}>
@@ -379,17 +369,6 @@ function SidebarInfo({
                 }}
               />
             </div>
-          {selectedDatasetKey === 'all-stations' && (
-            <label className={styles.stationToggle} title="Show only active stations">
-              <input
-                type="checkbox"
-                checked={!!activeOnlyStations}
-                onChange={(e) => onActiveOnlyChange && onActiveOnlyChange(e.target.checked)}
-                aria-label="Filter active stations only"
-              />
-              <span>Active only</span>
-            </label>
-          )}
           {showSort && selectedDatasetKey !== 'all-stations' && (
             <button
               className={styles.iconBtn}
@@ -428,6 +407,44 @@ function SidebarInfo({
               {filtersOpen ? <CloseIcon /> : <FunnelIcon />}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Stations online row with pill toggles (only for stations dataset) */}
+      {selectedDatasetKey === 'all-stations' && !collapsed && (
+        <div className={styles.stationStatsRow}>
+          <div className={styles.pillGroup} role="group" aria-label="Filter stations by status">
+            <button
+              className={`${styles.pill} ${styles.pillOnline} ${
+                stationStatusFilter === 'active' ? styles.pillActive : ''
+              }`}
+              aria-pressed={stationStatusFilter === 'active'}
+              onClick={() => {
+                const next = stationStatusFilter === 'active' ? null : 'active';
+                onStationStatusFilterChange && onStationStatusFilterChange(next);
+              }}
+              title="Show online stations"
+            >
+              <span className={styles.pillDot} aria-hidden>●</span>
+              <span className={styles.pillLabel}>Online</span>
+              <span className={styles.pillCount}>{stationCounts?.active ?? 0}</span>
+            </button>
+            <button
+              className={`${styles.pill} ${styles.pillOffline} ${
+                stationStatusFilter === 'inactive' ? styles.pillActive : ''
+              }`}
+              aria-pressed={stationStatusFilter === 'inactive'}
+              onClick={() => {
+                const next = stationStatusFilter === 'inactive' ? null : 'inactive';
+                onStationStatusFilterChange && onStationStatusFilterChange(next);
+              }}
+              title="Show offline stations"
+            >
+              <span className={styles.pillDot} aria-hidden>●</span>
+              <span className={styles.pillLabel}>Offline</span>
+              <span className={styles.pillCount}>{stationCounts?.inactive ?? 0}</span>
+            </button>
+          </div>
         </div>
       )}
 

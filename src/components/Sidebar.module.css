@@ -12,6 +12,8 @@
   background-color: #f7f7f7; /* light */
   border-right: 1px solid rgba(0, 0, 0, 0.25);
   color: #111827;
+  /* Brand accent used by child modules (e.g., station item pills) */
+  --accent: #3a6a50;
 }
 
 /* Header area stays fixed */
@@ -91,12 +93,13 @@ html[data-basemap-theme='imagery'] .sidebar {
   background-color: #111827;
   color: #f3f4f6;
   border-right-color: rgba(255, 255, 255, 0.2);
+  --accent: #86efac;
 }
 
 @media (max-width: 768px) {
   .sidebar {
     flex-direction: column; /* header above scroller */
-    min-height: 180px;
+    /* min-height: 180px; */
     max-height: 45vh; /* responsive height without covering map */
     min-width: 100vw;
     max-width: 100vw;

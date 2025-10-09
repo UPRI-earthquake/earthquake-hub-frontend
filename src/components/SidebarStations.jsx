@@ -7,10 +7,10 @@ import StationListItem from './StationListItem';
  * @param {{
  *   initStations: Array,
  *   searchText?: string,
- *   activeOnly?: boolean
+ *   statusFilter?: 'active' | 'inactive' | null
  * }} props
  */
-function SidebarStations({ initStations, searchText = '', activeOnly = false }) {
+function SidebarStations({ initStations, searchText = '', statusFilter = null }) {
   const [items, setItems] = useState(() => (initStations || []).slice());
 
   useEffect(() => {
@@ -20,7 +20,9 @@ function SidebarStations({ initStations, searchText = '', activeOnly = false }) 
   const text = (searchText || '').trim().toLowerCase();
   const filtered = useMemo(() => {
     const list = (items || []).filter((s) => {
-      if (activeOnly && (s.activity || '').toLowerCase() !== 'active') return false;
+      const isActive = (s.activity || '').toLowerCase() === 'active';
+      if (statusFilter === 'active' && !isActive) return false;
+      if (statusFilter === 'inactive' && isActive) return false;
       if (!text) return true;
       const hay = `${s.code || ''} ${s.description || ''}`.toLowerCase(); // search by ID or name
       return hay.includes(text);
@@ -44,7 +46,7 @@ function SidebarStations({ initStations, searchText = '', activeOnly = false }) 
         if (ac > bc) return 1;
         return 0;
       });
-  }, [items, text, activeOnly]);
+  }, [items, text, statusFilter]);
 
   if (!filtered.length) {
     return (

@@ -126,13 +126,23 @@ export default function StationListItem({ station }) {
         </div>
       </div>
       <div className={styles.metaLine}>
-        <span className={styles.net} title={network} aria-label={network}>
-          {network}
-        </span>
-        <span className={styles.sep}>|</span>
-        <span className={`${styles.status} ${isActive ? styles.activeText : styles.inactiveText}`} aria-label={`Status: ${statusLabel}`}>
-          {statusLabel}
-        </span>
+        <div className={styles.metaLeft}>
+          <span className={styles.net} title={network} aria-label={network}>
+            {network}
+          </span>
+        </div>
+        <div className={styles.metaRight}>
+          <span
+            className={`${styles.statusPill} ${
+              isActive ? styles.statusPillActive : styles.statusPillInactive
+            }`}
+            role="status"
+            aria-label={`Status: ${statusLabel}`}
+            title={`Status: ${statusLabel}`}
+          >
+            <span className={styles.statusText}>{statusLabel}</span>
+          </span>
+        </div>
       </div>
     </div>
   );

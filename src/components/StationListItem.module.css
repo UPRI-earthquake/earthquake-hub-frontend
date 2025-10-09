@@ -8,10 +8,11 @@
   padding-right: 15px;
   padding-top: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid lightgray;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   cursor: pointer;
   background-color: #ffffff;
   color: #1f2937;
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
 html[data-basemap-theme='dark'] .row,
 html[data-basemap-theme='imagery'] .row {
@@ -21,10 +22,13 @@ html[data-basemap-theme='imagery'] .row {
 }
 .row:hover {
   background-color: rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
 }
 html[data-basemap-theme='dark'] .row:hover,
 html[data-basemap-theme='imagery'] .row:hover {
   background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08);
 }
 
 /* One-shot pulse states for activity toggles */
@@ -53,14 +57,15 @@ html[data-basemap-theme='imagery'] .row:hover {
   gap: 8px;
 }
 .code { font-weight: 700; font-size: 16px; letter-spacing: 0.3px; }
-.deviceName { color: #6b7280; }
+.deviceName { color: #6b7280; font-size: 15px; }
 html[data-basemap-theme='dark'] .deviceName,
 html[data-basemap-theme='imagery'] .deviceName { color: #9ca3af; }
 .metaLine {
   grid-column: 1 / -1;
   font-size: 13px;
   color: #6b7280;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto; /* left: meta, right: status pill */
   align-items: center;
   gap: 8px;
 }
@@ -68,14 +73,54 @@ html[data-basemap-theme='dark'] .metaLine,
 html[data-basemap-theme='imagery'] .metaLine {
   color: #9ca3af;
 }
+.metaLeft { min-width: 0; }
+.metaRight { display: flex; justify-content: flex-end; }
 .sep { opacity: 0.6; }
 .net { white-space: nowrap; }
-.status { display: inline-flex; align-items: center; gap: 6px; }
-.dot { font-size: 14px; line-height: 1; }
-.dotActive { color: #5cb85c; }  /* match station popup */
-.dotInactive { color: #d9534f; }
-.activeText { color: #5cb85c; font-weight: 600; }
-.inactiveText { color: #d9534f; font-weight: 600; }
+.dot { display: none; }
+.dotActive { display: none; }
+.dotInactive { display: none; }
+
+/* New status pill styles */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.04);
+  color: inherit;
+  font-weight: 700;
+}
+html[data-basemap-theme='dark'] .statusPill,
+html[data-basemap-theme='imagery'] .statusPill {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+.statusPillActive {
+  background: var(--accent);
+  border-color: transparent;
+  color: #ffffff;
+}
+html[data-basemap-theme='dark'] .statusPillActive,
+html[data-basemap-theme='imagery'] .statusPillActive {
+  background: #2d6a4f; /* deeper green for readability in dark */
+  border-color: #214f3b;
+  color: #ffffff;
+}
+.statusPillInactive {
+  background: #e5e7eb; /* gray-200 */
+  border-color: #d1d5db; /* gray-300 */
+  color: #111827; /* gray-900 */
+}
+html[data-basemap-theme='dark'] .statusPillInactive,
+html[data-basemap-theme='imagery'] .statusPillInactive {
+  background: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+  color: #f3f4f6; /* gray-100 */
+}
+.statusText { font-weight: 700; }
 
 .selected {
   border-left: 4px solid #3a6a50; /* brand accent, match EQ item */

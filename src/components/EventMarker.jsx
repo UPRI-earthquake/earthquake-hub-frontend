@@ -312,11 +312,11 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
           <p>{moment(time).format('YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]')}</p>
           <p>
             {lat.toFixed(3)}&#176;N&nbsp;
-            {lng.toFixed(3)}&#176;E
+            {lng.toFixed(3)}&#176;E&nbsp;,&nbsp;
+            {depthKm != null && !Number.isNaN(Number(depthKm)) && (
+              <>Depth {Number(depthKm).toFixed(0)} km</>
+            )}
           </p>
-          {depthKm != null && !Number.isNaN(Number(depthKm)) && (
-            <p>Depth {Number(depthKm).toFixed(0)} km</p>
-          )}
           <p style={{ color: 'gray' }}>Last updated {moment(time).fromNow()}</p>
         </div>
       </Popup>

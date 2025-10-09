@@ -68,7 +68,7 @@ html[data-basemap-theme='imagery'] .sidebarInfo {
 
 /* Stations online + toggle row */
 .stationStatsRow {
-  margin-top: 6px;
+  margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -83,9 +83,77 @@ html[data-basemap-theme='imagery'] .stationStatsRow {
 .statSep { opacity: 0.6; }
 .statActive { color: #5cb85c; font-weight: 600; }
 .statInactive { color: #d9534f; font-weight: 600; }
-.stationToggle { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
-.stationToggle { white-space: nowrap; margin-left: auto; }
-.stationToggle input[type='checkbox'] { accent-color: var(--accent); }
+.stationToggle { display: none; }
+
+/* Pill toggle group */
+.pillGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pill {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #ffffff;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+html[data-basemap-theme='dark'] .pill,
+html[data-basemap-theme='imagery'] .pill {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.pillActive {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: transparent;
+}
+html[data-basemap-theme='dark'] .pillActive,
+html[data-basemap-theme='imagery'] .pillActive {
+  color: #ffffff; /* ensure strong contrast on dark */
+}
+/* Dark theme: give Online a deeper green for better contrast */
+html[data-basemap-theme='dark'] .pillOnline.pillActive,
+html[data-basemap-theme='imagery'] .pillOnline.pillActive {
+  background: #2d6a4f; /* deeper green */
+  border-color: #214f3b;
+  color: #ffffff;
+}
+.pillOffline.pillActive {
+  background: #e5e7eb; /* gray-200 */
+  border-color: #d1d5db; /* gray-300 */
+  color: #111827; /* gray-900 text */
+}
+html[data-basemap-theme='dark'] .pillOffline.pillActive,
+html[data-basemap-theme='imagery'] .pillOffline.pillActive {
+  background: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+  color: #f3f4f6; /* gray-100 */
+}
+/* When offline pill is toggled, dot becomes neutral (matches text) */
+.pillOffline.pillActive .pillDot { color: currentColor; }
+.pillOnline .pillDot { color: #22c55e; }
+.pillOffline .pillDot { color: #ef4444; }
+.pillActive .pillDot { color: inherit; }
+.pillDot { font-size: 12px; line-height: 1; }
+.pillLabel { line-height: 1; }
+.pillCount {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 700;
+}
+html[data-basemap-theme='dark'] .pillCount,
+html[data-basemap-theme='imagery'] .pillCount {
+  background: rgba(255, 255, 255, 0.12);
+}
 
 .search {
   display: flex;
@@ -94,7 +162,7 @@ html[data-basemap-theme='imagery'] .stationStatsRow {
   border: 1px solid rgba(0, 0, 0, 0.2);
   background: #ffffff;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 10px;
   flex: 1 1 240px; /* grow: yes; min basis: 240px */
   min-width: 0; /* allow flex child to shrink below content width */
 }
@@ -102,6 +170,15 @@ html[data-basemap-theme='dark'] .search,
 html[data-basemap-theme='imagery'] .search {
   background: #0b1220;
   border-color: rgba(255, 255, 255, 0.2);
+}
+.search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(58,106,80,0.20);
+}
+html[data-basemap-theme='dark'] .search:focus-within,
+html[data-basemap-theme='imagery'] .search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(134,239,172,0.25);
 }
 
 .search input {
@@ -113,6 +190,9 @@ html[data-basemap-theme='imagery'] .search {
   font-size: 14px;
   min-width: 0; /* prevent input from collapsing siblings (icon) */
 }
+.search input::placeholder { color: #6b7280; }
+html[data-basemap-theme='dark'] .search input::placeholder,
+html[data-basemap-theme='imagery'] .search input::placeholder { color: #9ca3af; opacity: 0.9; }
 
 /* Keep the search icon visible at all sizes */
 .search > svg {
@@ -681,8 +761,5 @@ html[data-basemap-theme='imagery'] .primaryBtn {
     flex: 1 1 60%;
   }
   /* Ensure the stations toggle stays at the right side like desktop */
-  .stationToggle {
-    order: 2; /* after the search input */
-    margin-left: auto; /* push to the far right */
-  }
+  .stationToggle { display: none; }
 }

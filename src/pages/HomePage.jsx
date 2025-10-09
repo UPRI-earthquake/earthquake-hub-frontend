@@ -62,12 +62,11 @@ const HomePage = () => {
     showFilter: true,
     showSort: true,
   }));
-  const [stationActiveOnly, setStationActiveOnly] = useState(false);
+  const [stationStatusFilter, setStationStatusFilter] = useState(null); // 'active' | 'inactive' | null
   const [filterBounds, setFilterBounds] = useState(() => ({
     minDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
     maxDate: moment().format('YYYY-MM-DD'),
   }));
-  const [setLastEqKey] = useState('latest-30d');
   // Cache for the expensive All EQs dataset to avoid refetching
   const allEqsCacheRef = useRef(null);
   // Scalebar: use a single, consistent mobile-style configuration
@@ -217,7 +216,6 @@ const HomePage = () => {
                       if (key === 'latest-30d') {
                         // Reset map to PH and clear selection/popup
                         resetToPH({ dispatch });
-                        setLastEqKey('latest-30d');
                         setDatasetTitle('Latest Earthquakes (30 days)');
                         setDatasetKey('latest-30d');
                         setSseEnabled(true); // live mode
@@ -246,7 +244,6 @@ const HomePage = () => {
                       } else if (key === 'all-eqs') {
                         // Reset map to PH and clear selection/popup
                         resetToPH({ dispatch });
-                        setLastEqKey('all-eqs');
                         setDatasetTitle('All Earthquakes');
                         setDatasetKey('all-eqs');
                         setSseEnabled(true); // keep live SSE updates enabled
@@ -278,7 +275,7 @@ const HomePage = () => {
                         setSseEnabled(true);
                         setCustomEvents(null);
                         setControlVisibility({ showFilter: false, showSort: false });
-                        setStationActiveOnly(false);
+                        setStationStatusFilter(null);
                         setListLoading(false);
                         // Refresh station list from backend so counts and status are current
                         try {
@@ -299,11 +296,11 @@ const HomePage = () => {
                         (s) => String(s.activity || '').toLowerCase() !== 'active',
                       ).length,
                     }}
-                    activeOnlyStations={stationActiveOnly}
-                    onActiveOnlyChange={setStationActiveOnly}
+                    stationStatusFilter={stationStatusFilter}
+                    onStationStatusFilterChange={setStationStatusFilter}
                   />
                   {datasetKey === 'all-stations' ? (
-                    <SidebarStations initStations={stations} searchText={searchText} activeOnly={stationActiveOnly} />
+                    <SidebarStations initStations={stations} searchText={searchText} statusFilter={stationStatusFilter} />
                   ) : (
                     <SidebarItems
                       initData={customEvents || events}
