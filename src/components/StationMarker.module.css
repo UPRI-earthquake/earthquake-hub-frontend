@@ -149,4 +149,33 @@
   .streaming {
     animation: none;
   }
+  .pulse-online,
+  .pulse-offline {
+    animation: none;
+  }
+}
+
+/* Offline variant: subdued fill, theme-aware via CSS var */
+.offline {
+  /* Use theme token if provided, fallback to higher-contrast neutral on light */
+  fill: var(--st-fill-off, #4b5563);
+  opacity: 0.85;
+}
+
+/* One-shot radiate pulses for status changes on the marker itself */
+.pulse-online {
+  stroke: var(--st-pulse-on, #22c55e);
+  stroke-width: var(--st-halo-w, 2px);
+  animation-name: radiate;
+  animation-duration: 0.9s;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
+}
+.pulse-offline {
+  stroke: var(--st-pulse-off, #6b7280);
+  stroke-width: var(--st-halo-w, 2px);
+  animation-name: radiate;
+  animation-duration: 0.9s;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
 }

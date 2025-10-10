@@ -22,6 +22,7 @@ const StationMarkers = ({ initStations }) => {
       code={station.code}
       latLng={obscureLocation(station.latitude, station.longitude)}
       description={station.description}
+      activity={station.activity}
     />
   ));
 };

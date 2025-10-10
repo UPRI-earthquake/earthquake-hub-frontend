@@ -15,7 +15,7 @@ import { themeFromMapContainer } from '../config/mapStyles';
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
-const StationMarker = ({ network, code, latLng, description }) => {
+const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
   const map = useMap();
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
@@ -297,6 +297,14 @@ const StationMarker = ({ network, code, latLng, description }) => {
   const prevStatusRef = useRef(null);
   const [statusChange, setStatusChange] = useState(null); // 'went-online' | 'went-offline' | null
   const statusAnimTimerRef = useRef(null);
+  // One-shot pulse on marker when status changes (via SSE/API)
+  const [markerPulse, setMarkerPulse] = useState(null); // same class names as CSS: 'went-online' | 'went-offline'
+  const markerPulseTimerRef = useRef(null);
+  // Track current marker activity to tint marker (active vs inactive)
+  const [markerActivity, setMarkerActivity] = useState(() => {
+    const a = String(initActivity || '').toLowerCase();
+    return a === 'active' || a === 'inactive' ? a : null;
+  });
   const backend_host =
     process.env.NODE_ENV === 'production'
       ? window['ENV'].REACT_APP_BACKEND
@@ -323,17 +331,64 @@ const StationMarker = ({ network, code, latLng, description }) => {
       eventSource.addEventListener('SC_PICK', handlePickEvent);
     } catch (_) {}
 
+    // Live station status updates to mirror sidebar list behavior
+    const handleStatusEvent = (event) => {
+      try {
+        const raw = JSON.parse(event.data);
+        const sc = String(
+          raw.stationCode || raw.station || raw.code || raw.station_id || raw.stationcode || '',
+        ).toUpperCase();
+        if (!sc || sc !== String(code || '').toUpperCase()) return;
+        const net = String(
+          raw.network || raw.networkCode || raw.network_code || raw.net || 'AM',
+        ).toUpperCase();
+        if (String(network || 'AM').toUpperCase() !== net) return;
+        const s = String(raw.status || raw.activity || '').toLowerCase();
+        let next = null;
+        if (s === 'streaming' || s === 'active' || s === 'online') next = 'active';
+        else if (s === 'not streaming' || s === 'inactive' || s === 'offline') next = 'inactive';
+        else if (typeof raw.isActive === 'boolean') next = raw.isActive ? 'active' : 'inactive';
+        if (next) {
+          setMarkerActivity((prev) => {
+            if (prev && prev !== next) {
+              const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
+              setMarkerPulse(cls);
+              try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
+              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+            }
+            return next;
+          });
+        }
+      } catch (_) {}
+    };
+    const names = [
+      'STATION_STATUS',
+      'SC_STATION_STATUS',
+      'SC_STATION',
+      'SC_DEVICE',
+      'DEVICE_STATUS',
+      'STATION_EVENT',
+    ];
+    try { names.forEach((n) => eventSource.addEventListener(n, handleStatusEvent)); } catch (_) {}
+
     return () => {
       try { clearTimeout(timerId.current); } catch (_) {}
       timerId.current = null;
+      try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
       try {
         eventSource.removeEventListener('SC_PICK', handlePickEvent);
       } catch (_) {}
+      try { names.forEach((n) => eventSource.removeEventListener(n, handleStatusEvent)); } catch (_) {}
     };
-  }, [code, eventSource]);
+  }, [code, network, eventSource]);
 
+  const isInactive = String(markerActivity || '').toLowerCase() === 'inactive';
+  // Online markers should float above offline ones; add a small extra for pick highlight
+  const zIndexOffset = (isInactive ? 0 : 200) + (pick ? 20 : 0);
   const divTriangle = new DivIcon({
-    className: pick ? styles.dynamic : styles.static,
+    className: `${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
+      markerPulse ? styles[markerPulse] : ''
+    }`,
     html: ReactDOMServer.renderToString(<Logo />),
     iconSize: [25, 25],
   });
@@ -354,6 +409,20 @@ const StationMarker = ({ network, code, latLng, description }) => {
         status: nextStatus,
         statusSince: payload.statusSince,
       });
+      // Also update marker activity color based on current status
+      try {
+        const s = String(nextStatus || '').toLowerCase();
+        const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+        setMarkerActivity((prev) => {
+          if (prev && prev !== next) {
+            const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
+            setMarkerPulse(cls);
+            try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
+            markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+          }
+          return next;
+        });
+      } catch (_) {}
       // Trigger a one-shot animation when status changes (online/offline)
       try {
         if (prevStatus && prevStatus !== nextStatus) {
@@ -501,6 +570,20 @@ const StationMarker = ({ network, code, latLng, description }) => {
       const cached = cache.get(key);
       if (cached && now - cached.t < 60_000) {
         setTooltipText(computeTooltip(cached.status, cached.statusSince));
+        // Update marker color from cache if status present
+        try {
+          const s = String(cached.status || '').toLowerCase();
+          const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+          setMarkerActivity((prev) => {
+            if (prev && prev !== next) {
+              const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
+              setMarkerPulse(cls);
+              try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
+              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+            }
+            return next;
+          });
+        } catch (_) {}
         return;
       }
       const url = `${backend_host}/device/status?network=${(network || 'AM').toUpperCase()}&station=${(code || '').toUpperCase()}`;
@@ -508,6 +591,20 @@ const StationMarker = ({ network, code, latLng, description }) => {
       const payload = resp?.data?.payload || {};
       cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince });
       setTooltipText(computeTooltip(payload.status, payload.statusSince));
+      // Update marker activity based on fresh status
+      try {
+        const s = String(payload.status || '').toLowerCase();
+        const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+        setMarkerActivity((prev) => {
+          if (prev && prev !== next) {
+            const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
+            setMarkerPulse(cls);
+            try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
+            markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+          }
+          return next;
+        });
+      } catch (_) {}
     } catch (_) {
       // Keep previous tooltip on failure
     }
@@ -563,6 +660,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
     <Marker
       position={latLng}
       icon={divTriangle}
+      zIndexOffset={zIndexOffset}
       ref={markerRef}
       eventHandlers={{
         click: () => {

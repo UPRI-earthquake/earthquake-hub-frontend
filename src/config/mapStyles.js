@@ -164,6 +164,17 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
       : PALETTE.stations.haloLight;
   const stHaloWidth = t === 'satellite' ? 3 : t === 'dark' ? 2.5 : 2;
   const stOpacity = t === 'satellite' ? 0.95 : 0.9;
+  // Theme-aware offline marker fill: neutral slate/gray with sufficient contrast
+  const stOfflineFill =
+    t === 'satellite'
+      ? '#E5E7EB' // gray-200: brighter on imagery for contrast
+      : t === 'dark'
+      ? '#CBD5E1' // slate-300: light neutral on dark basemap
+      : '#4B5563'; // gray-600: stronger contrast on standard/light basemap
+  // Pulse colors for marker status changes (online=green, offline=neutral gray)
+  const stPulseOn =
+    t === 'satellite' ? '#34D399' : t === 'dark' ? '#86EFAC' : '#22C55E';
+  const stPulseOff = t === 'satellite' ? '#E5E7EB' : t === 'dark' ? '#94A3B8' : '#6B7280';
 
   return {
     theme: t,
@@ -193,6 +204,9 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
       halo: stHalo,
       haloWidth: stHaloWidth,
       opacity: stOpacity,
+      offlineFill: stOfflineFill,
+      pulseOn: stPulseOn,
+      pulseOff: stPulseOff,
     },
     zIndex: {
       plates: 405,

@@ -361,6 +361,7 @@ function LegendContent({ active, tokens }) {
       {shown.stations && (
         <div className="legend-item" data-key="stations" title={hints.stations}>
           <div className="legend-swatch">
+            {/* Main symbol for stations: triangle, matches marker shape */}
             <span
               className="swatch-triangle"
               aria-hidden
@@ -369,6 +370,14 @@ function LegendContent({ active, tokens }) {
           </div>
           <div className="legend-meta">
             <div className="legend-label">Stations</div>
+            <div className="legend-subrow" onClick={(e) => e.stopPropagation()}>
+              <span className="legend-chip">
+                <i style={{ background: tokens.stations.fill }} /> Online
+              </span>
+              <span className="legend-chip">
+                <i style={{ background: tokens.stations.offlineFill }} /> Offline
+              </span>
+            </div>
           </div>
         </div>
       )}

@@ -440,6 +440,17 @@ export default function MapLayersControl({ children }) {
       const theme = themeFromMapContainer(el);
       const zoom = zoomFromMap(map);
       const toks = buildThemeTokens({ theme, zoom, overlays: activeIds });
+      const root = document.documentElement;
+      const hexToRgb = (hex) => {
+        try {
+          const m = String(hex || '').replace('#', '');
+          const v = m.length === 3
+            ? m.split('').map((ch) => parseInt(ch + ch, 16))
+            : [parseInt(m.slice(0, 2), 16), parseInt(m.slice(2, 4), 16), parseInt(m.slice(4, 6), 16)];
+          if (v.some((n) => !isFinite(n))) return [0, 0, 0];
+          return v;
+        } catch (_) { return [0, 0, 0]; }
+      };
       el.style.setProperty('--eq-fill', toks.eq.fill);
       el.style.setProperty('--eq-halo', toks.eq.halo);
       const haloW =
@@ -450,7 +461,32 @@ export default function MapLayersControl({ children }) {
       el.style.setProperty('--eq-opacity', String(toks.eq.fillOpacity));
       // No zoom-based EQ marker scaling; keep size constant for smoother zooms
       el.style.setProperty('--st-fill', toks.stations.fill);
+      el.style.setProperty('--st-fill-off', toks.stations.offlineFill);
       el.style.setProperty('--st-halo', toks.stations.halo);
+      el.style.setProperty('--st-pulse-on', toks.stations.pulseOn);
+      el.style.setProperty('--st-pulse-off', toks.stations.pulseOff);
+      // Also expose pulse tints on :root so sidebar items can reuse them
+      try {
+        const [r1, g1, b1] = hexToRgb(toks.stations.pulseOn);
+        const [r2, g2, b2] = hexToRgb(toks.stations.pulseOff);
+        const on1 = `rgba(${r1}, ${g1}, ${b1}, 0.16)`;
+        const on2 = `rgba(${r1}, ${g1}, ${b1}, 0.08)`;
+        const off1 = `rgba(${r2}, ${g2}, ${b2}, 0.16)`;
+        const off2 = `rgba(${r2}, ${g2}, ${b2}, 0.08)`;
+        el.style.setProperty('--sta-pulse-on-1', on1);
+        el.style.setProperty('--sta-pulse-on-2', on2);
+        el.style.setProperty('--sta-pulse-off-1', off1);
+        el.style.setProperty('--sta-pulse-off-2', off2);
+        // Duplicate to document root for non-map UI (e.g., sidebar items)
+        root.style.setProperty('--st-pulse-on', toks.stations.pulseOn);
+        root.style.setProperty('--st-pulse-off', toks.stations.pulseOff);
+        root.style.setProperty('--sta-pulse-on-1', on1);
+        root.style.setProperty('--sta-pulse-on-2', on2);
+        root.style.setProperty('--sta-pulse-off-1', off1);
+        root.style.setProperty('--sta-pulse-off-2', off2);
+        root.style.setProperty('--st-fill-off', toks.stations.offlineFill);
+        root.style.setProperty('--st-fill', toks.stations.fill);
+      } catch (_) {}
       if (toks.stations.haloWidth) {
         el.style.setProperty('--st-halo-w', `${toks.stations.haloWidth}px`);
       } else {
