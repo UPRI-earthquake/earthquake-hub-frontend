@@ -92,7 +92,7 @@ const StationMarker = ({ network, code, latLng, description }) => {
         seisPlot = new sp.seismograph.Seismograph([seisData], seisPlotConfig); // Create a new Seismograph with the SeismogramDisplayData and SeismographConfig
         realtimeDivRef.current.appendChild(seisPlot); // Append the Seismograph to the realtimeDiv
         graphListRef.current.set(codes, seisPlot); // Store the Seismograph in the graphListRef for future reference
-        // applySeismographTheme(seisPlot);
+        applySeismographTheme(seisPlot);
 
         devlog(`new plot: ${codes}`);
       } else {

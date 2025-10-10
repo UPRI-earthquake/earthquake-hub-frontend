@@ -18,9 +18,9 @@
 .form {
   background-color: #fff;
   padding: 20px;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  width: 320px;
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+  width: 360px;
   max-width: 92vw;
   box-sizing: border-box;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -46,8 +46,8 @@
   box-sizing: border-box;
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #cbd5e1; /* gray-300 */
+  border-radius: 8px;
   margin-top: 0.3rem;
   margin-bottom: 1rem;
 }
@@ -58,7 +58,7 @@
   background-color: #3a6a50;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0.5rem 1rem;
   cursor: pointer;
   transition: background-color 150ms ease, filter 120ms ease;
@@ -72,4 +72,61 @@
   .modal {
     padding-top: calc(var(--header-h, 56px) + 6px);
   }
+}
+
+/* Dark + Imagery theme variants (follow html[data-basemap-theme]) */
+html[data-basemap-theme='dark'] .form,
+html[data-basemap-theme='imagery'] .form {
+  background-color: #111827; /* gray-900 */
+  color: #f3f4f6; /* gray-100 */
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+html[data-basemap-theme='dark'] .form h2,
+html[data-basemap-theme='imagery'] .form h2 {
+  color: inherit;
+}
+
+html[data-basemap-theme='dark'] .form input[type='text'],
+html[data-basemap-theme='dark'] .form input[type='password'],
+html[data-basemap-theme='dark'] .form select,
+html[data-basemap-theme='imagery'] .form input[type='text'],
+html[data-basemap-theme='imagery'] .form input[type='password'],
+html[data-basemap-theme='imagery'] .form select {
+  background-color: #0b1220; /* slate-950 approximation */
+  color: #e5e7eb; /* gray-200 */
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+html[data-basemap-theme='dark'] .form input::placeholder,
+html[data-basemap-theme='imagery'] .form input::placeholder {
+  color: #9ca3af;
+}
+
+html[data-basemap-theme='dark'] .form button[type='submit'],
+html[data-basemap-theme='imagery'] .form button[type='submit'] {
+  background-color: #3a6a50;
+  color: #ffffff;
+}
+
+/* Fallback: respect OS dark mode if app theme isn't set yet */
+@media (prefers-color-scheme: dark) {
+  html:not([data-basemap-theme]) .form {
+    background-color: #111827;
+    color: #f3f4f6;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  html:not([data-basemap-theme]) .form input[type='text'],
+  html:not([data-basemap-theme]) .form input[type='password'],
+  html:not([data-basemap-theme]) .form select {
+    background-color: #0b1220;
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* Make the modal width adapt a bit on small screens */
+@media (max-width: 380px) {
+  .form { width: 92vw; padding: 16px; }
 }

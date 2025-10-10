@@ -456,3 +456,112 @@
 .requestTokenButton:hover {
   background-color: #447f5b;
 }
+
+/* ------------------------------ */
+/* Dark + Imagery theme variants  */
+/* ------------------------------ */
+html[data-basemap-theme='dark'] .dashboardModal,
+html[data-basemap-theme='imagery'] .dashboardModal {
+  background-color: #111827; /* gray-900 */
+  color: #f3f4f6; /* gray-100 */
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+}
+
+html[data-basemap-theme='dark'] .panelHeader,
+html[data-basemap-theme='imagery'] .panelHeader {
+  background: #0f172a; /* slate-900 */
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html[data-basemap-theme='dark'] .panelHeader p,
+html[data-basemap-theme='imagery'] .panelHeader p {
+  color: #f3f4f6;
+}
+
+html[data-basemap-theme='dark'] .panelBody,
+html[data-basemap-theme='imagery'] .panelBody {
+  background: #111827;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html[data-basemap-theme='dark'] .topBar,
+html[data-basemap-theme='imagery'] .topBar {
+  background: #111827;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+html[data-basemap-theme='dark'] .topBarTitle,
+html[data-basemap-theme='imagery'] .topBarTitle { color: #f3f4f6; }
+
+html[data-basemap-theme='dark'] .toolBtn,
+html[data-basemap-theme='imagery'] .toolBtn,
+html[data-basemap-theme='dark'] .closeBtn,
+html[data-basemap-theme='imagery'] .closeBtn {
+  background: #1f2937; /* gray-800 */
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+html[data-basemap-theme='dark'] .toolBtn:hover,
+html[data-basemap-theme='imagery'] .toolBtn:hover,
+html[data-basemap-theme='dark'] .closeBtn:hover,
+html[data-basemap-theme='imagery'] .closeBtn:hover {
+  background: #0f172a;
+}
+
+html[data-basemap-theme='dark'] .deviceListTableContainer,
+html[data-basemap-theme='imagery'] .deviceListTableContainer {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+html[data-basemap-theme='dark'] .deviceListTable,
+html[data-basemap-theme='imagery'] .deviceListTable {
+  background-color: #0b1220; /* very dark background */
+}
+html[data-basemap-theme='dark'] .deviceListTable th,
+html[data-basemap-theme='imagery'] .deviceListTable th {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+html[data-basemap-theme='dark'] .deviceListTable td,
+html[data-basemap-theme='imagery'] .deviceListTable td {
+  color: #f3f4f6;
+}
+
+/* Fallback to OS dark mode when app theme not yet set */
+@media (prefers-color-scheme: dark) {
+  html:not([data-basemap-theme]) .dashboardModal { background-color: #111827; color: #f3f4f6; }
+  html:not([data-basemap-theme]) .panelHeader { background: #0f172a; border-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .panelBody { background: #111827; border-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .topBar { background: #111827; border-bottom-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .toolBtn,
+  html:not([data-basemap-theme]) .closeBtn { background: #1f2937; color: #f3f4f6; border-color: rgba(255, 255, 255, 0.18); }
+  html:not([data-basemap-theme]) .deviceListTableContainer { border-color: rgba(255, 255, 255, 0.22); }
+  html:not([data-basemap-theme]) .deviceListTable { background: #0b1220; }
+  html:not([data-basemap-theme]) .deviceListTable th { background: #1f2937; color: #e5e7eb; border-bottom-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .deviceListTable td { color: #f3f4f6; }
+}
+
+/* Inputs in Add Device form (dark) */
+html[data-basemap-theme='dark'] .addDeviceForm input,
+html[data-basemap-theme='imagery'] .addDeviceForm input {
+  background: #0b1220;
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+html[data-basemap-theme='dark'] .inputLabel,
+html[data-basemap-theme='imagery'] .inputLabel { color: #94a3b8; }
+html[data-basemap-theme='dark'] .addDeviceForm input:focus + .inputLabel,
+html[data-basemap-theme='imagery'] .addDeviceForm input:focus + .inputLabel,
+html[data-basemap-theme='dark'] .addDeviceForm input:not(:placeholder-shown) + .inputLabel,
+html[data-basemap-theme='imagery'] .addDeviceForm input:not(:placeholder-shown) + .inputLabel {
+  color: #e5e7eb;
+}
+
+/* Keep brand buttons readable on dark backgrounds */
+/* Buttons keep white text for contrast */
+html[data-basemap-theme='dark'] .panelBody button,
+html[data-basemap-theme='imagery'] .panelBody button,
+html[data-basemap-theme='dark'] .requestTokenButton,
+html[data-basemap-theme='imagery'] .requestTokenButton {
+  color: #ffffff;
+}
