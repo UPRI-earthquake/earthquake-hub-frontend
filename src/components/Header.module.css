@@ -1,11 +1,13 @@
 .header {
-  height: 50px;
+  height: var(--header-h);
   width: 100vw;
-  background-color: #3a6a50;
-  /*background-color: #262a2b;*/
-  box-shadow: 0px 1px 8px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, #3a6a50 0%, #2f5742 100%);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
   position: fixed;
   z-index: 2;
+  -webkit-backdrop-filter: saturate(120%) blur(4px);
+  backdrop-filter: saturate(120%) blur(4px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .headerContent {
@@ -13,13 +15,15 @@
   height: inherit;
   align-items: center;
   justify-content: space-between;
+  padding: 0 12px;
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
   height: inherit;
-  padding-left: 5px;
+  padding-left: 4px;
+  gap: 10px;
 }
 
 .headerLeft > p {
@@ -31,40 +35,77 @@
   display: flex;
   align-items: center;
   height: inherit;
-  padding-right: 10px;
+  padding-right: 6px;
+  gap: 6px;
 }
 
 .logo {
-  /*fill: #e8e6e3;*/
   fill: #ffffff;
-  height: inherit;
+  height: calc(var(--header-h) - 16px);
   width: auto;
 }
 
 .header > .headerContent > .headerLeft > h1 {
-  /*color: #e8e6e3*/
   color: #ffffff;
-  font-size: 37px;
-  font-family: 'Times New Roman';
+  /* font-family: var(--font-primary); */
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.2px;
+  margin: 0;
 }
 
 .menuToggle {
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+}
+.menuToggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.menuToggle:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
 }
 
 .burgerMenu {
-  width: 35px;
-  height: 35px;
+  width: 22px;
+  height: 22px;
 }
 
 .closeMenu {
-  width: 35px;
-  height: 35px;
+  width: 22px;
+  height: 22px;
+}
+
+/* Accessible skip link, visible on focus */
+.skipLink {
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  transform: translateY(-150%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 120ms ease;
+}
+.skipLink:focus {
+  transform: translateY(0%);
 }
 
 @media (max-width: 768px) {
   .headerLeft > p {
     display: none;
+  }
+  .header > .headerContent > .headerLeft > h1 {
+    font-size: 18px;
   }
 }

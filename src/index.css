@@ -3,6 +3,8 @@
     sans-serif;
   --text-light: #1f2937; /* gray-800 */
   --text-dark: #f3f4f6; /* gray-100 */
+  /* Shared header height for layout and spacing */
+  --header-h: 56px;
 }
 
 body {
@@ -85,23 +87,30 @@ code {
 
 /* Ensure top-right controls don’t collide with fixed header (50px) */
 /* .leaflet-top.leaflet-right { margin-top: 20px; margin-right: 20px; } */
-@media (max-height: 420px) {
+/* @media (max-height: 420px) {
   .leaflet-top.leaflet-right {
     margin-top: 12px;
   }
   .leaflet-top.leaflet-left {
     margin-top: 12px;
   }
-}
+} */
 
 /* Give bottom-right controls breathing room above attribution */
-@media (min-width: 768px) {
+/* @media (min-width: 768px) {
   .leaflet-bottom.leaflet-right {
-    margin-bottom: 50px;
+    margin-bottom: 12px;
   }
   .leaflet-bottom.leaflet-left {
-    margin-bottom: 50px;
+    margin-bottom: 12px;
   }
+} */
+
+/* Ensure bottom controls remain visible even if the map container
+   extends beyond the viewport (e.g., when the layout uses a fixed header).
+   The offset is provided via --leaflet-bottom-offset on a parent (see homePage.css). */
+.leaflet-container .leaflet-bottom {
+  bottom: var(--leaflet-bottom-offset, 0px);
 }
 
 /* Context-aware styling for Zoom buttons (matches Layers/Legend themes) */
@@ -110,6 +119,7 @@ code {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   overflow: hidden; /* round inner corners */
   border: 1px solid rgba(0, 0, 0, 0.25);
+  transition: box-shadow 150ms ease, border-color 150ms ease;
 }
 .leaflet-container .leaflet-control-zoom a {
   width: 40px;
@@ -118,12 +128,22 @@ code {
   background: #ffffff;
   color: #111827; /* gray-900 */
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .leaflet-container .leaflet-control-zoom a:last-child {
   border-bottom: none;
 }
 .leaflet-container .leaflet-control-zoom a:hover {
   background: rgba(0, 0, 0, 0.04);
+}
+.leaflet-container .leaflet-control-zoom a:active {
+  transform: scale(0.98);
+}
+.leaflet-container .leaflet-control-zoom a:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
 }
 .leaflet-container .leaflet-control-zoom a.leaflet-disabled {
   opacity: 0.5;
@@ -145,6 +165,11 @@ code {
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-zoom a:hover {
   background: #111827; /* gray-900 */
 }
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-zoom a:focus-visible,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-zoom a:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
+}
 .leaflet-container[data-basemap-theme='dark'] .leaflet-control-zoom a.leaflet-disabled,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-zoom a.leaflet-disabled {
   opacity: 0.5;
@@ -157,6 +182,7 @@ code {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
   border-radius: 8px;
   /* overflow: hidden; round inner corners */
+  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 .leaflet-control-scale-line {
   background: transparent;
@@ -188,6 +214,9 @@ code {
   bottom: auto;
   margin: 0; /* override Leaflet margin so centering is precise */
   z-index: 400; /* keep above map tiles, below layer popovers */
+}
+.leaflet-top.leaflet-left .leaflet-control-scale:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 /* Feature hover tooltips (faults, plates) */
@@ -335,6 +364,7 @@ path.remote-geojson-layer.leaflet-interactive {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
 }
 .leaflet-container .leaflet-control-resetview a.resetview-btn {
   width: 48px;
@@ -345,9 +375,15 @@ path.remote-geojson-layer.leaflet-interactive {
   background: #ffffff;
   color: #111827;
   text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .leaflet-container .leaflet-control-resetview a.resetview-btn:hover {
   background: rgba(0, 0, 0, 0.04);
+}
+.leaflet-container .leaflet-control-resetview a.resetview-btn:active {
+  transform: scale(0.98);
 }
 .leaflet-container .leaflet-control-resetview a.resetview-btn:focus-visible {
   outline: 2px solid #22c55e;
@@ -376,4 +412,12 @@ path.remote-geojson-layer.leaflet-interactive {
 .leaflet-container[data-basemap-theme='dark'] .leaflet-control-resetview a.resetview-btn:hover,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-resetview a.resetview-btn:hover {
   background: #111827;
+}
+
+/* Respect reduced motion: disable subtle press animations */
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-container .leaflet-control-zoom a,
+  .leaflet-container .leaflet-control-resetview a.resetview-btn {
+    transition: none;
+  }
 }

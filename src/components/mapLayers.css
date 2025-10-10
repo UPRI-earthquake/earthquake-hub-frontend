@@ -8,6 +8,7 @@
   font-size: 13px;
   border: 1px solid var(--panel-border);
   line-height: 1.45;
+  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 /* Apply width only when expanded so the collapsed toggle is not stretched */
 .leaflet-control-layers.leaflet-control-layers-expanded {
@@ -69,12 +70,17 @@
   gap: 10px;
   padding: 6px 8px;
   border-radius: 8px;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease,
+    border-color 150ms ease;
 }
 .leaflet-control-layers label span {
   white-space: nowrap;
 }
 .leaflet-control-layers label:hover {
   background: rgba(0, 0, 0, 0.04);
+}
+.leaflet-control-layers label:active {
+  transform: translateY(0.5px);
 }
 .leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers label,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers label {
@@ -95,6 +101,8 @@
   align-items: center;
   justify-content: center;
   color: #111827; /* ensure SVG currentColor is consistent */
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
 }
 .leaflet-control-layers:hover .leaflet-control-layers-toggle {
   transform: scale(1.03);
@@ -151,12 +159,19 @@
   align-items: center;
   justify-content: center;
   color: #111827;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .custom-layers-toggle .layers-btn:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 .custom-layers-toggle .layers-btn:active {
   transform: scale(0.98);
+}
+.custom-layers-toggle .layers-btn:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
 }
 .custom-layers-toggle .layers-btn svg {
   width: 22px;
@@ -213,7 +228,11 @@
   padding: 0 10px;
   cursor: pointer;
   pointer-events: auto;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    border-color 150ms ease;
 }
+.layers-tools button:hover { background: #e5e7eb; }
+.layers-tools button:active { transform: scale(0.98); }
 .layers-tools .layers-close {
   width: 30px;
   padding: 0;
@@ -290,6 +309,27 @@
 .leaflet-control-layers label:focus-visible {
   outline: 2px solid #22c55e;
   outline-offset: 2px;
+}
+
+/* Selected/checked states in Layers list */
+/* Text emphasis for the checked option */
+.leaflet-control-layers input[type='radio']:checked + span,
+.leaflet-control-layers input[type='checkbox']:checked + span {
+  color: #0f766e; /* teal-700 */
+  font-weight: 600;
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers input:checked + span,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers input:checked + span {
+  color: #86efac; /* green-300 */
+}
+/* Highlight the label row when its input is checked (modern browsers) */
+.leaflet-control-layers label:has(input[type='radio']:checked),
+.leaflet-control-layers label:has(input[type='checkbox']:checked) {
+  background: rgba(16, 185, 129, 0.10); /* emerald-500 @ 10% */
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers label:has(input:checked),
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers label:has(input:checked) {
+  background: rgba(134, 239, 172, 0.10); /* green-300 @ 10% for dark */
 }
 
 /* Reduced motion */

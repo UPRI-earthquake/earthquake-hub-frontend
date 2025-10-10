@@ -7,7 +7,7 @@ import FloatingButton from './FloatingButton';
 import { SignInForm, SignUpForm } from './Form';
 import { Dashboard } from './Dashboard';
 import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
-import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
+// import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
 import axios from 'axios';
 import Toast from './Toast';
 
@@ -107,10 +107,14 @@ const Header = ({ initStations = [] }) => {
 
   return (
     <div className={styles.header}>
+      {/* Skip to content (visible on keyboard focus) */}
+      <a href="#main" className={styles.skipLink} aria-label="Skip to main content">
+        Skip to content
+      </a>
       <div className={styles.headerContent}>
         <div className={styles.headerLeft}>
           <Logo className={styles.logo} role="img" aria-label="UPRI logo" />
-          <h1>CS•UPRI</h1>
+          <h1 title="Community Seismology • UPRI">CS•UPRI</h1>
           {/* Temporarily hide header stations online indicator to avoid redundancy with sidebar */}
           {false && (
             <p>
@@ -126,32 +130,46 @@ const Header = ({ initStations = [] }) => {
               onClick={handleDashboardToggle}
               role="button"
               tabIndex={0}
-              aria-label="Toggle dashboard"
+              aria-label={showDashboard ? 'Toggle dashboard' : 'Toggle dashboard'}
               aria-expanded={showDashboard}
+              aria-controls="dashboard-panel"
+              title="Dashboard"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') handleDashboardToggle();
               }}
             >
-              {showDashboard ? (
-                <CloseMenu className={styles.closeMenu} />
-              ) : (
-                <BurgerMenu className={styles.burgerMenu} />
-              )}
+              {/* Keep burger icon even when dashboard is open; rely on in-panel × to close */}
+              <BurgerMenu className={styles.burgerMenu} />
             </div>
           ) : (
             <>
               {isSignificantEQPage ? (
                 // Show Home button if on /significant-eqs or /significant-eq-info
-                <Button hasOutline={false} onClick={handleHomeClick}>
+                <Button
+                  hasOutline={false}
+                  onClick={handleHomeClick}
+                  aria-label="Go to home"
+                  title="Home"
+                >
                   Home
                 </Button>
               ) : (
                 // Show Sign in and Sign up buttons for other pages
                 <>
-                  <Button hasOutline={false} onClick={handleSignInClick}>
+                  <Button
+                    hasOutline={false}
+                    onClick={handleSignInClick}
+                    aria-label="Sign in"
+                    title="Sign in"
+                  >
                     Sign in
                   </Button>
-                  <Button hasOutline={true} onClick={handleSignUpClick}>
+                  <Button
+                    hasOutline={true}
+                    onClick={handleSignUpClick}
+                    aria-label="Create an account"
+                    title="Sign up"
+                  >
                     Sign up
                   </Button>
 
@@ -175,6 +193,7 @@ const Header = ({ initStations = [] }) => {
           loggedInUserRole={loggedInUserRole}
           loggedInUser={loggedInUser}
           onSignoutSuccess={handleSignoutSuccess}
+          aria-label="User dashboard"
         />
       )}
     </div>

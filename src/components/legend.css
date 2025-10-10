@@ -16,6 +16,7 @@
   pointer-events: auto;
   backdrop-filter: saturate(120%) blur(6px);
   max-width: 320px;
+  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 
 .custom-legend-control.is-collapsed {
@@ -86,7 +87,11 @@
   color: #111827;
   padding: 0 10px;
   cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    border-color 150ms ease;
 }
+.legend-tools button:hover { background: #e5e7eb; }
+.legend-tools button:active { transform: scale(0.98); }
 .legend-tools button:focus-visible {
   outline: 2px solid #22c55e;
   outline-offset: 2px;
@@ -120,12 +125,19 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   z-index: 1000;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .custom-legend-control.is-collapsed .legend-toggle:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 .custom-legend-control.is-collapsed .legend-toggle:active {
   transform: scale(0.98);
+}
+.custom-legend-control.is-collapsed .legend-toggle:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
 }
 .leaflet-container[data-basemap-theme='dark'] .custom-legend-control.is-collapsed .legend-toggle,
 .leaflet-container[data-basemap-theme='imagery']

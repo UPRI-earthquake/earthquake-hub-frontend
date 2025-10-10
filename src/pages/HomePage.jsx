@@ -178,7 +178,7 @@ const HomePage = () => {
         ) : (
           <div className="App">
             <Header initStations={stationsRef.current} />
-            <div className="App-body">
+            <div className="App-body" id="main" role="main" aria-label="Main content">
               <SSEContext.Provider value={eventSourceRef.current}>
                 <Sidebar scrollResetKey={datasetKey}>
                   <SidebarInfo

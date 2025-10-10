@@ -25,6 +25,12 @@ html[data-basemap-theme='imagery'] .sidebarItem {
   border-bottom-color: rgba(255, 255, 255, 0.12);
 }
 
+.sidebarItem:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+
 @media (max-width: 768px) {
   .sidebarItem {
     width: 300px; /* card width */
@@ -45,13 +51,11 @@ html[data-basemap-theme='imagery'] .sidebarItem {
   .magText {
     font-size: 18px;
   }
+  .sidebarItem:hover {
+    transform: translateY(-2px);
+  }
 }
 
-.sidebarItem:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-  transform: translateX(2px);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-}
 html[data-basemap-theme='dark'] .sidebarItem:hover,
 html[data-basemap-theme='imagery'] .sidebarItem:hover {
   background-color: rgba(255, 255, 255, 0.06);
@@ -75,8 +79,8 @@ html[data-basemap-theme='imagery'] .sidebarItem:hover {
 }
 
 .magText { display: inline-flex; align-items: baseline; gap: 2px; font-size: 20px; line-height: 1; }
-.magM { font-weight: 900; color: var(--accent); letter-spacing: 0.2px; }
-.magValue { font-weight: 800; line-height: 1; }
+.magM { font-weight: 700; color: var(--accent); letter-spacing: 0.2px; }
+.magValue { font-weight: 700; line-height: 1; }
 
 /* Depth chip under magnitude */
 .depthBadge {

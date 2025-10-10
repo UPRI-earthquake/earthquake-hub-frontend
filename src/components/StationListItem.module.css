@@ -51,7 +51,7 @@ html[data-basemap-theme='imagery'] .row:hover {
 }
 
 .leftWrap { display: flex; align-items: center; justify-content: center; flex-direction: column; }
-.codeText { display: inline-block; font-size: 20px; font-weight: 800; line-height: 1; }
+.codeText { display: inline-block; font-size: 20px; font-weight: 700; line-height: 1; }
 .rightWrap { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
 .desc { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: inherit; }
 html[data-basemap-theme='dark'] .desc,
@@ -139,6 +139,9 @@ html[data-basemap-theme='imagery'] .selected .codeText {
     padding-bottom: 12px;
     max-width: max-content;
 }
+  .row:hover {
+    transform: translateY(-2px);
+  }
   .selected { border-left-width: 4px; }
   .rightWrap { gap: 6px; }
 }

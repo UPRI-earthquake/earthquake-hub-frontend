@@ -40,20 +40,26 @@
 .leaflet-container {
   width: 100%;
   height: 100vh;
+  /* Fill the viewport below the fixed header */
+  /* height: calc(100vh - var(--header-h, 56px)); */
 }
 
 .App-body {
   display: flex;
-  top: 50px;
+  top: var(--header-h, 56px);
   left: 0;
   right: 0;
   bottom: 0;
   position: fixed;
   z-index: 1;
+  /* Provide bottom offset for Leaflet controls via CSS var */
+  --leaflet-bottom-offset: var(--header-h, 56px);
 }
 
 @media (max-width: 768px) {
   .App-body {
     flex-direction: column-reverse;
+    /* On mobile, do not lift Leaflet bottom controls; keep at bottom */
+    --leaflet-bottom-offset: 0px;
   }
 }

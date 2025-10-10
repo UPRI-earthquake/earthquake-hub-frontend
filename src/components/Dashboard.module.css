@@ -1,36 +1,44 @@
 .modalOverlay {
   position: fixed;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.301);
-  display: flex;
-  justify-content: flex-end;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100vh; /* fallback */
+  background-color: rgba(0, 0, 0, 0.45);
+  display: grid;
+  align-items: start; /* keep panel below header */
+  justify-items: end;
+  padding: calc(var(--header-h, 56px) + 12px) 12px 12px 12px;
+  z-index: 99998; /* above header */
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .dashboardModal {
-  margin-top: 20px;
-  margin-right: 20px;
-  background-color: rgb(255, 255, 255);
-  padding-left: 20px;
-  padding-right: 20px;
-  border-radius: 5px;
-  width: 700px;
-  max-width: 90%;
-  height: 90%;
+  margin: 0;
+  background-color: #ffffff;
+  padding: 0 20px 20px 20px;
+  border-radius: 12px;
+  width: min(720px, 92vw);
+  max-height: calc(100dvh - var(--header-h, 56px) - 24px);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  overflow-y: auto;
-  z-index: 2;
-  opacity: 0;
+  justify-content: flex-start;
+  overflow: auto;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  opacity: 0; /* animated in */
+  box-sizing: border-box;
 }
 
 @media (max-width: 600px) {
+  .modalOverlay {
+    padding: calc(var(--header-h, 56px) + 8px) 8px 8px 8px;
+  }
   .dashboardModal {
-    margin-top: 0;
-    margin-right: 0;
-    height: 100%;
+    width: 100%;
+    max-height: calc(100dvh - var(--header-h, 56px) - 12px);
+    border-radius: 10px;
   }
 }
 
@@ -126,16 +134,66 @@
 .profileContainer {
   opacity: 0;
   display: flex;
-  padding-bottom: 50px;
+  padding-bottom: 24px;
   flex-direction: column;
   justify-content: flex-start;
   flex: 1;
   overflow-y: auto;
 }
 
+/* Sticky title + tools header inside the panel */
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 6px 12px 6px;
+}
+.topBarTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.topBarTools {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.toolBtn {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #f3f4f6;
+  color: #111827;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    transform 100ms ease;
+}
+.toolBtn:hover { background: #e5e7eb; }
+.toolBtn:active { transform: scale(0.98); }
+.toolBtn:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #f3f4f6;
+  color: #111827;
+  cursor: pointer;
+}
+.closeBtn:hover { background: #e5e7eb; }
+.closeBtn:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
+
 /* Device List Table */
 .deviceListTableContainer {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 60vh;
   border: solid 1px #a6a5a9;
 }
 
@@ -145,6 +203,7 @@
   background-color: #f2f2f2;
   border-radius: 4px;
   overflow: hidden;
+  table-layout: fixed; /* prevent columns from overflowing on mobile */
 }
 
 .deviceListTable th {
@@ -154,6 +213,8 @@
   font-weight: bold;
   color: #333333;
   text-align: center;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .deviceListTable td {
@@ -161,6 +222,28 @@
   flex-grow: 1;
   padding: 10px;
   color: #333333;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Mobile-friendly adjustments */
+@media (max-width: 600px) {
+  .topBar { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 6px; }
+  .topBarTitle { font-size: 18px; }
+  .topBarTools { justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+  .toolBtn { height: 30px; font-size: 13px; padding: 0 8px; }
+  .closeBtn { width: 30px; height: 30px; }
+  .deviceListTableContainer { max-height: 55dvh; }
+  .deviceListTable th { font-size: 13px; padding: 8px; }
+  .deviceListTable td { font-size: 13px; padding: 8px; }
+}
+
+/* Extremely narrow screens: hide the Status Since column to reduce horizontal overflow */
+@media (max-width: 420px) {
+  .deviceListTable th:nth-child(4),
+  .deviceListTable td:nth-child(4) {
+    display: none;
+  }
 }
 
 /* Tooltip */

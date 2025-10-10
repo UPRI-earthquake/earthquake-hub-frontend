@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { devlog, deverror } from '../utils/devlog';
 import styles from './Dashboard.module.css';
@@ -25,6 +26,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
+  const isClosingRef = useRef(false);
 
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
@@ -49,6 +51,33 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     }
   };
 
+  // Unified close handler with exit animation
+  const handleClose = useCallback((_reason = 'backdrop') => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    const el = dashboardContainerRef.current;
+    if (el && el.animate) {
+      const anim = el.animate(
+        [
+          { opacity: 1, transform: 'translateX(0)' },
+          { opacity: 0, transform: 'translateX(100%)' },
+        ],
+        { duration: 150, easing: 'cubic-bezier(0, 0, 0.5, 1)', fill: 'forwards' },
+      );
+      anim.onfinish = () => {
+        try {
+          (onEscapeClick || onClick)?.();
+        } finally {
+          isClosingRef.current = false;
+        }
+      };
+      return;
+    }
+    // Fallback: no WAAPI
+    (onEscapeClick || onClick)?.();
+    isClosingRef.current = false;
+  }, [onClick, onEscapeClick]);
+
   useEffect(() => {
     const dashboardContainerEl = dashboardContainerRef.current;
     dashboardContainerEl.animate(
@@ -64,9 +93,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     );
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onEscapeClick();
-      }
+      if (event.key === 'Escape') handleClose('escape');
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -74,7 +101,39 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onEscapeClick]);
+  }, [handleClose]);
+
+  // Focus trap inside the dashboard dialog for accessibility
+  useEffect(() => {
+    const root = dashboardContainerRef.current;
+    if (!root) return undefined;
+    const getFocusables = () =>
+      root.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const focusFirst = () => {
+      const f = getFocusables();
+      if (f && f.length) {
+        const el = f[0];
+        if (el && typeof el.focus === 'function') el.focus();
+      }
+    };
+    focusFirst();
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const f = getFocusables();
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    root.addEventListener('keydown', trap);
+    return () => root.removeEventListener('keydown', trap);
+  }, []);
 
   useEffect(() => {
     switch (pageTransition) {
@@ -289,10 +348,16 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     }
   }
 
-  return (
-    <div className={styles.modalOverlay} onClick={onClick}>
+  // handleClose defined above with useCallback
+
+  const content = (
+    <div className={styles.modalOverlay} onClick={() => handleClose('backdrop')}>
       <div
         ref={dashboardContainerRef}
+        id="dashboard-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dashboard-title"
         className={`${styles.dashboardModal}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -300,24 +365,57 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
 
         {pageTransition < 2 && (
           <div ref={profileRef} className={styles.profileContainer}>
-            <div className={styles.panelHeaderButtonDiv}>
-              {loggedInUserRole === 'brgy' && (
-                <button className={styles.requestTokenButton} onClick={requestTokenSubmit}>
-                  Request Token
+            {/* Top bar: title + actions */}
+            <div className={styles.topBar} role="toolbar" aria-label="Dashboard toolbar">
+              <h2 id="dashboard-title" className={styles.topBarTitle} title={`${loggedInUser}'s devices`}>
+                {loggedInUser}'s devices
+              </h2>
+              <div className={styles.topBarTools}>
+                {loggedInUserRole === 'brgy' && (
+                  <button
+                    type="button"
+                    className={styles.toolBtn}
+                    onClick={requestTokenSubmit}
+                    title="Request barangay access token"
+                    aria-label="Request barangay access token"
+                  >
+                    Request Token
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.toolBtn}
+                  onClick={handleSignout}
+                  title="Sign out of your account"
+                  aria-label="Sign out"
+                >
+                  Sign out
                 </button>
-              )}
-              <p className={styles.signoutButton} onClick={handleSignout}>
-                Sign out
-              </p>
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={() => handleClose('close')}
+                  aria-label="Close dashboard"
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
             </div>
             {/* This section will only be displayed if loggedInUserRole is `brgy` */}
             {brgyAccessToken && (
               <>
-                <div className={styles.panelBody}>
+                <div className={styles.panelBody} aria-label="Barangay token">
                   <p className={styles.copyTextDiv}>
-                    <span className={styles.copyTextButton} onClick={copyText}>
+                    <button
+                      type="button"
+                      className={styles.toolBtn}
+                      onClick={copyText}
+                      title="Copy token to clipboard"
+                      aria-label="Copy token to clipboard"
+                    >
                       Copy to clipboard
-                    </span>
+                    </button>
                   </p>
                   <p className={styles.accessTokenContainer} ref={textRef}>
                     {brgyAccessToken}
@@ -339,11 +437,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                 {/* End of panelBody */}
               </>
             )}
-            <div className={styles.panelHeader}>
-              <h2>{loggedInUser}'s devices</h2>
-            </div>{' '}
-            {/* End of Device List panelHeader */}
-            <div className={styles.panelBody}>
+            {/* Device list */}
+            <div className={styles.panelBody} aria-label="Your devices">
               <div className={styles.deviceListTableContainer}>
                 <table className={styles.deviceListTable}>
                   <thead>
@@ -448,6 +543,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(content, document.body);
 }
 
 export { Dashboard };

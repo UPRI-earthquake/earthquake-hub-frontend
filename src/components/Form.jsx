@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import styles from './Form.module.css';
 import Toast from './Toast';
@@ -35,7 +36,7 @@ function Form({ children, title, onClick, onSubmit }) {
     onSubmit(event);
   };
 
-  return (
+  const content = (
     <div className={styles.modal} onClick={onClick}>
       {/*When .form div is clicked, prevent click event from bubbling up
          to the div above so that it will not exec it's onClick handler (which
@@ -43,6 +44,9 @@ function Form({ children, title, onClick, onSubmit }) {
       <div
         ref={formRef}
         className={`${styles.form} ${styles.hidden}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -52,6 +56,9 @@ function Form({ children, title, onClick, onSubmit }) {
       </div>
     </div>
   );
+
+  // Render the modal at the document body level so it truly overlays the app
+  return ReactDOM.createPortal(content, document.body);
 }
 
 /**
