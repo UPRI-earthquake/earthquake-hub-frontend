@@ -14,6 +14,14 @@
   animation: eq-fade-in 220ms ease-in both, radiate-outward 1.5s linear infinite;
 }
 
+/* Non-animated marker for cases where animations are suppressed */
+.static {
+  fill: var(--eq-fill, #e53935);
+  stroke: var(--eq-halo, #ffffff);
+  stroke-width: var(--eq-halo-w, 1.25px);
+  opacity: var(--eq-opacity, 0.65);
+}
+
 /* Disable marker animations while Leaflet performs zoom animation */
 :global(.leaflet-container.leaflet-zoom-anim) .radiate,
 :global(.leaflet-container.leaflet-zoom-anim) .default {

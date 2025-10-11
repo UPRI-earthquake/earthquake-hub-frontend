@@ -18,7 +18,7 @@ function toRadius(magnitude) {
 /**
  * Individual earthquake marker with popup and selection sync via Redux.
  */
-const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modification }) => {
+const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modification, enableAnimation = true, suppressInitialRadiate = false }) => {
   // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
@@ -91,23 +91,30 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   // Animation
   const [animate, setAnimate] = useState(false);
   const timerId = useRef(null); // hold running timeout-id across renders
+  const didProcessInitialRef = useRef(false);
   useEffect(() => {
     let isMounted = true;
-    if (status === 'NEW' || status === 'UPDATE') {
-      setAnimate(true);
-      clearTimeout(timerId.current); // it's ok to clear on null
-      timerId.current = setTimeout(() => {
-        if (!isMounted) return; // avoid state update after unmount
-        setAnimate(false);
-        timerId.current = null; // to avoid clearing other ids
-      }, 7500);
+    const isInitial = !didProcessInitialRef.current;
+    // Allow SSE radiate pulses regardless of enableAnimation, but skip the very first
+    // trigger on mount when suppressInitialRadiate is true (dataset switch case).
+    if ((status === 'NEW' || status === 'UPDATE')) {
+      if (!(suppressInitialRadiate && isInitial)) {
+        setAnimate(true);
+        clearTimeout(timerId.current); // it's ok to clear on null
+        timerId.current = setTimeout(() => {
+          if (!isMounted) return; // avoid state update after unmount
+          setAnimate(false);
+          timerId.current = null; // to avoid clearing other ids
+        }, 7500);
+      }
     }
+    didProcessInitialRef.current = true;
     return () => {
       isMounted = false;
       try { clearTimeout(timerId.current); } catch (_) {}
       timerId.current = null;
     };
-  }, [status, last_modification]);
+  }, [status, last_modification, suppressInitialRadiate]);
 
   // Opacity is now driven purely by CSS var --eq-opacity on the map container.
   // Avoid binding it into the icon to prevent DivIcon churn on zoom changes.
@@ -176,7 +183,8 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     // Bucket sizes at 0.1px precision to reflect decimal magnitudes precisely
     const sizeKey = Math.round((animate ? 8 : 2) * radius * 10); // tenths of a px
     const colorKey = fillColor || 'theme';
-    const cacheKey = `${animate ? 'a' : 'd'}|${colorKey}|${sizeKey}`;
+    const variantKey = animate ? 'a' : enableAnimation ? 'd' : 's';
+    const cacheKey = `${variantKey}|${colorKey}|${sizeKey}`;
 
     const cache = iconCacheRef.current;
     const existing = cache.get(cacheKey);
@@ -188,8 +196,10 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     const html = ReactDOMServer.renderToString(
       animate ? (
         <CircleWithBorder className={styles.radiate} style={svgStyle} />
-      ) : (
+      ) : enableAnimation ? (
         <Circle className={styles.default} style={svgStyle} />
+      ) : (
+        <Circle className={styles.static} style={svgStyle} />
       ),
     );
 
@@ -201,14 +211,15 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     });
     cache.set(cacheKey, icon);
     return icon;
-  }, [animate, mag, fillColor]);
+  }, [animate, mag, fillColor, enableAnimation]);
 
   // Gentle fade-in when marker icon mounts or changes
   useEffect(() => {
+    if (!enableAnimation) return undefined;
     const marker = markerRef.current;
-    if (!marker || typeof marker.getElement !== 'function') return;
+    if (!marker || typeof marker.getElement !== 'function') return undefined;
     const el = marker.getElement();
-    if (!el) return;
+    if (!el) return undefined;
     // Reset then re-apply to retrigger transition on icon swap
     el.classList.remove('is-mounted');
     // Next tick to ensure transition plays
@@ -216,10 +227,11 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
       el.classList.add('is-mounted');
     });
     return () => window.cancelAnimationFrame(id);
-  }, [divCircle]);
+  }, [divCircle, enableAnimation]);
 
   // Ensure fade-in re-applies when the marker layer is re-added (e.g., overlay toggled)
   useEffect(() => {
+    if (!enableAnimation) return undefined;
     const marker = markerRef.current;
     if (!marker || typeof marker.on !== 'function') return undefined;
     const onAdd = () => {
@@ -234,7 +246,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     return () => {
       marker.off('add', onAdd);
     };
-  }, []);
+  }, [enableAnimation]);
 
   // Tooltips stay mounted; mobile visibility handled via CSS to avoid Leaflet race conditions
   const [tooltipDisabled, setTooltipDisabled] = useState(false);

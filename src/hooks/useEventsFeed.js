@@ -9,6 +9,51 @@ function backendHost() {
     : window['ENV'].REACT_APP_BACKEND_DEV;
 }
 
+// Choose the best doc among duplicates that represent the same event.
+// Preference: UPDATE > NEW, then by newest last_modification, then newest OT.
+const pickBest = (arr) => {
+  const score = (ev) => {
+    const isUpd = String(ev?.eventType || '').toUpperCase() === 'UPDATE' ? 1 : 0;
+    const lm = ev?.last_modification ? new Date(ev.last_modification).getTime() : 0;
+    const ot = ev?.OT ? new Date(ev.OT).getTime() : 0;
+    return [isUpd, lm, ot];
+  };
+  return arr.slice().sort((a, b) => {
+    const as = score(a);
+    const bs = score(b);
+    for (let i = 0; i < as.length; i += 1) {
+      const d = bs[i] - as[i];
+      if (d) return d; // descending
+    }
+    return 0;
+  })[0];
+};
+
+// Dedupe initial payload by publicID only (assuming stable IDs from upstream).
+const dedupeInitial = (input) => {
+  const list = Array.isArray(input) ? input : [];
+  if (!list.length) return [];
+  const groups = new Map();
+  const passthrough = [];
+  for (const ev of list) {
+    const id = ev && ev.publicID;
+    if (id == null || id === '' || id === 'null' || id === 'undefined') {
+      // Keep items without a usable id as-is
+      passthrough.push(ev);
+      continue;
+    }
+    const g = groups.get(id) || [];
+    g.push(ev);
+    groups.set(id, g);
+  }
+  const chosen = [];
+  groups.forEach((g) => chosen.push(pickBest(g)));
+  chosen.push(...passthrough);
+  // Keep a stable order by OT desc so UI defaults look sane
+  chosen.sort((a, b) => new Date(b?.OT || 0) - new Date(a?.OT || 0));
+  return chosen;
+};
+
 /**
  * Events feed helper: fetch ranges and wire SSE into a shared setEvents state.
  */
@@ -26,8 +71,9 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
         params: { startTime: startTs, endTime: endTs },
       });
       const arr = (res.data?.payload || []).slice();
-      setEvents(arr);
-      return arr;
+      const deduped = dedupeInitial(arr);
+      setEvents(deduped);
+      return deduped;
     },
     [setEvents],
   );
@@ -35,6 +81,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
   const bindSSE = useCallback(() => {
     const src = new EventSourcePolyfill(`${backendHost()}/messaging`);
     eventSourceRef.current = src;
+    // With stable publicID, no similarity matching is needed.
     const onError = () => {
       if (
         (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) !== 'production'
@@ -71,12 +118,25 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
               copy[idx] = { ...prev[idx], ...nextEvent };
               return copy;
             }
+            // No similarity matching; rely on stable publicID
+            // In production, discard very old NEW events that don't match anything to
+            // avoid flooding from historical replays.
+            try {
+              if (
+                (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
+              ) {
+                const tooOld =
+                  nextEvent.OT && new Date(nextEvent.OT).getTime() < Date.now() - 48 * 3600 * 1000; // 48h
+                if (tooOld) return prev;
+              }
+            } catch (_) {}
             return [nextEvent, ...prev];
           });
         } else if (data.eventType === 'UPDATE') {
-          setEvents((prev) =>
-            prev.map((ev) => {
-              if (ev.publicID !== data.publicID) return ev;
+          setEvents((prev) => {
+            const idx = prev.findIndex((e) => e.publicID === data.publicID);
+            if (idx !== -1) {
+              const ev = prev[idx];
               const mergedDepth =
                 depthVal ??
                 ev.depth_km ??
@@ -85,20 +145,23 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
                 ev.depthValue ??
                 ev.depth ??
                 null;
-              return {
+              const copy = prev.slice();
+              copy[idx] = {
                 ...ev,
                 OT: data.OT ?? ev.OT,
                 latitude_value: data.latitude_value ?? ev.latitude_value,
                 longitude_value: data.longitude_value ?? ev.longitude_value,
                 magnitude_value: data.magnitude_value ?? ev.magnitude_value,
                 depth_km: mergedDepth,
-                // Preserve previous text if not provided in update
                 text: data.text ?? ev.text,
                 eventType: 'UPDATE',
                 last_modification: data.last_modification ?? ev.last_modification,
               };
-            }),
-          );
+              return copy;
+            }
+            // No similarity fallback; if not found by ID, ignore.
+            return prev;
+          });
         }
       } catch (err) {
         if (

@@ -99,6 +99,9 @@ const EventMarkers = ({
         depthKm={pickDepth(event)}
         status={event.eventType ? event.eventType : null}
         last_modification={event.last_modification}
+        // Suppress only the initial mount/appear animation on All Stations
+        enableAnimation={datasetKey !== 'all-stations'}
+        suppressInitialRadiate={datasetKey === 'all-stations'}
       />
     );
   });
