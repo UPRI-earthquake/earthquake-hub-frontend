@@ -17,6 +17,14 @@ const EventMarkers = ({
   const map = useMap();
   const [events, setEvents] = useState(initEvents);
   const [zoom, setZoom] = useState(() => (map ? map.getZoom() : 6));
+  // Track center longitude so we can render markers on the nearest world copy
+  const [centerLng, setCenterLng] = useState(() => {
+    try {
+      return map?.getCenter?.().lng ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  });
   // Keep events in sync when initEvents or dataset key changes (e.g., preset switch)
   useEffect(() => {
     setEvents(initEvents || []);
@@ -25,8 +33,15 @@ const EventMarkers = ({
   useEffect(() => {
     if (!map) return undefined;
     const onZoom = () => setZoom(map.getZoom());
+    const onMove = () => {
+      try { setCenterLng(map.getCenter().lng); } catch (_) {}
+    };
     map.on('zoomend', onZoom);
-    return () => map.off('zoomend', onZoom);
+    map.on('moveend', onMove);
+    return () => {
+      map.off('zoomend', onZoom);
+      map.off('moveend', onMove);
+    };
   }, [map]);
 
   // Client-side filters from sidebar (magnitude + date + text)
@@ -77,6 +92,15 @@ const EventMarkers = ({
     return toFinite(event.latitude_value) != null && toFinite(event.longitude_value) != null;
   });
 
+  // Normalize longitude to the nearest copy relative to reference longitude
+  const normalizeLngNear = (lng, refLng) => {
+    if (!Number.isFinite(lng) || !Number.isFinite(refLng)) return lng;
+    let x = lng;
+    while (x - refLng > 180) x -= 360;
+    while (x - refLng < -180) x += 360;
+    return x;
+  };
+
   return eventsWithCoords.map((event) => {
     const lat = toFinite(event.latitude_value);
     const lng = toFinite(event.longitude_value);
@@ -88,13 +112,15 @@ const EventMarkers = ({
       ? Number(event.magnitude_value)
       : 0;
 
+    const displayLng = normalizeLngNear(lng, centerLng);
+
     return (
       <EventMarker
         key={`${datasetKey || 'ds'}-${event.publicID}`}
         publicID={event.publicID}
         time={event.OT}
         lat={lat}
-        lng={lng}
+        lng={displayLng}
         mag={magnitude}
         depthKm={pickDepth(event)}
         status={event.eventType ? event.eventType : null}

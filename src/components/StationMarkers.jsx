@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useMap } from 'react-leaflet';
 import StationMarker from './StationMarker';
 
 function obscureLocation(lat, lon) {
@@ -14,17 +15,48 @@ function obscureLocation(lat, lon) {
 const StationMarkers = ({ initStations }) => {
   // initialize station markers on map
   const [stations] = useState(initStations);
+  const map = useMap();
+  const [centerLng, setCenterLng] = useState(() => {
+    try {
+      return map?.getCenter?.().lng ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  });
 
-  return stations.map((station) => (
-    <StationMarker
-      network={station.network}
-      key={station.code}
-      code={station.code}
-      latLng={obscureLocation(station.latitude, station.longitude)}
-      description={station.description}
-      activity={station.activity}
-    />
-  ));
+  useEffect(() => {
+    if (!map) return undefined;
+    const onMove = () => {
+      try { setCenterLng(map.getCenter().lng); } catch (_) {}
+    };
+    map.on('moveend', onMove);
+    return () => {
+      map.off('moveend', onMove);
+    };
+  }, [map]);
+
+  const normalizeLngNear = (lng, refLng) => {
+    if (!Number.isFinite(lng) || !Number.isFinite(refLng)) return lng;
+    let x = lng;
+    while (x - refLng > 180) x -= 360;
+    while (x - refLng < -180) x += 360;
+    return x;
+  };
+
+  return stations.map((station) => {
+    const [lat, lon] = obscureLocation(station.latitude, station.longitude);
+    const displayLng = normalizeLngNear(lon, centerLng);
+    return (
+      <StationMarker
+        network={station.network}
+        key={station.code}
+        code={station.code}
+        latLng={[lat, displayLng]}
+        description={station.description}
+        activity={station.activity}
+      />
+    );
+  });
 };
 
 export default StationMarkers;
