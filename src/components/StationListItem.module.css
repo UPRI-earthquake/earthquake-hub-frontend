@@ -31,13 +31,21 @@ html[data-basemap-theme='imagery'] .row:hover {
   box-shadow: 0 1px 0 rgba(255,255,255,0.08);
 }
 
-/* One-shot pulse states for activity toggles */
-.pulseActive { animation: stationPulseActive 0.8s ease-out; }
-.pulseInactive { animation: stationPulseInactive 0.8s ease-out; }
+/* Multi-pulse states for activity toggles (triggered on STATION_STATUS updates) */
+.pulseActive { animation: stationPulseActive 1.2s ease-out; animation-iteration-count: 3; }
+.pulseInactive { animation: stationPulseInactive 1.2s ease-out; animation-iteration-count: 3; }
 
 @keyframes stationPulseActive {
   0% { background-color: var(--sta-pulse-on-1, rgba(34, 197, 94, 0.16)); }
   60% { background-color: var(--sta-pulse-on-2, rgba(34, 197, 94, 0.08)); }
+  100% { background-color: transparent; }
+}
+
+/* Continuous pulse while a station SC_PICK is active (sync with marker radiate) */
+.pickPulse { animation: stationPickPulse 1.5s linear infinite; }
+@keyframes stationPickPulse {
+  0% { background-color: rgba(232, 106, 115, 0.16); }
+  60% { background-color: rgba(232, 106, 115, 0.08); }
   100% { background-color: transparent; }
 }
 @keyframes stationPulseInactive {
@@ -145,7 +153,8 @@ html[data-basemap-theme='imagery'] .selected .codeText {
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .pulseActive,
-  .pulseInactive {
+  .pulseInactive,
+  .pickPulse {
     animation: none;
   }
 }

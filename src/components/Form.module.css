@@ -9,9 +9,9 @@
   backdrop-filter: blur(2px);
   display: grid;
   justify-items: center;
-  /* Place the panel just below the fixed header for clarity */
-  align-items: start;
-  padding-top: calc(var(--header-h, 56px) + 12px);
+  /* Center auth forms as true modals for better UX */
+  align-items: center;
+  padding: 12px;
   z-index: 99999; /* Above header */
 }
 
@@ -70,7 +70,9 @@
 
 @media (max-height: 560px) {
   .modal {
-    padding-top: calc(var(--header-h, 56px) + 6px);
+    /* On very short viewports, prefer top alignment to avoid cropping */
+    align-items: start;
+    padding-top: 12px;
   }
 }
 

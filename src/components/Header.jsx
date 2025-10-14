@@ -10,6 +10,7 @@ import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
 // import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
 import axios from 'axios';
 import Toast from './Toast';
+import { devwarn, deverror } from '../utils/devlog';
 
 /**
  * App header: brand, auth controls, and context actions.
@@ -85,10 +86,25 @@ const Header = ({ initStations = [] }) => {
             ? window['ENV'].REACT_APP_BACKEND
             : window['ENV'].REACT_APP_BACKEND_DEV;
         axios.defaults.withCredentials = true;
-        const response = await axios.get(`${backend_host}/accounts/profile`);
-        setLoggedInUser(response.data.payload.username);
-        return response.data.payload.email;
+        const response = await axios.get(`${backend_host}/accounts/profile`, {
+          // Treat 401/403 as handled results instead of throwing errors (keeps console clean)
+          validateStatus: (status) => status < 500,
+        });
+        if (response.status === 200) {
+          setLoggedInUser(response.data.payload?.username || '');
+          // /accounts/profile succeeds only for citizen cookie; set role accordingly
+          setLoggedInUserRole('citizen');
+          return response.data.payload?.email || '';
+        }
+        // Log non-200 auth checks in development for visibility
+        devwarn('[auth] /accounts/profile check', {
+          status: response.status,
+          message: response.data?.message,
+        });
+        return null;
       } catch (error) {
+        // Network/unexpected error — surface via dev logger
+        deverror('[auth] /accounts/profile request error', error);
         return null;
       }
     };

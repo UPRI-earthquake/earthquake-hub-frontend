@@ -84,26 +84,9 @@ export function useAppData({
           ];
           names.forEach((n) => src.addEventListener(n, onStationStatus));
 
-          // Optional fallback: if only picks are emitted, treat pick as "active"
-          const onPick = (event) => {
-            try {
-              const d = JSON.parse(event.data);
-              if (!d) return;
-              applyStationUpdate({
-                stationCode: d.stationCode,
-                network: d.networkCode,
-                activity: 'active',
-                status: 'Streaming',
-                statusSince: d.timestamp,
-              });
-            } catch (_) {}
-          };
-          src.addEventListener('SC_PICK', onPick);
-
           // Save a tiny unbinder on the instance for cleanup
           src.__station_unbind__ = () => {
             try { names.forEach((n) => src.removeEventListener(n, onStationStatus)); } catch (_) {}
-            try { src.removeEventListener('SC_PICK', onPick); } catch (_) {}
           };
         }
       } catch (_) {}

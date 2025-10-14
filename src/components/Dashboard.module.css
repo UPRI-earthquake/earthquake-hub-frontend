@@ -20,7 +20,8 @@
   padding: 0 20px 20px 20px;
   border-radius: 12px;
   width: min(720px, 92vw);
-  max-height: calc(100dvh - var(--header-h, 56px) - 24px);
+  /* Fill all available space below the fixed header */
+  height: calc(100dvh - var(--header-h, 56px) - 24px);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -37,7 +38,7 @@
   }
   .dashboardModal {
     width: 100%;
-    max-height: calc(100dvh - var(--header-h, 56px) - 12px);
+    height: calc(100dvh - var(--header-h, 56px) - 12px);
     border-radius: 10px;
   }
 }
@@ -178,6 +179,15 @@
 .toolBtn:hover { background: #e5e7eb; }
 .toolBtn:active { transform: scale(0.98); }
 .toolBtn:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
+
+/* Accent variant for Request Token to match legacy green */
+.requestTokenBtn {
+  background: #3a6a50; /* same green used across app */
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.18);
+}
+.requestTokenBtn:hover { background: #447f5b; }
+.requestTokenBtn:focus-visible { outline: 2px solid #86efac; outline-offset: 2px; }
 .closeBtn {
   width: 32px;
   height: 32px;

@@ -167,15 +167,15 @@
   stroke: var(--st-pulse-on, #22c55e);
   stroke-width: var(--st-halo-w, 2px);
   animation-name: radiate;
-  animation-duration: 0.9s;
-  animation-iteration-count: 1;
+  animation-duration: 1.5s;
+  animation-iteration-count: 3;
   animation-timing-function: linear;
 }
 .pulse-offline {
   stroke: var(--st-pulse-off, #6b7280);
   stroke-width: var(--st-halo-w, 2px);
   animation-name: radiate;
-  animation-duration: 0.9s;
-  animation-iteration-count: 1;
+  animation-duration: 1.5s;
+  animation-iteration-count: 3;
   animation-timing-function: linear;
 }

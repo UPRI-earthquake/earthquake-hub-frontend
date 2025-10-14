@@ -354,7 +354,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
               const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
               setMarkerPulse(cls);
               try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
             }
             return next;
           });
@@ -418,7 +418,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
             const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
             setMarkerPulse(cls);
             try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-            markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+            markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
           }
           return next;
         });
@@ -428,8 +428,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         if (prevStatus && prevStatus !== nextStatus) {
           const cls = nextStatus === 'Streaming' ? 'went-online' : 'went-offline';
           setStatusChange(cls);
-          if (statusAnimTimerRef.current) clearTimeout(statusAnimTimerRef.current);
-          statusAnimTimerRef.current = setTimeout(() => setStatusChange(null), 900);
+            if (statusAnimTimerRef.current) clearTimeout(statusAnimTimerRef.current);
+            statusAnimTimerRef.current = setTimeout(() => setStatusChange(null), 4500);
         }
       } catch (_) {}
       prevStatusRef.current = nextStatus;
@@ -579,7 +579,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
               const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
               setMarkerPulse(cls);
               try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
             }
             return next;
           });
@@ -600,7 +600,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
             const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
             setMarkerPulse(cls);
             try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-            markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 900);
+              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
           }
           return next;
         });

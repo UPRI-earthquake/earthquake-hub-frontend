@@ -32,9 +32,10 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
 
+  // Fetch devices only for citizen role to avoid 403s on strict backend
   useEffect(() => {
-    fetchDevices();
-  }, []);
+    if (loggedInUserRole === 'citizen') fetchDevices();
+  }, [loggedInUserRole]);
 
   const fetchDevices = async () => {
     try {
@@ -43,11 +44,21 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
           ? window['ENV'].REACT_APP_BACKEND
           : window['ENV'].REACT_APP_BACKEND_DEV;
       axios.defaults.withCredentials = true;
-      const response = await axios.get(`${backend_host}/device/my-devices`);
-      setDevices(response.data.devices);
+      const response = await axios.get(`${backend_host}/device/my-devices`, {
+        validateStatus: (status) => status < 500, // prevent thrown errors for 4xx
+      });
+      if (response.status === 200) {
+        setDevices(response.data.devices || []);
+      } else {
+        // For 401/403 or other handled statuses, clear list silently
+        setDevices([]);
+      }
     } catch (error) {
-      // Handle any error that occurred during the request
-      deverror('Error:', error.message);
+      // Suppress expected auth errors to keep console clean; UI remains the same
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) return; // keep devices as []
+      // Log unexpected errors for debugging
+      deverror('Error fetching devices:', error);
     }
   };
 
@@ -374,7 +385,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                 {loggedInUserRole === 'brgy' && (
                   <button
                     type="button"
-                    className={styles.toolBtn}
+                    className={`${styles.toolBtn} ${styles.requestTokenBtn}`}
                     onClick={requestTokenSubmit}
                     title="Request barangay access token"
                     aria-label="Request barangay access token"
@@ -452,7 +463,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                   <tbody>
                     {devices.length === 0 ? (
                       <tr>
-                        <td colSpan="3">No data available</td>
+                        <td colSpan="3">No devices connected</td>
                       </tr>
                     ) : (
                       devices.map((device, index) => (

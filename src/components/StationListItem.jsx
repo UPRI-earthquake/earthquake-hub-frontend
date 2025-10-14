@@ -1,8 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect, useContext } from 'react';
 import styles from './StationListItem.module.css';
 import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
+import SSEContext from '../SSEContext';
 
 /**
  * Station list visual optimized for the Stations dataset in the sidebar.
@@ -75,18 +76,52 @@ export default function StationListItem({ station }) {
   const rowRef = useRef(null);
   const prevActiveRef = useRef(isActive);
   const [pulse, setPulse] = useState(null); // 'pulseActive' | 'pulseInactive' | null
+  const [pickPulse, setPickPulse] = useState(false); // true while SC_PICK highlight is active
+  const pickTimerRef = useRef(null);
+  const eventSource = useContext(SSEContext);
   useEffect(() => {
     const was = prevActiveRef.current;
     if (was !== isActive) {
       const cls = isActive ? 'pulseActive' : 'pulseInactive';
       setPulse(cls);
-      const id = setTimeout(() => setPulse(null), 800);
+      // Match CSS duration x iteration-count in StationListItem.module.css
+      const id = setTimeout(() => setPulse(null), 3600);
       prevActiveRef.current = isActive;
       return () => clearTimeout(id);
     }
     prevActiveRef.current = isActive;
     return undefined;
   }, [isActive]);
+
+  // Sync sidebar station item pulsing with SC_PICK marker highlight
+  useEffect(() => {
+    if (!eventSource || typeof eventSource.addEventListener !== 'function') return undefined;
+    const handlePick = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const sc = String(
+          data.stationCode || data.station || data.code || data.station_id || data.stationcode || '',
+        ).toUpperCase();
+        if (!sc || sc !== String(station.code || '').toUpperCase()) return;
+        const net = String(
+          data.network || data.networkCode || data.network_code || data.net || 'AM',
+        ).toUpperCase();
+        if (String(station.network || 'AM').toUpperCase() !== net) return;
+        setPickPulse(true);
+        try { if (pickTimerRef.current) clearTimeout(pickTimerRef.current); } catch (_) {}
+        // Match marker SC_PICK highlight window (StationMarker.jsx uses 15000ms)
+        pickTimerRef.current = setTimeout(() => {
+          setPickPulse(false);
+          pickTimerRef.current = null;
+        }, 15000);
+      } catch (_) {}
+    };
+    eventSource.addEventListener('SC_PICK', handlePick);
+    return () => {
+      try { if (pickTimerRef.current) clearTimeout(pickTimerRef.current); } catch (_) {}
+      try { eventSource.removeEventListener('SC_PICK', handlePick); } catch (_) {}
+    };
+  }, [eventSource, station.code, station.network]);
   const flyTo = () => {
     const lat = Number(station.latitude);
     const lng = Number(station.longitude);
@@ -109,7 +144,7 @@ export default function StationListItem({ station }) {
 
   return (
     <div
-      className={`${styles.row} ${isSelected ? styles.selected : ''} ${pulse ? styles[pulse] : ''}`}
+      className={`${styles.row} ${isSelected ? styles.selected : ''} ${pulse ? styles[pulse] : ''} ${pickPulse ? styles.pickPulse : ''}`}
       title={tooltipText}
       data-tip={tooltipText}
       role="button"
