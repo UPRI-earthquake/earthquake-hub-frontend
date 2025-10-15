@@ -599,6 +599,10 @@ export default function MapLayersControl({ children }) {
       const input = lab.querySelector('input[type="radio"]');
       if (input) {
         input.setAttribute('aria-label', text);
+        // Ensure radios have a stable group name and id for a11y/tools
+        if (!input.hasAttribute('name')) input.setAttribute('name', 'basemap');
+        const id = `basemap-${m.key}`;
+        input.setAttribute('id', id);
       }
       // Make every basemap row tabbable (not only the checked one)
       // so Tab traverses all basemap options in order.
@@ -622,7 +626,13 @@ export default function MapLayersControl({ children }) {
     overlays.querySelectorAll('label').forEach((lab) => {
       const text = (lab.textContent || '').trim();
       const input = lab.querySelector('input[type="checkbox"]');
-      if (input) input.setAttribute('aria-label', text);
+      if (input) {
+        input.setAttribute('aria-label', text);
+        // Add stable id/name so audits don't flag missing identifiers
+        const norm = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        input.setAttribute('name', `overlay-${norm}`);
+        input.setAttribute('id', `overlay-${norm}`);
+      }
     });
 
     // Layer overlay tooltips/ARIA

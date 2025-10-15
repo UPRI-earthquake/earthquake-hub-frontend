@@ -111,17 +111,17 @@ function SignInForm({ onClick, onSuccess }) {
   return (
     <Form title="Sign In" onClick={onClick} onSubmit={handleSignInSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
-      <label>
+      <label htmlFor="signin-username">
         Username
-        <input type="text" name="username" />
+        <input id="signin-username" type="text" name="username" autoComplete="username" />
       </label>
-      <label>
+      <label htmlFor="signin-password">
         Password
-        <input type="password" name="password" />
+        <input id="signin-password" type="password" name="password" autoComplete="current-password" />
       </label>
-      <label>
+      <label htmlFor="signin-role">
         Role
-        <select name="role" value={selectedRole} onChange={handleRoleChange}>
+        <select id="signin-role" name="role" value={selectedRole} onChange={handleRoleChange}>
           <option value="citizen">Citizen</option>
           <option value="brgy">Brgy</option>
         </select>
@@ -193,40 +193,40 @@ function SignUpForm({ onClick, onSuccess }) {
   return (
     <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
       <Toast message={toastMessage} toastType={toastType}></Toast>
-      <label>
+      <label htmlFor="signup-role">
         Role
-        <select name="role" value={selectedRole} onChange={handleRoleChange}>
+        <select id="signup-role" name="role" value={selectedRole} onChange={handleRoleChange}>
           <option value="citizen">Citizen</option>
           <option value="brgy">Brgy</option>
         </select>
       </label>
       {selectedRole === 'brgy' && (
         <>
-          <label>
+          <label htmlFor="signup-ringserver-url">
             Ringserver Url
-            <input type="text" name="ringserverUrl" />
+            <input id="signup-ringserver-url" type="text" name="ringserverUrl" autoComplete="url" />
           </label>
-          <label>
+          <label htmlFor="signup-ringserver-port">
             Ringserver Port
-            <input type="text" name="ringserverPort" />
+            <input id="signup-ringserver-port" type="text" name="ringserverPort" inputMode="numeric" />
           </label>
         </>
       )}
-      <label>
+      <label htmlFor="signup-email">
         Email
-        <input type="text" name="email" />
+        <input id="signup-email" type="text" name="email" autoComplete="email" />
       </label>
-      <label>
+      <label htmlFor="signup-username">
         Username
-        <input type="text" name="username" />
+        <input id="signup-username" type="text" name="username" autoComplete="username" />
       </label>
-      <label>
+      <label htmlFor="signup-password">
         Password
-        <input type="password" name="password" />
+        <input id="signup-password" type="password" name="password" autoComplete="new-password" />
       </label>
-      <label>
+      <label htmlFor="signup-password-confirm">
         Confirm Password
-        <input type="password" name="confirmPassword" />
+        <input id="signup-password-confirm" type="password" name="confirmPassword" autoComplete="new-password" />
       </label>
       <button type="submit">Sign Up</button>
     </Form>

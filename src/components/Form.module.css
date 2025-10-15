@@ -11,8 +11,8 @@
   justify-items: center;
   /* Center auth forms as true modals for better UX */
   align-items: center;
-  padding: 12px;
   z-index: 99999; /* Above header */
+  overflow: auto; /* allow scroll if content taller than viewport */
 }
 
 .form {
@@ -129,6 +129,6 @@ html[data-basemap-theme='imagery'] .form button[type='submit'] {
 }
 
 /* Make the modal width adapt a bit on small screens */
-@media (max-width: 380px) {
+@media (max-width: 480px) {
   .form { width: 92vw; padding: 16px; }
 }

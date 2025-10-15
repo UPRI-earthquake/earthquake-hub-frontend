@@ -346,6 +346,8 @@ function SidebarInfo({
               <SearchIcon />
               <input
                 type="text"
+                id="sidebar-search"
+                name="search"
                 placeholder={
                   selectedDatasetKey === 'all-stations'
                     ? 'Search by ID or name'
@@ -487,6 +489,8 @@ function SidebarInfo({
                   />
                 </div>
                 <input
+                  id="mag-min"
+                  name="magMin"
                   type="range"
                   min="0"
                   max="10"
@@ -498,6 +502,8 @@ function SidebarInfo({
                   title="Minimum magnitude"
                 />
                 <input
+                  id="mag-max"
+                  name="magMax"
                   type="range"
                   min="0"
                   max="10"
@@ -549,6 +555,8 @@ function SidebarInfo({
               <div className={styles.label} title="Filter start date">Start date</div>
               <input
                 className={styles.dateInput}
+                id="filter-start-date"
+                name="startDate"
                 type="date"
                 value={defaultFilters?.startDate || ''}
                 min={filterBounds?.minDate || undefined}
@@ -569,6 +577,8 @@ function SidebarInfo({
               <div className={styles.label} title="Filter end date">End date</div>
               <input
                 className={styles.dateInput}
+                id="filter-end-date"
+                name="endDate"
                 type="date"
                 value={defaultFilters?.endDate || ''}
                 min={filterBounds?.minDate || undefined}
