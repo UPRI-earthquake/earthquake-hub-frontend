@@ -1,27 +1,24 @@
 import React, { useMemo } from 'react';
-import { LayersControl, TileLayer } from 'react-leaflet';
+import { LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import RemoteGeoJSONOverlay from '../RemoteGeoJSONOverlay';
 import { buildFaultTooltip, buildPlateTooltip } from './overlayTooltips';
 import { DATASETS } from '../../config/datasets';
-import { OVERLAYS } from '../../config/mapLayers';
 
 const { Overlay } = LayersControl;
 
 /**
- * Overlay layers: faults, plates, and optional population density.
+ * Overlay layers: faults and plates.
  * Expects refs setters and helpers from the parent MapLayersControl to keep
  * style and legend state in sync.
  */
 export default function OverlayLayers({
   setFaultsRef,
   setPlatesRef,
-  setPopRef,
   faultsStyleFor,
   platesStyleFor,
   makeOnEachWith,
 }) {
-  const pop = useMemo(() => OVERLAYS.PopulationDensity_XYZ(), []);
   // Use a single shared Canvas renderer with a higher click/hover tolerance
   // so both Faults and Plates participate in the same hit-testing layer.
   const vectorRenderer = useMemo(() => L.canvas({ padding: 0.5, tolerance: 12 }), []);
@@ -59,11 +56,7 @@ export default function OverlayLayers({
         />
       </Overlay>
 
-      {pop && pop.url ? (
-        <Overlay name="Population Density">
-          <TileLayer ref={setPopRef} url={pop.url} {...(pop.options || {})} />
-        </Overlay>
-      ) : null}
+      {/* Population overlay removed */}
     </>
   );
 }

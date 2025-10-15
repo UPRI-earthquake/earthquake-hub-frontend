@@ -25,13 +25,7 @@ const META = {
     source: 'PB2002 (Bird, 2003) via tectonicplates',
     lastUpdateHintUrl: DATASETS.PLATES.cdnUrl,
   },
-  population: {
-    label: 'Population Density',
-    source: 'WorldPop (or configured provider)',
-    units: 'people/km²',
-    // Try to infer last update from XYZ template by probing z/x/y = 0/0/0
-    lastUpdateFromTemplateEnv: 'REACT_APP_POP_XYZ_URL',
-  },
+  // Population overlay removed
 };
 
 // Commit-first last updated for GitHub-backed CDN sources; falls back to HEAD Last-Modified
@@ -63,56 +57,7 @@ function useLastUpdatedGitHubFirst(url) {
   return res;
 }
 
-// Simple HEAD Last-Modified/Date for non-GitHub XYZ sources (e.g., Population tiles)
-function useHeadLastModified(url) {
-  const [iso, setIso] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    if (!url) {
-      setIso(null);
-      return undefined;
-    }
-    const controller = new AbortController();
-    const cacheKey = `lm:${url}`;
-    try {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        setIso(cached);
-        return undefined;
-      }
-    } catch (_) {}
-    (async () => {
-      try {
-        const res = await fetch(url, {
-          method: 'HEAD',
-          cache: 'no-cache',
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(`HEAD ${res.status}`);
-        const lm =
-          res.headers.get &&
-          (res.headers.get('Last-Modified') ||
-            res.headers.get('last-modified') ||
-            res.headers.get('Date') ||
-            res.headers.get('date'));
-        const next = lm ? new Date(lm).toISOString() : null;
-        if (!cancelled) {
-          setIso(next);
-          try {
-            if (next) sessionStorage.setItem(cacheKey, next);
-          } catch (_) {}
-        }
-      } catch (_) {
-        if (!cancelled) setIso(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [url]);
-  return iso;
-}
+// Population HEAD Last-Modified helper removed
 
 // Depth ramp chips only (no toggle here)
 function DepthRampSub() {
@@ -192,7 +137,7 @@ function LegendContent({ active, tokens }) {
     () => ({
       faults: active.has('faults'),
       plates: active.has('plates'),
-      population: active.has('population'),
+      // Population overlay removed
       stations: active.has('stations'),
       earthquakes: active.has('earthquakes'),
     }),
@@ -200,26 +145,15 @@ function LegendContent({ active, tokens }) {
   );
 
   // Try to compute last-updated for each where possible
-  const popUrlTemplate = (() => {
-    try {
-      return (window && window.ENV && window.ENV[META.population.lastUpdateFromTemplateEnv]) || '';
-    } catch (e) {
-      return '';
-    }
-  })();
-  const popHeadUrl = useMemo(() => {
-    if (!popUrlTemplate) return null;
-    return popUrlTemplate.replace('{z}', '0').replace('{x}', '0').replace('{y}', '0');
-  }, [popUrlTemplate]);
+  // Population overlay removed
 
   const faultsLU = useLastUpdatedGitHubFirst(shown.faults ? META.faults.lastUpdateHintUrl : null);
   const platesLU = useLastUpdatedGitHubFirst(shown.plates ? META.plates.lastUpdateHintUrl : null);
-  const popLM = useHeadLastModified(shown.population ? popHeadUrl : null);
+  // Population overlay removed
 
   // Legend is display-only; no overlay toggling here for clarity
 
-  const anyShown =
-    shown.faults || shown.plates || shown.population || shown.stations || shown.earthquakes;
+  const anyShown = shown.faults || shown.plates || shown.stations || shown.earthquakes;
   const hints = {
     earthquakes: 'Marker size ∝ Earthquake magnitude',
     faults: 'Mapped active faults (GEM)',
@@ -336,28 +270,7 @@ function LegendContent({ active, tokens }) {
           </div>
         </div>
       )}
-      {shown.population && (
-        <div className="legend-item" data-key="population" title="Population density">
-          <div className="legend-swatch">
-            {/* simple 4-step ramp */}
-            <span className="swatch-ramp">
-              <i style={{ background: '#f7fbff' }} />
-              <i style={{ background: '#c6dbef' }} />
-              <i style={{ background: '#6baed6' }} />
-              <i style={{ background: '#2171b5' }} />
-            </span>
-          </div>
-          <div className="legend-meta">
-            <div className="legend-label">
-              {META.population.label} ({META.population.units})
-            </div>
-            <div className="legend-source-line">{META.population.source}</div>
-            <div className="legend-update-line">
-              {popLM ? `Last update: ${new Date(popLM).toLocaleDateString()}` : 'Last update: —'}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Population overlay removed */}
       {shown.stations && (
         <div className="legend-item" data-key="stations" title={hints.stations}>
           <div className="legend-swatch">

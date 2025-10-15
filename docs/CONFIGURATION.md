@@ -10,7 +10,7 @@ Environment and runtime configuration for the frontend.
 ## Important variables
 
 - `REACT_APP_BACKEND` / `REACT_APP_BACKEND_DEV`: API base URLs
-- `REACT_APP_POP_XYZ_URL`: Optional population density XYZ template used by Legend/overlays
+ 
 
 ## Map configuration
 
@@ -23,4 +23,3 @@ Environment and runtime configuration for the frontend.
 
 - Registration: `src/serviceWorkerRegistration.js`
 - Worker: `src/service-worker.js`
-

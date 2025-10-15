@@ -8,7 +8,7 @@ This document defines UX placement, behaviors, data contracts, and implementatio
 
 ## Legend & Layers
 
-Purpose: Provide users controls to switch base maps and toggle overlays: Fault Lines, Plate Boundaries, Stations, Earthquakes, and optional Population.
+Purpose: Provide users controls to switch base maps and toggle overlays: Fault Lines, Plate Boundaries, Stations, and Earthquakes.
 
 Placement: Layers panel at top-right; Legend panel at bottom-right (collapsible).
 
@@ -28,7 +28,7 @@ Data & Layers
   - Stations: From `/device/all`. Triangle icon; status shown in popup with real-time plot when streaming.
   - Fault Lines: Static GeoJSON (GEM) loaded from CDN.
   - Plate Boundaries: Static GeoJSON (PB2002) loaded from CDN.
-  - Population Density (optional): XYZ tiles via env (`REACT_APP_POP_XYZ_URL`).
+ 
 
 Performance
 
@@ -69,7 +69,7 @@ Acceptance Criteria
 ### Implementation Notes (Updated)
 
 - A custom Leaflet control (`LegendControl`) renders a collapsible legend in the bottom-right, synced to `LayersControl` via a lightweight overlay registry.
-- Supported overlays for dynamic legend entries: Faults, Plate Boundaries, Population Density (shows units and source; tries to infer last update via `Last-Modified`).
+- Supported overlays for dynamic legend entries: Faults, Plate Boundaries.
 - Tooltips: the Layers toggle and Legend collapse button expose `title` and `aria-label` attributes for mouse/keyboard users.
 - No new dependencies; control uses React portal to render into a Leaflet control container.
 
@@ -85,7 +85,7 @@ Content
 - Stations: Triangle swatch; status indicated in station popup (no counts in legend).
 - Fault Lines: Line swatch matching current theme/zoom.
 - Plates: Dashed line swatch.
-- Population: 4-step color ramp (people/km²).
+ 
 
 Behavior
 

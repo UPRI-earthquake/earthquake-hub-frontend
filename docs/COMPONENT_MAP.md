@@ -17,7 +17,7 @@
   - **Map:** react-leaflet `MapContainer` with controls (`src/pages/HomePage.jsx:1`)
     - Base maps and overlays via **MapLayersControl** (`src/components/MapLayersControl.jsx:1`)
       - Base maps provided by `src/components/layers/BasemapLayers.jsx:1`
-      - Overlays (Faults, Plates, Population) by `src/components/layers/OverlayLayers.jsx:1`
+      - Overlays (Faults, Plates) by `src/components/layers/OverlayLayers.jsx:1`
     - Layer visibility sync/context: **OverlayStateProvider** (`src/components/OverlayStateContext.js:1`)
     - Bottom-right legend and metadata: **LegendControl** (`src/components/LegendControl.jsx:1`)
     - Top-left controls: **ZoomControl**, **ResetViewControl** (`src/components/ResetViewControl.jsx:1`)

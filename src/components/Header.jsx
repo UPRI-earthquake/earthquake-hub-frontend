@@ -129,7 +129,7 @@ const Header = ({ initStations = [] }) => {
       <div className={styles.headerContent}>
         <div className={styles.headerLeft}>
           <Logo className={styles.logo} role="img" aria-label="UPRI logo" />
-          <h1 title="Community Seismology • UPRI">CS•UPRI</h1>
+          <h1 title="Citizen Science • UPRI">CS•UPRI</h1>
           {/* Temporarily hide header stations online indicator to avoid redundancy with sidebar */}
           {false && (
             <p>

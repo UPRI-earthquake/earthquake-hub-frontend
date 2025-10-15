@@ -51,4 +51,4 @@
   - **Basemaps:** via leaflet-providers (OSM, Carto Light/Dark, Esri Imagery) (`src/config/mapLayers.js:1`, `src/components/layers/BasemapLayers.jsx:1`)
   - **Overlays:**
     - Faults (GEM) and Plates (PB2002) loaded as GeoJSON from CDN (`src/config/datasets.js:1`, `src/components/layers/OverlayLayers.jsx:1`)
-    - Population density (optional): XYZ tiles via `REACT_APP_POP_XYZ_URL` (`src/config/mapLayers.js:1`)
+    

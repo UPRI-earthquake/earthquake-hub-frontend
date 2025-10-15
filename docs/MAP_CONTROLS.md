@@ -13,7 +13,7 @@ Documents the custom Leaflet controls and their responsibilities.
 
 - Component: `src/components/LegendControl.jsx`
 - CSS: `src/components/legend.css`
-- Shows symbology and metadata (source, last updated) for Faults, Plates, and Population tiles
+- Shows symbology and metadata (source, last updated) for Faults and Plates
 - Collapsible; mirrors overlay visibility state
 
 ## Reset View
@@ -30,4 +30,3 @@ Documents the custom Leaflet controls and their responsibilities.
 
 - `ZoomControl`, `ScaleControl` configured in `src/pages/HomePage.jsx`
 - Styling and theming in `src/index.css`
-

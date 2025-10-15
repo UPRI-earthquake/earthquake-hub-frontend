@@ -13,6 +13,7 @@ import './mapLayers.css';
 import { useOverlayState } from './OverlayStateContext';
 import BasemapLayers from './layers/BasemapLayers';
 import OverlayLayers from './layers/OverlayLayers';
+import { ATTRIBUTIONS } from '../config/attribution';
 // Removed metadata injection in Layers panel; keep lastUpdated utils for Legend only
 
 /**
@@ -40,7 +41,6 @@ export default function MapLayersControl({ children }) {
   // Refs for registering overlays with the legend sync
   const faultsRef = useRef(null);
   const platesRef = useRef(null);
-  const popRef = useRef(null);
   const customLayersToggleRef = useRef(null);
   const cleanupRefs = useRef({});
 
@@ -48,7 +48,13 @@ export default function MapLayersControl({ children }) {
     (node) => {
       const layer = node && (node.leafletElement || node);
       faultsRef.current = layer;
-      if (layer) registerLayer('faults', layer);
+      if (layer) {
+        try {
+          // Expose attribution for Leaflet control; wrap with a marker class for formatting
+          layer.getAttribution = () => `<span class="attr-line attr-faults">${ATTRIBUTIONS.GEMFaults}</span>`;
+        } catch (_) {}
+        registerLayer('faults', layer);
+      }
     },
     [registerLayer],
   );
@@ -57,19 +63,17 @@ export default function MapLayersControl({ children }) {
     (node) => {
       const layer = node && (node.leafletElement || node);
       platesRef.current = layer;
-      if (layer) registerLayer('plates', layer);
+      if (layer) {
+        try {
+          layer.getAttribution = () => `<span class="attr-line attr-plates">${ATTRIBUTIONS.PB2002}</span>`;
+        } catch (_) {}
+        registerLayer('plates', layer);
+      }
     },
     [registerLayer],
   );
 
-  const setPopRef = useCallback(
-    (node) => {
-      const layer = node && (node.leafletElement || node);
-      popRef.current = layer;
-      if (layer) registerLayer('population', layer);
-    },
-    [registerLayer],
-  );
+  // Population overlay removed
 
   // Ensure Layers opens/closes on click (not hover) and add tooltip/ARIA
   useEffect(() => {
@@ -627,7 +631,6 @@ export default function MapLayersControl({ children }) {
       faults: 'Active fault lines',
       plates: 'Plate boundary lines',
       stations: 'Station markers',
-      population: 'Population density shading',
     };
     const applyOverlayHints = () => {
       const rows = ctrl.querySelectorAll('.leaflet-control-layers-overlays label');
@@ -649,7 +652,6 @@ export default function MapLayersControl({ children }) {
         if (t === 'fault lines') return 'faults';
         if (t === 'plate boundaries') return 'plates';
         if (t === 'stations') return 'stations';
-        if (t === 'population density') return 'population';
         return null;
       };
       overlays.querySelectorAll('label').forEach((lab) => {
@@ -711,10 +713,13 @@ export default function MapLayersControl({ children }) {
       id = requestAnimationFrame(restyle);
     };
     schedule();
+    // Update styles continuously during zoom/fly animations for smoother transitions
+    map.on('zoom', schedule);
     map.on('zoomend', schedule);
     map.on('baselayerchange', schedule);
     return () => {
       cancelAnimationFrame(id);
+      map.off('zoom', schedule);
       map.off('zoomend', schedule);
       map.off('baselayerchange', schedule);
     };
@@ -931,7 +936,6 @@ export default function MapLayersControl({ children }) {
       <OverlayLayers
         setFaultsRef={setFaultsRef}
         setPlatesRef={setPlatesRef}
-        setPopRef={setPopRef}
         faultsStyleFor={faultsStyleFor}
         platesStyleFor={platesStyleFor}
         makeOnEachWith={makeOnEachWith}

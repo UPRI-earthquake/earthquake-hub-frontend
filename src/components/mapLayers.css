@@ -412,3 +412,8 @@
 .leaflet-container[data-basemap-theme='imagery'] .remote-geojson-layer.selected-glow {
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95));
 }
+
+/* Smooth stroke updates for vector overlays on zoom/theme changes */
+path.remote-geojson-layer {
+  transition: stroke-width 180ms ease, opacity 180ms ease, stroke 180ms ease;
+}
