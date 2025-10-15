@@ -1,14 +1,20 @@
 Performance TODOs and Risk Assessment
 
-Scope: Frontend (CRA + Leaflet) and static serving via Nginx.
+Scope: Frontend (CRA + Leaflet) and API backend (Express).
 
-Safe changes already applied
-- Non‑blocking Leaflet CSS in `public/index.html` using preload+onload swap. Keeps initial paint fast without changing appearance.
-- `config.js` marked `defer` to avoid blocking HTML parsing while preserving execution order.
-- `web-vitals` and push `subscribeUser()` are lazy‑loaded on idle to keep main bundle lean.
-- EventSource polyfill is now conditionally loaded only when needed (older browsers).
-- Nginx now serves hashed assets with long cache lifetimes, disables HTML/config caching, and enables gzip.
-- Service worker adds runtime caching for common map tile providers to speed up repeat visits.
+Safe changes applied (non‑breaking)
+- Leaflet CSS is loaded non‑blocking via `preload` with onload‑swap in `public/index.html`.
+- Reduced preconnects in `public/index.html` to <= 4 origins (OSM + one Carto) to address Lighthouse’s “too many preconnects”.
+- `web-vitals` and push `subscribeUser()` are lazy‑loaded on idle to keep main bundle lean (see `src/index.js`).
+- EventSource polyfill is now conditionally loaded only when needed (older browsers) in `hooks/useEventsFeed.js`.
+- Added short `Cache-Control` for `GET /device/all` (60s) to reduce backend load on initial map load; SSE updates still reflect live status.
+- Sidebar earthquake items, station list items, and significant‑EQ cards are keyboard accessible (role=button, tabIndex, Enter/Space handlers).
+- Service worker includes runtime caching for common map tile providers to improve repeat visits.
+- Leaflet CSS deduped: removed bundled import in `src/components/MapView.jsx:1` and kept the non‑blocking CDN link in `public/index.html`. This reduces render‑blocking.
+
+Notes about dev vs prod measurements
+- Lighthouse warnings like “minify JS/CSS” and “render‑blocking requests” often reflect the CRA Dev Server. Build with `npm run build` for a minified, code‑split, deferred production bundle.
+- `public/config.js` intentionally remains non‑deferred to guarantee it loads before dev server bundles execute (apps read `window.ENV`). In production this is a tiny file and not material to TTI.
 
 Proposed changes requiring validation (may be breaking)
 1) Replace `moment` with `dayjs`
@@ -19,13 +25,9 @@ Proposed changes requiring validation (may be breaking)
      - Convert features incrementally: start with `SidebarItems.jsx` and UI formatting, then map popups, then SSE processing.
      - Keep `moment` temporarily for components needing hard‑to‑migrate semantics; remove once parity is verified.
 
-2) Extract map‑only CSS out of `src/index.css`
-   - Why: Reduce unused CSS on routes without the map. Allows CSS to load with the lazy map chunk.
-   - Risk: Missing selector specificity when moved; timing of CSS load if map renders immediately.
-   - Plan:
-     - Move `.leaflet-*` and map control selectors into `src/map.css`.
-     - Import `map.css` from a lazily loaded `MapView` component.
-     - Verify visual parity across light/dark/imagery themes.
+2) Leaflet CSS source of truth (DONE: CDN)
+   - We chose the CDN non‑blocking link and removed the bundled import. This improves first paint.
+   - Risk: Offline dev or networks blocking unpkg could see missing core Leaflet styles. If this is a common scenario, revert to bundled import or host the CSS locally under `public/` and preload from there.
 
 3) Lazy‑load Leaflet + map tree as a separate chunk
    - Why: Further shorten the critical path; the homepage is map‑first but splitting reduces script parse/compile on slow devices.
@@ -54,8 +56,9 @@ Proposed changes requiring validation (may be breaking)
    - Why: Some GET endpoints could permit short‑lived caching to reduce load and TTFB.
    - Risk: Stale data for rapidly changing feeds; SSE endpoints must remain non‑cached.
    - Plan:
-     - Identify safe endpoints (e.g., significant events summaries).
-     - Add `Cache-Control` with conservative max‑age and `ETag` if feasible.
+     - Already added: `GET /device/all` (60s). Validate with prod traffic.
+     - Consider: `GET /significant-eqs/all` (already 300s). Optionally add `ETag` for stronger caching.
+     - Avoid caching: auth, `/device/status`, and SSE.
 
 7) HTTP/2 and TLS termination
    - Why: Multiplexing reduces request latency for many small assets.
@@ -63,7 +66,11 @@ Proposed changes requiring validation (may be breaking)
    - Plan: Enable HTTP/2 on the reverse proxy/ingress that fronts Nginx.
 
 Validation checklist
-- Lighthouse: Verify render‑blocking CSS eliminated, TBT doesn’t regress, and cache lifetimes recognized.
+- Lighthouse: Verify render‑blocking requests reduced (esp. preconnect warning), TBT doesn’t regress, and cache lifetimes recognized.
 - Bundle size: Track main bundle reduction after lazy imports and optional moment→dayjs migration.
 - Functional tests: Map renders fine, SSE updates flow, station realtime plot works after on‑demand load.
 
+Quick TODOs (small, safe)
+- [ ] Audit other clickable containers for keyboard accessibility (e.g., any remaining `onClick` on `div`).
+- [ ] If ArcGIS is often selected as base, swap one Carto preconnect for ArcGIS to keep ≤ 4 preconnects.
+- [ ] Confirm `Cache-Control` headers propagate correctly through reverse proxy/CDN.

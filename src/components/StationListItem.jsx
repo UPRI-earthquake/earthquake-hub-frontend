@@ -148,7 +148,16 @@ export default function StationListItem({ station }) {
       title={tooltipText}
       data-tip={tooltipText}
       role="button"
+      /* Make the row keyboard-focusable for accessibility */
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        // Activate on Enter/Space to match button behavior
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       onMouseEnter={refreshTooltipFromAPI}
       onFocus={refreshTooltipFromAPI}
       data-selectid={`station:${code}`}

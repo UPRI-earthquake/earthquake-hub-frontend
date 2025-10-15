@@ -21,8 +21,6 @@ const MapView = lazy(() => import('../components/MapView'));
  * Main map page with live SSE updates, filters, and sidebar controls.
  * Keeps station list and event stream local to the page.
  *
- * TODO(frontend-team): Extract data fetching and SSE wiring into hooks — simplifies component and improves testability.
- * TODO(frontend-team): Virtualize long lists in SidebarItems — to keep scrolling smooth with many events.
  * @returns {JSX.Element}
  */
 const HomePage = () => {

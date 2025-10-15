@@ -7,7 +7,20 @@ import bgImage from '../assets/UPRI_sultan_kudarat.png';
  */
 const Card = ({ title, magnitude, location, date, time, description, onClick }) => {
   return (
-    <div className="card" style={{ backgroundImage: `url(${bgImage})` }} onClick={onClick}>
+    <div
+      className="card"
+      style={{ backgroundImage: `url(${bgImage})` }}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open details for ${title || 'earthquake'} at ${location}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick && onClick();
+        }
+      }}
+    >
       <div className="card-content">
         <h4>{title}</h4>
         <div className="hover-details">

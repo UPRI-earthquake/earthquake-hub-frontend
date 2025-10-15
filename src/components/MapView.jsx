@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+// Leaflet CSS is loaded via non-blocking CDN link in public/index.html to avoid render-blocking
 import '../map.css';
 
 import MapLayersControl from './MapLayersControl';
@@ -66,4 +66,3 @@ function MapView({ datasetKey, holdEqMarkers, events, filters, sseEnabled, custo
 }
 
 export default MapView;
-

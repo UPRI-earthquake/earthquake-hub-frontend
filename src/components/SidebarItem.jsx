@@ -58,6 +58,15 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
     <div
       className={`${styles.sidebarItem} ${isSelected ? styles.selected : ''}`}
       onClick={handleClick}
+      role="button"
+      /* a11y: make selectable item keyboard operable */
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       ref={output}
       data-publicid={publicID}
       data-selectid={publicID}
