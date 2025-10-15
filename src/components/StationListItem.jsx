@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect, useContext } from 'react';
 import styles from './StationListItem.module.css';
-import moment from 'moment';
+import moment from '../utils/time';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import SSEContext from '../SSEContext';

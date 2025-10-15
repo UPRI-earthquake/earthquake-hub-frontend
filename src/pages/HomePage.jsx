@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useDispatch } from 'react-redux';
-import moment from 'moment';
-import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane } from 'react-leaflet';
+import moment from '../utils/time';
 import './homePage.css';
 import Sidebar from '../components/Sidebar';
 import SidebarInfo from '../components/SidebarInfo';
@@ -12,18 +11,11 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
 import SSEContext from '../SSEContext';
 import { resetToPH } from '../utils/resetView';
-import { OverlayStateProvider } from '../components/OverlayStateContext';
-import RegisterableLayerGroup from '../components/RegisterableLayerGroup';
+// Map is now loaded as a separate chunk
 import { useAppData } from '../hooks/useAppData';
 
-// Heavy components below are lazy-loaded to shorten the critical path.
-// This reduces initial bundle size and improves LCP without changing behavior.
-const StationMarkers = lazy(() => import('../components/StationMarkers'));
-const EventMarkers = lazy(() => import('../components/EventMarkers'));
-const MapLayersControl = lazy(() => import('../components/MapLayersControl'));
-const AttributionControl = lazy(() => import('../components/AttributionControl'));
-const LegendControl = lazy(() => import('../components/LegendControl'));
-const ResetViewControl = lazy(() => import('../components/ResetViewControl'));
+// Heavy map tree is lazy-loaded as a single chunk
+const MapView = lazy(() => import('../components/MapView'));
 
 /**
  * Main map page with live SSE updates, filters, and sidebar controls.
@@ -314,70 +306,17 @@ const HomePage = () => {
                     />
                   )}
                 </Sidebar>
-                {/**
-                 * TODO(perf): Consider extracting the entire map area into a lazily
-                 * loaded <MapView /> that imports react-leaflet internally. That would
-                 * move Leaflet and map-related code out of the initial route bundle.
-                 */}
-                <MapContainer
-                  center={[12.2795, 122.049]}
-                  zoom={6}
-                  minZoom={2}
-                  zoomControl={false}
-                  worldCopyJump
-                  // Hard-stop vertically at WebMercator limits, but keep
-                  // very wide longitudes so horizontal panning is not blocked.
-                  maxBounds={[
-                    [-85.0511, -360],
-                    [85.0511, 360],
-                  ]}
-                  maxBoundsViscosity={1.0}
-                  preferCanvas
-                  whenCreated={(m) => (window.__leaflet_map__ = m)}
-                >
-                  {/* Ensure the custom EQ pane exists before any markers mount */}
-                  <Pane name="eqMarkers" style={{ zIndex: 620, pointerEvents: 'auto' }} />
-                  {/* Zoom at top-left (requested) */}
-                  <ZoomControl position="topleft" />
-                  {/* Reset to Philippines bbox, placed under Zoom with spacing */}
-                  <ResetViewControl position="topleft" />
-                  {/* Global attribution control without Leaflet prefix */}
-                  <AttributionControl />
-                  {/* Legend + Basemaps/Overlays with synced state */}
-                  <OverlayStateProvider>
-                    <Suspense fallback={null}>
-                      <MapLayersControl>
-                      <LayersControl.Overlay checked name="Earthquakes">
-                        {/**
-                         * Key the LayerGroup by the active dataset so Leaflet gets a
-                         * brand‑new group whenever datasets switch. This prevents any
-                         * stale markers from a previous dataset lingering in the group
-                         * when the overlay is toggled off and later re‑enabled.
-                         */}
-                        <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
-                          {/* Render earthquake markers after map settles back to PH */}
-                          {!holdEqMarkers && (
-                            <EventMarkers
-                              initEvents={customEvents || events}
-                              filters={{ ...filters, searchText }}
-                              sseEnabled={sseEnabled}
-                              datasetKey={datasetKey}
-                            />
-                          )}
-                        </RegisterableLayerGroup>
-                      </LayersControl.Overlay>
-                      <LayersControl.Overlay checked name="Stations">
-                        <RegisterableLayerGroup overlayId="stations">
-                          <StationMarkers initStations={stationsRef.current} />
-                        </RegisterableLayerGroup>
-                      </LayersControl.Overlay>
-                      </MapLayersControl>
-                      {/* Metric scalebar; always top-center (mobile style) */}
-                      <ScaleControl position="topleft" metric imperial={false} maxWidth={140} />
-                      <LegendControl />
-                    </Suspense>
-                  </OverlayStateProvider>
-                </MapContainer>
+                <Suspense fallback={null}>
+                  <MapView
+                    datasetKey={datasetKey}
+                    holdEqMarkers={holdEqMarkers}
+                    events={customEvents || events}
+                    filters={{ ...filters, searchText }}
+                    sseEnabled={sseEnabled}
+                    customEvents={customEvents}
+                    stations={stationsRef.current}
+                  />
+                </Suspense>
               </SSEContext.Provider>
             </div>
           </div>

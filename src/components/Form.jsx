@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
+import { backendHost } from '../utils/env';
 import styles from './Form.module.css';
 import Toast from './Toast';
 import { devlog, deverror } from '../utils/devlog';
@@ -65,10 +66,8 @@ function Form({ children, title, onClick, onSubmit }) {
  * Sign in form. Calls onSuccess(username, role) on successful auth.
  */
 function SignInForm({ onClick, onSuccess }) {
-  const backend_host =
-    process.env.NODE_ENV === 'production'
-      ? window['ENV'].REACT_APP_BACKEND
-      : window['ENV'].REACT_APP_BACKEND_DEV;
+  // Use runtime environment config; no hard-coded defaults (expect .env to be set)
+  const backend_host = backendHost();
 
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
@@ -136,10 +135,8 @@ function SignInForm({ onClick, onSuccess }) {
  * Sign up form. Calls onSuccess() after successful registration.
  */
 function SignUpForm({ onClick, onSuccess }) {
-  const backend_host =
-    process.env.NODE_ENV === 'production'
-      ? window['ENV'].REACT_APP_BACKEND
-      : window['ENV'].REACT_APP_BACKEND_DEV;
+  // Use runtime environment config; no hard-coded defaults (expect .env to be set)
+  const backend_host = backendHost();
 
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');

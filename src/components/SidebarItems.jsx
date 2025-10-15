@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import moment from 'moment';
+import moment from '../utils/time';
 import SidebarItem from './SidebarItem';
 
 /**

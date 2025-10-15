@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import moment from 'moment';
+import moment from '../utils/time';
 import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import { useSelector, useDispatch } from 'react-redux';

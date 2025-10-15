@@ -9,6 +9,7 @@ import { Dashboard } from './Dashboard';
 import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
 // import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
 import axios from 'axios';
+import { backendHost } from '../utils/env';
 import Toast from './Toast';
 import { devwarn, deverror } from '../utils/devlog';
 
@@ -81,10 +82,8 @@ const Header = ({ initStations = [] }) => {
   useEffect(() => {
     const accessTokenExistenceCheck = async () => {
       try {
-        const backend_host =
-          process.env.NODE_ENV === 'production'
-            ? window['ENV'].REACT_APP_BACKEND
-            : window['ENV'].REACT_APP_BACKEND_DEV;
+        // Read API host from runtime env (no defaults; .env is expected to be configured)
+        const backend_host = backendHost();
         axios.defaults.withCredentials = true;
         const response = await axios.get(`${backend_host}/accounts/profile`, {
           // Treat 401/403 as handled results instead of throwing errors (keeps console clean)

@@ -5,7 +5,7 @@ import './EQInfoPage.css';
 import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles';
 import axios from 'axios';
-import moment from 'moment';
+import moment from '../utils/time';
 
 /**
  * Significant Earthquake detail page. Fetches event information by `id` from

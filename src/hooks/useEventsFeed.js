@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import axios from 'axios';
-import moment from 'moment';
+import moment from '../utils/time';
 // Performance: avoid shipping the EventSource polyfill to modern browsers.
 // We dynamically import it only if the native API is unavailable.
 function backendHost() {

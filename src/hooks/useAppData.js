@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import moment from 'moment';
+import moment from '../utils/time';
 import { useStations } from './useStations';
 import { useEventsFeed } from './useEventsFeed';
 

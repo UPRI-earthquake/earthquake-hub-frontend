@@ -5,9 +5,10 @@ import { DivIcon } from 'leaflet';
 import { ReactComponent as Logo } from '../assets/triangle.svg';
 import styles from './StationMarker.module.css';
 import SSEContext from '../SSEContext';
-import moment from 'moment';
+import moment from '../utils/time';
 import axios from 'axios';
-import * as sp from 'seisplotjs';
+// Defer loading of the heavy seisplotjs library until the popup/graph is used
+import { ringserverWS } from '../utils/env';
 import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
@@ -24,23 +25,40 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const connected = useRef(false); // flag used in connectDataLinkWS(), ws is not connected by default
   const demoTimerRef = useRef(null);
   const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
-  const ringserver_ws =
-    process.env.NODE_ENV === 'production'
-      ? window['ENV'].REACT_APP_RINGSERVER_WS
-      : window['ENV'].REACT_APP_RINGSERVER_WS_DEV;
+  const ringserver_ws = ringserverWS();
 
-  /* Graph data from DataLink WebSocket */
-  const duration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 45 });
-  const graphDuration = sp.luxon.Duration.fromObject({ minutes: 2, seconds: 30 }); // Set the graphDuration 30 seconds shorter than the duration to make the trace look more realtime
-  const timeWindow = new sp.util.durationEnd(duration, sp.luxon.DateTime.utc());
-  const seisPlotConfig = new sp.seismographconfig.SeismographConfig();
-  seisPlotConfig.wheelZoom = false;
-  seisPlotConfig.linkedTimeScale.offset = sp.luxon.Duration.fromMillis(-1 * duration.toMillis());
-  seisPlotConfig.linkedTimeScale.duration = graphDuration;
-  seisPlotConfig.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();
-  seisPlotConfig.doGain = true;
-  seisPlotConfig.isRelativeTime = true; // Display the time to be relative from the current time (in millis)
-  seisPlotConfig.xLabel = 'Time (seconds)';
+  // Lazy-loaded seisplotjs and derived config/state
+  const spRef = useRef(null);
+  const durationRef = useRef(null);
+  const graphDurationRef = useRef(null);
+  const timeWindowRef = useRef(null);
+  const seisPlotConfigRef = useRef(null);
+
+  const ensureSeis = useCallback(async () => {
+    if (spRef.current && seisPlotConfigRef.current && graphDurationRef.current && timeWindowRef.current) {
+      return spRef.current;
+    }
+    const mod = await import('seisplotjs');
+    spRef.current = mod;
+    const duration = mod.luxon.Duration.fromObject({ minutes: 2, seconds: 45 });
+    const graphDuration = mod.luxon.Duration.fromObject({ minutes: 2, seconds: 30 });
+    const timeWindow = new mod.util.durationEnd(duration, mod.luxon.DateTime.utc());
+    const cfg = new mod.seismographconfig.SeismographConfig();
+    cfg.wheelZoom = false;
+    cfg.linkedTimeScale.offset = mod.luxon.Duration.fromMillis(-1 * duration.toMillis());
+    cfg.linkedTimeScale.duration = graphDuration;
+    cfg.linkedAmplitudeScale = new mod.scale.IndividualAmplitudeScale();
+    cfg.doGain = true;
+    cfg.isRelativeTime = true;
+    cfg.xLabel = 'Time (seconds)';
+    durationRef.current = duration;
+    graphDurationRef.current = graphDuration;
+    timeWindowRef.current = timeWindow;
+    seisPlotConfigRef.current = cfg;
+    return mod;
+  }, []);
+
+  /* Graph data from DataLink WebSocket is configured lazily in ensureSeis() */
 
   const applySeismographTheme = useCallback((plot) => {
     try {
@@ -76,6 +94,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   }, [map]);
 
   const packetHandler = function (packet) {
+    const sp = spRef.current;
+    if (!sp) return;
     if (packet.isMiniseed()) {
       let seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed()); // Create a SeismogramSegment from the packet
       let codes = seisSegment.codes(); // Get the codes (stream ID) of the SeismogramSegment
@@ -89,6 +109,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         let seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seismogram); // Create SeismogramDisplayData from the Seismogram
         seisData.alignmentTime = sp.luxon.DateTime.utc(); // Set the alignment time to current UTC time
 
+        const seisPlotConfig = seisPlotConfigRef.current;
         seisPlot = new sp.seismograph.Seismograph([seisData], seisPlotConfig); // Create a new Seismograph with the SeismogramDisplayData and SeismographConfig
         realtimeDivRef.current.appendChild(seisPlot); // Append the Seismograph to the realtimeDiv
         graphListRef.current.set(codes, seisPlot); // Store the Seismograph in the graphListRef for future reference
@@ -120,12 +141,17 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
    *     errorHandler   (function (error: Error): void)             callback for errors
    *
    ***************************************************************************/
-  datalinkRef.current = new sp.datalink.DataLinkConnection(ringserver_ws, packetHandler, errorFn);
+  const initDatalink = () => {
+    const sp = spRef.current;
+    if (!sp) return;
+    datalinkRef.current = new sp.datalink.DataLinkConnection(ringserver_ws, packetHandler, errorFn);
+  };
 
   const drawGraph = function () {
     if (redrawInProgressRef.current) return; // Skip if redraw is already in progress
     redrawInProgressRef.current = true; // Mark redraw as in progress
     window.requestAnimationFrame(() => {
+      const sp = spRef.current; if (!sp) { redrawInProgressRef.current = false; return; }
       const now = sp.luxon.DateTime.utc();
       graphListRef.current.forEach(function (graph) {
         graph.seisData.forEach((sdd) => {
@@ -153,7 +179,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
           devlog(`response is not OK, ignore... ${matchResponse}`);
         }
 
-        const positionResponse = await datalinkRef.current.positionAfter(timeWindow.start); // Send position after match command
+        const positionResponse = await datalinkRef.current.positionAfter(timeWindowRef.current.start); // Send position after match command
         if (positionResponse.isError()) {
           devlog(`Oops, positionAfter response is not OK, ignore... ${positionResponse}`);
         }
@@ -183,8 +209,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   };
 
   const startGraph = function (network, station) {
+    if (!seisPlotConfigRef.current || !durationRef.current) return;
+    const seisPlotConfig = seisPlotConfigRef.current;
     const timerInterval =
-      duration.toMillis() /
+      durationRef.current.toMillis() /
       (realtimeDivRef.current.offsetWidth -
         seisPlotConfig.margin.left -
         seisPlotConfig.margin.right);
@@ -211,6 +239,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   // MiniSEED demo playback using seisplotjs, looping through file time
   const startDemoFromMseed = async () => {
     try {
+      await ensureSeis();
+      const sp = spRef.current; if (!sp) return;
       stopDemoMseed();
       const url = (window.ENV && window.ENV.REACT_APP_SEIS_DEMO_URL) || demoMseedUrl;
       const resp = await fetch(url, { cache: 'no-store' });
@@ -238,9 +268,11 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       try {
         const theme = themeFromMapContainer(map?.getContainer?.());
         const dark = theme === 'dark' || theme === 'satellite';
-        seisPlotConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
+        if (seisPlotConfigRef.current) {
+          seisPlotConfigRef.current.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
+        }
       } catch (_) {}
-      const plot = new sp.seismograph.Seismograph([sdd], seisPlotConfig);
+      const plot = new sp.seismograph.Seismograph([sdd], seisPlotConfigRef.current);
       realtimeDivRef.current.appendChild(plot);
       graphListRef.current.set(codes, plot);
       applySeismographTheme(plot);
@@ -267,7 +299,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       }
 
       // We want window [-graphDuration .. 0] relative to a moving alignment time.
-      const alignStart = segStart.plus(graphDuration);
+      const alignStart = segStart.plus(graphDurationRef.current);
       const alignEnd = segEnd;
       demoPlaybackRef.current = { plot, sdd, alignStart, alignEnd };
 
@@ -438,10 +470,13 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       if (payload.status === 'Streaming' && demoFlag) {
         // Demo enabled and station is streaming: show demo
         stopDemoMseed();
+        await ensureSeis();
         await startDemoFromMseed();
       } else if (payload.status === 'Streaming') {
         // Non-demo mode: start the real streaming graph
         stopDemoMseed();
+        await ensureSeis();
+        initDatalink();
         startGraph(network, code);
       } else {
         // Not streaming: ensure no demo lingering

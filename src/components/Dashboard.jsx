@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
+import { backendHost } from '../utils/env';
 import { devlog, deverror } from '../utils/devlog';
 import styles from './Dashboard.module.css';
 import Toast from './Toast';
 import { responseCodes } from '../utils/responseCodes';
 import jwtDecode from 'jwt-decode';
-import moment from 'moment';
+import moment from '../utils/time';
 
 const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
@@ -39,10 +40,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
 
   const fetchDevices = async () => {
     try {
-      const backend_host =
-        process.env.NODE_ENV === 'production'
-          ? window['ENV'].REACT_APP_BACKEND
-          : window['ENV'].REACT_APP_BACKEND_DEV;
+      // Read API host from runtime env (no defaults; .env expected to be configured)
+      const backend_host = backendHost();
       axios.defaults.withCredentials = true;
       const response = await axios.get(`${backend_host}/device/my-devices`, {
         validateStatus: (status) => status < 500, // prevent thrown errors for 4xx
@@ -197,10 +196,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
 
   async function handleAddDeviceSubmit(event) {
     event.preventDefault();
-    const backend_host =
-      process.env.NODE_ENV === 'production'
-        ? window['ENV'].REACT_APP_BACKEND
-        : window['ENV'].REACT_APP_BACKEND_DEV;
+    // Read API host from runtime env (no defaults; .env expected to be configured)
+    const backend_host = backendHost();
 
     const network = event.target.elements.network.value;
     const station = event.target.elements.station.value;
@@ -260,10 +257,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
 
   async function requestTokenSubmit(event) {
     event.preventDefault();
-    const backend_host =
-      process.env.NODE_ENV === 'production'
-        ? window['ENV'].REACT_APP_BACKEND
-        : window['ENV'].REACT_APP_BACKEND_DEV;
+    // Read API host from runtime env (no defaults; .env expected to be configured)
+    const backend_host = backendHost();
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/acquire-brgy-token`);
