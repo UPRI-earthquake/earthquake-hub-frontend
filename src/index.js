@@ -2,9 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
+// Defer non-critical modules to reduce main bundle size
+// - service worker registration already waits for 'load' internally
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
-import { subscribeUser } from './services/subscription';
 
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
@@ -34,9 +34,31 @@ ReactDOM.render(
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: https://cra.link/PWA
 serviceWorkerRegistration.register();
-subscribeUser();
+
+// Performance: avoid pulling web-vitals and push subscription into the main bundle.
+// Load them after the app is interactive (idle or post-load), which keeps LCP fast.
+const scheduleIdle = (fn) =>
+  (typeof window !== 'undefined' && 'requestIdleCallback' in window)
+    ? window.requestIdleCallback(fn)
+    : setTimeout(fn, 0);
+
+// Delay push subscription setup
+scheduleIdle(() => {
+  import('./services/subscription')
+    .then(({ subscribeUser }) => {
+      try { subscribeUser(); } catch (_) {}
+    })
+    .catch(() => {});
+});
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+// Lazy-load web-vitals and run when idle so it does not impact TBT
+scheduleIdle(() => {
+  import('./reportWebVitals')
+    .then(({ default: reportWebVitals }) => {
+      try { reportWebVitals(); } catch (_) {}
+    })
+    .catch(() => {});
+});

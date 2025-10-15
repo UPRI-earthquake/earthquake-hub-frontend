@@ -1,8 +1,8 @@
 import { useCallback, useRef } from 'react';
 import axios from 'axios';
 import moment from 'moment';
-import { EventSourcePolyfill } from 'event-source-polyfill';
-
+// Performance: avoid shipping the EventSource polyfill to modern browsers.
+// We dynamically import it only if the native API is unavailable.
 function backendHost() {
   return (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
     ? window['ENV'].REACT_APP_BACKEND
@@ -79,8 +79,12 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
   );
 
   const bindSSE = useCallback(() => {
-    const src = new EventSourcePolyfill(`${backendHost()}/messaging`);
-    eventSourceRef.current = src;
+    let stopped = false;
+    const url = `${backendHost()}/messaging`;
+
+    // Helper to set up listeners on a created EventSource instance
+    const wire = (src) => {
+      eventSourceRef.current = src;
     // With stable publicID, no similarity matching is needed.
     const onError = () => {
       if (
@@ -90,7 +94,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
         console.warn('EventSource error (may be reconnecting)');
       }
     };
-    src.addEventListener('error', onError);
+      src.addEventListener('error', onError);
 
     const onSC = (event) => {
       try {
@@ -172,18 +176,35 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
         }
       }
     };
-    src.addEventListener('SC_EVENT', onSC);
+      src.addEventListener('SC_EVENT', onSC);
 
-    const unbind = () => {
-      try {
-        src.removeEventListener('error', onError);
-      } catch (_) {}
-      try {
-        src.removeEventListener('SC_EVENT', onSC);
-      } catch (_) {}
+      const unbind = () => {
+        try { src.removeEventListener('error', onError); } catch (_) {}
+        try { src.removeEventListener('SC_EVENT', onSC); } catch (_) {}
+      };
+      return { unbind };
     };
 
-    return { unbind };
+    // Create EventSource with native implementation or lazy-loaded polyfill
+    let ret = { unbind: () => { stopped = true; try { eventSourceRef.current && eventSourceRef.current.close && eventSourceRef.current.close(); } catch (_) {} } };
+    try {
+      // Prefer native EventSource when available
+      if (typeof window !== 'undefined' && 'EventSource' in window) {
+        const src = new window.EventSource(url);
+        ret = wire(src);
+      } else {
+        // Lazy-load the polyfill only for browsers without EventSource
+        import('event-source-polyfill')
+          .then(({ EventSourcePolyfill }) => {
+            if (stopped) return; // unbound before polyfill loaded
+            const src = new EventSourcePolyfill(url);
+            ret = wire(src);
+          })
+          .catch(() => {});
+      }
+    } catch (_) {}
+
+    return ret;
   }, [setEvents, sseEnabledRef]);
 
   const closeSSE = useCallback(() => {

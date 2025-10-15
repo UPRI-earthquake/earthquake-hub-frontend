@@ -15,6 +15,14 @@ body {
   color: var(--text-light);
 }
 
+/*
+  NOTE(perf): Most of the Leaflet-specific styles below can be moved into a
+  dedicated map stylesheet (e.g., `src/map.css`) and imported from a lazily
+  loaded MapView component. That would reduce unused CSS for routes that do
+  not render the map. Functionality and appearance would remain the same.
+  TODO(frontend): Extract `.leaflet-*` rules into a map-only CSS file and lazy‑load with the map chunk.
+*/
+
 /* Global, theme-aware scrollbar styling */
 /*
   We style scrollbars across the app and react to the

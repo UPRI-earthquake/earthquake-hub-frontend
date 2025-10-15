@@ -61,6 +61,22 @@ registerRoute(
   }),
 );
 
+// Runtime caching for common map tile providers (cross-origin)
+// This improves repeat navigation performance and resilience when the network is flaky.
+registerRoute(
+  ({ url }) =>
+    (/(?:^|\.)tile\.openstreetmap\.org$/i.test(url.hostname) ||
+      /(?:^|\.)basemaps\.cartocdn\.com$/i.test(url.hostname) ||
+      /(?:^|\.)arcgisonline\.com$/i.test(url.hostname)) &&
+    /\.(?:png|jpg|jpeg|webp)$/.test(url.pathname),
+  new StaleWhileRevalidate({
+    cacheName: 'map-tiles',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 7 * 24 * 3600 }), // keep up to 7 days
+    ],
+  }),
+);
+
 // This allows the web app to trigger skipWaiting via
 // registration.waiting.postMessage({type: 'SKIP_WAITING'})
 self.addEventListener('message', (event) => {

@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useDispatch } from 'react-redux';
 import moment from 'moment';
 import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane } from 'react-leaflet';
 import './homePage.css';
-import StationMarkers from '../components/StationMarkers';
-import EventMarkers from '../components/EventMarkers';
 import Sidebar from '../components/Sidebar';
 import SidebarInfo from '../components/SidebarInfo';
 import SidebarItems from '../components/SidebarItems';
@@ -13,14 +11,19 @@ import Header from '../components/Header';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
 import SSEContext from '../SSEContext';
-import MapLayersControl from '../components/MapLayersControl';
-import AttributionControl from '../components/AttributionControl';
-import LegendControl from '../components/LegendControl';
-import ResetViewControl from '../components/ResetViewControl';
 import { resetToPH } from '../utils/resetView';
 import { OverlayStateProvider } from '../components/OverlayStateContext';
 import RegisterableLayerGroup from '../components/RegisterableLayerGroup';
 import { useAppData } from '../hooks/useAppData';
+
+// Heavy components below are lazy-loaded to shorten the critical path.
+// This reduces initial bundle size and improves LCP without changing behavior.
+const StationMarkers = lazy(() => import('../components/StationMarkers'));
+const EventMarkers = lazy(() => import('../components/EventMarkers'));
+const MapLayersControl = lazy(() => import('../components/MapLayersControl'));
+const AttributionControl = lazy(() => import('../components/AttributionControl'));
+const LegendControl = lazy(() => import('../components/LegendControl'));
+const ResetViewControl = lazy(() => import('../components/ResetViewControl'));
 
 /**
  * Main map page with live SSE updates, filters, and sidebar controls.
@@ -311,6 +314,11 @@ const HomePage = () => {
                     />
                   )}
                 </Sidebar>
+                {/**
+                 * TODO(perf): Consider extracting the entire map area into a lazily
+                 * loaded <MapView /> that imports react-leaflet internally. That would
+                 * move Leaflet and map-related code out of the initial route bundle.
+                 */}
                 <MapContainer
                   center={[12.2795, 122.049]}
                   zoom={6}
@@ -337,7 +345,8 @@ const HomePage = () => {
                   <AttributionControl />
                   {/* Legend + Basemaps/Overlays with synced state */}
                   <OverlayStateProvider>
-                    <MapLayersControl>
+                    <Suspense fallback={null}>
+                      <MapLayersControl>
                       <LayersControl.Overlay checked name="Earthquakes">
                         {/**
                          * Key the LayerGroup by the active dataset so Leaflet gets a
@@ -362,10 +371,11 @@ const HomePage = () => {
                           <StationMarkers initStations={stationsRef.current} />
                         </RegisterableLayerGroup>
                       </LayersControl.Overlay>
-                    </MapLayersControl>
-                    {/* Metric scalebar; always top-center (mobile style) */}
-                    <ScaleControl position="topleft" metric imperial={false} maxWidth={140} />
-                    <LegendControl />
+                      </MapLayersControl>
+                      {/* Metric scalebar; always top-center (mobile style) */}
+                      <ScaleControl position="topleft" metric imperial={false} maxWidth={140} />
+                      <LegendControl />
+                    </Suspense>
                   </OverlayStateProvider>
                 </MapContainer>
               </SSEContext.Provider>
