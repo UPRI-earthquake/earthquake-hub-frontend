@@ -72,16 +72,37 @@ function SignInForm({ onClick, onSuccess }) {
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
-  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedRole, setSelectedRole] = useState('citizen');
+  const [errors, setErrors] = useState({});
 
   const handleRoleChange = (event) => {
     setSelectedRole(event.target.value);
+    setErrors((prev) => ({ ...prev, role: false }));
   };
+
+  function validateClient(event) {
+    const username = event.target.elements.username.value.trim();
+    const password = event.target.elements.password.value.trim();
+    const role = event.target.elements.role.value;
+    const nextErrors = {};
+    if (!username) nextErrors.username = 'Username is required';
+    if (!password) nextErrors.password = 'Password is required';
+    if (!role) nextErrors.role = 'Role is required';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setToastMessage(Object.values(nextErrors)[0]);
+      setToastType('error');
+      return null;
+    }
+    return { username, password, role };
+  }
 
   async function handleSignInSubmit(event) {
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     const role = event.target.elements.role.value;
+    const valid = validateClient(event);
+    if (!valid) return;
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/authenticate`, {
@@ -101,6 +122,13 @@ function SignInForm({ onClick, onSuccess }) {
         const { data } = error.response;
         setToastMessage(data.message);
         setToastType('error');
+        // Map common backend messages to field highlights
+        const m = String(data?.message || '').toLowerCase();
+        const next = {};
+        if (m.includes('role')) next.role = true;
+        if (m.includes('password')) next.password = true;
+        if (m.includes("doesn't exists") || m.includes('user') || m.includes('username')) next.username = true;
+        setErrors(next);
         deverror('Error occurred while signing in:', data);
       } else {
         deverror('Error occurred while signing in:', error);
@@ -110,22 +138,44 @@ function SignInForm({ onClick, onSuccess }) {
 
   return (
     <Form title="Sign In" onClick={onClick} onSubmit={handleSignInSubmit}>
-      <Toast message={toastMessage} toastType={toastType}></Toast>
       <label htmlFor="signin-username">
         Username
-        <input id="signin-username" type="text" name="username" autoComplete="username" />
+        <input
+          id="signin-username"
+          type="text"
+          name="username"
+          autoComplete="username"
+          className={errors.username ? styles.inputError : ''}
+          onChange={() => setErrors((prev) => ({ ...prev, username: false }))}
+        />
       </label>
       <label htmlFor="signin-password">
         Password
-        <input id="signin-password" type="password" name="password" autoComplete="current-password" />
+        <input
+          id="signin-password"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          className={errors.password ? styles.inputError : ''}
+          onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
+        />
       </label>
       <label htmlFor="signin-role">
         Role
-        <select id="signin-role" name="role" value={selectedRole} onChange={handleRoleChange}>
+        <select
+          id="signin-role"
+          name="role"
+          value={selectedRole}
+          onChange={handleRoleChange}
+          className={errors.role ? styles.inputError : ''}
+        >
           <option value="citizen">Citizen</option>
           <option value="brgy">Brgy</option>
         </select>
       </label>
+      <div className={styles.inlineToast}>
+        <Toast message={toastMessage} toastType={toastType} placement="inline" />
+      </div>
       <button type="submit">Sign in</button>
     </Form>
   );
@@ -142,11 +192,40 @@ function SignUpForm({ onClick, onSuccess }) {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
 
-  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedRole, setSelectedRole] = useState('citizen');
+  const [errors, setErrors] = useState({});
 
   const handleRoleChange = (event) => {
     setSelectedRole(event.target.value);
+    setErrors((prev) => ({ ...prev, role: false }));
   };
+
+  function validateClient(event) {
+    const role = event.target.elements.role.value;
+    const email = (event.target.elements.email.value || '').trim();
+    const username = (event.target.elements.username.value || '').trim();
+    const password = (event.target.elements.password.value || '').trim();
+    const confirmPassword = (event.target.elements.confirmPassword.value || '').trim();
+    const nextErrors = {};
+    if (!role) nextErrors.role = 'Role is required';
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) nextErrors.email = 'Enter a valid email address';
+    if (!username) nextErrors.username = 'Username is required';
+    if (!password || password.length < 6) nextErrors.password = 'Password must be at least 6 characters';
+    if (password && confirmPassword !== password) nextErrors.confirmPassword = 'Passwords do not match';
+    if (role === 'brgy') {
+      const ringserverUrl = (event.target.elements.ringserverUrl.value || '').trim();
+      const ringserverPort = (event.target.elements.ringserverPort.value || '').trim();
+      if (!ringserverUrl) nextErrors.ringserverUrl = 'Ringserver URL is required';
+      if (!/^[0-9]{1,5}$/.test(ringserverPort)) nextErrors.ringserverPort = 'Enter a valid port';
+    }
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setToastMessage(Object.values(nextErrors)[0]);
+      setToastType('error');
+      return null;
+    }
+    return true;
+  }
 
   async function handleSignUpSubmit(event) {
     const role = event.target.elements.role.value;
@@ -154,6 +233,8 @@ function SignUpForm({ onClick, onSuccess }) {
     const username = event.target.elements.username.value;
     const password = event.target.elements.password.value;
     const confirmPassword = event.target.elements.confirmPassword.value;
+    const ok = validateClient(event);
+    if (!ok) return;
     try {
       let requestPayload = {
         role: role,
@@ -183,6 +264,13 @@ function SignUpForm({ onClick, onSuccess }) {
         const { data } = error.response;
         setToastMessage(data.message);
         setToastType('error');
+        // Map backend errors to fields
+        const m = String(data?.message || '').toLowerCase();
+        const next = {};
+        if (m.includes('username')) next.username = true;
+        if (m.includes('email')) next.email = true;
+        if (m.includes('password')) next.password = true;
+        setErrors(next);
         deverror('Error occurred while signing up:', data);
       } else {
         deverror('Error occurred while signing up:', error);
@@ -192,10 +280,15 @@ function SignUpForm({ onClick, onSuccess }) {
 
   return (
     <Form title="Sign Up" onClick={onClick} onSubmit={handleSignUpSubmit}>
-      <Toast message={toastMessage} toastType={toastType}></Toast>
       <label htmlFor="signup-role">
         Role
-        <select id="signup-role" name="role" value={selectedRole} onChange={handleRoleChange}>
+        <select
+          id="signup-role"
+          name="role"
+          value={selectedRole}
+          onChange={handleRoleChange}
+          className={errors.role ? styles.inputError : ''}
+        >
           <option value="citizen">Citizen</option>
           <option value="brgy">Brgy</option>
         </select>
@@ -204,30 +297,75 @@ function SignUpForm({ onClick, onSuccess }) {
         <>
           <label htmlFor="signup-ringserver-url">
             Ringserver Url
-            <input id="signup-ringserver-url" type="text" name="ringserverUrl" autoComplete="url" />
+            <input
+              id="signup-ringserver-url"
+              type="text"
+              name="ringserverUrl"
+              autoComplete="url"
+              className={errors.ringserverUrl ? styles.inputError : ''}
+              onChange={() => setErrors((prev) => ({ ...prev, ringserverUrl: false }))}
+            />
           </label>
           <label htmlFor="signup-ringserver-port">
             Ringserver Port
-            <input id="signup-ringserver-port" type="text" name="ringserverPort" inputMode="numeric" />
+            <input
+              id="signup-ringserver-port"
+              type="text"
+              name="ringserverPort"
+              inputMode="numeric"
+              className={errors.ringserverPort ? styles.inputError : ''}
+              onChange={() => setErrors((prev) => ({ ...prev, ringserverPort: false }))}
+            />
           </label>
         </>
       )}
       <label htmlFor="signup-email">
         Email
-        <input id="signup-email" type="text" name="email" autoComplete="email" />
+        <input
+          id="signup-email"
+          type="text"
+          name="email"
+          autoComplete="email"
+          className={errors.email ? styles.inputError : ''}
+          onChange={() => setErrors((prev) => ({ ...prev, email: false }))}
+        />
       </label>
       <label htmlFor="signup-username">
         Username
-        <input id="signup-username" type="text" name="username" autoComplete="username" />
+        <input
+          id="signup-username"
+          type="text"
+          name="username"
+          autoComplete="username"
+          className={errors.username ? styles.inputError : ''}
+          onChange={() => setErrors((prev) => ({ ...prev, username: false }))}
+        />
       </label>
       <label htmlFor="signup-password">
         Password
-        <input id="signup-password" type="password" name="password" autoComplete="new-password" />
+        <input
+          id="signup-password"
+          type="password"
+          name="password"
+          autoComplete="new-password"
+          className={errors.password ? styles.inputError : ''}
+          onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
+        />
       </label>
       <label htmlFor="signup-password-confirm">
         Confirm Password
-        <input id="signup-password-confirm" type="password" name="confirmPassword" autoComplete="new-password" />
+        <input
+          id="signup-password-confirm"
+          type="password"
+          name="confirmPassword"
+          autoComplete="new-password"
+          className={errors.confirmPassword ? styles.inputError : ''}
+          onChange={() => setErrors((prev) => ({ ...prev, confirmPassword: false }))}
+        />
       </label>
+      <div className={styles.inlineToast}>
+        <Toast message={toastMessage} toastType={toastType} placement="inline" />
+      </div>
       <button type="submit">Sign Up</button>
     </Form>
   );

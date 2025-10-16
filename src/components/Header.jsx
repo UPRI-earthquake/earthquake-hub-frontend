@@ -120,6 +120,33 @@ const Header = ({ initStations = [] }) => {
     checkAccessToken();
   }, []);
 
+  // Global toast bridge: react to UI events dispatched by services (e.g., push subscription)
+  useEffect(() => {
+    let hideTimer = null;
+    const onToast = (ev) => {
+      const { message = '', type = 'error' } = (ev && ev.detail) || {};
+      if (!message) return;
+      setToastMessage(message);
+      setToastType(type);
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => setToastMessage(''), 6000);
+    };
+    window.addEventListener('ui:toast', onToast);
+    // Flush any queued toasts that may have fired before Header mounted
+    try {
+      const q = (typeof window !== 'undefined' && window.__toastQueue) || [];
+      if (q.length) {
+        const last = q[q.length - 1];
+        window.__toastQueue = [];
+        onToast({ detail: last });
+      }
+    } catch (_) {}
+    return () => {
+      window.removeEventListener('ui:toast', onToast);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
+  }, []);
+
   return (
     <div className={styles.header}>
       {/* Skip to content (visible on keyboard focus) */}
@@ -198,7 +225,11 @@ const Header = ({ initStations = [] }) => {
           )}
         </div>
       </div>
-      <Toast message={toastMessage} toastType={toastType}></Toast>
+      <Toast
+        message={toastMessage}
+        toastType={toastType}
+        onClose={() => setToastMessage('')}
+      />
       {showSignInForm && <SignInForm onClick={handleSignInClose} onSuccess={handleSignInSuccess} />}
       {showSignUpForm && <SignUpForm onClick={handleSignUpClose} onSuccess={handleSignUpSuccess} />}
       {showDashboard && (

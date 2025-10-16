@@ -102,7 +102,7 @@
 .panelBody button {
   display: block;
   width: 100%;
-  margin: 10px;
+  /* margin: 10px; */
   background-color: #3a6a50;
   color: #fff;
   border: none;
@@ -209,11 +209,15 @@
 
 .deviceListTable {
   border: none;
+  /* Size to content so columns fit their longest cell */
   width: 100%;
+  /* max-width: 100%; */
   background-color: #f2f2f2;
   border-radius: 4px;
   overflow: hidden;
-  table-layout: fixed; /* prevent columns from overflowing on mobile */
+  table-layout: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 .deviceListTable th {
@@ -228,12 +232,11 @@
 }
 
 .deviceListTable td {
-  flex-basis: 0;
-  flex-grow: 1;
   padding: 10px;
   color: #333333;
   word-break: break-word;
   white-space: normal;
+  text-align: center;
 }
 
 /* Mobile-friendly adjustments */
@@ -256,30 +259,7 @@
   }
 }
 
-/* Tooltip */
-[data-tooltip] {
-  position: static;
-  cursor: pointer;
-}
-
-[data-tooltip]::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  transform: translateX(-50%);
-  padding: 5px 10px;
-  background-color: #01581b;
-  color: #fff;
-  border-radius: 5px;
-  font-size: 14px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
-}
-
-[data-tooltip]:hover::before {
-  opacity: 1;
-  visibility: visible;
-}
+/* Remove custom [data-tooltip] styles in favor of native title tooltips */
 
 /* Add Device Form */
 .addDeviceForm {

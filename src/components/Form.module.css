@@ -52,6 +52,17 @@
   margin-bottom: 1rem;
 }
 
+/* Highlight invalid fields */
+.inputError {
+  border-color: #ef4444 !important; /* red-500 */
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Inline toast spacing in forms */
+.inlineToast {
+  margin: -4px 0 10px 0; /* slightly tighter spacing above the button */
+}
+
 .form button[type='submit'] {
   display: block;
   width: 100%;

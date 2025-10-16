@@ -28,6 +28,17 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
   const isClosingRef = useRef(false);
+  const isMountedRef = useRef(true); // guard async state updates after unmount
+  const timeoutsRef = useRef([]); // track pending timers for cleanup
+
+  // Utility: schedule clearing the toast with automatic cleanup
+  const scheduleToastClear = useCallback((ms) => {
+    const id = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      setToastMessage('');
+    }, ms);
+    timeoutsRef.current.push(id);
+  }, []);
 
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
@@ -46,6 +57,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
       const response = await axios.get(`${backend_host}/device/my-devices`, {
         validateStatus: (status) => status < 500, // prevent thrown errors for 4xx
       });
+      if (!isMountedRef.current) return;
       if (response.status === 200) {
         setDevices(response.data.devices || []);
       } else {
@@ -57,7 +69,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
       const status = error?.response?.status;
       if (status === 401 || status === 403) return; // keep devices as []
       // Log unexpected errors for debugging
-      deverror('Error fetching devices:', error);
+      if (isMountedRef.current) deverror('Error fetching devices:', error);
     }
   };
 
@@ -89,6 +101,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
   }, [onClick, onEscapeClick]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     const dashboardContainerEl = dashboardContainerRef.current;
     dashboardContainerEl.animate(
       [
@@ -109,6 +122,10 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      isMountedRef.current = false;
+      // Clear any pending timers to prevent setState on unmounted component
+      try { timeoutsRef.current.forEach((t) => clearTimeout(t)); } catch (_) {}
+      timeoutsRef.current = [];
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleClose]);
@@ -214,6 +231,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
         elevation: elevation,
       });
 
+      if (!isMountedRef.current) return;
       if (response.data.status === responseCodes.GENERIC_SUCCESS) {
         devlog('Add Device Success');
 
@@ -221,10 +239,8 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
         setToastMessage('Device added. Visit rs.local:3000 to link device.');
         setToastType('success');
 
-        // Set toast message to empty string to remove the toast
-        setTimeout(() => {
-          setToastMessage('');
-        }, 60000); //60 seconds
+        // Auto-dismiss after 60s (longer so users can read and act)
+        scheduleToastClear(60000);
 
         setPageTransition(1);
         fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
@@ -234,21 +250,19 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
-        setToastMessage(`Error: ${data.message}`);
-        setToastType('error');
-        // Set toast message to empty string to remove the toast
-        setTimeout(() => {
-          setToastMessage('');
-        }, 5000);
+        if (isMountedRef.current) {
+          setToastMessage(`Error: ${data.message}`);
+          setToastType('error');
+        }
+        scheduleToastClear(5000);
 
         deverror('Error occurred while adding device:', data);
       } else {
-        setToastMessage(`Network Error`);
-        setToastType('error');
-        // Set toast message to empty string to remove the toast
-        setTimeout(() => {
-          setToastMessage('');
-        }, 5000);
+        if (isMountedRef.current) {
+          setToastMessage(`Network Error`);
+          setToastType('error');
+        }
+        scheduleToastClear(5000);
 
         deverror('Error occurred while adding device:', error);
       }
@@ -273,22 +287,22 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
 
       devlog('Token Expiry: ', remainingTime.days());
 
-      setAccessTokenExpiry(remainingTime.days()); // set brgyAccessTokenExpiry value
-      setBrgyAccessToken(response.data.accessToken); // set brgyAccessToken value
-
-      setToastMessage('Brgy access token request success');
-      setToastType('success');
+      if (isMountedRef.current) {
+        setAccessTokenExpiry(remainingTime.days()); // set brgyAccessTokenExpiry value
+        setBrgyAccessToken(response.data.accessToken); // set brgyAccessToken value
+        setToastMessage('Brgy access token request success');
+        setToastType('success');
+      }
     } catch (error) {
       deverror(error);
 
-      setToastMessage(`Brgy access token request error`);
-      setToastType('error');
+      if (isMountedRef.current) {
+        setToastMessage(`Brgy access token request error`);
+        setToastType('error');
+      }
     }
 
-    // Set toast message to empty string to remove the toast
-    setTimeout(() => {
-      setToastMessage('');
-    }, 5000);
+    scheduleToastClear(5000);
   }
 
   const textRef = useRef(null);
@@ -312,9 +326,7 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
       setToastType('error');
     }
 
-    setTimeout(() => {
-      setToastMessage('');
-    }, 5000);
+    scheduleToastClear(5000);
   }
 
   /* Comment out for now (remove add device option)
@@ -345,8 +357,10 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
-        setToastMessage(data.message);
-        setToastType('error');
+        if (isMountedRef.current) {
+          setToastMessage(data.message);
+          setToastType('error');
+        }
         deverror('Error occurred while signing out:', data);
       } else {
         deverror('Error occurred while signing out:', error);
@@ -367,7 +381,12 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
         className={`${styles.dashboardModal}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Toast message={toastMessage} toastType={toastType}></Toast>
+        <Toast
+          message={toastMessage}
+          toastType={toastType}
+          placement="inline"
+          onClose={() => setToastMessage('')}
+        />
 
         {pageTransition < 2 && (
           <div ref={profileRef} className={styles.profileContainer}>
@@ -458,14 +477,14 @@ function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, log
                   <tbody>
                     {devices.length === 0 ? (
                       <tr>
-                        <td colSpan="3">No devices connected</td>
+                        <td colSpan="4">No devices connected</td>
                       </tr>
                     ) : (
                       devices.map((device, index) => (
                         <tr key={index}>
                           <td>{device.network}</td>
                           <td>{device.station}</td>
-                          <td data-tooltip={statusTooltips[device.status]}>{device.status}</td>
+                          <td title={statusTooltips[device.status]}>{device.status}</td>
                           <td>{device.statusSince}</td>
                         </tr>
                       ))

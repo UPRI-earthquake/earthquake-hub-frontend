@@ -1,31 +1,91 @@
 /* Toast */
 .toastContainer {
   position: fixed;
-  top: 0;
-  left: 0;
-  /* transform: translateX(-50%); */
+  top: calc(var(--header-h, 56px) + 8px);
+  right: 12px;
+  left: auto;
+  width: auto;
+  max-width: min(92vw, 420px);
+  z-index: 9999;
+  pointer-events: none; /* do not block header interactions */
+}
+
+/* Inline placement for forms/modals (sits within normal flow) */
+.toastInlineContainer {
+  position: relative;
   width: 100%;
-  z-index: 2;
+  padding: 0;
 }
 
 .toast {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 35px;
-  background-color: #333;
-  color: #fff;
+  min-height: 34px;
+  background: #ffffff; /* overridden by variants below */
+  color: #111827;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+  padding: 6px 10px;
+  gap: 8px;
+  letter-spacing: 0.2px;
+  line-height: 1.25;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: auto; /* allow selection if needed */
 }
 
-.toast p {
+.toast .msg {
   margin: 0;
   padding: 0;
+  text-align: center;
 }
 
+.toast .icon {
+  opacity: 0.9;
+}
+
+/* Softer, less intrusive palette for global notices */
 .toast.error {
-  background-color: #d9534f;
+  background-color: #fee2e2; /* red-100 */
+  color: #991b1b; /* red-800 */
+  border: 1px solid #fecaca; /* red-200 */
 }
 
 .toast.success {
-  background-color: #5cb85c;
+  background-color: #dcfce7; /* green-100 */
+  color: #166534; /* green-800 */
+  border: 1px solid #bbf7d0; /* green-200 */
+}
+
+.toast.info {
+  background-color: #e0f2fe; /* sky-100 */
+  color: #075985; /* sky-900 */
+  border: 1px solid #bae6fd; /* sky-200 */
+}
+
+.toast.warning {
+  background-color: #fef3c7; /* amber-100 */
+  color: #92400e; /* amber-800 */
+  border: 1px solid #fde68a; /* amber-200 */
+}
+
+/* Close button */
+.closeBtn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  margin-left: 6px;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.closeBtn:hover { opacity: 1; }
+.closeBtn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
 }

@@ -81,7 +81,7 @@ function DepthRampSub() {
   } catch (_) {}
   const [c1, c2, c3] = (DEPTH_RAMP && DEPTH_RAMP[theme]) || DEPTH_RAMP.light;
   return (
-    <div className="legend-subrow" onClick={(e) => e.stopPropagation()}>
+    <div className="legend-subrow ramp-in" onClick={(e) => e.stopPropagation()}>
       <span className="legend-chip">
         <i style={{ background: c1 }} /> 0–70 km
       </span>
@@ -123,10 +123,12 @@ function DepthRampToggleInline() {
       type="button"
       className="legend-toggle-inline"
       onClick={toggle}
-      aria-pressed={enabled}
-      aria-label="Toggle depth color ramp"
+      role="switch"
+      aria-checked={enabled}
+      aria-label="Depth ramp"
+      title={enabled ? 'Disable depth ramp coloring' : 'Enable depth ramp coloring'}
     >
-      Depth ramp: {enabled ? 'On' : 'Off'}
+      Depth ramp
     </button>
   );
 }
@@ -496,6 +498,7 @@ export default function LegendControl({ position = 'bottomright' }) {
   const hasAny = activeIds.size > 0;
   const content = (
     <div
+      id="legend-panel"
       className={`legend-shell ${collapsed ? 'is-collapsed' : ''}`}
       role={!collapsed ? 'dialog' : undefined}
       aria-labelledby={!collapsed ? 'legend-title' : undefined}
@@ -507,7 +510,8 @@ export default function LegendControl({ position = 'bottomright' }) {
           className="legend-toggle"
           title={hasAny ? 'Legend (G)' : 'Legend (enable overlays)'}
           aria-label="Legend"
-          aria-pressed={!collapsed}
+          aria-expanded={!collapsed}
+          aria-controls="legend-panel"
           onClick={() => {
             const next = !collapsed;
             setCollapsed(next);

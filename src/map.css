@@ -75,10 +75,11 @@
   white-space: pre-line; /* render \n from JS as real line breaks */
 }
 .leaflet-container .leaflet-control-attribution.is-collapsed {
-  background: transparent;
+  background: none;
   border-color: transparent;
   box-shadow: none;
   padding: 0 2px; /* keep a tiny padding so the toggle remains clickable */
+  backdrop-filter: none;
   /* min-height: 28px;  */
   /* match toggle height so collapsed size is compact */
 }
