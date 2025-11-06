@@ -25,7 +25,8 @@
   - **Download links:**
 
     - **Data:** `${REACT_APP_FDSNWS}/dataselect/1/query?...` (`src/components/StationMarker.jsx:1`)
-    - **Metadata:** `${REACT_APP_RS_FDSNWS}/station/1/query?...` (`src/components/StationMarker.jsx:1`)
+    - **Metadata:** `${REACT_APP_FDSNWS}/station/1/query?...` (`src/components/StationMarker.jsx:1`)
+    - Notes: The Station popup downloads fetch as Blob to apply custom filenames and use short timeouts; fallback to other hosts has been removed.
 
 - **Significant Earthquakes**
 

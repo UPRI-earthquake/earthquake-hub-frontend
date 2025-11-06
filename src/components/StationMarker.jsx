@@ -510,8 +510,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   };
 
   const start_time = moment().subtract(1, 'days');
-  const data_download_URL =
-    window['ENV'].REACT_APP_FDSNWS +
+  const FDSNWS = window['ENV'].REACT_APP_FDSNWS;
+
+  // Build common query strings (without host) for reuse
+  const dataQuery =
     '/dataselect/1/query?' +
     'starttime=' +
     start_time.format('YYYY-MM-DDTHH:mm:ss') +
@@ -520,58 +522,96 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     '&network=AM&station=' +
     code +
     '&location=00&channel=E*&nodata=404';
-  const metadata_download_URL =
-    window['ENV'].REACT_APP_RS_FDSNWS +
+  const stationMetaQuery =
     '/station/1/query?' +
-    '&network=AM&station=' +
+    'network=AM&station=' +
     code +
     '&level=resp&format=sc3ml&nodata=404';
+
+  const data_download_URL = `${FDSNWS}${dataQuery}`;
+  const metadata_download_URL = `${FDSNWS}${stationMetaQuery}`;
+
   const handleDownloadMetadata = async (e) => {
-    // Attempt to download XML directly with a custom filename
-    // Do NOT download if response is 404/empty/non-XML; open the link instead
+    // Download station metadata (XML) from the configured FDSNWS only,
+    // saving with a custom filename.
     try {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-      const resp = await axios.get(metadata_download_URL, {
+      const url = `${FDSNWS}${stationMetaQuery}`;
+      const resp = await axios.get(url, {
         responseType: 'blob',
         withCredentials: false,
-        validateStatus: () => true, // we will handle non-200 statuses ourselves
+        validateStatus: () => true,
+        timeout: 10000,
+        headers: { Accept: 'application/xml, text/xml; q=0.9, */*; q=0.1' },
       });
 
-      // If not OK (e.g., 404 from nodata), open the URL instead of downloading
       if (resp.status !== 200) {
-        try {
-          window.open(metadata_download_URL, '_blank', 'noreferrer');
-        } catch (_) {}
+        try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
 
       const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data]);
-      const contentType = (resp.headers && resp.headers['content-type']) || '';
-      const looksXml = typeof contentType === 'string' && contentType.toLowerCase().includes('xml');
-
-      // If empty or not xml-ish, open the link instead of downloading
+      const ct = (resp.headers && resp.headers['content-type']) || '';
+      const looksXml = typeof ct === 'string' && ct.toLowerCase().includes('xml');
       if (!blob || blob.size === 0 || (!looksXml && blob.size < 64)) {
-        try {
-          window.open(metadata_download_URL, '_blank', 'noreferrer');
-        } catch (_) {}
+        try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
 
       const filename = `${network.toUpperCase()}.${code.toUpperCase()}.00.MULTI.xml`;
-      const url = window.URL.createObjectURL(blob);
+      const objUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = objUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(objUrl);
     } catch (_) {
-      // If CORS or other error occurs, open the URL as a fallback
-      try {
-        window.open(metadata_download_URL, '_blank', 'noreferrer');
-      } catch (_) {}
+      try { window.open(metadata_download_URL, '_blank', 'noreferrer'); } catch (_) {}
+    }
+  };
+
+  const handleDownloadData = async (e) => {
+    // Download past 24h MiniSEED with a specific filename from FDSNWS only.
+    try {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+      const url = `${FDSNWS}${dataQuery}`;
+      const resp = await axios.get(url, {
+        responseType: 'blob',
+        withCredentials: false,
+        validateStatus: () => true,
+        headers: { Accept: 'application/vnd.fdsn.mseed, application/octet-stream, */*;q=0.1' },
+        timeout: 15000,
+      });
+
+      if (resp.status !== 200) {
+        try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
+        return;
+      }
+
+      const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data]);
+      const ct = (resp.headers && resp.headers['content-type']) || '';
+      const looksMseed = typeof ct === 'string' && (ct.toLowerCase().includes('vnd.fdsn.mseed') || ct.toLowerCase().includes('application/octet-stream'));
+      if (!blob || blob.size === 0 || (!looksMseed && blob.size < 64)) {
+        try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
+        return;
+      }
+
+      const dateSuffix = moment().format('MMDDYY');
+      const filename = `${network.toUpperCase()}.${code.toUpperCase()}.00.MULTI.${dateSuffix}.mseed`;
+      const objUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(objUrl);
+    } catch (_) {
+      try { window.open(data_download_URL, '_blank', 'noreferrer'); } catch (_) {}
     }
   };
   const markerRef = useRef(null);
@@ -757,7 +797,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
                 : 'Device Offline'
               : statusState.status}
           </p>
-          <a href={data_download_URL} target="_blank" rel="noreferrer">
+          <a href={data_download_URL} target="_blank" rel="noreferrer" onClick={handleDownloadData}>
             Get past 24hrs data
           </a>
           <br />
