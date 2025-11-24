@@ -1,0 +1,160 @@
+.row {
+  display: grid;
+  grid-template-columns: 56px 1fr; /* match EQ item layout */
+  gap: 20px;
+  align-items: center;
+  /* Match event item paddings */
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  background-color: #ffffff;
+  color: #1f2937;
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+html[data-basemap-theme='dark'] .row,
+html[data-basemap-theme='imagery'] .row {
+  background-color: #0b1220;
+  color: #f3f4f6;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+html[data-basemap-theme='dark'] .row:hover,
+html[data-basemap-theme='imagery'] .row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* Multi-pulse states for activity toggles (triggered on STATION_STATUS updates) */
+.pulseActive { animation: stationPulseActive 1.2s ease-out; animation-iteration-count: 3; }
+.pulseInactive { animation: stationPulseInactive 1.2s ease-out; animation-iteration-count: 3; }
+
+@keyframes stationPulseActive {
+  0% { background-color: var(--sta-pulse-on-1, rgba(34, 197, 94, 0.16)); }
+  60% { background-color: var(--sta-pulse-on-2, rgba(34, 197, 94, 0.08)); }
+  100% { background-color: transparent; }
+}
+
+/* Continuous pulse while a station SC_PICK is active (sync with marker radiate) */
+.pickPulse { animation: stationPickPulse 1.5s linear infinite; }
+@keyframes stationPickPulse {
+  0% { background-color: rgba(232, 106, 115, 0.16); }
+  60% { background-color: rgba(232, 106, 115, 0.08); }
+  100% { background-color: transparent; }
+}
+@keyframes stationPulseInactive {
+  0% { background-color: var(--sta-pulse-off-1, rgba(107, 114, 128, 0.16)); }
+  60% { background-color: var(--sta-pulse-off-2, rgba(107, 114, 128, 0.08)); }
+  100% { background-color: transparent; }
+}
+
+.leftWrap { display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.codeText { display: inline-block; font-size: 20px; font-weight: 700; line-height: 1; }
+.rightWrap { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.desc { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: inherit; }
+html[data-basemap-theme='dark'] .desc,
+html[data-basemap-theme='imagery'] .desc { color: inherit; }
+.metaRow { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
+.subDesc { font-size: 12px; color: #6b7280; white-space: nowrap; }
+html[data-basemap-theme='dark'] .subDesc,
+html[data-basemap-theme='imagery'] .subDesc { color: #9ca3af; }
+.dot { display: none; }
+.dotActive { display: none; }
+.dotInactive { display: none; }
+
+/* New status pill styles */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.04);
+  color: inherit;
+  font-weight: 700;
+  font-size: 12px; /* align with network text size */
+  line-height: 1;
+}
+html[data-basemap-theme='dark'] .statusPill,
+html[data-basemap-theme='imagery'] .statusPill {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+.statusPillActive {
+  background: rgba(58, 106, 80, 0.12);
+  border-color: rgba(0, 0, 0, 0.16);
+  color: #1f2937;
+}
+html[data-basemap-theme='dark'] .statusPillActive,
+html[data-basemap-theme='imagery'] .statusPillActive {
+  background: rgba(134, 239, 172, 0.18);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #f3f4f6;
+}
+.statusPillInactive {
+  background: #e5e7eb; /* gray-200 */
+  border-color: #d1d5db; /* gray-300 */
+  color: #111827; /* gray-900 */
+}
+html[data-basemap-theme='dark'] .statusPillInactive,
+html[data-basemap-theme='imagery'] .statusPillInactive {
+  background: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+  color: #f3f4f6; /* gray-100 */
+}
+.statusText { font-weight: 700; }
+
+.selected {
+  border-left: 4px solid #3a6a50; /* brand accent, match EQ item */
+  padding-left: 11px; /* compensate for thicker left border */
+  background: rgba(58, 106, 80, 0.12);
+}
+.selected .codeText { color: #3a6a50; }
+
+html[data-basemap-theme='dark'] .selected,
+html[data-basemap-theme='imagery'] .selected {
+  border-left-color: #86efac; /* readable on dark */
+  background-color: rgba(134, 239, 172, 0.08);
+}
+html[data-basemap-theme='dark'] .selected .codeText,
+html[data-basemap-theme='imagery'] .selected .codeText {
+  color: #86efac;
+}
+
+/* Mobile card look (match event items) */
+@media (max-width: 768px) {
+  .row {
+    width: 300px;
+    height: 100%;
+    border-bottom: none; /* separators via right border */
+    border-right: 1px solid lightgray;
+    /* Avoid large vertical gaps caused by CSS Grid distributing extra space */
+    align-content: start; /* pack rows at the top like desktop */
+    gap: 20px; /* match desktop row spacing */
+    align-items: center;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    max-width: max-content;
+}
+  .row:hover {
+    transform: translateY(-2px);
+  }
+  .selected { border-left-width: 4px; }
+  .rightWrap { gap: 6px; }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .pulseActive,
+  .pulseInactive,
+  .pickPulse {
+    animation: none;
+  }
+}

@@ -1,33 +1,48 @@
-import React, { createContext, useContext, useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { useMap } from 'react-leaflet';
 
 // Context that tracks registered overlay layers (Leaflet layer instance → id)
 // and which ones are currently active on the map.
+/**
+ * Provides overlay registration and active-state tracking for map layers.
+ * Exposes `registerLayer`, `unregisterLayer`, `activeIds` and `toggleOverlay`.
+ */
 const OverlayStateContext = createContext(null);
 
 export function OverlayStateProvider({ children }) {
   const map = useMap();
   const registryRef = useRef(new WeakMap()); // LeafletLayer -> id
-  const idToLayerRef = useRef(new Map());     // id -> LeafletLayer
+  const idToLayerRef = useRef(new Map()); // id -> LeafletLayer
   const [activeIds, setActiveIds] = useState(() => new Set());
 
   // Helper: resolve id for a given Leaflet layer using the registry
   const idForLayer = (layer) => registryRef.current.get(layer);
 
-  const registerLayer = useCallback((id, layer) => {
-    if (!layer) return;
-    registryRef.current.set(layer, id);
-    idToLayerRef.current.set(id, layer);
-    // initialize active state for this layer if needed
-    if (map && map.hasLayer(layer)) {
-      setActiveIds((prev) => {
-        if (prev.has(id)) return prev; // no-op if unchanged
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-    }
-  }, [map]);
+  const registerLayer = useCallback(
+    (id, layer) => {
+      if (!layer) return;
+      registryRef.current.set(layer, id);
+      idToLayerRef.current.set(id, layer);
+      // initialize active state for this layer if needed
+      if (map && map.hasLayer(layer)) {
+        setActiveIds((prev) => {
+          if (prev.has(id)) return prev; // no-op if unchanged
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        });
+      }
+    },
+    [map],
+  );
 
   const unregisterLayer = useCallback((layer) => {
     if (!layer) return;
@@ -75,21 +90,25 @@ export function OverlayStateProvider({ children }) {
     };
   }, [map]);
 
-  const toggleOverlay = useCallback((id) => {
-    const layer = idToLayerRef.current.get(id);
-    if (!map || !layer) return;
-    if (map.hasLayer(layer)) {
-      map.removeLayer(layer);
-    } else {
-      map.addLayer(layer);
-    }
-  }, [map]);
-
-  const value = useMemo(() => ({ activeIds, registerLayer, unregisterLayer, toggleOverlay }), [activeIds, registerLayer, unregisterLayer, toggleOverlay]);
-
-  return (
-    <OverlayStateContext.Provider value={value}>{children}</OverlayStateContext.Provider>
+  const toggleOverlay = useCallback(
+    (id) => {
+      const layer = idToLayerRef.current.get(id);
+      if (!map || !layer) return;
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      } else {
+        map.addLayer(layer);
+      }
+    },
+    [map],
   );
+
+  const value = useMemo(
+    () => ({ activeIds, registerLayer, unregisterLayer, toggleOverlay }),
+    [activeIds, registerLayer, unregisterLayer, toggleOverlay],
+  );
+
+  return <OverlayStateContext.Provider value={value}>{children}</OverlayStateContext.Provider>;
 }
 
 export function useOverlayState() {

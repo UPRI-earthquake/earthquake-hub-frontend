@@ -1,4 +1,11 @@
-import { getLastUpdated, parseJsDelivrGitHubUrl, jsDelivrFromParts, partsForCdnUrl, formatLastUpdated, _testInternals } from '../../utils/lastUpdated';
+import {
+  getLastUpdated,
+  parseJsDelivrGitHubUrl,
+  jsDelivrFromParts,
+  partsForCdnUrl,
+  formatLastUpdated,
+  _testInternals,
+} from '../../utils/lastUpdated';
 
 describe('lastUpdated utils', () => {
   const { toLocalManila } = _testInternals();
@@ -27,7 +34,13 @@ describe('lastUpdated utils', () => {
     // 1st call: GitHub commits
     global.fetch.mockImplementationOnce(async () => ({
       ok: true,
-      json: async () => ([{ sha: 'abcdef1234567890', html_url: 'https://github/commit/abcdef1', commit: { committer: { date: '2020-01-02T03:04:05Z' } } }]),
+      json: async () => [
+        {
+          sha: 'abcdef1234567890',
+          html_url: 'https://github/commit/abcdef1',
+          commit: { committer: { date: '2020-01-02T03:04:05Z' } },
+        },
+      ],
     }));
 
     const res = await getLastUpdated(parts, { ttlMs: 1000 });
@@ -41,8 +54,11 @@ describe('lastUpdated utils', () => {
     const parts = partsForCdnUrl(cdnUrl);
 
     const h1 = { get: () => null };
-    const h2 = { get: (k) => (String(k).toLowerCase() === 'last-modified' ? 'Mon, 31 Aug 2020 12:00:00 GMT' : null) };
-    global.fetch.mockImplementation(async (input, init) => {
+    const h2 = {
+      get: (k) =>
+        String(k).toLowerCase() === 'last-modified' ? 'Mon, 31 Aug 2020 12:00:00 GMT' : null,
+    };
+    global.fetch.mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes('api.github.com')) return { ok: false, status: 403, headers: h1 };
       // fallback HEAD on CDN
@@ -59,7 +75,7 @@ describe('lastUpdated utils', () => {
     const parts = partsForCdnUrl(cdnUrl);
 
     const h = { get: () => null };
-    global.fetch.mockImplementation(async (input, init) => {
+    global.fetch.mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes('api.github.com')) return { ok: false, status: 500, headers: h };
       return { ok: true, headers: h };

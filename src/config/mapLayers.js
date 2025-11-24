@@ -1,15 +1,5 @@
 import L from 'leaflet';
 import 'leaflet-providers';
-import { ATTRIBUTIONS } from './attribution';
-
-// Read env values from window.ENV (CRA runtime config)
-const getEnv = (key, fallback = '') => {
-  try {
-    return (window && window.ENV && window.ENV[key]) || fallback;
-  } catch (e) {
-    return fallback;
-  }
-};
 
 // Helper to extract url + options from a leaflet-providers layer
 const providerProps = (name) => {
@@ -30,16 +20,8 @@ export const BASEMAPS = {
 };
 
 // Overlay endpoints (replace URLs with your tileserver endpoints via env)
-export const OVERLAYS = {
-  PopulationDensity_XYZ: () => ({
-    url: getEnv('REACT_APP_POP_XYZ_URL', ''),
-    options: {
-      maxZoom: 12,
-      opacity: 0.7,
-      attribution: ATTRIBUTIONS.WorldPop, // adjust if using GHSL instead
-    },
-  }),
-};
+// No optional raster overlays at this time (Population removed)
+export const OVERLAYS = {};
 
 // Simple vector style helpers
 export const styles = {

@@ -28,13 +28,41 @@
       name="description"
       content="UP Resilience Institute - Citizen Science Seismic Network"
     />
-    <link 
-       rel="stylesheet" 
-       href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-       integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-       crossorigin=""
+    <!-- Performance: load Leaflet CSS without blocking first paint -->
+    <!--
+      Lighthouse: Render‑blocking CSS. Use preload + onload swap to keep
+      initial render fast, but still ensure Leaflet styles are ready by the
+      time the map mounts. A <noscript> fallback preserves behavior with JS off.
+    -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+      integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+      crossorigin
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin
+      />
+    </noscript>
+
+    <!-- Performance: connection hints for common basemap providers -->
+    <!-- Keep preconnects <= 4 to avoid Lighthouse warning about excessive preconnects. -->
+    <!-- We prioritize OSM (default) and a single Carto domain; ArcGIS will establish on-demand. -->
+    <!-- TODO(perf): If a single provider becomes the default, remove the others. -->
+    <link rel="dns-prefetch" href="//a.tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="//b.tile.openstreetmap.org" />
+    <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
+    <link rel="preconnect" href="https://b.tile.openstreetmap.org" crossorigin />
+    <link rel="dns-prefetch" href="//a.basemaps.cartocdn.com" />
+    <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
     <title>Latest Earthquakes</title>
+    <!-- Runtime env config: keep non-deferred so dev WDS bundles (non-deferred) see it before execution. -->
     <script type="text/javascript" src="%PUBLIC_URL%/config.js"></script>
   </head>
   <body>

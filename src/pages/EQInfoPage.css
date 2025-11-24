@@ -4,7 +4,7 @@
   flex-direction: column;
   margin: 0 auto; /* Center the content horizontally */
   padding: 60px 50px;
-  color:#333333;
+  color: #333333;
   background-color: white; /* Background color for the content */
   border-radius: 8px; /* Optional for rounded corners */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Optional for shadow */
@@ -18,19 +18,17 @@
 }
 
 /* TABLE */
-.table-container{
+.table-container {
   overflow-x: auto;
 }
 
 /* REFERENCE */
-.reference{
+.reference {
   display: flex;
   justify-content: space-around;
   flex-wrap: wrap;
   row-gap: 10px;
 }
-
-
 
 ul.station {
   list-style-type: none;
@@ -44,37 +42,34 @@ ul.station {
   font-size: 14px;
 }
 
-  
 .main-content h2 {
-    align-self: flex-start;  
-    margin: 0;  
-    padding: 0 0 10px 0;
-  }
-
-.list-items {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 10px;
-    margin: -10px 0;
+  align-self: flex-start;
+  margin: 0;
+  padding: 0 0 10px 0;
 }
 
+.list-items {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  margin: -10px 0;
+}
 
-
-table th{
+table th {
   border-bottom: 1px solid black;
   padding-bottom: 10px;
 }
-table tr{
+table tr {
   padding: 10px;
 }
 
-table td{
+table td {
   text-align: start;
   padding: 20px 0;
 }
 
-table td:first-child{
+table td:first-child {
   width: 25%;
 }
 table td:nth-child(2) {
@@ -89,29 +84,28 @@ table td:nth-child(2) {
   vertical-align: top;
 }
 
-table, td, th {
+table,
+td,
+th {
   border-collapse: collapse;
 }
 
 /*reports section*/
-.info-details > h2{
+.info-details > h2 {
   margin: 30px 0px;
   width: 100%;
   text-align: center;
 }
 
-
-
-.table-container{
+.table-container {
   overflow-x: scroll;
 }
 
-.instrument td{
+.instrument td {
   vertical-align: top;
   align-self: flex-start;
   min-width: max-content;
 }
-
 
 @media (min-width: 1024px) {
   /* Laptop and larger screens */

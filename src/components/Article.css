@@ -1,7 +1,7 @@
 .article-container {
-  background-size: cover; 
-  background-position: center; 
-  background-repeat: no-repeat; 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 8px;
   box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
   overflow: hidden;
@@ -57,7 +57,7 @@
   transition: opacity 1s ease, top 1s ease;
 }
 
-.article-container:hover .article-content{
+.article-container:hover .article-content {
   top: 20%;
   padding: 40px 25px 40px 25px;
 }

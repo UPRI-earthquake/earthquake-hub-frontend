@@ -2,17 +2,18 @@
 
 This document defines UX placement, behaviors, data contracts, and implementation notes for the core map features. Use the provided Figma layout as visual reference for placement and spacing.
 
-- Mapping library: React Leaflet 4.x + Leaflet
-- Current map entry: `src/pages/HomePage.js` (`MapContainer`, `TileLayer`)
+- Mapping library: React Leaflet v3 (fork) + Leaflet 1.7.1
+- Current map entry: `src/pages/HomePage.jsx` (`MapContainer`, controls via `MapLayersControl`)
 - Existing data sources: `/device/all` (stations), `/eq-events` (earthquakes), `/messaging` (SSE)
 
 ## Legend & Layers
 
-Purpose: Provide users a single control to switch base maps and toggle overlays: Fault Lines, Stations, Earthquakes.
+Purpose: Provide users controls to switch base maps and toggle overlays: Fault Lines, Plate Boundaries, Stations, and Earthquakes.
 
-Placement (Figma reference): Top-right, floating panel with rounded corners. Matches screenshot “Base maps / Overlays” panel.
+Placement: Layers panel at top-right; Legend panel at bottom-right (collapsible).
 
 Interactions
+
 - Toggle items: Checkbox per overlay. Instant show/hide without re-querying when data already present.
 - Base map: Radio selection (one active). Immediately swaps the underlying `TileLayer`.
 - Collapsible: Chevron button to collapse to a pill on small screens; expands on tap.
@@ -20,25 +21,26 @@ Interactions
 - Mobile: 44px touch targets; panel docks below zoom on small heights to avoid overlap.
 
 Data & Layers
-- Base maps:
-  - `Carto Light` (default): `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png`
-  - `OpenStreetMap`: `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
-  - Optional: `ESRI World Imagery` if keys/terms OK.
+
+- Base maps (leaflet-providers): OSM Standard, Carto Light (default), Carto Dark, Esri World Imagery.
 - Overlays:
-  - Earthquakes: GeoJSON-like array from `/eq-events` (already used). Styled by magnitude with circle markers, clustered at low zoom.
-  - Stations: From `/device/all` (already used). Triangle/marker icon; color by status (streaming/offline/unknown).
-  - Fault Lines: Static GeoJSON loaded once (prefer `/geodata/fault-lines` if available; fallback to `/public/data/fault-lines.json`). Red line style with subtle casing.
+  - Earthquakes: Array from `/eq-events`. Styled by magnitude with circle markers (no clustering); optional depth color ramp toggle in Legend.
+  - Stations: From `/device/all`. Triangle icon; status shown in popup with real-time plot when streaming.
+  - Fault Lines: Static GeoJSON (GEM) loaded from CDN.
+  - Plate Boundaries: Static GeoJSON (PB2002) loaded from CDN.
+ 
 
 Performance
-- Lazy-load overlays on first expand or first toggle; cache in memory.
-- Use React Leaflet `Pane`s to control z-order: `base` (tiles), `faultlines` (zIndex 400), `stations` (450), `earthquakes` (500).
-- Debounce rapid toggle changes (150ms) to avoid reflows.
+
+- Overlays are loaded once and re-used; styles react to theme and zoom.
+- Z-order is managed via default panes; earthquakes and stations render in marker pane; faults/plates in overlay pane.
 
 Accessibility
-- Use `aria-labelledby` for section headers “Base maps” and “Overlays”.
-- Maintain focus on collapse/expand; ensure checkboxes are real inputs.
+
+- Layers toggle and Legend include tooltips and ARIA labels; keyboard shortcuts: L (Layers), G (Legend), Esc to close.
 
 State Shape
+
 ```js
 mapUi: {
   legendOpen: boolean,
@@ -53,19 +55,21 @@ mapData: {
 ```
 
 Components
-- `MapLegend` (new): panel UI; owns toggles, emits events.
-- `BaseMapLayer` (new): switches tile sources.
-- `FaultLinesLayer` (new): loads and renders GeoJSON.
+
+- Layers: `MapLayersControl` → `BasemapLayers`, `OverlayLayers`.
+- Legend: `LegendControl` (collapsible, synced to overlay state; shows symbology and source/last update).
 - Reuse: `EventMarkers`, `StationMarkers`.
 
 Acceptance Criteria
+
 - Toggling overlays show/hide instantly without page reload.
 - Base map swap < 300ms on broadband with tile cache warm.
 - Panel collapses to a small button on screens < 768px width.
 
 ### Implementation Notes (Updated)
+
 - A custom Leaflet control (`LegendControl`) renders a collapsible legend in the bottom-right, synced to `LayersControl` via a lightweight overlay registry.
-- Supported overlays for dynamic legend entries: Faults, Plate Boundaries, Population Density (shows units and source; tries to infer last update via `Last-Modified`).
+- Supported overlays for dynamic legend entries: Faults, Plate Boundaries.
 - Tooltips: the Layers toggle and Legend collapse button expose `title` and `aria-label` attributes for mouse/keyboard users.
 - No new dependencies; control uses React portal to render into a Leaflet control container.
 
@@ -76,16 +80,20 @@ Purpose: Explain visual encodings (magnitude, stations status, fault line style)
 Placement: Co-located with Layers panel (same container), below toggle lists.
 
 Content
-- Earthquakes: Scaled circles with sample sizes and matching color ramp; label “by magnitude”.
-- Stations: Green triangle (streaming), red (offline), gray (unknown). Counts shown when layer enabled.
-- Fault Lines: Red line swatch with a thin dark casing.
+
+- Earthquakes: Scaled circles; label “by magnitude”. Optional inline toggle for Depth ramp (On/Off).
+- Stations: Triangle swatch; status indicated in station popup (no counts in legend).
+- Fault Lines: Line swatch matching current theme/zoom.
+- Plates: Dashed line swatch.
+ 
 
 Behavior
-- Auto-updates counts from current filtered dataset (see Advanced Search).
-- Clicking a legend item toggles the corresponding overlay (same as checkbox).
+
+- Symbology and last-update metadata react to theme/zoom and overlay visibility.
 - Tooltip on hover: short description and data source.
 
 Implementation Notes
+
 - Use CSS-only swatches; no map dependency for samples.
 - Props: `{ overlayState, counts }` from parent.
 
@@ -95,31 +103,32 @@ Purpose: Filter earthquakes (and optionally stations) by time, magnitude, depth,
 
 Placement: Left sidebar panel above the results list. Matches Figma “Latest Earthquakes, Past 30 Days” header with search and filter icon.
 
-Filters
-- Time range: relative (past 24h, 7d, 30d, YTD) and custom date range.
-- Magnitude: min/max (default none). Quick chips: M4+, M5+, M6+.
-- Depth: min/max km.
-- Location: within Philippines bounds, region dropdown, or radius from point.
-- Event type: earthquake (default), aftershock, swarm (if provided by API).
+Filters (current)
 
-Presets (initial set)
-- Latest Earthquakes, Past 24 Hours.
+- Time range: custom date range.
+- Magnitude: min/max.
+- Text search: matches place/text.
+- Sort: by time or magnitude, asc/desc.
+
+Presets (implemented)
+
 - Latest Earthquakes, Past 30 Days. [default]
-- Significant (M6+), Past 30 Days.
-- Near Philippines (within 300 km), Past 7 Days.
-- Felt Reports Only (if field available).
+- 2025 Earthquakes.
+- 2024 Earthquakes.
+- 2023 Earthquakes.
 
 URL & State Sync
-- All filters sync to URL query string for share/deeplink: `?preset=m30&magMin=4&start=YYYY-MM-DD&end=YYYY-MM-DD&bbox=...`.
-- On load: parse query → hydrate sidebar and trigger fetch.
-- On change: update URL with `replaceState` debounced by 300ms.
+
+- No URL query sync at present; state is local to the page.
 
 Data Flow
-1) User selects preset/filter → construct API query.
-2) Fetch earthquakes; stations unaffected unless “filter stations by region” is enabled.
-3) Update map layers and counts; update list in sidebar.
+
+1. User selects preset/filter → update state.
+2. Fetch earthquakes for selected range; stations list unchanged.
+3. Update map overlays and sidebar list.
 
 API Contracts (proposed; aligns with existing endpoints)
+
 - `GET /eq-events`
   - Query params: `startTime`, `endTime` (YYYY-MM-DD HH:mm:ss), optional `magMin`, `magMax`, `depthMin`, `depthMax`, `bbox` (minLon,minLat,maxLon,maxLat), `radiusKm`, `centerLat`, `centerLon`, `limit`, `offset`, `sort`.
   - Response: `{ payload: EqEvent[] }` where each event includes `id, time, lat, lon, depthKm, mag, region, type`.
@@ -128,55 +137,44 @@ API Contracts (proposed; aligns with existing endpoints)
 - `GET /geodata/fault-lines` (optional new) → GeoJSON FeatureCollection of LineStrings.
 
 Component Contracts
+
 - `SearchPanel` (new): houses filters + preset selector; emits `onChange(filters)`.
 - `useEqSearch` (new hook): debounced fetch, cache last N queries; exposes `{ data, loading, error }`.
 - `SidebarItems` (existing): consume filtered data; show list and counts.
 
 Performance & UX
+
 - Debounce text inputs by 300ms; apply immediately on preset chip click.
 - Show skeleton list while fetching; maintain previous results until new arrive.
 - Paginate results: 50 per page; infinite scroll in sidebar.
 
 Acceptance Criteria
-- Changing preset updates URL and results within 1s on broadband.
-- Legend counts reflect filtered results.
-- Map zooms/fitBounds to filtered extent when user clicks “Focus results”.
 
-## Optional: Feedback Button
+- Changing preset updates results within ~1s on broadband.
+- Legend symbology and metadata reflect active overlays.
 
-Purpose: Allow users to report issues or suggest improvements with current map context attached.
-
-Placement: Bottom-right floating button (envelope icon) stacked with other utilities (see Figma).
-
-Behavior
-- Click opens modal: name (optional), email, message (required), consent checkbox.
-- Auto-attaches context: current URL (with filters), viewport center/zoom, enabled layers, browser info.
-- Submit to `POST /feedback` (proposed). Fallback: `mailto:` if API unavailable.
-- Show toast on success; disable during submission; handle offline by queueing to `localStorage` and retrying on next load.
-
-Security & Abuse
-- Consider CAPTCHA or simple rate-limit by IP if API introduced.
-
-## Optional: Scalebar
+## Scalebar
 
 Purpose: Provide distance scale for spatial context.
 
-Placement: Bottom-left above the map edge; matches screenshot.
+Placement: Bottom-left on desktop; top-left on small screens.
 
 Implementation
-- Leaflet native control: `L.control.scale({ position: 'bottomleft', imperial: false })`.
-- React Leaflet helper component `ScaleControl` using `useMap` in an effect to add/remove control.
+
+- `<ScaleControl>` from react-leaflet with `metric` only; width adapts to viewport.
 
 Acceptance
+
 - Appears at zoom ≥ 3; updates as user zooms.
 
-## Optional: PH Zoom (Overview)
+## PH Zoom (Reset View)
 
 Purpose: One-tap zoom to the Philippines extent.
 
-Placement: Small floating button near zoom controls (top-left of map) or in the bottom-right utilities stack per Figma. Label: “PH”. Tooltip: “Zoom to Philippines”.
+Placement: Button under Zoom controls (top-left). Tooltip: “Reset to Philippines”.
 
 Behavior
+
 - On click: `map.fitBounds(phBounds, { padding: [20,20] })`.
 - `phBounds` (approx): `[[4.5, 116.0], [21.3, 127.5]]` (lat,lon min/max) to include outlying islands.
 - If filters specify a smaller extent, provide a “Focus results” secondary action in the search panel.
@@ -199,8 +197,8 @@ Behavior
 
 ## Implementation Plan (phased)
 
-1) Legend/Layers panel with working toggles and base map switch.
-2) Fault Lines overlay (static GeoJSON), panes and z-indexing.
-3) Advanced Search panel with presets, URL sync, filtered fetch.
-4) Optional utilities: Feedback modal, Scalebar control, PH Zoom.
-5) Polishing: accessibility, loading states, analytics hooks.
+1. Legend/Layers panel with working toggles and base map switch.
+2. Fault Lines overlay (static GeoJSON), panes and z-indexing.
+3. Advanced Search panel with presets, URL sync, filtered fetch.
+4. Optional utilities: Feedback modal, Scalebar control, PH Zoom.
+5. Polishing: accessibility, loading states, analytics hooks.

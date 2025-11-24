@@ -7,7 +7,7 @@ flowchart TD
   B --> D{"EventMarker useSelector()"}
   D -->|"matches this marker"| E["flyTo marker & open popup"]
   D -->|"no match"| F["no change"]
-  C --> G["reset view & close popup"]
-  E --> H["Sidebar clears selection highlight"]
-  G --> H
+  C --> G["EventMarker closes popup for previously selected marker"]
+  C --> H["Sidebar clears selection highlight"]
+  E --> H
 ```

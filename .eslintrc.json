@@ -1,0 +1,8 @@
+{
+  "extends": ["react-app", "react-app/jest"],
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "eqeqeq": ["warn", "smart"],
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
+  }
+}

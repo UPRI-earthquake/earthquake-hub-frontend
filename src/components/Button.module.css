@@ -1,21 +1,33 @@
 .button {
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  color: white;
+  color: #ffffff;
   cursor: pointer;
-  padding: 0.45rem 1rem;
-  font-size: 1rem;
-  border-radius: 4px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  border-radius: 10px;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    transform 100ms ease, box-shadow 150ms ease;
 }
 
 .button:hover {
-  color: lightgray
+  background: rgba(255, 255, 255, 0.12);
+}
+.button:active {
+  transform: translateY(0.5px);
+}
+.button:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
 }
 
 .hasOutline {
-  border: 1px solid white;
+  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hasOutline:hover {
-  border: 1px solid lightgray;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.9);
 }

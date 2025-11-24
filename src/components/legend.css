@@ -3,12 +3,13 @@
   --panel-bg: #ffffffee;
   --panel-text: #1f2937;
   --panel-border: rgba(17, 24, 39, 0.12);
-  --panel-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  --panel-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
   background: var(--panel-bg);
   border-radius: 12px;
   border: 1px solid var(--panel-border);
   box-shadow: var(--panel-shadow);
-  padding: 12px 12px 16px 12px;
+  /* Uniform padding on all sides for consistent visual rhythm */
+  padding: 12px;
   font-family: var(--font-primary);
   font-size: 13px;
   line-height: 1.35;
@@ -16,11 +17,11 @@
   pointer-events: auto;
   backdrop-filter: saturate(120%) blur(6px);
   max-width: 320px;
+  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 
 .custom-legend-control.is-collapsed {
   background: transparent;
-  box-shadow: none;
   padding: 0;
   border: none;
 }
@@ -30,7 +31,32 @@
   min-width: 180px;
 }
 
-.legend-shell.is-collapsed { min-width: auto; }
+.legend-shell.is-collapsed {
+  min-width: auto;
+}
+
+/* Smooth entrance when expanding */
+.legend-shell:not(.is-collapsed) {
+  animation: legendPanelIn 0.2s ease-out;
+  transform-origin: bottom right;
+}
+
+@keyframes legendPanelIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legend-shell:not(.is-collapsed) {
+    animation: none;
+  }
+}
 
 /* Toggle button inside expanded panel (Collapse) */
 /* Expanded header */
@@ -38,58 +64,111 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0px 12px 0px 12px;
   position: sticky;
   top: 0;
   background: inherit;
   z-index: 1;
 }
-.legend-title { font-weight: 600; font-size: 14px; }
-.legend-tools { display: inline-flex; gap: 8px; align-items: center; }
+.legend-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.legend-tools {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
 /* Header tools – match Map Layers style */
 .legend-tools button {
   height: 30px;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   background: #f3f4f6;
   color: #111827;
   padding: 0 10px;
   cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    border-color 150ms ease;
 }
+.legend-tools button:hover { background: #e5e7eb; }
+.legend-tools button:active { transform: scale(0.98); }
 .legend-tools button:focus-visible {
   outline: 2px solid #22c55e;
   outline-offset: 2px;
 }
-.legend-tools .legend-close { width: 30px; padding: 0; font-size: 18px; line-height: 1; }
-.leaflet-container[data-basemap-theme="dark"] .legend-tools button,
-.leaflet-container[data-basemap-theme="imagery"] .legend-tools button { background: #1f2937; color: #f3f4f6; border-color: rgba(255,255,255,0.2); }
+.legend-tools .legend-close {
+  width: 30px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+.leaflet-container[data-basemap-theme='dark'] .legend-tools button,
+.leaflet-container[data-basemap-theme='imagery'] .legend-tools button {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.2);
+}
 /* Collapsed pill (Legend ▸) */
 .custom-legend-control.is-collapsed .legend-toggle {
   position: static;
   height: 48px;
+  width: 48px; /* icon-only button like other controls */
   min-width: 48px;
-  padding: 0 12px;
+  padding: 0; /* center the icon */
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0,0,0,0.25);
+  border: 1px solid rgba(0, 0, 0, 0.25);
   border-radius: 12px;
   background: #fff;
   color: #111827;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   z-index: 1000;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.leaflet-container[data-basemap-theme="dark"] .custom-legend-control.is-collapsed .legend-toggle,
-.leaflet-container[data-basemap-theme="imagery"] .custom-legend-control.is-collapsed .legend-toggle {
+.custom-legend-control.is-collapsed .legend-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.custom-legend-control.is-collapsed .legend-toggle:active {
+  transform: scale(0.98);
+}
+.custom-legend-control.is-collapsed .legend-toggle:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+.leaflet-container[data-basemap-theme='dark'] .custom-legend-control.is-collapsed .legend-toggle,
+.leaflet-container[data-basemap-theme='imagery']
+  .custom-legend-control.is-collapsed
+  .legend-toggle {
   background: #1f2937;
   color: #f3f4f6;
-  border-color: rgba(255,255,255,0.25);
+  border-color: rgba(255, 255, 255, 0.25);
 }
-.legend-toggle:focus { outline: 2px solid #4aa96c; outline-offset: 2px; }
+.leaflet-container[data-basemap-theme='dark']
+  .custom-legend-control.is-collapsed
+  .legend-toggle:hover,
+.leaflet-container[data-basemap-theme='imagery']
+  .custom-legend-control.is-collapsed
+  .legend-toggle:hover {
+  background: #111827;
+}
+.legend-toggle:focus {
+  outline: 2px solid #4aa96c;
+  outline-offset: 2px;
+}
 
-.legend-body { padding: 8px; max-height: 40vh; overflow: auto; }
-.map-legend { padding: 0; }
+.legend-body {
+  /* Let the container provide side padding; keep body flush */
+  padding: 0;
+  max-height: 40vh;
+  overflow: auto;
+}
+.map-legend {
+  padding: 0;
+}
 
 .legend-heading {
   font-size: 14px;
@@ -97,70 +176,254 @@
   margin: 0 0 6px 0;
 }
 
-.legend-item { display: flex; align-items: center; margin: 8px 0; }
-.legend-item[role="button"] { cursor: pointer; }
-.legend-swatch { width: 42px; flex: 0 0 42px; display: flex; align-items: center; justify-content: center; }
-.swatch-line { display: block; width: 30px; height: 0; }
-.swatch-ramp { display: inline-flex; gap: 2px; }
-.swatch-ramp i { display: inline-block; width: 10px; height: 10px; border-radius: 1px; }
-.swatch-triangle { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #22c55e; }
-.swatch-circle { width: 12px; height: 12px; border-radius: 50%; background: #e53e3e; border: 2px solid #e5e7eb; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+}
+/* Slightly increase spacing between Faults and Plate Boundaries for easier scanning */
+.legend-item[data-key='plates'] {
+  margin-top: 12px;
+}
+.legend-item[role='button'] {
+  cursor: pointer;
+}
+.legend-swatch {
+  width: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.swatch-line {
+  display: block;
+  width: 30px;
+  height: 0;
+}
+.swatch-ramp {
+  display: inline-flex;
+  gap: 2px;
+}
+.swatch-ramp i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+}
+.swatch-triangle {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 12px solid #22c55e;
+  /* Nudge to align optical baseline with text */
+  position: relative;
+  top: 1px;
+  /* Subtle drop shadow for visibility on busy basemaps */
+  filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 0.6px rgba(0, 0, 0, 0.35));
+}
+.swatch-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e53e3e;
+  border: 2px solid #e5e7eb;
+  /* Nudge to align optical baseline with text */
+  position: relative;
+  top: 1px;
+  /* Gentle shadow to enhance legibility over imagery */
+  box-shadow: 0 0 0 0.2px rgba(0, 0, 0, 0.5), 0 0.5px 0.8px rgba(0, 0, 0, 0.25);
+}
 
-.legend-meta { display: flex; flex-direction: column; }
-.legend-label { font-weight: 600; margin-bottom: 2px; font-size: 13px; }
-.legend-label-with-toggle { display: flex; align-items: center; gap: 8px; }
-.legend-source-line { font-size: 11px; color: #555; margin-top: 2px; }
-.legend-update-line { font-size: 11px; color: #777; margin-top: 2px; }
-.legend-subrow { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-.legend-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; }
-.legend-chip i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
-.legend-toggle-inline { appearance: none; border: 1px solid rgba(0,0,0,0.25); background: #fff; color: #111827; border-radius: 8px; padding: 2px 8px; cursor: pointer; font-size: 11px; }
-.legend-toggle-inline:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
-.legend-empty { color: #666; padding: 4px 0; }
+.legend-meta {
+  display: flex;
+  flex-direction: column;
+}
+.legend-label {
+  font-weight: 600;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+.legend-label-with-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* slightly tighter to visually group with label */
+}
+.legend-source-line {
+  font-size: 11px;
+  color: #555;
+  margin-top: 2px;
+}
+.legend-update-line {
+  font-size: 11px;
+  /* De-emphasize secondary metadata */
+  color: #888;
+  margin-top: 2px;
+}
+.legend-subrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.legend-chip i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  /* Add a subtle outline/shadow for visibility over varied backgrounds */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 0.5px 0.8px rgba(0, 0, 0, 0.15);
+}
+.legend-toggle-inline {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  /* Slightly separate from label to avoid visual clutter */
+  padding-left: 8px;
+}
+/* Render a pill-style switch before the text for clear affordance */
+.legend-toggle-inline::before {
+  content: '';
+  width: 26px; /* smaller switch to reduce visual weight */
+  height: 14px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.08);
+  display: inline-block;
+  vertical-align: middle;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+.legend-toggle-inline::after {
+  content: '';
+  position: absolute;
+  left: 9.5px;
+  top: 50%;
+  width: 10px; /* smaller knob */
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transform: translate(0, -50%);
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+.legend-toggle-inline[aria-checked='true']::before {
+  background: #22c55e;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.12); /* very soft glow on active */
+}
+.legend-toggle-inline[aria-checked='true']::after {
+  transform: translate(14px, -50%);
+}
+.legend-toggle-inline:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+.legend-empty {
+  color: #666;
+  padding: 4px 0;
+}
 
 /* Focus styles */
-.legend-item[role="button"]:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; border-radius: 8px; }
+.legend-item[role='button']:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 
 /* Theme-aware background for dark/imagery basemaps */
-.leaflet-container[data-basemap-theme="dark"] .custom-legend-control,
-.leaflet-container[data-basemap-theme="imagery"] .custom-legend-control {
+.leaflet-container[data-basemap-theme='dark'] .custom-legend-control,
+.leaflet-container[data-basemap-theme='imagery'] .custom-legend-control {
   --panel-bg: #111827dd;
   --panel-text: #f3f4f6;
   --panel-border: rgba(255, 255, 255, 0.12);
 }
 
 /* Basemap-aware inline toggle styling */
-.leaflet-container[data-basemap-theme="dark"] .legend-toggle-inline,
-.leaflet-container[data-basemap-theme="imagery"] .legend-toggle-inline {
-  background: #1f2937;
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle-inline,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle-inline {
   color: #f3f4f6;
-  border-color: rgba(255,255,255,0.25);
+}
+/* Divider tone on dark/imagery */
+.leaflet-container[data-basemap-theme='dark'] .legend-label-with-toggle .legend-toggle-inline,
+.leaflet-container[data-basemap-theme='imagery'] .legend-label-with-toggle .legend-toggle-inline {
+  border-left-color: rgba(255, 255, 255, 0.18);
+}
+/* Dark/imagery variants for switch track + knob outline */
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle-inline::before,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle-inline::before {
+  background: #374151;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle-inline[aria-checked='true']::before,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle-inline[aria-checked='true']::before {
+  background: #16a34a; /* slightly darker green on dark */
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.18);
+}
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle-inline::after,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle-inline::after {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Fade/slide-in for the depth ramp chips when toggled on */
+.legend-subrow.ramp-in {
+  animation: rampIn 160ms ease-out;
+}
+@keyframes rampIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Legend chips match map styles */
-.legend-item[data-key="faults"] .swatch-line {
+.legend-item[data-key='faults'] .swatch-line {
   border-top: 3px solid #d94c3d;
   opacity: 0.95;
 }
-.legend-item[data-key="plates"] .swatch-line {
+.legend-item[data-key='plates'] .swatch-line {
   border-top: 3px dashed #0891b2;
   opacity: 0.85;
 }
 
 /* Adjust chips on dark/imagery for visibility */
-.leaflet-container[data-basemap-theme="dark"] .legend-item .legend-source-line,
-.leaflet-container[data-basemap-theme="imagery"] .legend-item .legend-source-line {
+.leaflet-container[data-basemap-theme='dark'] .legend-item .legend-source-line,
+.leaflet-container[data-basemap-theme='imagery'] .legend-item .legend-source-line {
   color: #d1d5db;
+}
+/* De-emphasize update line on dark/imagery too */
+.leaflet-container[data-basemap-theme='dark'] .legend-item .legend-update-line,
+.leaflet-container[data-basemap-theme='imagery'] .legend-item .legend-update-line {
+  color: #9ca3af;
 }
 
 /* Station/EQ chips follow theme stroke/fill */
-.leaflet-container[data-basemap-theme="dark"] .swatch-triangle,
-.leaflet-container[data-basemap-theme="imagery"] .swatch-triangle {
+.leaflet-container[data-basemap-theme='dark'] .swatch-triangle,
+.leaflet-container[data-basemap-theme='imagery'] .swatch-triangle {
   border-bottom-color: #86efac; /* green-300 */
 }
-.leaflet-container[data-basemap-theme="dark"] .swatch-circle,
-.leaflet-container[data-basemap-theme="imagery"] .swatch-circle {
+.leaflet-container[data-basemap-theme='dark'] .swatch-circle,
+.leaflet-container[data-basemap-theme='imagery'] .swatch-circle {
   border-color: #ffffff; /* 2px white ring */
+}
+/* Stronger chip outline on dark/imagery for better contrast */
+.leaflet-container[data-basemap-theme='dark'] .legend-chip i,
+.leaflet-container[data-basemap-theme='imagery'] .legend-chip i {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0.5px 0.8px rgba(0, 0, 0, 0.3);
 }
 
 /* Mobile: limit legend height a bit more to avoid crowding */

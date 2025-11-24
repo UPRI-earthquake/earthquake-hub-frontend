@@ -1,7 +1,10 @@
 :root {
-  --font-primary: Inter, Roboto, "Noto Sans", system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+  --font-primary: Inter, Roboto, 'Noto Sans', system-ui, -apple-system, Segoe UI, Helvetica, Arial,
+    sans-serif;
   --text-light: #1f2937; /* gray-800 */
-  --text-dark: #f3f4f6;  /* gray-100 */
+  --text-dark: #f3f4f6; /* gray-100 */
+  /* Shared header height for layout and spacing */
+  --header-h: 56px;
 }
 
 body {
@@ -12,92 +15,62 @@ body {
   color: var(--text-light);
 }
 
+/* Global, theme-aware scrollbar styling */
+/*
+  We style scrollbars across the app and react to the
+  same theme attribute already used elsewhere:
+  html[data-basemap-theme='light' | 'dark' | 'imagery']
+
+  - WebKit/Blink: ::-webkit-scrollbar* selectors
+  - Firefox: scrollbar-color + scrollbar-width
+*/
+html {
+  /* Defaults for light theme */
+  --sb-size: 10px;
+  --sb-radius: 8px;
+  --sb-track: #e5e7eb; /* gray-200 */
+  --sb-thumb: #9ca3af; /* gray-400 */
+  --sb-thumb-hover: #6b7280; /* gray-500 */
+  color-scheme: light;
+}
+html[data-basemap-theme='dark'],
+html[data-basemap-theme='imagery'] {
+  /* Subtle, higher-contrast look for dark/imagery */
+  --sb-track: #0b1220; /* slate-950 approximation used elsewhere */
+  --sb-thumb: #64748b; /* slate-500 */
+  --sb-thumb-hover: #94a3b8; /* slate-400 */
+  color-scheme: dark;
+}
+
+/* WebKit/Blink engines */
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+*::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+  border-radius: var(--sb-radius);
+  border: 2px solid var(--sb-track);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sb-thumb-hover);
+}
+*::-webkit-scrollbar-corner {
+  background: var(--sb-track);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-
-/* Force Leaflet and map UI to use primary font */
-.leaflet-container, .leaflet-container * , .leaflet-control, .leaflet-control * {
-  font-family: var(--font-primary) !important;
-}
-
-/* Ensure top-right controls don’t collide with fixed header (50px) */
-/* .leaflet-top.leaflet-right { margin-top: 20px; margin-right: 20px; } */
-@media (max-height: 420px) {
-  .leaflet-top.leaflet-right { margin-top: 12px; }
-}
-
-/* Give bottom-right controls breathing room above attribution */
-@media (min-width: 768px) {
-  .leaflet-bottom.leaflet-right { margin-bottom: 50px; }
-}
-
-/* Context-aware styling for Zoom buttons (matches Layers/Legend themes) */
-.leaflet-container .leaflet-control-zoom {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-  overflow: hidden; /* round inner corners */
-  border: 1px solid rgba(0,0,0,0.25);
-}
-.leaflet-container .leaflet-control-zoom a {
-  width: 40px;
-  height: 40px;
-  line-height: 38px;
-  background: #ffffff;
-  color: #111827; /* gray-900 */
-  border-bottom: 1px solid rgba(0,0,0,0.12);
-}
-.leaflet-container .leaflet-control-zoom a:last-child { border-bottom: none; }
-.leaflet-container .leaflet-control-zoom a:hover { background: rgba(0,0,0,0.04); }
-.leaflet-container .leaflet-control-zoom a.leaflet-disabled { opacity: 0.5; cursor: default; }
-
-/* Dark/Imagery themes */
-.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom {
-  border-color: rgba(255,255,255,0.25);
-}
-.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom a,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a {
-  background: #1f2937; /* gray-800 */
-  color: #f3f4f6;       /* gray-100 */
-  border-bottom-color: rgba(255,255,255,0.12);
-}
-.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom a:hover,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a:hover {
-  background: #111827; /* gray-900 */
-}
-.leaflet-container[data-basemap-theme="dark"] .leaflet-control-zoom a.leaflet-disabled,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-control-zoom a.leaflet-disabled {
-  opacity: 0.5;
-}
-
-/* Feature hover tooltips (faults, plates) */
-.leaflet-tooltip.feature-tooltip {
-  --tt-bg: #ffffff;
-  --tt-text: #111827;
-  --tt-border: rgba(17, 24, 39, 0.18);
-  background: var(--tt-bg);
-  color: var(--tt-text);
-  border: 1px solid var(--tt-border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
-}
-.leaflet-container[data-basemap-theme="dark"] .leaflet-tooltip.feature-tooltip,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-tooltip.feature-tooltip {
-  --tt-bg: #111827;
-  --tt-text: #f3f4f6;
-  --tt-border: rgba(255, 255, 255, 0.15);
-}
-.leaflet-tooltip.feature-tooltip .ft-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.leaflet-tooltip.feature-tooltip .ft-row { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; }
-.leaflet-tooltip.feature-tooltip .ft-k { color: #6b7280; }
-.leaflet-container[data-basemap-theme="dark"] .leaflet-tooltip.feature-tooltip .ft-k,
-.leaflet-container[data-basemap-theme="imagery"] .leaflet-tooltip.feature-tooltip .ft-k { color: #d1d5db; opacity: 0.8; }
 
 /* Indicate hoverable path */
-path.remote-geojson-layer.leaflet-interactive { cursor: help; }
+path.remote-geojson-layer.leaflet-interactive { cursor: pointer; }

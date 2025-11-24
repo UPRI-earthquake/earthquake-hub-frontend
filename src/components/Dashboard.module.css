@@ -1,36 +1,45 @@
 .modalOverlay {
   position: fixed;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.301);
-  display: flex;
-  justify-content: flex-end;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100vh; /* fallback */
+  background-color: rgba(0, 0, 0, 0.45);
+  display: grid;
+  align-items: start; /* keep panel below header */
+  justify-items: end;
+  padding: calc(var(--header-h, 56px) + 12px) 12px 12px 12px;
+  z-index: 99998; /* above header */
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .dashboardModal {
-  margin-top: 20px; 
-  margin-right: 20px;
-  background-color: rgb(255, 255, 255);
-  padding-left: 20px;
-  padding-right: 20px;
-  border-radius: 5px;
-  width: 700px;
-  max-width: 90%;
-  height: 90%;
+  margin: 0;
+  background-color: #ffffff;
+  padding: 0 20px 20px 20px;
+  border-radius: 12px;
+  width: min(720px, 92vw);
+  /* Fill all available space below the fixed header */
+  height: calc(100dvh - var(--header-h, 56px) - 24px);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  overflow-y: auto;
-  z-index: 2;
-  opacity: 0
+  justify-content: flex-start;
+  overflow: auto;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  opacity: 0; /* animated in */
+  box-sizing: border-box;
 }
 
 @media (max-width: 600px) {
+  .modalOverlay {
+    padding: calc(var(--header-h, 56px) + 8px) 8px 8px 8px;
+  }
   .dashboardModal {
-    margin-top: 0;
-    margin-right: 0;
-    height: 100%;
+    width: 100%;
+    height: calc(100dvh - var(--header-h, 56px) - 12px);
+    border-radius: 10px;
   }
 }
 
@@ -93,7 +102,7 @@
 .panelBody button {
   display: block;
   width: 100%;
-  margin: 10px;
+  /* margin: 10px; */
   background-color: #3a6a50;
   color: #fff;
   border: none;
@@ -123,30 +132,92 @@
   background-color: #dfdfdf;
 }
 
-
 .profileContainer {
   opacity: 0;
   display: flex;
-  padding-bottom: 50px;
+  padding-bottom: 24px;
   flex-direction: column;
   justify-content: flex-start;
   flex: 1;
   overflow-y: auto;
 }
 
+/* Sticky title + tools header inside the panel */
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 6px 12px 6px;
+}
+.topBarTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.topBarTools {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.toolBtn {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #f3f4f6;
+  color: #111827;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    transform 100ms ease;
+}
+.toolBtn:hover { background: #e5e7eb; }
+.toolBtn:active { transform: scale(0.98); }
+.toolBtn:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
+
+/* Accent variant for Request Token to match legacy green */
+.requestTokenBtn {
+  background: #3a6a50; /* same green used across app */
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.18);
+}
+.requestTokenBtn:hover { background: #447f5b; }
+.requestTokenBtn:focus-visible { outline: 2px solid #86efac; outline-offset: 2px; }
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #f3f4f6;
+  color: #111827;
+  cursor: pointer;
+}
+.closeBtn:hover { background: #e5e7eb; }
+.closeBtn:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }
 
 /* Device List Table */
 .deviceListTableContainer {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 60vh;
   border: solid 1px #a6a5a9;
 }
 
 .deviceListTable {
-  border: none; 
+  border: none;
+  /* Size to content so columns fit their longest cell */
   width: 100%;
+  /* max-width: 100%; */
   background-color: #f2f2f2;
   border-radius: 4px;
   overflow: hidden;
+  table-layout: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 .deviceListTable th {
@@ -156,41 +227,39 @@
   font-weight: bold;
   color: #333333;
   text-align: center;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .deviceListTable td {
-  flex-basis: 0;
-  flex-grow: 1;
   padding: 10px;
   color: #333333;
+  word-break: break-word;
+  white-space: normal;
+  text-align: center;
 }
 
-
-/* Tooltip */
-[data-tooltip] {
-  position: static;
-  cursor: pointer;
+/* Mobile-friendly adjustments */
+@media (max-width: 600px) {
+  .topBar { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 6px; }
+  .topBarTitle { font-size: 18px; }
+  .topBarTools { justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+  .toolBtn { height: 30px; font-size: 13px; padding: 0 8px; }
+  .closeBtn { width: 30px; height: 30px; }
+  .deviceListTableContainer { max-height: 55dvh; }
+  .deviceListTable th { font-size: 13px; padding: 8px; }
+  .deviceListTable td { font-size: 13px; padding: 8px; }
 }
 
-[data-tooltip]::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  transform: translateX(-50%);
-  padding: 5px 10px;
-  background-color: #01581b;
-  color: #fff;
-  border-radius: 5px;
-  font-size: 14px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
+/* Extremely narrow screens: hide the Status Since column to reduce horizontal overflow */
+@media (max-width: 420px) {
+  .deviceListTable th:nth-child(4),
+  .deviceListTable td:nth-child(4) {
+    display: none;
+  }
 }
 
-[data-tooltip]:hover::before {
-  opacity: 1;
-  visibility: visible;
-}
-
+/* Remove custom [data-tooltip] styles in favor of native title tooltips */
 
 /* Add Device Form */
 .addDeviceForm {
@@ -201,7 +270,7 @@
   justify-content: center;
 }
 
-.addDeviceForm input[type="text"] {
+.addDeviceForm input[type='text'] {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -244,7 +313,7 @@
 }
 
 .addDeviceForm input:focus + .inputLabel,
-.addDeviceForm input:not(:placeholder-shown) + .inputLabel{
+.addDeviceForm input:not(:placeholder-shown) + .inputLabel {
   top: -20px;
   font-size: 12px;
   color: #333;
@@ -277,10 +346,9 @@
   opacity: 0.5;
 } */
 
-
 /*  */
 .errorPopup {
-  background-color: #eA6D7E;
+  background-color: #ea6d7e;
   border: 3px solid #d54c49;
   color: white;
   padding: 10px;
@@ -314,7 +382,6 @@
   cursor: pointer;
 }
 
-
 /* Add Device/Cancel Button */
 .addDeviceButtonDiv {
   padding: 20px;
@@ -347,12 +414,11 @@
   transform: scale(0.95);
 }
 
-
 .panelHeaderButtonDiv {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px; 
+  gap: 10px;
 }
 
 .signoutButton {
@@ -379,4 +445,113 @@
 
 .requestTokenButton:hover {
   background-color: #447f5b;
+}
+
+/* ------------------------------ */
+/* Dark + Imagery theme variants  */
+/* ------------------------------ */
+html[data-basemap-theme='dark'] .dashboardModal,
+html[data-basemap-theme='imagery'] .dashboardModal {
+  background-color: #111827; /* gray-900 */
+  color: #f3f4f6; /* gray-100 */
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+}
+
+html[data-basemap-theme='dark'] .panelHeader,
+html[data-basemap-theme='imagery'] .panelHeader {
+  background: #0f172a; /* slate-900 */
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html[data-basemap-theme='dark'] .panelHeader p,
+html[data-basemap-theme='imagery'] .panelHeader p {
+  color: #f3f4f6;
+}
+
+html[data-basemap-theme='dark'] .panelBody,
+html[data-basemap-theme='imagery'] .panelBody {
+  background: #111827;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html[data-basemap-theme='dark'] .topBar,
+html[data-basemap-theme='imagery'] .topBar {
+  background: #111827;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+html[data-basemap-theme='dark'] .topBarTitle,
+html[data-basemap-theme='imagery'] .topBarTitle { color: #f3f4f6; }
+
+html[data-basemap-theme='dark'] .toolBtn,
+html[data-basemap-theme='imagery'] .toolBtn,
+html[data-basemap-theme='dark'] .closeBtn,
+html[data-basemap-theme='imagery'] .closeBtn {
+  background: #1f2937; /* gray-800 */
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+html[data-basemap-theme='dark'] .toolBtn:hover,
+html[data-basemap-theme='imagery'] .toolBtn:hover,
+html[data-basemap-theme='dark'] .closeBtn:hover,
+html[data-basemap-theme='imagery'] .closeBtn:hover {
+  background: #0f172a;
+}
+
+html[data-basemap-theme='dark'] .deviceListTableContainer,
+html[data-basemap-theme='imagery'] .deviceListTableContainer {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+html[data-basemap-theme='dark'] .deviceListTable,
+html[data-basemap-theme='imagery'] .deviceListTable {
+  background-color: #0b1220; /* very dark background */
+}
+html[data-basemap-theme='dark'] .deviceListTable th,
+html[data-basemap-theme='imagery'] .deviceListTable th {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+html[data-basemap-theme='dark'] .deviceListTable td,
+html[data-basemap-theme='imagery'] .deviceListTable td {
+  color: #f3f4f6;
+}
+
+/* Fallback to OS dark mode when app theme not yet set */
+@media (prefers-color-scheme: dark) {
+  html:not([data-basemap-theme]) .dashboardModal { background-color: #111827; color: #f3f4f6; }
+  html:not([data-basemap-theme]) .panelHeader { background: #0f172a; border-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .panelBody { background: #111827; border-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .topBar { background: #111827; border-bottom-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .toolBtn,
+  html:not([data-basemap-theme]) .closeBtn { background: #1f2937; color: #f3f4f6; border-color: rgba(255, 255, 255, 0.18); }
+  html:not([data-basemap-theme]) .deviceListTableContainer { border-color: rgba(255, 255, 255, 0.22); }
+  html:not([data-basemap-theme]) .deviceListTable { background: #0b1220; }
+  html:not([data-basemap-theme]) .deviceListTable th { background: #1f2937; color: #e5e7eb; border-bottom-color: rgba(255, 255, 255, 0.15); }
+  html:not([data-basemap-theme]) .deviceListTable td { color: #f3f4f6; }
+}
+
+/* Inputs in Add Device form (dark) */
+html[data-basemap-theme='dark'] .addDeviceForm input,
+html[data-basemap-theme='imagery'] .addDeviceForm input {
+  background: #0b1220;
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+html[data-basemap-theme='dark'] .inputLabel,
+html[data-basemap-theme='imagery'] .inputLabel { color: #94a3b8; }
+html[data-basemap-theme='dark'] .addDeviceForm input:focus + .inputLabel,
+html[data-basemap-theme='imagery'] .addDeviceForm input:focus + .inputLabel,
+html[data-basemap-theme='dark'] .addDeviceForm input:not(:placeholder-shown) + .inputLabel,
+html[data-basemap-theme='imagery'] .addDeviceForm input:not(:placeholder-shown) + .inputLabel {
+  color: #e5e7eb;
+}
+
+/* Keep brand buttons readable on dark backgrounds */
+/* Buttons keep white text for contrast */
+html[data-basemap-theme='dark'] .panelBody button,
+html[data-basemap-theme='imagery'] .panelBody button,
+html[data-basemap-theme='dark'] .requestTokenButton,
+html[data-basemap-theme='imagery'] .requestTokenButton {
+  color: #ffffff;
 }

@@ -34,6 +34,9 @@ function setSessionCache(key, value, ttlMs) {
   } catch (_) {}
 }
 
+/**
+ * Parse a jsDelivr GitHub URL into { owner, repo, ref, path } parts.
+ */
 export function parseJsDelivrGitHubUrl(url) {
   // Example: https://cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/<path>
   try {
@@ -54,6 +57,9 @@ export function parseJsDelivrGitHubUrl(url) {
   }
 }
 
+/**
+ * Build a jsDelivr GitHub URL from parts.
+ */
 export function jsDelivrFromParts({ owner, repo, ref, path }) {
   if (!owner || !repo || !ref || !path) return null;
   return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${path}`;
@@ -64,9 +70,13 @@ function toLocalManila(date) {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (!d || Number.isNaN(d.getTime())) return null;
     const fmt = new Intl.DateTimeFormat(undefined, {
-      year: 'numeric', month: 'short', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
-      hour12: false, timeZone: 'Asia/Manila'
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Manila',
     });
     return fmt.format(d);
   } catch (_) {
@@ -77,7 +87,7 @@ function toLocalManila(date) {
 async function fetchGitHubCommit({ owner, repo, path, ref, token, signal }) {
   const q = new URLSearchParams({ path, sha: ref, per_page: '1' }).toString();
   const url = `https://api.github.com/repos/${owner}/${repo}/commits?${q}`;
-  const headers = { 'Accept': 'application/vnd.github+json' };
+  const headers = { Accept: 'application/vnd.github+json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(url, { headers, signal });
   if (!res.ok) {
@@ -109,9 +119,15 @@ async function fetchCdnLastModified(cdnUrl, signal) {
   return { isoDate };
 }
 
+/**
+ * Determine last updated metadata, preferring GitHub commits API then falling back
+ * to CDN Last-Modified header. Caches results in-memory and in sessionStorage.
+ */
 export async function getLastUpdated(meta, opts = {}) {
   const { owner, repo, path, ref, cdnUrl } = meta || {};
-  const token = opts.token || (typeof process !== 'undefined' && process.env && process.env.REACT_APP_GITHUB_TOKEN);
+  const token =
+    opts.token ||
+    (typeof process !== 'undefined' && process.env && process.env.REACT_APP_GITHUB_TOKEN);
   const ttlMs = opts.ttlMs != null ? opts.ttlMs : 6 * 60 * 60 * 1000; // 6 hours
   const key = cacheKeyFromParts({ owner, repo, path, ref }) || cacheKeyFromParts({ cdnUrl });
 
@@ -137,7 +153,7 @@ export async function getLastUpdated(meta, opts = {}) {
         displayDate: toLocalManila(gh.isoDate),
         commitSha: String(gh.sha).slice(0, 7),
         commitUrl: gh.html_url,
-        tooltip: 'Based on the last commit that changed this file in GitHub.'
+        tooltip: 'Based on the last commit that changed this file in GitHub.',
       };
       MEMORY_CACHE.set(key, value);
       setSessionCache(key, value, ttlMs);
@@ -150,14 +166,17 @@ export async function getLastUpdated(meta, opts = {}) {
 
   // Fallback: HEAD Last-Modified
   try {
-    const cdn = await fetchCdnLastModified(cdnUrl || jsDelivrFromParts({ owner, repo, ref, path }), signal);
+    const cdn = await fetchCdnLastModified(
+      cdnUrl || jsDelivrFromParts({ owner, repo, ref, path }),
+      signal,
+    );
     const value = {
       source: 'cdn',
       isoDate: cdn.isoDate,
       displayDate: toLocalManila(cdn.isoDate),
       commitSha: null,
       commitUrl: null,
-      tooltip: 'Fallback to CDN Last-Modified header; may not match repo history.'
+      tooltip: 'Fallback to CDN Last-Modified header; may not match repo history.',
     };
     MEMORY_CACHE.set(key, value);
     setSessionCache(key, value, ttlMs);
@@ -170,7 +189,7 @@ export async function getLastUpdated(meta, opts = {}) {
       displayDate: null,
       commitSha: null,
       commitUrl: null,
-      tooltip: 'Last updated is unknown; GitHub and CDN metadata unavailable.'
+      tooltip: 'Last updated is unknown; GitHub and CDN metadata unavailable.',
     };
     MEMORY_CACHE.set(key, value);
     setSessionCache(key, value, ttlMs);
@@ -178,6 +197,7 @@ export async function getLastUpdated(meta, opts = {}) {
   }
 }
 
+/** Format a human-friendly last updated string from a result object. */
 export function formatLastUpdated(result) {
   if (!result) return 'Last updated: Unknown';
   const base = result.displayDate ? `Last updated: ${result.displayDate}` : 'Last updated: Unknown';
@@ -190,11 +210,13 @@ export function formatLastUpdated(result) {
   return base;
 }
 
+/** Shortcut to parse parts while retaining original cdnUrl. */
 export function partsForCdnUrl(cdnUrl) {
   const gh = parseJsDelivrGitHubUrl(cdnUrl) || {};
   return { ...gh, cdnUrl };
 }
 
-export function _testInternals() { // exposed for unit tests
+export function _testInternals() {
+  // exposed for unit tests
   return { parseJsDelivrGitHubUrl, jsDelivrFromParts, toLocalManila };
 }

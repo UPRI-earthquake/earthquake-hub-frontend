@@ -1,3 +1,4 @@
+import { devlog, deverror } from './utils/devlog';
 // This optional code is used to register a service worker.
 // register() is not called by default.
 
@@ -15,12 +16,13 @@ const isLocalhost = Boolean(
     // [::1] is the IPv6 localhost address.
     window.location.hostname === '[::1]' ||
     // 127.0.0.0/8 are considered localhost for IPv4.
-    window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
+    window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/),
 );
 
+/** Register the app's service worker (custom-sw.js) for offline support. */
 export function register(config) {
   if ('serviceWorker' in navigator) {
-//  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    //  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
     const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
     if (publicUrl.origin !== window.location.origin) {
@@ -32,11 +34,12 @@ export function register(config) {
 
     window.addEventListener('load', () => {
       //const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
-      const swFileName = process.env.NODE_ENV === 'production'
-                       /*? 'service-worker.js'*/
-                         ? 'custom-sw.js'
-                         : 'custom-sw.js'
-      const swUrl = `${process.env.PUBLIC_URL}/${swFileName}`
+      const swFileName =
+        process.env.NODE_ENV === 'production'
+          ? /*? 'service-worker.js'*/
+            'custom-sw.js'
+          : 'custom-sw.js';
+      const swUrl = `${process.env.PUBLIC_URL}/${swFileName}`;
 
       if (isLocalhost) {
         // This is running on localhost. Let's check if a service worker still exists or not.
@@ -45,10 +48,11 @@ export function register(config) {
         // Add some additional logging to localhost, pointing developers to the
         // service worker/PWA documentation.
         navigator.serviceWorker.ready.then(() => {
-          console.log(
-            'This web app is being served cache-first by a service ' +
-              'worker. To learn more, visit https://cra.link/PWA'
-          );
+          if (process.env.NODE_ENV !== 'production')
+            devlog(
+              'This web app is being served cache-first by a service ' +
+                'worker. To learn more, visit https://cra.link/PWA',
+            );
         });
       } else {
         // Is not localhost. Just register service worker
@@ -73,10 +77,11 @@ function registerValidSW(swUrl, config) {
               // At this point, the updated precached content has been fetched,
               // but the previous service worker will still serve the older
               // content until all client tabs are closed.
-              console.log(
-                'New content is available and will be used when all ' +
-                  'tabs for this page are closed. See https://cra.link/PWA.'
-              );
+              if (process.env.NODE_ENV !== 'production')
+                devlog(
+                  'New content is available and will be used when all ' +
+                    'tabs for this page are closed. See https://cra.link/PWA.',
+                );
 
               // Execute callback
               if (config && config.onUpdate) {
@@ -86,7 +91,8 @@ function registerValidSW(swUrl, config) {
               // At this point, everything has been precached.
               // It's the perfect time to display a
               // "Content is cached for offline use." message.
-              console.log('Content is cached for offline use.');
+              if (process.env.NODE_ENV !== 'production')
+                devlog('Content is cached for offline use.');
 
               // Execute callback
               if (config && config.onSuccess) {
@@ -98,7 +104,8 @@ function registerValidSW(swUrl, config) {
       };
     })
     .catch((error) => {
-      console.error('Error during service worker registration:', error);
+      if (process.env.NODE_ENV !== 'production')
+        deverror('Error during service worker registration:', error);
     });
 }
 
@@ -126,10 +133,12 @@ function checkValidServiceWorker(swUrl, config) {
       }
     })
     .catch(() => {
-      console.log('No internet connection found. App is running in offline mode.');
+      if (process.env.NODE_ENV !== 'production')
+        devlog('No internet connection found. App is running in offline mode.');
     });
 }
 
+/** Unregister the app's service worker. */
 export function unregister() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready

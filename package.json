@@ -14,7 +14,7 @@
     "jwt-decode": "^3.1.2",
     "leaflet": "^1.7.1",
     "leaflet-providers": "^2.0.0",
-    "moment": "^2.29.1",
+    "dayjs": "^1.11.10",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-leaflet": "npm:@monsonjeremy/react-leaflet@^3.2.2",
@@ -35,12 +35,15 @@
     "workbox-range-requests": "^5.1.4",
     "workbox-routing": "^5.1.4",
     "workbox-strategies": "^5.1.4",
-    "workbox-streams": "^5.1.4"
+    "workbox-streams": "^5.1.4",
+    "react-window": "^1.8.7"
   },
   "scripts": {
     "start": "./import-env.sh public/config.js && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "lint": "eslint --ext .js,.jsx src",
+    "format": "prettier --write \"**/*.{js,jsx,css,md}\"",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -56,6 +59,8 @@
   ],
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@react-leaflet/core": "npm:@monsonjeremy/react-leaflet-core@^1.1.1"
+    "@react-leaflet/core": "npm:@monsonjeremy/react-leaflet-core@^1.1.1",
+    "eslint": "^7.32.0",
+    "prettier": "^2.8.8"
   }
 }

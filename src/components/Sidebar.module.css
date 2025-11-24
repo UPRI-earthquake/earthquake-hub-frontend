@@ -1,21 +1,25 @@
-.sidebar{
+.sidebar {
   display: flex;
   flex-direction: column;
   /* Allow overlays from header (preset/filter) to escape container */
   overflow: visible;
   position: relative; /* create stacking context for tooltips */
-  z-index: 3000;      /* ensure sidebar overlays map */
+  z-index: 3000; /* ensure sidebar overlays map */
   -webkit-overflow-scrolling: touch;
   min-width: 320px;
   max-width: 320px;
   max-height: 100vh;
   background-color: #f7f7f7; /* light */
-  border-right: 1px solid rgba(0,0,0,0.25);
+  border-right: 1px solid rgba(0, 0, 0, 0.25);
   color: #111827;
+  /* Brand accent used by child modules (e.g., station item pills) */
+  --accent: #3a6a50;
 }
 
 /* Header area stays fixed */
-.headerArea { flex: 0 0 auto; }
+.headerArea {
+  flex: 0 0 auto;
+}
 
 /* List scroller adapts per viewport */
 .itemsScroll {
@@ -23,6 +27,34 @@
   overflow-y: auto;
   overflow-x: hidden;
   display: block;
+}
+
+/* Inline loader shown while fetching dataset items */
+.sidebar :global(.sidebar-loader) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 16px;
+  gap: 10px;
+  color: #374151;
+}
+.sidebar :global(.sidebar-loader-text) {
+  font-size: 14px;
+  color: #6b7280;
+}
+.sidebar :global(.sidebar-spinner) {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #3a6a50; /* brand green */
+  border-radius: 50%;
+  animation: sidebarSpin 0.9s linear infinite;
+}
+@keyframes sidebarSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Empty-state indicator (desktop) */
@@ -37,56 +69,71 @@
   text-align: center;
   color: #6b7280; /* gray-500 */
 }
-.sidebar :global(.sidebar-empty-title) { font-weight: 600; margin-bottom: 4px; color: #374151; /* gray-700 */ }
-.sidebar :global(.sidebar-empty-desc) { font-size: 13px; }
+.sidebar :global(.sidebar-empty-title) {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #374151; /* gray-700 */
+}
+.sidebar :global(.sidebar-empty-desc) {
+  font-size: 13px;
+}
 
-html[data-basemap-theme="dark"] .sidebar :global(.sidebar-empty-inner),
-html[data-basemap-theme="imagery"] .sidebar :global(.sidebar-empty-inner) { color: #9ca3af; }
-html[data-basemap-theme="dark"] .sidebar :global(.sidebar-empty-title),
-html[data-basemap-theme="imagery"] .sidebar :global(.sidebar-empty-title) { color: #e5e7eb; }
+html[data-basemap-theme='dark'] .sidebar :global(.sidebar-empty-inner),
+html[data-basemap-theme='imagery'] .sidebar :global(.sidebar-empty-inner) {
+  color: #9ca3af;
+}
+html[data-basemap-theme='dark'] .sidebar :global(.sidebar-empty-title),
+html[data-basemap-theme='imagery'] .sidebar :global(.sidebar-empty-title) {
+  color: #e5e7eb;
+}
 
 /* Dark/Imagery themed sidebar via basemap theme attribute on <html> */
-html[data-basemap-theme="dark"] .sidebar,
-html[data-basemap-theme="imagery"] .sidebar{
+html[data-basemap-theme='dark'] .sidebar,
+html[data-basemap-theme='imagery'] .sidebar {
   background-color: #111827;
   color: #f3f4f6;
-  border-right-color: rgba(255,255,255,0.2);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  --accent: #86efac;
 }
 
 @media (max-width: 768px) {
   .sidebar {
     flex-direction: column; /* header above scroller */
-    min-height: 180px;
+    /* min-height: 180px; */
     max-height: 45vh; /* responsive height without covering map */
     min-width: 100vw;
     max-width: 100vw;
     border-top: solid 1px #a6a5a9;
   }
-  .headerArea { flex: 0 0 auto; }
+  .headerArea {
+    flex: 0 0 auto;
+  }
   .itemsScroll {
     flex: 1 1 auto;
-    overflow-x: auto;     /* horizontal card scroll */
+    overflow-x: auto; /* horizontal card scroll */
     overflow-y: hidden;
-    display: flex;        /* lay out cards in a row */
+    display: flex; /* lay out cards in a row */
     align-items: stretch;
-    gap: 0;               /* no visible gaps between cards */
-    padding: 0;           /* flush to edges */
+    gap: 0; /* no visible gaps between cards */
+    padding: 0; /* flush to edges */
   }
   /* Ensure each sidebar item renders as a readable card */
-  .itemsScroll > * { flex: 0 0 300px; }
+  .itemsScroll > * {
+    flex: 0 0 300px;
+  }
 
   /* Empty-state card (mobile) spans the viewport width and centers content */
   .itemsScroll :global(.sidebar-empty) {
     /* Override the 300px card width rule */
     flex: 1 0 100% !important;
     min-width: 100%;
-    min-height: 90px;
+    min-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;            /* fill the scroller's height exactly */
-    padding: 0 16px;         /* horizontal padding only */
-    box-sizing: border-box;  /* don't expand sidebar height */
+    height: 100%; /* fill the scroller's height exactly */
+    padding: 0 16px; /* horizontal padding only */
+    box-sizing: border-box; /* don't expand sidebar height */
   }
   .itemsScroll :global(.sidebar-empty-inner) {
     width: 100%;
@@ -97,5 +144,19 @@ html[data-basemap-theme="imagery"] .sidebar{
     align-items: center;
     justify-content: center;
     gap: 4px;
+    padding: 20px
+  }
+  /* Loader card behavior on mobile */
+  .itemsScroll :global(.sidebar-loader) {
+    flex: 1 0 100% !important;
+    min-width: 100%;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+    color: #e5e7eb;
   }
 }

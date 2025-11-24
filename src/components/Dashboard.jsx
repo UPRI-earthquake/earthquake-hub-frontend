@@ -1,0 +1,575 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
+import axios from 'axios';
+import { backendHost } from '../utils/env';
+import { devlog, deverror } from '../utils/devlog';
+import styles from './Dashboard.module.css';
+import Toast from './Toast';
+import { responseCodes } from '../utils/responseCodes';
+import jwtDecode from 'jwt-decode';
+import moment from '../utils/time';
+
+const statusTooltips = {
+  'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
+  'Not Streaming':
+    'This device has been linked to your account but is currently not sending data to the server.',
+  Streaming: 'This device is sending data to the server.',
+};
+
+/**
+ * User dashboard modal showing devices and barangay token management.
+ */
+function Dashboard({ onClick, onEscapeClick, onSignoutSuccess, loggedInUser, loggedInUserRole }) {
+  const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
+  const [devices, setDevices] = useState([]); // hook for list of device in table (array)success message
+  const [brgyAccessToken, setBrgyAccessToken] = useState(); // hook for brgyAccessToken
+  const [accessTokenExpiry, setAccessTokenExpiry] = useState(); // hook for brgy accessToken expiration
+  const addDeviceFormRef = useRef(null);
+  const dashboardContainerRef = useRef(null);
+  const profileRef = useRef(null);
+  const isClosingRef = useRef(false);
+  const isMountedRef = useRef(true); // guard async state updates after unmount
+  const timeoutsRef = useRef([]); // track pending timers for cleanup
+
+  // Utility: schedule clearing the toast with automatic cleanup
+  const scheduleToastClear = useCallback((ms) => {
+    const id = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      setToastMessage('');
+    }, ms);
+    timeoutsRef.current.push(id);
+  }, []);
+
+  // TOASTS
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('error');
+
+  // Fetch devices only for citizen role to avoid 403s on strict backend
+  useEffect(() => {
+    if (loggedInUserRole === 'citizen') fetchDevices();
+  }, [loggedInUserRole]);
+
+  const fetchDevices = async () => {
+    try {
+      // Read API host from runtime env (no defaults; .env expected to be configured)
+      const backend_host = backendHost();
+      axios.defaults.withCredentials = true;
+      const response = await axios.get(`${backend_host}/device/my-devices`, {
+        validateStatus: (status) => status < 500, // prevent thrown errors for 4xx
+      });
+      if (!isMountedRef.current) return;
+      if (response.status === 200) {
+        setDevices(response.data.devices || []);
+      } else {
+        // For 401/403 or other handled statuses, clear list silently
+        setDevices([]);
+      }
+    } catch (error) {
+      // Suppress expected auth errors to keep console clean; UI remains the same
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) return; // keep devices as []
+      // Log unexpected errors for debugging
+      if (isMountedRef.current) deverror('Error fetching devices:', error);
+    }
+  };
+
+  // Unified close handler with exit animation
+  const handleClose = useCallback((_reason = 'backdrop') => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    const el = dashboardContainerRef.current;
+    if (el && el.animate) {
+      const anim = el.animate(
+        [
+          { opacity: 1, transform: 'translateX(0)' },
+          { opacity: 0, transform: 'translateX(100%)' },
+        ],
+        { duration: 150, easing: 'cubic-bezier(0, 0, 0.5, 1)', fill: 'forwards' },
+      );
+      anim.onfinish = () => {
+        try {
+          (onEscapeClick || onClick)?.();
+        } finally {
+          isClosingRef.current = false;
+        }
+      };
+      return;
+    }
+    // Fallback: no WAAPI
+    (onEscapeClick || onClick)?.();
+    isClosingRef.current = false;
+  }, [onClick, onEscapeClick]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    const dashboardContainerEl = dashboardContainerRef.current;
+    dashboardContainerEl.animate(
+      [
+        { opacity: 0, transform: 'translateX(100%)' },
+        { opacity: 1, transform: 'translateX(0)' },
+      ],
+      {
+        duration: 150,
+        easing: 'cubic-bezier(0, 0, 0.5, 1)',
+        fill: 'both',
+      },
+    );
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') handleClose('escape');
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      isMountedRef.current = false;
+      // Clear any pending timers to prevent setState on unmounted component
+      try { timeoutsRef.current.forEach((t) => clearTimeout(t)); } catch (_) {}
+      timeoutsRef.current = [];
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleClose]);
+
+  // Focus trap inside the dashboard dialog for accessibility
+  useEffect(() => {
+    const root = dashboardContainerRef.current;
+    if (!root) return undefined;
+    const getFocusables = () =>
+      root.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const focusFirst = () => {
+      const f = getFocusables();
+      if (f && f.length) {
+        const el = f[0];
+        if (el && typeof el.focus === 'function') el.focus();
+      }
+    };
+    focusFirst();
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const f = getFocusables();
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    root.addEventListener('keydown', trap);
+    return () => root.removeEventListener('keydown', trap);
+  }, []);
+
+  useEffect(() => {
+    switch (pageTransition) {
+      case 0: // Initial state
+        profileRef.current.animate(
+          [
+            { opacity: 0, transform: 'translateX(100%)' },
+            { opacity: 1, transform: 'translateX(0)' },
+          ],
+          {
+            duration: 150,
+            easing: 'cubic-bezier(0, 0, 0.5, 1)',
+            fill: 'both',
+          },
+        );
+        break;
+
+      case 1: // Other to DeviceList (where Other is any other dashboard view, and DeviceList/Profile is the main view)
+        profileRef.current.animate(
+          [
+            { opacity: 0, transform: 'translateX(-100%)' },
+            { opacity: 1, transform: 'translateX(0)' },
+          ],
+          {
+            duration: 300,
+            easing: 'cubic-bezier(0, 0, 0.5, 1)',
+            fill: 'both',
+          },
+        );
+        break;
+
+      case 2: // DeviceList to AddDevice
+        addDeviceFormRef.current.animate(
+          [
+            { opacity: 0, transform: 'translateX(100%)' }, // Updated transform property
+            { opacity: 1, transform: 'translateX(0%)' }, // Updated transform property
+          ],
+          {
+            duration: 300,
+            easing: 'cubic-bezier(0, 0, 0.5, 1)',
+            fill: 'both',
+          },
+        );
+        break;
+
+      default:
+        console.error(`pageTransition of value ${pageTransition} not handled!`);
+    }
+  }, [pageTransition]);
+
+  async function handleAddDeviceSubmit(event) {
+    event.preventDefault();
+    // Read API host from runtime env (no defaults; .env expected to be configured)
+    const backend_host = backendHost();
+
+    const network = event.target.elements.network.value;
+    const station = event.target.elements.station.value;
+    const longitude = event.target.elements.longitude.value;
+    const latitude = event.target.elements.latitude.value;
+    const elevation = event.target.elements.elevation.value;
+    try {
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(`${backend_host}/device/add`, {
+        network: network,
+        station: station,
+        longitude: longitude,
+        latitude: latitude,
+        elevation: elevation,
+      });
+
+      if (!isMountedRef.current) return;
+      if (response.data.status === responseCodes.GENERIC_SUCCESS) {
+        devlog('Add Device Success');
+
+        // Set toast message
+        setToastMessage('Device added. Visit rs.local:3000 to link device.');
+        setToastType('success');
+
+        // Auto-dismiss after 60s (longer so users can read and act)
+        scheduleToastClear(60000);
+
+        setPageTransition(1);
+        fetchDevices(); // call fetchDevices() to update the device list table (should reload the table content with the successfully added device)
+      } else {
+        devlog('Something went wrong in submitting add-device request');
+      }
+    } catch (error) {
+      if (error.response) {
+        const { data } = error.response;
+        if (isMountedRef.current) {
+          setToastMessage(`Error: ${data.message}`);
+          setToastType('error');
+        }
+        scheduleToastClear(5000);
+
+        deverror('Error occurred while adding device:', data);
+      } else {
+        if (isMountedRef.current) {
+          setToastMessage(`Network Error`);
+          setToastType('error');
+        }
+        scheduleToastClear(5000);
+
+        deverror('Error occurred while adding device:', error);
+      }
+    }
+  }
+
+  async function requestTokenSubmit(event) {
+    event.preventDefault();
+    // Read API host from runtime env (no defaults; .env expected to be configured)
+    const backend_host = backendHost();
+    try {
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(`${backend_host}/accounts/acquire-brgy-token`);
+      devlog('Brgy access token acquired', response.data);
+
+      const decodedToken = jwtDecode(response.data.accessToken);
+
+      const currentMoment = moment(); // Get the current moment
+      const expiryTimeStamp = new Date(decodedToken.exp * 1000); // Convert seconds to milliseconds
+      const expiryMoment = moment(expiryTimeStamp); // Moment object for the expiry date
+      const remainingTime = moment.duration(expiryMoment.diff(currentMoment));
+
+      devlog('Token Expiry: ', remainingTime.days());
+
+      if (isMountedRef.current) {
+        setAccessTokenExpiry(remainingTime.days()); // set brgyAccessTokenExpiry value
+        setBrgyAccessToken(response.data.accessToken); // set brgyAccessToken value
+        setToastMessage('Brgy access token request success');
+        setToastType('success');
+      }
+    } catch (error) {
+      deverror(error);
+
+      if (isMountedRef.current) {
+        setToastMessage(`Brgy access token request error`);
+        setToastType('error');
+      }
+    }
+
+    scheduleToastClear(5000);
+  }
+
+  const textRef = useRef(null);
+
+  function copyText() {
+    try {
+      if (!textRef.current.innerText) {
+        throw new Error('Clipboard is empty. Request a token first.');
+      }
+
+      const textToCopy = textRef.current.innerText;
+      navigator.clipboard.writeText(textToCopy);
+      devlog('Text copied to clipboard:', textToCopy);
+
+      setToastMessage('Access Token copied to clipboard');
+      setToastType('success');
+    } catch (error) {
+      deverror('Failed to copy text:', error);
+
+      setToastMessage('Failed to copy text');
+      setToastType('error');
+    }
+
+    scheduleToastClear(5000);
+  }
+
+  /* Comment out for now (remove add device option)
+  function handleAddDeviceClick() {
+    setPageTransition(2);
+  }
+  */
+
+  function handleCancelClick() {
+    setPageTransition(1);
+  }
+
+  async function handleSignout() {
+    const backend_host =
+      process.env.NODE_ENV === 'production'
+        ? window['ENV'].REACT_APP_BACKEND
+        : window['ENV'].REACT_APP_BACKEND_DEV;
+    try {
+      axios.defaults.withCredentials = true;
+      const response = await axios.post(`${backend_host}/accounts/signout`);
+
+      if (response.data.status === responseCodes.SIGNOUT_SUCCESS) {
+        devlog('Sign out successful!');
+        onSignoutSuccess();
+      } else {
+        devlog('Something went wrong in submitting sign-out request');
+      }
+    } catch (error) {
+      if (error.response) {
+        const { data } = error.response;
+        if (isMountedRef.current) {
+          setToastMessage(data.message);
+          setToastType('error');
+        }
+        deverror('Error occurred while signing out:', data);
+      } else {
+        deverror('Error occurred while signing out:', error);
+      }
+    }
+  }
+
+  // handleClose defined above with useCallback
+
+  const content = (
+    <div className={styles.modalOverlay} onClick={() => handleClose('backdrop')}>
+      <div
+        ref={dashboardContainerRef}
+        id="dashboard-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dashboard-title"
+        className={`${styles.dashboardModal}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Toast
+          message={toastMessage}
+          toastType={toastType}
+          placement="inline"
+          onClose={() => setToastMessage('')}
+        />
+
+        {pageTransition < 2 && (
+          <div ref={profileRef} className={styles.profileContainer}>
+            {/* Top bar: title + actions */}
+            <div className={styles.topBar} role="toolbar" aria-label="Dashboard toolbar">
+              <h2 id="dashboard-title" className={styles.topBarTitle} title={`${loggedInUser}'s devices`}>
+                {loggedInUser}'s devices
+              </h2>
+              <div className={styles.topBarTools}>
+                {loggedInUserRole === 'brgy' && (
+                  <button
+                    type="button"
+                    className={`${styles.toolBtn} ${styles.requestTokenBtn}`}
+                    onClick={requestTokenSubmit}
+                    title="Request barangay access token"
+                    aria-label="Request barangay access token"
+                  >
+                    Request Token
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.toolBtn}
+                  onClick={handleSignout}
+                  title="Sign out of your account"
+                  aria-label="Sign out"
+                >
+                  Sign out
+                </button>
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={() => handleClose('close')}
+                  aria-label="Close dashboard"
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            {/* This section will only be displayed if loggedInUserRole is `brgy` */}
+            {brgyAccessToken && (
+              <>
+                <div className={styles.panelBody} aria-label="Barangay token">
+                  <p className={styles.copyTextDiv}>
+                    <button
+                      type="button"
+                      className={styles.toolBtn}
+                      onClick={copyText}
+                      title="Copy token to clipboard"
+                      aria-label="Copy token to clipboard"
+                    >
+                      Copy to clipboard
+                    </button>
+                  </p>
+                  <p className={styles.accessTokenContainer} ref={textRef}>
+                    {brgyAccessToken}
+                  </p>
+                  <small>
+                    <i>
+                      <b>Note:</b> Please ensure to store this token, as we do not save a copy of
+                      your access token. This token is valid for{' '}
+                      <u>
+                        <b>{accessTokenExpiry} days</b>
+                      </u>
+                      . This is to ensure that periodic monitoring of your ringserver is being
+                      performed. Before token expiration, make sure to request another valid token
+                      and save it in your ringserver configuration to continue forwarding data to
+                      the server.
+                    </i>
+                  </small>
+                </div>{' '}
+                {/* End of panelBody */}
+              </>
+            )}
+            {/* Device list */}
+            <div className={styles.panelBody} aria-label="Your devices">
+              <div className={styles.deviceListTableContainer}>
+                <table className={styles.deviceListTable}>
+                  <thead>
+                    <tr>
+                      <th>Network</th>
+                      <th>Station</th>
+                      <th>Status</th>
+                      <th>Status Since</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {devices.length === 0 ? (
+                      <tr>
+                        <td colSpan="4">No devices connected</td>
+                      </tr>
+                    ) : (
+                      devices.map((device, index) => (
+                        <tr key={index}>
+                          <td>{device.network}</td>
+                          <td>{device.station}</td>
+                          <td title={statusTooltips[device.status]}>{device.status}</td>
+                          <td>{device.statusSince}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Remove add device button but keep this code for now;
+                  Same code can be used for other page transition eg "settings"
+              <div className={styles.buttonDiv}>
+                <button onClick={handleAddDeviceClick}>Add New Device</button>
+              </div>
+              */}
+            </div>{' '}
+            {/* End of Device List panelBody */}
+          </div>
+        )}
+
+        {pageTransition === 2 && (
+          <form
+            className={styles.addDeviceForm}
+            ref={addDeviceFormRef}
+            onSubmit={handleAddDeviceSubmit}
+          >
+            <div className={styles.panelHeader}>
+              <h2>Add New Device</h2>
+            </div>{' '}
+            {/* End of Device List panelHeader */}
+            <div className={styles.panelBody}>
+              <div className={styles.inputField}>
+                <input type="text" name="network" title="(e.g. `AM`)" placeholder="" />
+                <label className={styles.inputLabel}>Network: (e.g. `AM`)</label>
+              </div>
+              <div className={styles.inputField} title="(e.g. `R3B2D`)">
+                <input type="text" name="station" placeholder="" />
+                <label className={styles.inputLabel}>Station: (e.g. `R3B2D`)</label>
+              </div>
+              <div className={styles.inputField}>
+                <input
+                  type="text"
+                  name="elevation"
+                  title="in meters; relative to sea level (e.g. `1.232314`)"
+                  placeholder=""
+                />
+                <label className={styles.inputLabel}>
+                  Elevation: (in meters; relative to sea level. e.g. `1.232314`)
+                </label>
+              </div>
+              <div className={styles.inputField}>
+                <input
+                  type="text"
+                  name="latitude"
+                  title="in degree coordinates (e.g. `10.1234`)"
+                  placeholder=""
+                />
+                <label className={styles.inputLabel}>
+                  Latitude: (in degree coordinates. Range is from -90 to 90. e.g. `10.1234`)
+                </label>
+              </div>
+              <div className={styles.inputField}>
+                <input
+                  type="text"
+                  name="longitude"
+                  title="in degree coordinates (e.g. `0.1234`)"
+                  placeholder=""
+                />
+                <label className={styles.inputLabel}>
+                  Longitude: (in degree coordinates. Range is from -180 to 180. e.g. `0.1234`)
+                </label>
+              </div>
+              <div className={styles.buttonDiv}>
+                <button type="submit">Submit</button>
+                <button type="button" className={styles.cancelButton} onClick={handleCancelClick}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+
+  return ReactDOM.createPortal(content, document.body);
+}
+
+export { Dashboard };

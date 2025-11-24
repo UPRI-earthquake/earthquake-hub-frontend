@@ -1,14 +1,14 @@
 # build environment
-FROM node:16-alpine as base
+FROM node:16-alpine AS base
 
 EXPOSE 3000
 
 WORKDIR /app
 
 # Stage 2: prod
-FROM base as build
+FROM base AS build
 
-ENV PATH /app/node-modules/.bin:$PATH
+ENV PATH=/app/node-modules/.bin:$PATH
 COPY package.json ./
 COPY package-lock.json ./
 RUN npm ci

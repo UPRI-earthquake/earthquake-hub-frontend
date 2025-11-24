@@ -1,4 +1,3 @@
-
 .content-container {
   width: 90%;
   max-width: 1200px;
@@ -19,7 +18,7 @@
   justify-content: center;
   padding-top: 20px;
   margin-top: 85px;
-  border-top: 1px solid #CAC4D0;
+  border-top: 1px solid #cac4d0;
   overflow-y: auto;
   height: 75%;
 }
