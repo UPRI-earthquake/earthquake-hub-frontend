@@ -21,6 +21,10 @@ const selectedEventReducer = (state = null, action) => {
 };
 const store = createStore(selectedEventReducer);
 
+// Note: GA Measurement Protocol headers are intentionally disabled for now.
+// When backend request telemetry returns, reintroduce the axios interceptor
+// here so every API request carries the GA client_id for correlation.
+
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>

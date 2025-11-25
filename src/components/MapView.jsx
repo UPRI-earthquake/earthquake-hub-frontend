@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane } from 'react-leaflet';
+import React, { Suspense, lazy, useEffect, useRef } from 'react';
+import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane, useMap } from 'react-leaflet';
 // Leaflet CSS is loaded via non-blocking CDN link in public/index.html to avoid render-blocking
 import '../map.css';
 
@@ -9,6 +9,7 @@ import LegendControl from './LegendControl';
 import ResetViewControl from './ResetViewControl';
 import RegisterableLayerGroup from './RegisterableLayerGroup';
 import { OverlayStateProvider } from './OverlayStateContext';
+import { trackEvent } from '../analytics';
 
 // Keep markers lazy inside the map chunk to avoid blocking map shell render
 const StationMarkers = lazy(() => import('./StationMarkers'));
@@ -60,9 +61,83 @@ function MapView({ datasetKey, holdEqMarkers, events, filters, sseEnabled, custo
         </MapLayersControl>
         <ScaleControl position="topleft" metric imperial={false} maxWidth={140} />
         <LegendControl />
+        <MapAnalyticsBridge />
       </OverlayStateProvider>
     </MapContainer>
   );
 }
 
 export default MapView;
+
+function MapAnalyticsBridge() {
+  const map = useMap();
+  const ctrlRef = useRef({ dragging: false });
+
+  useEffect(() => {
+    if (!map) return undefined;
+
+    const centerPayload = () => {
+      try {
+        const center = map.getCenter();
+        return {
+          center_lat: Number(center.lat.toFixed(4)),
+          center_lng: Number(center.lng.toFixed(4)),
+        };
+      } catch (_) {
+        return {};
+      }
+    };
+
+    const emitMapInteraction = (action, extra = {}) => {
+      try {
+        trackEvent('map_interaction', {
+          action,
+          zoom_level: typeof map.getZoom === 'function' ? map.getZoom() : undefined,
+          ...centerPayload(),
+          ...extra,
+        });
+      } catch (_) {}
+    };
+
+    const onZoomEnd = (e) => {
+      emitMapInteraction('zoom', {
+        source: e && e.originalEvent ? 'user' : 'programmatic',
+      });
+    };
+
+    const onDragStart = () => {
+      ctrlRef.current.dragging = true;
+    };
+
+    const onDragEnd = (e) => {
+      const wasDragging = ctrlRef.current.dragging;
+      ctrlRef.current.dragging = false;
+      if (!wasDragging) return;
+      emitMapInteraction('pan', {
+        source: e && e.originalEvent ? 'user' : 'programmatic',
+      });
+    };
+
+    const onBaseLayerChange = (e) => {
+      try {
+        trackEvent('layers_toggle', {
+          action: 'basemap_change',
+          layer_name: e && e.name ? e.name : 'unknown',
+        });
+      } catch (_) {}
+    };
+
+    map.on('zoomend', onZoomEnd);
+    map.on('dragstart', onDragStart);
+    map.on('dragend', onDragEnd);
+    map.on('baselayerchange', onBaseLayerChange);
+    return () => {
+      map.off('zoomend', onZoomEnd);
+      map.off('dragstart', onDragStart);
+      map.off('dragend', onDragEnd);
+      map.off('baselayerchange', onBaseLayerChange);
+    };
+  }, [map]);
+
+  return null;
+}

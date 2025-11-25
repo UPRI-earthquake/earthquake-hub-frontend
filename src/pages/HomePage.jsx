@@ -11,6 +11,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
 import SSEContext from '../SSEContext';
 import { resetToPH } from '../utils/resetView';
+import { trackEvent } from '../analytics';
 // Map is now loaded as a separate chunk
 import { useAppData } from '../hooks/useAppData';
 
@@ -50,6 +51,17 @@ const HomePage = () => {
   }));
   // Sorting: default to recent-first by time
   const [sort, setSort] = useState(() => ({ by: 'time', order: 'desc' }));
+  const handleSortChange = useCallback((next) => {
+    setSort((prev) => {
+      const nextState = { ...prev, ...next };
+      if (prev.by !== nextState.by || prev.order !== nextState.order) {
+        try {
+          trackEvent('sort_apply', { sort_by: nextState.by, sort_order: nextState.order });
+        } catch (_) {}
+      }
+      return nextState;
+    });
+  }, []);
   // Dataset-driven control visibility (default: show both)
   const [controlVisibility, setControlVisibility] = useState(() => ({
     showFilter: true,
@@ -188,8 +200,17 @@ const HomePage = () => {
                     showSort={controlVisibility.showSort}
                     sortBy={sort.by}
                     sortOrder={sort.order}
-                    onSortChange={(next) => setSort((prev) => ({ ...prev, ...next }))}
+                    onSortChange={handleSortChange}
                     onDatasetChange={(key) => {
+                      const previousDatasetKey = datasetKey;
+                      if (previousDatasetKey !== key) {
+                        try {
+                          trackEvent('dataset_change', {
+                            dataset_key_from: previousDatasetKey,
+                            dataset_key_to: key,
+                          });
+                        } catch (_) {}
+                      }
                       // Hold EQ markers until map finishes flyTo to reduce clutter
                       try {
                         setHoldEqMarkers(true);

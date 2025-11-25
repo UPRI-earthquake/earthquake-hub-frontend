@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import styles from './SidebarInfo.module.css';
+import { trackEvent } from '../analytics';
 
 // Simple inline icons to avoid adding dependencies
 const CaretIcon = ({ className }) => (
@@ -70,6 +71,44 @@ function SidebarInfo({
   const [sortTip, setSortTip] = useState('Sort list by time, magnitude, or depth');
   const [filterTip, setFilterTip] = useState('Filter earthquakes by magnitude and date');
   const rootRef = useRef(null);
+  const filterEventTimerRef = useRef(null);
+  const pendingFilterPayloadRef = useRef(null);
+  const flushFilterEvent = useCallback(() => {
+    if (!pendingFilterPayloadRef.current) return;
+    const payload = pendingFilterPayloadRef.current;
+    pendingFilterPayloadRef.current = null;
+    try {
+      trackEvent('filter_apply', payload);
+    } catch (_) {}
+  }, []);
+  const scheduleFilterTelemetry = useCallback(
+    (nextFilters, reason = 'unknown') => {
+      const toNumber = (val, fallback) => {
+        const parsed = typeof val === 'number' ? val : parseFloat(val);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+      pendingFilterPayloadRef.current = {
+        source: reason,
+        mag_min: toNumber(nextFilters.magMin, 0),
+        mag_max: toNumber(nextFilters.magMax, 10),
+        start_date: nextFilters.startDate || '',
+        end_date: nextFilters.endDate || '',
+        search_len: (searchText || '').trim().length,
+      };
+      if (filterEventTimerRef.current) clearTimeout(filterEventTimerRef.current);
+      filterEventTimerRef.current = setTimeout(() => {
+        flushFilterEvent();
+        filterEventTimerRef.current = null;
+      }, 320);
+    },
+    [flushFilterEvent, searchText],
+  );
+  useEffect(
+    () => () => {
+      if (filterEventTimerRef.current) clearTimeout(filterEventTimerRef.current);
+    },
+    [],
+  );
 
   // Measure the slider width so bubbles can align with the actual thumb center
   const rangeWrapRef = useRef(null);
@@ -124,7 +163,7 @@ function SidebarInfo({
   }, []);
 
   // Helper: clamp and forward changes directly to parent
-  const clampAndSend = (patch) => {
+  const clampAndSend = (patch, reason = 'unknown') => {
     if (!onFiltersChange) return;
     const current = defaultFilters || {};
     const nextState = { ...current, ...patch };
@@ -142,18 +181,19 @@ function SidebarInfo({
       endDate: clampDate(nextState.endDate, minDate, maxDate),
     };
     onFiltersChange(next);
+    scheduleFilterTelemetry(next, reason);
   };
 
   const clamp01 = (n) => Math.max(0, Math.min(10, n));
   const setMagMin = (val) => {
     const v = clamp01(val);
     const max = typeof defaultFilters?.magMax === 'number' ? defaultFilters.magMax : 10;
-    clampAndSend({ magMin: Math.min(v, max) });
+    clampAndSend({ magMin: Math.min(v, max) }, 'magnitude_range');
   };
   const setMagMax = (val) => {
     const v = clamp01(val);
     const min = typeof defaultFilters?.magMin === 'number' ? defaultFilters.magMin : 0;
-    clampAndSend({ magMax: Math.max(v, min) });
+    clampAndSend({ magMax: Math.max(v, min) }, 'magnitude_range');
   };
 
   // Reset to dataset bounds and full magnitude range
@@ -163,7 +203,7 @@ function SidebarInfo({
       magMax: 10,
       startDate: filterBounds?.minDate || '',
       endDate: filterBounds?.maxDate || '',
-    });
+    }, 'reset');
   };
 
   const containerCls = useMemo(
@@ -355,6 +395,11 @@ function SidebarInfo({
                 }
                 value={searchText || ''}
                 onChange={(e) => onSearch && onSearch(e.target.value)}
+                onBlur={() => {
+                  if ((searchText || '').trim()) {
+                    scheduleFilterTelemetry(defaultFilters || {}, 'search_blur');
+                  }
+                }}
                 aria-label={
                   selectedDatasetKey === 'all-stations'
                     ? 'Search stations by ID or name'
@@ -381,6 +426,7 @@ function SidebarInfo({
                 setSortOpen((v) => {
                   const next = !v;
                   setSortTip(next ? 'Sort list by time, magnitude, or depth' : 'Close sort options');
+                  try { trackEvent('sort_toggle', { state: next ? 'open' : 'closed' }); } catch (_) {}
                   return next;
                 });
               }}
@@ -400,6 +446,7 @@ function SidebarInfo({
                 setFiltersOpen((v) => {
                   const next = !v;
                   setFilterTip(next ? 'Filter earthquakes by magnitude and date' : 'Close filters');
+                  try { trackEvent('filter_toggle', { state: next ? 'open' : 'closed' }); } catch (_) {}
                   return next;
                 });
               }}
@@ -425,6 +472,7 @@ function SidebarInfo({
               onClick={() => {
                 const next = stationStatusFilter === 'active' ? null : 'active';
                 onStationStatusFilterChange && onStationStatusFilterChange(next);
+                try { trackEvent('online_filter', { enabled: next === 'active' }); } catch (_) {}
               }}
               title="Show online stations"
             >
@@ -440,6 +488,7 @@ function SidebarInfo({
               onClick={() => {
                 const next = stationStatusFilter === 'inactive' ? null : 'inactive';
                 onStationStatusFilterChange && onStationStatusFilterChange(next);
+                try { trackEvent('offline_filter', { enabled: next === 'inactive' }); } catch (_) {}
               }}
               title="Show offline stations"
             >
@@ -569,7 +618,7 @@ function SidebarInfo({
                   let v = e.target.value;
                   if (minD && v < minD) v = minD;
                   if (maxD && v > maxD) v = maxD;
-                  clampAndSend({ startDate: v });
+                  clampAndSend({ startDate: v }, 'start_date');
                 }}
               />
             </div>
@@ -591,7 +640,7 @@ function SidebarInfo({
                   let v = e.target.value;
                   if (minD && v < minD) v = minD;
                   if (maxD && v > maxD) v = maxD;
-                  clampAndSend({ endDate: v });
+                  clampAndSend({ endDate: v }, 'end_date');
                 }}
               />
             </div>

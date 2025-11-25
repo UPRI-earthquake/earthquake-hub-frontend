@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import L from 'leaflet';
 import { useMap } from 'react-leaflet';
@@ -8,6 +8,7 @@ import { DATASETS } from '../config/datasets';
 import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
 import './legend.css';
 import { DEPTH_RAMP } from '../config/mapStyles';
+import { trackEvent } from '../analytics';
 
 /**
  * Legend and metadata control synced with overlay visibility.
@@ -116,6 +117,9 @@ function DepthRampToggleInline() {
     try {
       sessionStorage.setItem('eqDepthRamp', next ? '1' : '0');
       window.dispatchEvent(new CustomEvent('eqDepthRamp:toggle', { detail: { enabled: next } }));
+    } catch (_) {}
+    try {
+      trackEvent('depth_ramp', { enabled: next, trigger: 'legend' });
     } catch (_) {}
   };
   return (
@@ -361,6 +365,18 @@ export default function LegendControl({ position = 'bottomright' }) {
     } catch (_) {}
     return true; // collapsed by default
   });
+  const collapsedRef = useRef(collapsed);
+  useEffect(() => {
+    collapsedRef.current = collapsed;
+  }, [collapsed]);
+  const emitLegendToggle = useCallback((isCollapsed, trigger = 'unknown') => {
+    try {
+      trackEvent('legend_toggle', {
+        state: isCollapsed ? 'closed' : 'open',
+        trigger,
+      });
+    } catch (_) {}
+  }, []);
 
   // Track current basemap theme and map zoom so legend swatches react
   const [legendTheme, setLegendTheme] = useState(() => {
@@ -442,6 +458,7 @@ export default function LegendControl({ position = 'bottomright' }) {
         e.preventDefault();
         setCollapsed((c) => {
           const next = !c;
+          if (next !== c) emitLegendToggle(next, 'keyboard');
           if (!next) {
             try { map.closePopup(); } catch (_) {}
             try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
@@ -449,24 +466,31 @@ export default function LegendControl({ position = 'bottomright' }) {
           return next;
         });
       } else if (e.key === 'Escape') {
+        if (!collapsedRef.current) emitLegendToggle(true, 'keyboard');
         setCollapsed(true);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [map]);
+  }, [map, emitLegendToggle]);
 
   // Collapse when Layers opens or when any popup opens
   useEffect(() => {
-    const onLayersOpen = () => setCollapsed(true);
-    const onPopupOpen = () => setCollapsed(true);
+    const onLayersOpen = () => {
+      if (!collapsedRef.current) emitLegendToggle(true, 'layers');
+      setCollapsed(true);
+    };
+    const onPopupOpen = () => {
+      if (!collapsedRef.current) emitLegendToggle(true, 'popup');
+      setCollapsed(true);
+    };
     window.addEventListener('ui:layers:open', onLayersOpen);
     window.addEventListener('ui:popup:open', onPopupOpen);
     return () => {
       window.removeEventListener('ui:layers:open', onLayersOpen);
       window.removeEventListener('ui:popup:open', onPopupOpen);
     };
-  }, []);
+  }, [emitLegendToggle]);
 
   // Focus trap inside the legend when expanded
   useEffect(() => {
@@ -522,6 +546,7 @@ export default function LegendControl({ position = 'bottomright' }) {
               try { map.closePopup(); } catch (_) {}
               try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
             }
+            emitLegendToggle(next, 'button');
           }}
         >
           <LegendIcon size={22} />
@@ -536,14 +561,15 @@ export default function LegendControl({ position = 'bottomright' }) {
               <button
                 type="button"
                 className="legend-close"
-                title="Close legend (G)"
-                aria-label="Close legend"
-                onClick={() => {
-                  setCollapsed(true);
-                  try {
-                    sessionStorage.setItem('legendCollapsed', '1');
-                  } catch (_) {}
-                }}
+              title="Close legend (G)"
+              aria-label="Close legend"
+              onClick={() => {
+                if (!collapsedRef.current) emitLegendToggle(true, 'button');
+                setCollapsed(true);
+                try {
+                  sessionStorage.setItem('legendCollapsed', '1');
+                } catch (_) {}
+              }}
               >
                 ×
               </button>

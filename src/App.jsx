@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoadingScreen from './components/LoadingScreen';
+import ConsentBanner from './components/ConsentBanner';
 
 // Lazy-load heavy routes to improve initial load
 const SignificantEQsPage = lazy(() => import('./pages/SignificantEQsPage'));
@@ -15,6 +16,7 @@ const EQInfoPage = lazy(() => import('./pages/EQInfoPage'));
 function App() {
   return (
     <div className="App">
+      <ConsentBanner />
       <Router>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>

@@ -4,6 +4,7 @@ import moment from '../utils/time';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import SSEContext from '../SSEContext';
+import { trackEvent } from '../analytics';
 
 /**
  * Station list visual optimized for the Stations dataset in the sidebar.
@@ -138,6 +139,16 @@ export default function StationListItem({ station }) {
     flyTo();
     if (!isSelected) dispatch({ type: 'SELECT', payload: `station:${code}` });
     else dispatch({ type: 'DESELECT' });
+    if (!isSelected) {
+      try {
+        trackEvent('station_select', {
+          station_code: code,
+          network: String(station.network || 'AM').toUpperCase(),
+          source: 'sidebar',
+          status: statusLabel.toLowerCase(),
+        });
+      } catch (_) {}
+    }
   };
 
   // Auto-scroll is handled globally from Sidebar when selecting a marker.

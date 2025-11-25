@@ -1,6 +1,7 @@
 // src/StationDownloadButtons.js
 import React from 'react';
 import './StationDownloadButton.css';
+import { trackEvent } from '../analytics';
 
 /**
  * Download links for station metadata and waveform around event time.
@@ -27,6 +28,16 @@ const StationDownloadButtons = (stationInfo) => {
   const startTime = formatDateTime(stationInfo.eventTime, -60);
   const endTime = formatDateTime(stationInfo.eventTime, 60 * 10); // seconds to minutes
 
+  const emitDownload = (kind) => {
+    try {
+      trackEvent('download_data', {
+        type: kind,
+        source: 'event_details',
+        station_code: stationCode,
+      });
+    } catch (_) {}
+  };
+
   return (
     <div className="download-links">
       <a
@@ -34,6 +45,7 @@ const StationDownloadButtons = (stationInfo) => {
         className="station-download-links"
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => emitDownload('metadata')}
       >
         Download Metadata
       </a>
@@ -42,6 +54,7 @@ const StationDownloadButtons = (stationInfo) => {
         className="station-download-links"
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => emitDownload('waveform')}
       >
         Download Data
       </a>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
+import { trackEvent } from '../analytics';
 
 /**
  * Removes the default Leaflet attribution prefix for a cleaner footer.
@@ -49,6 +50,9 @@ export default function AttributionControl() {
           const collapsed = el.classList.toggle('is-collapsed');
           try { sessionStorage.setItem(key, collapsed ? '1' : '0'); } catch (_) {}
           try { btn.focus(); } catch (_) {}
+          try {
+            trackEvent('attribution_toggle', { state: collapsed ? 'closed' : 'open' });
+          } catch (_) {}
         };
         btn.addEventListener('click', toggle);
         btn.addEventListener('keydown', (e) => {

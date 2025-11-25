@@ -64,6 +64,53 @@
     <title>Latest Earthquakes</title>
     <!-- Runtime env config: keep non-deferred so dev WDS bundles (non-deferred) see it before execution. -->
     <script type="text/javascript" src="%PUBLIC_URL%/config.js"></script>
+    <!-- Google Analytics (GA4) with Consent Mode v2; loads only when GA IDs are present -->
+    <script>
+      (function () {
+        try {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);} // eslint-disable-line no-inner-declarations
+          window.gtag = gtag;
+
+          // Default consent: deny analytics until user accepts
+          gtag('consent', 'default', {
+            ad_storage: 'denied',
+            analytics_storage: 'denied',
+            functionality_storage: 'granted',
+            security_storage: 'granted',
+            wait_for_update: 500
+          });
+
+          // Choose measurement ID based on environment similar to backend host selection
+          var env = (window.ENV || {});
+          var midProd = env.REACT_APP_GA_MEASUREMENT_ID || '';
+          var midDev = env.REACT_APP_GA_MEASUREMENT_ID_DEV || '';
+          var host = (location.hostname || '').toLowerCase();
+          var isProdDomain = host === 'earthquake.science.upd.edu.ph';
+          var mid = isProdDomain ? midProd : (midDev || midProd);
+
+          if (mid) {
+            gtag('js', new Date());
+            gtag('config', mid);
+            var s = document.createElement('script');
+            s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + mid;
+            document.head.appendChild(s);
+          }
+
+          // Simple global accept function; wire this to your consent banner if needed
+          window.acceptAnalytics = function() {
+            try { gtag('consent', 'update', { analytics_storage: 'granted' }); } catch (e) {}
+          };
+
+          // If user previously granted consent, restore it immediately
+          try {
+            if (window.localStorage && window.localStorage.getItem('ehub_ga_consent') === 'granted') {
+              gtag('consent', 'update', { analytics_storage: 'granted' });
+            }
+          } catch (e) {}
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

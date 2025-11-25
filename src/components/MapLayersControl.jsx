@@ -14,6 +14,7 @@ import { useOverlayState } from './OverlayStateContext';
 import BasemapLayers from './layers/BasemapLayers';
 import OverlayLayers from './layers/OverlayLayers';
 import { ATTRIBUTIONS } from '../config/attribution';
+import { trackEvent } from '../analytics';
 // Removed metadata injection in Layers panel; keep lastUpdated utils for Legend only
 
 /**
@@ -43,6 +44,15 @@ export default function MapLayersControl({ children }) {
   const platesRef = useRef(null);
   const customLayersToggleRef = useRef(null);
   const cleanupRefs = useRef({});
+  const emitPanelToggle = useCallback((isOpen, trigger = 'button') => {
+    try {
+      trackEvent('layers_toggle', {
+        action: 'panel',
+        state: isOpen ? 'open' : 'closed',
+        trigger,
+      });
+    } catch (_) {}
+  }, []);
 
   const setFaultsRef = useCallback(
     (node) => {
@@ -117,6 +127,7 @@ export default function MapLayersControl({ children }) {
                 </svg>`;
               const togglePanel = () => {
                 const expanded = ctrl.classList.contains('leaflet-control-layers-expanded');
+                const nextState = !expanded;
                 if (expanded) ctrl.classList.remove('leaflet-control-layers-expanded');
                 else ctrl.classList.add('leaflet-control-layers-expanded');
                 a.setAttribute('aria-expanded', expanded ? 'false' : 'true');
@@ -133,6 +144,7 @@ export default function MapLayersControl({ children }) {
                     window.dispatchEvent(new CustomEvent('ui:layers:open'));
                   } catch (_) {}
                 }
+                emitPanelToggle(nextState, 'button');
               };
               L.DomEvent.on(a, 'click', (e) => {
                 L.DomEvent.stop(e);
@@ -248,7 +260,7 @@ export default function MapLayersControl({ children }) {
         } catch (_) {}
       } catch (_) {}
     };
-  }, [map]);
+  }, [map, emitPanelToggle]);
 
   // Keyboard shortcuts: L toggles Layers; Esc collapses only if focus is inside
   useEffect(() => {
@@ -284,7 +296,9 @@ export default function MapLayersControl({ children }) {
       if (e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         const wasExpanded = isExpanded();
-        setExpanded(!wasExpanded);
+        const nextState = !wasExpanded;
+        setExpanded(nextState);
+        emitPanelToggle(nextState, 'keyboard');
         if (!wasExpanded) {
           // Just opened → move initial focus to the Close (×) button
           setTimeout(focusCloseButton, 0); // allow DOM to paint first
@@ -305,13 +319,14 @@ export default function MapLayersControl({ children }) {
           e.preventDefault();
           setExpanded(false);
           btn.focus();
+          emitPanelToggle(false, 'keyboard');
         }
       }
     };
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [map]);
+  }, [map, emitPanelToggle]);
 
   // Listen for Legend open or Popup open to collapse Layers
   useEffect(() => {

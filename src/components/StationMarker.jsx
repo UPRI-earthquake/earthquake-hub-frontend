@@ -13,6 +13,7 @@ import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
 import { themeFromMapContainer } from '../config/mapStyles';
+import { trackEvent } from '../analytics';
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
@@ -26,6 +27,19 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const demoTimerRef = useRef(null);
   const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
   const ringserver_ws = ringserverWS();
+  const logDownload = useCallback(
+    (payload) => {
+      try {
+        trackEvent('download_data', {
+          station_code: code,
+          network: String(network || 'AM').toUpperCase(),
+          source: 'station_popup',
+          ...payload,
+        });
+      } catch (_) {}
+    },
+    [code, network],
+  );
 
   // Lazy-loaded seisplotjs and derived config/state
   const spRef = useRef(null);
@@ -129,14 +143,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const errorFn = function (_error) {
     if (datalinkRef.current) {
       datalinkRef.current.close();
-    } // Close the websocket connection
+    } // Close the WebSocket connection
   };
 
   /***************************************************************************
    * new DataLinkConnection:
-   *     A websocket based Datalink connection
+   *     A WebSocket based Datalink connection
    * Parameters:
-   *     url            (string)                                    websocket url to the ringserver
+   *     url            (string)                                    WebSocket URL to the ringserver
    *     packetHandler  (function (packet: DataLinkPacket): void)   callback for packets as they arrive
    *     errorHandler   (function (error: Error): void)             callback for errors
    *
@@ -171,8 +185,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       try {
         const matchPattern = `${network}_${station}_([0-9]{2})?_.HZ/MSEED`;
 
-        devlog('Connecting to datalink via websocket');
-        await datalinkRef.current.connect(); // Create websocket connection and send the client ID
+        devlog('Connecting to datalink via WebSocket');
+        await datalinkRef.current.connect(); // Create WebSocket connection and send the client ID
         connected.current = true;
         const matchResponse = await datalinkRef.current.match(matchPattern); // Send match command
         if (matchResponse.isError()) {
@@ -188,7 +202,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         // NOTE: This part blocks while streaming,
         // until endStream() is called
       } catch (e) {
-        deverror('Error occurred while connecting to websocket');
+        deverror('Error occurred while connecting to WebSocket');
       }
     }
   };
@@ -197,14 +211,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     try {
       if (connected.current && datalinkRef.current) {
         // close connection
-        devlog('Disconnecting datalink websocket');
+        devlog('Disconnecting datalink WebSocket');
         await datalinkRef.current.endStream();
         await datalinkRef.current.close();
 
         connected.current = false;
       }
     } catch (e) {
-      deverror('Error occurred while closing websocket');
+      deverror('Error occurred while closing WebSocket');
     }
   };
 
@@ -547,6 +561,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       });
 
       if (resp.status !== 200) {
+        logDownload({ type: 'metadata', format: 'xml', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -555,6 +570,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const ct = (resp.headers && resp.headers['content-type']) || '';
       const looksXml = typeof ct === 'string' && ct.toLowerCase().includes('xml');
       if (!blob || blob.size === 0 || (!looksXml && blob.size < 64)) {
+        logDownload({ type: 'metadata', format: 'xml', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -568,7 +584,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       a.click();
       a.remove();
       window.URL.revokeObjectURL(objUrl);
+      logDownload({
+        type: 'metadata',
+        format: 'xml',
+        status: 'success',
+        size_bytes: blob.size || 0,
+      });
     } catch (_) {
+      logDownload({ type: 'metadata', format: 'xml', status: 'error' });
       try { window.open(metadata_download_URL, '_blank', 'noreferrer'); } catch (_) {}
     }
   };
@@ -588,6 +611,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       });
 
       if (resp.status !== 200) {
+        logDownload({ type: 'waveform', format: 'mseed', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -596,6 +620,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const ct = (resp.headers && resp.headers['content-type']) || '';
       const looksMseed = typeof ct === 'string' && (ct.toLowerCase().includes('vnd.fdsn.mseed') || ct.toLowerCase().includes('application/octet-stream'));
       if (!blob || blob.size === 0 || (!looksMseed && blob.size < 64)) {
+        logDownload({ type: 'waveform', format: 'mseed', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -610,7 +635,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       a.click();
       a.remove();
       window.URL.revokeObjectURL(objUrl);
+      logDownload({
+        type: 'waveform',
+        format: 'mseed',
+        status: 'success',
+        size_bytes: blob.size || 0,
+      });
     } catch (_) {
+      logDownload({ type: 'waveform', format: 'mseed', status: 'error' });
       try { window.open(data_download_URL, '_blank', 'noreferrer'); } catch (_) {}
     }
   };
@@ -746,6 +778,12 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
               const ev = new CustomEvent('selection:fromMarker', { detail: { id } });
               window.dispatchEvent(ev);
             } catch (_) {}
+            trackEvent('station_select', {
+              station_code: code,
+              network: String(network || 'AM').toUpperCase(),
+              source: 'marker',
+              status: String(statusState.status || '').toLowerCase() || 'unknown',
+            });
           } catch (_) {}
         },
         // Fetch status and start graph whenever the popup actually opens

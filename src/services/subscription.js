@@ -53,7 +53,7 @@ function sendSubscription(subscription) {
       'Content-Type': 'application/json',
     },
   }).catch((e) => {
-    devlog('Error occured in sending subscription', e);
+    devlog('Error occurred in sending subscription', e);
   });
 }
 
@@ -122,7 +122,7 @@ export function subscribeUser() {
                     devlog('Notification permission was not granted.');
                     notifyUser('Notifications are blocked. Enable them in your browser settings.', 'warning');
                   } else {
-                    devlog('Error occured in subscription.', e);
+                    devlog('Error occurred in subscription.', e);
                     const msg = String(e && (e.message || e.name || e));
                     // Chromium builds without Google push services often throw
                     // messages like "Registration failed - push service not available".
@@ -145,7 +145,7 @@ export function subscribeUser() {
           }
         })
         .catch((e) => {
-          devlog('Error occured during SW registration.', e);
+          devlog('Error occurred during SW registration.', e);
           notifyUser('Notifications setup failed. Please refresh and try again.', 'error');
         });
     });

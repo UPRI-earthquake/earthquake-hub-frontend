@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import styles from './SidebarItem.module.css';
 import { useSelector, useDispatch } from 'react-redux';
 import { devlog } from '../utils/devlog';
+import { trackEvent } from '../analytics';
 
 /**
  * Single earthquake item entry used in the sidebar list.
@@ -18,6 +19,14 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
       try {
         const ev = new CustomEvent('selection:fromList', { detail: { id: publicID } });
         window.dispatchEvent(ev);
+      } catch (_) {}
+      try {
+        const magValue = Number(title);
+        trackEvent('event_select', {
+          event_id: publicID,
+          source: 'sidebar',
+          magnitude: Number.isFinite(magValue) ? magValue : undefined,
+        });
       } catch (_) {}
     } else {
       devlog('dispatch deselect');

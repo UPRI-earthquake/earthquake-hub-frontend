@@ -8,6 +8,7 @@ import styles from './EventMarker.module.css';
 import { ReactComponent as Circle } from '../assets/circle.svg';
 import { ReactComponent as CircleWithBorder } from '../assets/circleWithBorder.svg';
 import { eqSizePx, themeFromMapContainer, eqDepthColor } from '../config/mapStyles';
+import { trackEvent } from '../analytics';
 
 function toRadius(magnitude) {
   // Convert desired diameter into a radius; DivIcon uses iconSize width/height
@@ -276,6 +277,14 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
             const ev = new CustomEvent('selection:fromMarker', { detail: { id: publicID } });
             window.dispatchEvent(ev);
           } catch (_) {}
+          try {
+            const magnitude = Number(mag);
+            trackEvent('event_select', {
+              event_id: publicID,
+              source: 'marker',
+              magnitude: Number.isFinite(magnitude) ? magnitude : undefined,
+            });
+          } catch (_) {}
         },
         popupopen: () => {
           try { setTooltipDisabled(true); } catch (_) {}
@@ -290,6 +299,14 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
               try {
                 const ev = new CustomEvent('selection:fromMarker', { detail: { id: publicID } });
                 window.dispatchEvent(ev);
+              } catch (_) {}
+              try {
+                const magnitude = Number(mag);
+                trackEvent('event_select', {
+                  event_id: publicID,
+                  source: 'marker',
+                  magnitude: Number.isFinite(magnitude) ? magnitude : undefined,
+                });
               } catch (_) {}
             }
           } catch (_) {}
