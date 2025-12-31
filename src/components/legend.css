@@ -3,62 +3,142 @@
   --panel-bg: #ffffffee;
   --panel-text: #1f2937;
   --panel-border: rgba(17, 24, 39, 0.12);
-  --panel-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  --panel-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: 48px;
+  pointer-events: auto;
+}
+
+.legend-shell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--leaflet-control-gap, 10px);
+}
+
+.legend-toggle {
+  height: 48px;
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111827;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  z-index: 1000;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.legend-toggle:hover { background: rgba(0, 0, 0, 0.04); }
+.legend-toggle:active { transform: scale(0.98); }
+.legend-toggle:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle {
+  background: rgba(17, 24, 39, 0.82);
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle:hover,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle:hover {
+  background: #111827;
+}
+.legend-toggle svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+.legend-shell[data-open='1'] .legend-toggle,
+.legend-toggle.is-active,
+.legend-toggle[data-active='1'],
+.leaflet-container[data-legend-expanded='1'] .legend-toggle {
+  background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.35);
+  transform: translateY(-1px);
+}
+.legend-shell[data-open='1'] .legend-toggle:hover,
+.legend-toggle.is-active:hover,
+.legend-toggle[data-active='1']:hover {
+  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+}
+.legend-shell[data-open='1'] .legend-toggle:active,
+.legend-toggle.is-active:active,
+.legend-toggle[data-active='1']:active,
+.leaflet-container[data-legend-expanded='1'] .legend-toggle:active {
+  transform: translateY(-1px) scale(0.98);
+}
+.leaflet-container[data-basemap-theme='dark'] .legend-shell[data-open='1'] .legend-toggle,
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle.is-active,
+.leaflet-container[data-basemap-theme='dark'] .legend-toggle[data-active='1'],
+.leaflet-container[data-basemap-theme='dark'][data-legend-expanded='1'] .legend-toggle,
+.leaflet-container[data-basemap-theme='imagery'] .legend-shell[data-open='1'] .legend-toggle,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle.is-active,
+.leaflet-container[data-basemap-theme='imagery'] .legend-toggle[data-active='1'],
+.leaflet-container[data-basemap-theme='imagery'][data-legend-expanded='1'] .legend-toggle {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.4);
+}
+
+.legend-flyout {
+  position: absolute;
+  right: calc(48px + var(--leaflet-flyout-gap, 10px));
+  top: auto;
+  bottom: 0;
+  width: max-content;
+  max-width: min(92vw, 380px);
+  min-width: 220px;
   background: var(--panel-bg);
   border-radius: 12px;
   border: 1px solid var(--panel-border);
   box-shadow: var(--panel-shadow);
-  /* Uniform padding on all sides for consistent visual rhythm */
   padding: 12px;
   font-family: var(--font-primary);
   font-size: 13px;
   line-height: 1.35;
   color: var(--panel-text);
-  pointer-events: auto;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(12px);
   backdrop-filter: saturate(120%) blur(6px);
-  max-width: 320px;
-  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+  transition: opacity 160ms ease, transform 180ms ease, box-shadow 150ms ease,
+    border-color 150ms ease, background-color 150ms ease;
+  z-index: 999;
 }
-
-.custom-legend-control.is-collapsed {
-  background: transparent;
-  padding: 0;
-  border: none;
+.legend-flyout.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
-
-.legend-shell {
-  position: relative;
-  min-width: 180px;
-}
-
-.legend-shell.is-collapsed {
-  min-width: auto;
-}
-
-/* Smooth entrance when expanding */
-.legend-shell:not(.is-collapsed) {
-  animation: legendPanelIn 0.2s ease-out;
-  transform-origin: bottom right;
-}
-
-@keyframes legendPanelIn {
-  0% {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
+.leaflet-container[data-basemap-theme='dark'] .legend-flyout,
+.leaflet-container[data-basemap-theme='imagery'] .legend-flyout {
+  --panel-bg: #111827dd;
+  --panel-text: #f3f4f6;
+  --panel-border: rgba(255, 255, 255, 0.12);
+  --panel-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .legend-shell:not(.is-collapsed) {
-    animation: none;
+  .legend-flyout {
+    transition: none;
   }
 }
 
-/* Toggle button inside expanded panel (Collapse) */
 /* Expanded header */
 .legend-header {
   display: flex;
@@ -93,7 +173,7 @@
 .legend-tools button:hover { background: #e5e7eb; }
 .legend-tools button:active { transform: scale(0.98); }
 .legend-tools button:focus-visible {
-  outline: 2px solid #22c55e;
+  outline: 2px solid #0ea5e9;
   outline-offset: 2px;
 }
 .legend-tools .legend-close {
@@ -108,66 +188,22 @@
   color: #f3f4f6;
   border-color: rgba(255, 255, 255, 0.2);
 }
-/* Collapsed pill (Legend ▸) */
-.custom-legend-control.is-collapsed .legend-toggle {
-  position: static;
-  height: 48px;
-  width: 48px; /* icon-only button like other controls */
-  min-width: 48px;
-  padding: 0; /* center the icon */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 12px;
-  background: #fff;
-  color: #111827;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  z-index: 1000;
-  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
-    box-shadow 150ms ease, border-color 150ms ease;
-  -webkit-tap-highlight-color: transparent;
-}
-.custom-legend-control.is-collapsed .legend-toggle:hover {
-  background: rgba(0, 0, 0, 0.04);
-}
-.custom-legend-control.is-collapsed .legend-toggle:active {
-  transform: scale(0.98);
-}
-.custom-legend-control.is-collapsed .legend-toggle:focus-visible {
-  outline: 2px solid #22c55e;
-  outline-offset: 2px;
-}
-.leaflet-container[data-basemap-theme='dark'] .custom-legend-control.is-collapsed .legend-toggle,
-.leaflet-container[data-basemap-theme='imagery']
-  .custom-legend-control.is-collapsed
-  .legend-toggle {
-  background: #1f2937;
-  color: #f3f4f6;
-  border-color: rgba(255, 255, 255, 0.25);
-}
-.leaflet-container[data-basemap-theme='dark']
-  .custom-legend-control.is-collapsed
-  .legend-toggle:hover,
-.leaflet-container[data-basemap-theme='imagery']
-  .custom-legend-control.is-collapsed
-  .legend-toggle:hover {
-  background: #111827;
-}
-.legend-toggle:focus {
-  outline: 2px solid #4aa96c;
-  outline-offset: 2px;
-}
 
 .legend-body {
-  /* Let the container provide side padding; keep body flush */
   padding: 0;
   max-height: 40vh;
   overflow: auto;
 }
 .map-legend {
   padding: 0;
+}
+
+@media (max-width: 767px) {
+  .legend-flyout {
+    right: calc(48px + var(--leaflet-control-gap, 10px));
+    max-width: min(88vw, 320px);
+    transform: translateX(8px);
+  }
 }
 
 .legend-heading {
@@ -323,15 +359,15 @@
   transition: transform 160ms ease, background-color 160ms ease;
 }
 .legend-toggle-inline[aria-checked='true']::before {
-  background: #22c55e;
-  border-color: #22c55e;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.12); /* very soft glow on active */
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.14); /* very soft glow on active */
 }
 .legend-toggle-inline[aria-checked='true']::after {
   transform: translate(14px, -50%);
 }
 .legend-toggle-inline:focus-visible {
-  outline: 2px solid #22c55e;
+  outline: 2px solid #0ea5e9;
   outline-offset: 2px;
 }
 .legend-empty {
@@ -341,7 +377,7 @@
 
 /* Focus styles */
 .legend-item[role='button']:focus-visible {
-  outline: 2px solid #22c55e;
+  outline: 2px solid #0ea5e9;
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -372,9 +408,9 @@
 }
 .leaflet-container[data-basemap-theme='dark'] .legend-toggle-inline[aria-checked='true']::before,
 .leaflet-container[data-basemap-theme='imagery'] .legend-toggle-inline[aria-checked='true']::before {
-  background: #16a34a; /* slightly darker green on dark */
-  border-color: #16a34a;
-  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.18);
+  background: #0ea5e9; /* primary accent on dark */
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.18);
 }
 .leaflet-container[data-basemap-theme='dark'] .legend-toggle-inline::after,
 .leaflet-container[data-basemap-theme='imagery'] .legend-toggle-inline::after {
@@ -426,18 +462,14 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0.5px 0.8px rgba(0, 0, 0, 0.3);
 }
 
-/* Mobile: limit legend height a bit more to avoid crowding */
+/* Mobile: keep legend free-flowing (allow natural height so toggle/flyout stay visible) */
 @media (max-width: 767px) {
-  /* Constrain the legend panel height on small screens.
-     Keep some vertical headroom so it doesn't overlap with the
-     Map Layers panel when both are open. */
   .custom-legend-control {
-    max-height: 42vh;
-    overflow: hidden; /* body scrolls */
+    max-height: none;
+    overflow: visible;
   }
   .legend-body {
-    max-height: calc(42vh - 44px); /* leave room for header */
-    overflow: auto;
-    overscroll-behavior: contain;
+    max-height: none;
+    overflow: visible;
   }
 }

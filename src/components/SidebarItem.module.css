@@ -11,15 +11,15 @@
   padding-bottom: 12px;
   padding-left: 15px;
   padding-right: 15px;
-  border-bottom: solid 1px lightgray;
+  border-bottom: solid 1px var(--border);
 
-  background-color: #ffffff;
-  color: #1f2937;
+  background-color: var(--surface);
+  color: var(--text-primary);
   transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
 
-html[data-basemap-theme='dark'] .sidebarItem,
-html[data-basemap-theme='imagery'] .sidebarItem {
+html[data-theme='dark'] .sidebarItem,
+html[data-theme='imagery'] .sidebarItem {
   background-color: #0b1220;
   color: #f3f4f6;
   border-bottom-color: rgba(255, 255, 255, 0.12);
@@ -33,14 +33,11 @@ html[data-basemap-theme='imagery'] .sidebarItem {
 
 @media (max-width: 768px) {
   .sidebarItem {
-    width: 300px; /* card width */
-    height: 100%;
-    border-bottom: none; /* separators via right border */
-    border-right: 1px solid lightgray;
+    width: 100%;
+    height: auto;
     grid-template-columns: 56px 1fr; /* same internals as desktop */
     gap: 12px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding: 12px 14px;
   }
   .sidebarItem > div {
     width: auto;
@@ -56,8 +53,8 @@ html[data-basemap-theme='imagery'] .sidebarItem {
   }
 }
 
-html[data-basemap-theme='dark'] .sidebarItem:hover,
-html[data-basemap-theme='imagery'] .sidebarItem:hover {
+html[data-theme='dark'] .sidebarItem:hover,
+html[data-theme='imagery'] .sidebarItem:hover {
   background-color: rgba(255, 255, 255, 0.06);
   box-shadow: 0 1px 0 rgba(255,255,255,0.08);
 }
@@ -92,15 +89,15 @@ html[data-basemap-theme='imagery'] .sidebarItem:hover {
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 600;
-  color: #1f2937;
-  background: rgba(58, 106, 80, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #0f172a;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.2);
 }
-html[data-basemap-theme='dark'] .depthBadge,
-html[data-basemap-theme='imagery'] .depthBadge {
+html[data-theme='dark'] .depthBadge,
+html[data-theme='imagery'] .depthBadge {
   color: #f3f4f6;
-  background: rgba(134, 239, 172, 0.18);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(125, 211, 252, 0.2);
+  border-color: rgba(125, 211, 252, 0.24);
 }
 .depthIcon { display: inline-block; }
 .depthText { line-height: 1; }
@@ -109,8 +106,8 @@ html[data-basemap-theme='imagery'] .depthBadge {
 /* Right-column meta row (time + depth) */
 .metaRow { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
 .metaRow .subDesc { margin-top: 0; font-size: 12px; color: #6b7280; }
-html[data-basemap-theme='dark'] .metaRow .subDesc,
-html[data-basemap-theme='imagery'] .metaRow .subDesc { color: #d1d5db; opacity: 0.85; }
+html[data-theme='dark'] .metaRow .subDesc,
+html[data-theme='imagery'] .metaRow .subDesc { color: #d1d5db; opacity: 0.85; }
 
 .sidebarItem > div {
   white-space: nowrap;
@@ -133,8 +130,8 @@ html[data-basemap-theme='imagery'] .metaRow .subDesc { color: #d1d5db; opacity: 
   overflow: hidden;
   text-overflow: ellipsis;
 }
-html[data-basemap-theme='dark'] .sidebarItem > div > .subDesc,
-html[data-basemap-theme='imagery'] .sidebarItem > div > .subDesc {
+html[data-theme='dark'] .sidebarItem > div > .subDesc,
+html[data-theme='imagery'] .sidebarItem > div > .subDesc {
   color: #d1d5db;
   opacity: 0.85;
 }
@@ -180,22 +177,22 @@ html[data-basemap-theme='imagery'] .sidebarItem > div > .subDesc {
 
 /* --- Selected state styles --- */
 .selected {
-  border-left: 4px solid #3a6a50; /* brand accent on light */
+  border-left: 4px solid var(--accent); /* brand accent on light */
   padding-left: 11px; /* compensate for thicker left border */
-  background-color: rgba(58, 106, 80, 0.06);
+  background-color: rgba(14, 165, 233, 0.1);
 }
 .selected .magValue {
-  color: #3a6a50;
+  color: var(--accent);
 }
 
-html[data-basemap-theme='dark'] .selected,
-html[data-basemap-theme='imagery'] .selected {
-  border-left-color: #86efac; /* readable on dark */
-  background-color: rgba(134, 239, 172, 0.08);
+html[data-theme='dark'] .selected,
+html[data-theme='imagery'] .selected {
+  border-left-color: #7dd3fc; /* readable on dark */
+  background-color: rgba(125, 211, 252, 0.16);
 }
-html[data-basemap-theme='dark'] .selected .magValue,
-html[data-basemap-theme='imagery'] .selected .magValue {
-  color: #86efac;
+html[data-theme='dark'] .selected .magValue,
+html[data-theme='imagery'] .selected .magValue {
+  color: #7dd3fc;
 }
 
 @media (max-width: 768px) {

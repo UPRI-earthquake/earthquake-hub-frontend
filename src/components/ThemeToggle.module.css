@@ -1,0 +1,88 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.toggle[data-size='compact'] {
+  gap: 2px;
+  padding: 2px;
+}
+
+.button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease,
+    border-color 140ms ease;
+  min-width: 52px;
+  line-height: 1.2;
+}
+
+.toggle[data-size='compact'] .button {
+  min-width: 44px;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.button:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text-primary);
+}
+
+.buttonActive {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  color: var(--text-primary);
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.buttonActive:hover {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+.button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary-strong) 60%, transparent);
+  outline-offset: 2px;
+}
+
+html[data-theme='dark'] .toggle {
+  background: rgba(17, 24, 39, 0.72);
+  border-color: #1f2937;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.32);
+}
+
+html[data-theme='dark'] .button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='dark'] .buttonActive {
+  color: #e5e7eb;
+  background: color-mix(in srgb, var(--primary) 26%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 36%, #1f2937);
+}
+
+@media (max-width: 520px) {
+  .toggle:not([data-size='compact']) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .toggle[data-size='compact'] .button {
+    min-width: 40px;
+    padding: 4px 7px;
+    font-size: 9.5px;
+  }
+}

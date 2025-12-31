@@ -6,33 +6,55 @@ const { BaseLayer } = LayersControl;
 
 /**
  * Basemap options for the map. Uses leaflet-providers via config to render OSM,
- * CARTO light/dark, and Esri World Imagery.
+ * CARTO light/dark (auto-selected), and Esri World Imagery.
  */
-export default function BasemapLayers({ bases: basesProp }) {
+export default function BasemapLayers({
+  bases: basesProp,
+  registerBaseLayer,
+  activeTheme = 'light',
+  activeBase = 'default',
+}) {
   const bases = useMemo(
     () =>
       basesProp || {
-        osm: BASEMAPS.OSM_Standard(),
-        positron: BASEMAPS.Carto_Positron(),
-        dark: BASEMAPS.Carto_DarkMatter(),
-        esri: BASEMAPS.Esri_WorldImagery(),
+        defaultLight: BASEMAPS.Carto_Positron(),
+        defaultDark: BASEMAPS.Carto_DarkMatter(),
+        streets: BASEMAPS.OSM_Standard(),
+        satellite: BASEMAPS.Esri_WorldImagery(),
       },
     [basesProp],
   );
 
+  const resolvedTheme = String(activeTheme || '').toLowerCase() === 'dark' ? 'dark' : 'light';
+  const defaultVariant = resolvedTheme === 'dark' ? 'defaultDark' : 'defaultLight';
+  const defaultProps =
+    defaultVariant === 'defaultDark' ? bases.defaultDark || {} : bases.defaultLight || {};
+
+  const attach = (key) => (layer) => {
+    if (typeof registerBaseLayer === 'function') {
+      registerBaseLayer(key, layer);
+    }
+  };
+
   return (
     <>
-      <BaseLayer name="Standard Map">
-        <TileLayer url={bases.osm.url} {...bases.osm.options} />
+      <BaseLayer checked={activeBase === 'default'} name="Default">
+        <TileLayer
+          ref={attach('default')}
+          url={defaultProps.url}
+          {...defaultProps.options}
+          key={`default-${defaultVariant}`}
+        />
       </BaseLayer>
-      <BaseLayer checked name="Light Map">
-        <TileLayer url={bases.positron.url} {...bases.positron.options} />
+      <BaseLayer checked={activeBase === 'streets'} name="Streets">
+        <TileLayer ref={attach('streets')} url={bases.streets.url} {...bases.streets.options} />
       </BaseLayer>
-      <BaseLayer name="Dark Map">
-        <TileLayer url={bases.dark.url} {...bases.dark.options} />
-      </BaseLayer>
-      <BaseLayer name="Satellite View">
-        <TileLayer url={bases.esri.url} {...bases.esri.options} />
+      <BaseLayer checked={activeBase === 'satellite'} name="Satellite">
+        <TileLayer
+          ref={attach('satellite')}
+          url={bases.satellite.url}
+          {...bases.satellite.options}
+        />
       </BaseLayer>
     </>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import SidebarItems from '../SidebarItems.jsx';
+import EventList from '../EventList.jsx';
 
 const reducer = (state = null, action) => {
   switch (action.type) {
@@ -32,14 +32,14 @@ function getRenderedIds(container) {
 test('sort by magnitude ascending and descending', () => {
   const { container, rerender } = render(
     <Provider store={makeStore()}>
-      <SidebarItems initData={baseItems} sort={{ by: 'mag', order: 'asc' }} />
+      <EventList events={baseItems} sort={{ by: 'mag', order: 'asc' }} />
     </Provider>,
   );
   expect(getRenderedIds(container)).toEqual(['a', 'c', 'b']);
 
   rerender(
     <Provider store={makeStore()}>
-      <SidebarItems initData={baseItems} sort={{ by: 'mag', order: 'desc' }} />
+      <EventList events={baseItems} sort={{ by: 'mag', order: 'desc' }} />
     </Provider>,
   );
   expect(getRenderedIds(container)).toEqual(['b', 'c', 'a']);
@@ -48,7 +48,7 @@ test('sort by magnitude ascending and descending', () => {
 test('filters by text', () => {
   const { container } = render(
     <Provider store={makeStore()}>
-      <SidebarItems initData={baseItems} filters={{ searchText: 'bra' }} />
+      <EventList events={baseItems} filters={{ searchText: 'bra' }} />
     </Provider>,
   );
   expect(getRenderedIds(container)).toEqual(['b']);
@@ -57,7 +57,7 @@ test('filters by text', () => {
 test('empty state renders when no results', () => {
   const { container } = render(
     <Provider store={makeStore()}>
-      <SidebarItems initData={[]} />
+      <EventList events={[]} />
     </Provider>,
   );
   expect(container.textContent).toMatch(/No results/i);

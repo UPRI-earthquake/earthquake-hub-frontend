@@ -1,7 +1,7 @@
 /* Toast */
 .toastContainer {
   position: fixed;
-  top: calc(var(--header-h, 56px) + 8px);
+  top: calc(var(--header-h, 72px) + 8px);
   right: 12px;
   left: auto;
   width: auto;
@@ -86,6 +86,6 @@
 }
 .closeBtn:hover { opacity: 1; }
 .closeBtn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline: 2px solid rgba(14, 165, 233, 0.4);
   outline-offset: 2px;
 }

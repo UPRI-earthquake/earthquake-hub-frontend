@@ -1,25 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 :root {
-  --font-primary: Inter, Roboto, 'Noto Sans', system-ui, -apple-system, Segoe UI, Helvetica, Arial,
-    sans-serif;
-  --text-light: #1f2937; /* gray-800 */
-  --text-dark: #f3f4f6; /* gray-100 */
-  /* Shared header height for layout and spacing */
-  --header-h: 56px;
+  --font-primary: 'Space Grotesk', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --text-primary: #0f172a;
+  --muted: #4b5563;
+  --surface: #ffffff;
+  --bg-gradient: radial-gradient(circle at 20% 20%, #e0f2fe 0, transparent 25%),
+    radial-gradient(circle at 80% 0%, #ecfdf3 0, transparent 22%),
+    #f6f7fb;
+  --primary: #0ea5e9;
+  --primary-strong: #0284c7;
+  --accent: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #e5e7eb;
+  --shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+
+  /* Spacing system: base unit + layout anchors */
+  --space-1: 8px;
+  --space-1-5: calc(var(--space-1) * 1.5); /* 12px */
+  --space-2: calc(var(--space-1) * 2); /* 16px */
+  --space-2-5: calc(var(--space-1) * 2.5); /* 20px */
+  --space-3: calc(var(--space-1) * 3); /* 24px */
+
+  --header-h: 72px; /* desktop header height */
+  --layout-top-offset: var(--space-3); /* header → content clearance */
+  --layout-side-offset: var(--space-2); /* left/right gutters for panels/controls */
+  --layout-control-gap: var(--space-1-5);
+  --layout-bottom-offset: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --header-h: 68px; /* tablet header height */
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --header-h: 60px; /* mobile header height */
+  }
+}
+
+:root[data-theme='dark'] {
+  --text-primary: #e5e7eb;
+  --muted: #94a3b8;
+  --surface: #0f172a;
+  --bg-gradient: radial-gradient(circle at 18% 20%, rgba(56, 189, 248, 0.12) 0, transparent 26%),
+    radial-gradient(circle at 82% 8%, rgba(34, 197, 94, 0.12) 0, transparent 22%),
+    #0b1220;
+  --primary: #38bdf8;
+  --primary-strong: #0ea5e9;
+  --accent: #22c55e;
+  --warning: #f59e0b;
+  --danger: #f87171;
+  --border: #1f2937;
+  --shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='imagery'] {
+  --text-primary: #e9eef7;
+  --muted: #cbd5e1;
+  --surface: #0b1220;
+  --bg-gradient: radial-gradient(circle at 20% 18%, rgba(125, 211, 252, 0.14) 0, transparent 26%),
+    radial-gradient(circle at 78% 6%, rgba(52, 211, 153, 0.12) 0, transparent 22%),
+    #070b14;
+  --primary: #7dd3fc;
+  --primary-strong: #38bdf8;
+  --accent: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --border: #111827;
+  --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
   font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--text-light);
+  background: var(--bg-gradient);
+  color: var(--text-primary);
 }
 
 /* Global, theme-aware scrollbar styling */
 /*
   We style scrollbars across the app and react to the
   same theme attribute already used elsewhere:
-  html[data-basemap-theme='light' | 'dark' | 'imagery']
+  html[data-theme='light' | 'dark']
 
   - WebKit/Blink: ::-webkit-scrollbar* selectors
   - Firefox: scrollbar-color + scrollbar-width
@@ -33,8 +103,8 @@ html {
   --sb-thumb-hover: #6b7280; /* gray-500 */
   color-scheme: light;
 }
-html[data-basemap-theme='dark'],
-html[data-basemap-theme='imagery'] {
+html[data-theme='dark'],
+html[data-theme='imagery'] {
   /* Subtle, higher-contrast look for dark/imagery */
   --sb-track: #0b1220; /* slate-950 approximation used elsewhere */
   --sb-thumb: #64748b; /* slate-500 */

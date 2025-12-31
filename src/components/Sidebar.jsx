@@ -5,7 +5,7 @@ import styles from './Sidebar.module.css';
  * Sidebar two‑pane layout where the first child is the header and the rest scroll.
  * @param {{children: React.ReactNode}} props
  */
-function Sidebar({ children, scrollResetKey }) {
+function Sidebar({ children, scrollResetKey, className = '' }) {
   const first = Array.isArray(children) ? children[0] : children;
   const rest = Array.isArray(children) ? children.slice(1) : null;
   const listRef = useRef(null);
@@ -43,7 +43,7 @@ function Sidebar({ children, scrollResetKey }) {
     } catch (_) {}
   }, [scrollResetKey]);
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} ${className}`.trim()}>
       <div className={styles.headerArea}>{first}</div>
       <div className={styles.itemsScroll} ref={listRef}>{rest}</div>
     </div>

@@ -5,6 +5,7 @@ import App from './App';
 // Defer non-critical modules to reduce main bundle size
 // - service worker registration already waits for 'load' internally
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
@@ -28,7 +29,9 @@ const store = createStore(selectedEventReducer);
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </Provider>
   </React.StrictMode>,
   document.getElementById('root'),

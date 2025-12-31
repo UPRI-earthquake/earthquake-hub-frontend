@@ -8,6 +8,7 @@ import { SignInForm, SignUpForm } from './Form';
 import { Dashboard } from './Dashboard';
 import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
 // import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
+import ThemeToggle from './ThemeToggle';
 import axios from 'axios';
 import { backendHost } from '../utils/env';
 import Toast from './Toast';
@@ -18,8 +19,9 @@ import { devwarn, deverror } from '../utils/devlog';
  * Shows active station count on the Home page and provides sign-in/up and dashboard.
  * @param {Object} props
  * @param {Array<Object>} [props.initStations] Optional initial stations to compute online count
+ * @param {boolean} [props.showThemeToggle=true] Whether to render the theme toggle in the header
  */
-const Header = ({ initStations = [] }) => {
+const Header = ({ initStations = [], showThemeToggle = true }) => {
   const [stations] = useState(initStations);
   const stationsCount = stations.filter((station) => station.activity === 'active').length;
 
@@ -156,7 +158,12 @@ const Header = ({ initStations = [] }) => {
       <div className={styles.headerContent}>
         <div className={styles.headerLeft}>
           <Logo className={styles.logo} role="img" aria-label="UPRI logo" />
-          <h1 title="Citizen Science • UPRI">CS•UPRI</h1>
+          <div className={styles.brandText}>
+            <p className={styles.kicker}>Earthquake Hub</p>
+            <h1 className={styles.title} title="Citizen Science • UPRI">
+              CS•UPRI
+            </h1>
+          </div>
           {/* Temporarily hide header stations online indicator to avoid redundancy with sidebar */}
           {false && (
             <p>
@@ -166,6 +173,7 @@ const Header = ({ initStations = [] }) => {
           )}
         </div>
         <div className={styles.headerRight}>
+          {showThemeToggle && <ThemeToggle size="compact" />}
           {isLoggedIn ? (
             <div
               className={styles.menuToggle}
@@ -192,6 +200,7 @@ const Header = ({ initStations = [] }) => {
                   onClick={handleHomeClick}
                   aria-label="Go to home"
                   title="Home"
+                  data-size="compact"
                 >
                   Home
                 </Button>
@@ -203,6 +212,7 @@ const Header = ({ initStations = [] }) => {
                     onClick={handleSignInClick}
                     aria-label="Sign in"
                     title="Sign in"
+                    data-size="compact"
                   >
                     Sign in
                   </Button>
@@ -211,6 +221,7 @@ const Header = ({ initStations = [] }) => {
                     onClick={handleSignUpClick}
                     aria-label="Create an account"
                     title="Sign up"
+                    data-size="compact"
                   >
                     Sign up
                   </Button>

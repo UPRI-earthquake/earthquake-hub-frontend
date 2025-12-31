@@ -70,12 +70,13 @@ export default function AttributionControl() {
 
     // Restore collapsed state from sessionStorage
     const key = 'map:attr:collapsed';
+    // Default: collapsed/hidden until user expands
+    el.classList.add('is-collapsed');
     try {
       const v = sessionStorage.getItem(key);
-      if (v === '1') el.classList.add('is-collapsed');
-      if (v === null) el.classList.add('is-collapsed'); // default hidden
+      if (v === '0') el.classList.remove('is-collapsed');
     } catch (_) {
-      el.classList.add('is-collapsed');
+      /* leave collapsed on error */
     }
 
     // Update ARIA label and tooltip based on state

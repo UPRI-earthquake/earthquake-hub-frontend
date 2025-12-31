@@ -61,7 +61,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
   const eventSourceRef = useRef(null);
 
   const fetchEventsForRange = useCallback(
-    async (startDateISO, endDateISO) => {
+    async (startDateISO, endDateISO, { setState = true } = {}) => {
       const startTs = moment(startDateISO).startOf('day').format('YYYY-MM-DD HH:mm:ss');
       const endTs = moment(endDateISO).endOf('day').format('YYYY-MM-DD HH:mm:ss');
       try {
@@ -72,7 +72,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
       });
       const arr = (res.data?.payload || []).slice();
       const deduped = dedupeInitial(arr);
-      setEvents(deduped);
+      if (setState) setEvents(deduped);
       return deduped;
     },
     [setEvents],

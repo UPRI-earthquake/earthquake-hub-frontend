@@ -8,6 +8,7 @@ import AttributionControl from './AttributionControl';
 import LegendControl from './LegendControl';
 import ResetViewControl from './ResetViewControl';
 import RegisterableLayerGroup from './RegisterableLayerGroup';
+import ThemeControl from './ThemeControl';
 import { OverlayStateProvider } from './OverlayStateContext';
 import { trackEvent } from '../analytics';
 
@@ -15,7 +16,17 @@ import { trackEvent } from '../analytics';
 const StationMarkers = lazy(() => import('./StationMarkers'));
 const EventMarkers = lazy(() => import('./EventMarkers'));
 
-function MapView({ datasetKey, holdEqMarkers, events, filters, sseEnabled, customEvents, stations }) {
+function MapView({
+  datasetKey,
+  holdEqMarkers,
+  events,
+  filters,
+  sseEnabled,
+  customEvents,
+  stations,
+  stationFilters,
+  theme,
+}) {
   return (
     <MapContainer
       center={[12.2795, 122.049]}
@@ -32,11 +43,12 @@ function MapView({ datasetKey, holdEqMarkers, events, filters, sseEnabled, custo
       whenCreated={(m) => (window.__leaflet_map__ = m)}
     >
       <Pane name="eqMarkers" style={{ zIndex: 620, pointerEvents: 'auto' }} />
-      <ZoomControl position="topleft" />
-      <ResetViewControl position="topleft" />
+      <ZoomControl position="topright" />
+      <ResetViewControl position="topright" />
+      <ThemeControl position="topright" />
       <AttributionControl />
       <OverlayStateProvider>
-        <MapLayersControl>
+        <MapLayersControl activeTheme={theme}>
           <LayersControl.Overlay checked name="Earthquakes">
             <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
               {!holdEqMarkers && (
@@ -54,12 +66,12 @@ function MapView({ datasetKey, holdEqMarkers, events, filters, sseEnabled, custo
           <LayersControl.Overlay checked name="Stations">
             <RegisterableLayerGroup overlayId="stations">
               <Suspense fallback={null}>
-                <StationMarkers initStations={stations} />
+                <StationMarkers initStations={stations} filters={stationFilters} />
               </Suspense>
             </RegisterableLayerGroup>
           </LayersControl.Overlay>
         </MapLayersControl>
-        <ScaleControl position="topleft" metric imperial={false} maxWidth={140} />
+        <ScaleControl position="bottomright" metric imperial={false} maxWidth={140} />
         <LegendControl />
         <MapAnalyticsBridge />
       </OverlayStateProvider>

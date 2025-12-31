@@ -332,7 +332,7 @@ function LegendContent({ active, tokens }) {
   );
 }
 
-// Outline-only folded map icon, similar to screenshot shape
+// Outline-only folded map icon, kept stable so the tool never swaps to chevrons/close symbols
 const LegendIcon = ({ size = 20 }) => (
   <svg
     width={size}
@@ -445,6 +445,24 @@ export default function LegendControl({ position = 'bottomright' }) {
     } catch (_) {}
   }, [map, collapsed]);
 
+  const toggleLegend = useCallback(
+    (nextState, trigger = 'button') => {
+      setCollapsed((curr) => {
+        const next = typeof nextState === 'boolean' ? nextState : !curr;
+        if (next !== curr) emitLegendToggle(next, trigger);
+        try {
+          sessionStorage.setItem('legendCollapsed', next ? '1' : '0');
+        } catch (_) {}
+        if (!next) {
+          try { map.closePopup(); } catch (_) {}
+          try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
+        }
+        return next;
+      });
+    },
+    [emitLegendToggle, map],
+  );
+
   // Keyboard shortcuts: G toggles Legend, Esc collapses
   useEffect(() => {
     const onKey = (e) => {
@@ -456,15 +474,7 @@ export default function LegendControl({ position = 'bottomright' }) {
       if (editable) return;
       if (e.key === 'g' || e.key === 'G') {
         e.preventDefault();
-        setCollapsed((c) => {
-          const next = !c;
-          if (next !== c) emitLegendToggle(next, 'keyboard');
-          if (!next) {
-            try { map.closePopup(); } catch (_) {}
-            try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
-          }
-          return next;
-        });
+        toggleLegend(undefined, 'keyboard');
       } else if (e.key === 'Escape') {
         if (!collapsedRef.current) emitLegendToggle(true, 'keyboard');
         setCollapsed(true);
@@ -472,30 +482,37 @@ export default function LegendControl({ position = 'bottomright' }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [map, emitLegendToggle]);
+  }, [map, emitLegendToggle, toggleLegend]);
 
   // Collapse when Layers opens or when any popup opens
   useEffect(() => {
-    const onLayersOpen = () => {
-      if (!collapsedRef.current) emitLegendToggle(true, 'layers');
-      setCollapsed(true);
-    };
-    const onPopupOpen = () => {
-      if (!collapsedRef.current) emitLegendToggle(true, 'popup');
-      setCollapsed(true);
-    };
+    const onLayersOpen = () => toggleLegend(true, 'layers');
+    const onPopupOpen = () => toggleLegend(true, 'popup');
     window.addEventListener('ui:layers:open', onLayersOpen);
     window.addEventListener('ui:popup:open', onPopupOpen);
     return () => {
       window.removeEventListener('ui:layers:open', onLayersOpen);
       window.removeEventListener('ui:popup:open', onPopupOpen);
     };
-  }, [emitLegendToggle]);
+  }, [toggleLegend]);
+
+  // Close when clicking outside the control
+  useEffect(() => {
+    if (collapsed) return undefined;
+    const onPointerDown = (e) => {
+      const container = containerRef.current;
+      if (!container) return;
+      if (container.contains(e.target)) return;
+      toggleLegend(true, 'outside');
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, [collapsed, toggleLegend]);
 
   // Focus trap inside the legend when expanded
   useEffect(() => {
     if (!containerRef.current || collapsed) return undefined;
-    const shell = containerRef.current.querySelector('.legend-shell');
+    const shell = containerRef.current.querySelector('.legend-flyout');
     if (!shell) return undefined;
     const focusables = shell.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -520,75 +537,48 @@ export default function LegendControl({ position = 'bottomright' }) {
 
   // Render portal content into the control container
   const hasAny = activeIds.size > 0;
+  const isOpen = !collapsed;
   const content = (
-    <div
-      id="legend-panel"
-      className={`legend-shell ${collapsed ? 'is-collapsed' : ''}`}
-      role={!collapsed ? 'dialog' : undefined}
-      aria-labelledby={!collapsed ? 'legend-title' : undefined}
-      aria-modal={!collapsed ? 'true' : undefined}
-    >
-      {collapsed ? (
-        <button
-          type="button"
-          className="legend-toggle"
-          title={hasAny ? 'Legend (G)' : 'Legend (enable overlays)'}
-          aria-label="Legend"
-          aria-expanded={!collapsed}
-          aria-controls="legend-panel"
-          onClick={() => {
-            const next = !collapsed;
-            setCollapsed(next);
-            try {
-              sessionStorage.setItem('legendCollapsed', next ? '1' : '0');
-            } catch (_) {}
-            if (!next) {
-              try { map.closePopup(); } catch (_) {}
-              try { window.dispatchEvent(new CustomEvent('ui:legend:open')); } catch (_) {}
-            }
-            emitLegendToggle(next, 'button');
-          }}
-        >
-          <LegendIcon size={22} />
-        </button>
-      ) : (
-        <>
-          <div className="legend-header">
-            <div id="legend-title" className="legend-title">
-              Legend
-            </div>
-            <div className="legend-tools">
-              <button
-                type="button"
-                className="legend-close"
-              title="Close legend (G)"
-              aria-label="Close legend"
-              onClick={() => {
-                if (!collapsedRef.current) emitLegendToggle(true, 'button');
-                setCollapsed(true);
-                try {
-                  sessionStorage.setItem('legendCollapsed', '1');
-                } catch (_) {}
-              }}
-              >
-                ×
-              </button>
-            </div>
+    <div className="legend-shell" data-open={isOpen ? '1' : '0'}>
+      <button
+        type="button"
+        className={`legend-toggle ${isOpen ? 'is-active' : ''}`.trim()}
+        title={hasAny ? 'Legend (G)' : 'Legend (enable overlays)'}
+        aria-label="Legend"
+        aria-expanded={isOpen}
+        aria-controls="legend-panel"
+        onClick={() => toggleLegend(undefined, 'button')}
+        data-active={isOpen ? '1' : '0'}
+      >
+        {/* Keep the map icon stable; rely on styling for open/closed state */}
+        <LegendIcon size={22} />
+      </button>
+
+      <div
+        id="legend-panel"
+        className={`legend-flyout ${isOpen ? 'is-open' : ''}`}
+        role={isOpen ? 'dialog' : undefined}
+        aria-labelledby={isOpen ? 'legend-title' : undefined}
+        aria-modal={isOpen ? 'true' : undefined}
+      >
+        <div className="legend-header">
+          <div id="legend-title" className="legend-title">
+            Legend
           </div>
-          <div className="legend-body">
-            <LegendContent
-              active={activeIds}
-              tokens={buildThemeTokens({
-                theme: legendTheme,
-                // Exclude the very-close 5x scaling in legend swatches
-                // so line symbols remain consistent regardless of map zoom.
-                zoom: Math.min(legendZoom, 13.99),
-                overlays: activeIds,
-              })}
-            />
-          </div>
-        </>
-      )}
+        </div>
+        <div className="legend-body">
+          <LegendContent
+            active={activeIds}
+            tokens={buildThemeTokens({
+              theme: legendTheme,
+              // Exclude the very-close 5x scaling in legend swatches
+              // so line symbols remain consistent regardless of map zoom.
+              zoom: Math.min(legendZoom, 13.99),
+              overlays: activeIds,
+            })}
+          />
+        </div>
+      </div>
     </div>
   );
 
