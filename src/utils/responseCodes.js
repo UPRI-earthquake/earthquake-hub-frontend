@@ -26,11 +26,13 @@ const responseCodes = {
   AUTHENTICATION_SUCCESS: 20,
   AUTHENTICATION_TOKEN_COOKIE: 21,
   AUTHENTICATION_TOKEN_PAYLOAD: 22,
+  AUTHENTICATION_SESSION_REFRESHED: 23,
   AUTHENTICATION_ERROR: 120,
   AUTHENTICATION_USER_NOT_EXIST: 121,
   AUTHENTICATION_INVALID_ROLE: 122,
   AUTHENTICATION_WRONG_PASSWORD: 123,
   AUTHENTICATION_NO_LINKED_DEVICE: 124,
+  AUTHENTICATION_SESSION_EXPIRED: 126,
 
   VERIFICATION_SUCCESS: 30,
   VERIFICATION_SUCCESS_NEW_TOKEN: 31,
@@ -61,12 +63,14 @@ const responseMessages = {
   AUTHENTICATION_SUCCESS: 'Authentication success',
   AUTHENTICATION_TOKEN_COOKIE: 'Authentication success: Token in cookie',
   AUTHENTICATION_TOKEN_PAYLOAD: 'Authentication success: Token in payload',
+  AUTHENTICATION_SESSION_REFRESHED: 'Authentication success: Session refreshed',
   AUTHENTICATION_ERROR: 'Authentication error',
   AUTHENTICATION_USER_NOT_EXIST: "Authentication error: User doesn't exist",
   AUTHENTICATION_INVALID_ROLE: 'Authentication error: Invalid role claimed',
   AUTHENTICATION_WRONG_PASSWORD: 'Authentication error: Wrong password',
   AUTHENTICATION_NO_LINKED_DEVICE:
     'Authentication error: Account has no linked/forwardable devices',
+  AUTHENTICATION_SESSION_EXPIRED: 'Authentication error: Session expired',
 
   VERIFICATION_SUCCESS: 'Verification success',
   VERIFICATION_SUCCESS_NEW_TOKEN: 'Verification success with new token',

@@ -8,7 +8,6 @@ import AttributionControl from './AttributionControl';
 import LegendControl from './LegendControl';
 import ResetViewControl from './ResetViewControl';
 import RegisterableLayerGroup from './RegisterableLayerGroup';
-import ThemeControl from './ThemeControl';
 import { OverlayStateProvider } from './OverlayStateContext';
 import { trackEvent } from '../analytics';
 
@@ -45,7 +44,6 @@ function MapView({
       <Pane name="eqMarkers" style={{ zIndex: 620, pointerEvents: 'auto' }} />
       <ZoomControl position="topright" />
       <ResetViewControl position="topright" />
-      <ThemeControl position="topright" />
       <AttributionControl />
       <OverlayStateProvider>
         <MapLayersControl activeTheme={theme}>

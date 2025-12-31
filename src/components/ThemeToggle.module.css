@@ -1,50 +1,49 @@
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .toggle[data-size='compact'] {
-  gap: 2px;
-  padding: 2px;
+  padding: 3px;
+  gap: 4px;
 }
 
 .button {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
-  font-weight: 600;
-  font-size: 11px;
-  padding: 5px 9px;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease,
-    border-color 140ms ease;
-  min-width: 52px;
-  line-height: 1.2;
+  transition: transform 160ms ease, background-color 180ms ease, color 160ms ease,
+    box-shadow 180ms ease, border-color 180ms ease;
 }
 
 .toggle[data-size='compact'] .button {
-  min-width: 44px;
-  padding: 4px 8px;
-  font-size: 10px;
+  width: 32px;
+  height: 32px;
 }
 
 .button:hover {
-  background: rgba(15, 23, 42, 0.06);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
   color: var(--text-primary);
 }
 
 .buttonActive {
   background: color-mix(in srgb, var(--primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
   color: var(--text-primary);
-  box-shadow: none;
-  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
 }
 
 .buttonActive:hover {
@@ -53,13 +52,31 @@
 
 .button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--primary-strong) 60%, transparent);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 220ms ease, opacity 180ms ease, color 160ms ease;
+}
+
+.toggle[data-size='compact'] .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.buttonActive .icon {
+  transform: rotate(-12deg) scale(1.05);
 }
 
 html[data-theme='dark'] .toggle {
-  background: rgba(17, 24, 39, 0.72);
+  background: rgba(17, 24, 39, 0.78);
   border-color: #1f2937;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
 }
 
 html[data-theme='dark'] .button:hover {
@@ -72,17 +89,9 @@ html[data-theme='dark'] .buttonActive {
   border-color: color-mix(in srgb, var(--primary) 36%, #1f2937);
 }
 
-@media (max-width: 520px) {
-  .toggle:not([data-size='compact']) {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 640px) {
-  .toggle[data-size='compact'] .button {
-    min-width: 40px;
-    padding: 4px 7px;
-    font-size: 9.5px;
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .icon {
+    transition: none;
   }
 }

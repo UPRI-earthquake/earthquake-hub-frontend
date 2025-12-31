@@ -39,7 +39,6 @@ export default function MapLayersControl({ children, activeTheme }) {
   const baseLayerRefs = useRef({});
   const basemapThemeRef = useRef(null);
   const [activeBase, setActiveBase] = useState('default');
-  // Theme setter so basemap choices can drive global theme when required
   const { setTheme } = useTheme();
   // Memoize basemap provider props so layers are not recreated
   const bases = useMemo(

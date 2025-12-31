@@ -44,7 +44,6 @@
   padding: 6px 12px;
   border-radius: 999px;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
 .tab:hover {
@@ -53,9 +52,10 @@
 }
 
 .tabActive {
-  background: var(--primary);
-  color: #0b1220;
-  box-shadow: 0 8px 14px rgba(14, 165, 233, 0.18);
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25);
+  transform: translateY(-1px);
 }
 
 .section {

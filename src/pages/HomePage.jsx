@@ -294,7 +294,7 @@ const HomePage = () => {
     <LoadingScreen />
   ) : (
     <div className="App">
-      <Header initStations={stationsRef.current} showThemeToggle={false} />
+      <Header initStations={stationsRef.current} />
       <div className="App-body" id="main" role="main" aria-label="Main content">
         <SSEContext.Provider value={eventSourceRef.current}>
           <div className="mapShell">

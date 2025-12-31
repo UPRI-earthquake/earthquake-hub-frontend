@@ -145,6 +145,44 @@
   height: 22px;
 }
 
+.accountEntry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--muted);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.accountEntry:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  color: var(--text-primary);
+  border-color: rgba(15, 23, 42, 0.2);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
+}
+.accountEntry:focus-visible {
+  outline: 2px solid rgba(14, 165, 233, 0.5);
+  outline-offset: 2px;
+}
+
+.accountIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.accountLabel {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+
 /* Accessible skip link, visible on focus */
 .skipLink {
   position: absolute;
@@ -200,6 +238,20 @@ html[data-theme='dark'] .skipLink {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
+html[data-theme='dark'] .accountEntry,
+html[data-theme='imagery'] .accountEntry {
+  background: #1f2937;
+  border-color: #334155;
+  color: #cbd5e1;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+}
+html[data-theme='dark'] .accountEntry:hover,
+html[data-theme='imagery'] .accountEntry:hover {
+  background: #111827;
+  border-color: #475569;
+  color: #e5e7eb;
+}
+
 @media (max-width: 1100px) {
   .headerContent {
     --header-padding-y: 10px;
@@ -251,5 +303,15 @@ html[data-theme='dark'] .skipLink {
   .burgerMenu {
     width: 20px;
     height: 20px;
+  }
+}
+
+@media (max-width: 540px) {
+  .accountEntry {
+    padding: 8px 10px;
+    height: 38px;
+  }
+  .accountLabel {
+    display: none;
   }
 }

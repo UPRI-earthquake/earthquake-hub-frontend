@@ -10,6 +10,9 @@ import { devlog, deverror } from './utils/devlog';
 
 // To learn more about the benefits of this model and instructions on how to
 // opt-in, read https://cra.link/PWA
+const env = (typeof process !== 'undefined' && process.env) ? process.env : {};
+const nodeEnv = env.NODE_ENV || 'development';
+const publicUrlEnv = env.PUBLIC_URL || '';
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
@@ -24,7 +27,7 @@ export function register(config) {
   if ('serviceWorker' in navigator) {
     //  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
-    const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
+    const publicUrl = new URL(publicUrlEnv, window.location.href);
     if (publicUrl.origin !== window.location.origin) {
       // Our service worker won't work if PUBLIC_URL is on a different origin
       // from what our page is served on. This might happen if a CDN is used to
@@ -35,11 +38,11 @@ export function register(config) {
     window.addEventListener('load', () => {
       //const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
       const swFileName =
-        process.env.NODE_ENV === 'production'
+        nodeEnv === 'production'
           ? /*? 'service-worker.js'*/
             'custom-sw.js'
           : 'custom-sw.js';
-      const swUrl = `${process.env.PUBLIC_URL}/${swFileName}`;
+      const swUrl = `${publicUrlEnv}/${swFileName}`;
 
       if (isLocalhost) {
         // This is running on localhost. Let's check if a service worker still exists or not.
@@ -48,7 +51,7 @@ export function register(config) {
         // Add some additional logging to localhost, pointing developers to the
         // service worker/PWA documentation.
         navigator.serviceWorker.ready.then(() => {
-          if (process.env.NODE_ENV !== 'production')
+          if (nodeEnv !== 'production')
             devlog(
               'This web app is being served cache-first by a service ' +
                 'worker. To learn more, visit https://cra.link/PWA',
@@ -77,7 +80,7 @@ function registerValidSW(swUrl, config) {
               // At this point, the updated precached content has been fetched,
               // but the previous service worker will still serve the older
               // content until all client tabs are closed.
-              if (process.env.NODE_ENV !== 'production')
+              if (nodeEnv !== 'production')
                 devlog(
                   'New content is available and will be used when all ' +
                     'tabs for this page are closed. See https://cra.link/PWA.',
@@ -91,7 +94,7 @@ function registerValidSW(swUrl, config) {
               // At this point, everything has been precached.
               // It's the perfect time to display a
               // "Content is cached for offline use." message.
-              if (process.env.NODE_ENV !== 'production')
+              if (nodeEnv !== 'production')
                 devlog('Content is cached for offline use.');
 
               // Execute callback
@@ -104,7 +107,7 @@ function registerValidSW(swUrl, config) {
       };
     })
     .catch((error) => {
-      if (process.env.NODE_ENV !== 'production')
+      if (nodeEnv !== 'production')
         deverror('Error during service worker registration:', error);
     });
 }
@@ -133,7 +136,7 @@ function checkValidServiceWorker(swUrl, config) {
       }
     })
     .catch(() => {
-      if (process.env.NODE_ENV !== 'production')
+      if (nodeEnv !== 'production')
         devlog('No internet connection found. App is running in offline mode.');
     });
 }

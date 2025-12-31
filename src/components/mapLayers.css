@@ -23,8 +23,8 @@
   transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
   position: absolute;
   right: calc(var(--layers-toggle-size) + var(--leaflet-flyout-gap, 10px));
-  /* Offset by controls stacked above (theme toggle height + gap) so panel top meets the Layers button */
-  top: calc(var(--leaflet-control-gap, 10px) + var(--theme-control-height, 30px));
+  /* Offset by the control gap so the panel top aligns with the Layers button */
+  top: var(--leaflet-control-gap, 10px);
   /* Intrinsic sizing: grow to longest label, but cap to available space */
   width: fit-content;
   inline-size: fit-content;

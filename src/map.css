@@ -17,7 +17,6 @@
     calc(env(safe-area-inset-right, 0px) + var(--space-1, 8px))
   );
   --leaflet-flyout-gap: var(--leaflet-control-gap, 10px);
-  --theme-control-height: 30px; /* approximate height of Theme control for vertical alignment */
   --leaflet-flyout-width: min(320px, calc(100vw - (var(--panel-gap, 16px) * 2) - 72px));
 }
 
@@ -58,27 +57,13 @@
   margin: 0;
 }
 
-.leaflet-control-theme {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  z-index: 702;
-}
-
-.leaflet-control-theme .theme-toggle-mount {
-  display: flex;
-  pointer-events: auto;
-}
-
 /* Consistent stacking order on the right column */
-.leaflet-top.leaflet-right .leaflet-control-theme { order: 0; }
 .leaflet-top.leaflet-right .custom-layers-toggle,
 .leaflet-top.leaflet-right .leaflet-control-layers {
-  order: 1;
+  order: 0;
 }
-.leaflet-top.leaflet-right .leaflet-control-zoom { order: 2; }
-.leaflet-top.leaflet-right .leaflet-control-resetview { order: 3; }
+.leaflet-top.leaflet-right .leaflet-control-zoom { order: 1; }
+.leaflet-top.leaflet-right .leaflet-control-resetview { order: 2; }
 
 .leaflet-bottom.leaflet-right .custom-legend-control { order: 1; }
 .leaflet-bottom.leaflet-right .leaflet-control-scale { order: 2; }

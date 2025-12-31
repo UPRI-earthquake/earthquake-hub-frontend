@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Header.module.css';
 import { ReactComponent as Logo } from '../assets/upri-logo.svg';
 import Button from './Button';
-import FloatingButton from './FloatingButton';
-import { SignInForm, SignUpForm } from './Form';
+import { AuthModal } from './Form';
 import { Dashboard } from './Dashboard';
 import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
 // import { ReactComponent as CloseMenu } from '../assets/close-menu-white.svg';
@@ -14,20 +13,40 @@ import { backendHost } from '../utils/env';
 import Toast from './Toast';
 import { devwarn, deverror } from '../utils/devlog';
 
+function AccountIcon({ className }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 12.25c2.347 0 4.25-1.903 4.25-4.25S14.347 3.75 12 3.75 7.75 5.653 7.75 8s1.903 4.25 4.25 4.25Z" />
+      <path d="M18.25 20.25v-1a2.25 2.25 0 0 0-2.25-2.25h-8a2.25 2.25 0 0 0-2.25 2.25v1" />
+      <circle cx="12" cy="12" r="9.25" />
+    </svg>
+  );
+}
+
 /**
  * App header: brand, auth controls, and context actions.
  * Shows active station count on the Home page and provides sign-in/up and dashboard.
  * @param {Object} props
  * @param {Array<Object>} [props.initStations] Optional initial stations to compute online count
- * @param {boolean} [props.showThemeToggle=true] Whether to render the theme toggle in the header
  */
-const Header = ({ initStations = [], showThemeToggle = true }) => {
+const Header = ({ initStations = [] }) => {
   const [stations] = useState(initStations);
   const stationsCount = stations.filter((station) => station.activity === 'active').length;
 
   const [loggedInUser, setLoggedInUser] = useState('');
-  const [showSignInForm, setShowSignInForm] = useState(false);
-  const [showSignUpForm, setShowSignUpForm] = useState(false);
+  const [accountEmail, setAccountEmail] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState();
+  const [passwordPolicyVersion, setPasswordPolicyVersion] = useState();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authView, setAuthView] = useState('signin');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [loggedInUserRole, setLoggedInUserRole] = useState();
@@ -47,24 +66,34 @@ const Header = ({ initStations = [], showThemeToggle = true }) => {
     navigate('/'); // Navigate to the home page
   };
 
-  const handleSignInClick = () => setShowSignInForm(true);
-  const handleSignInClose = () => setShowSignInForm(false);
-  const handleSignUpClick = () => setShowSignUpForm(true);
-  const handleSignUpClose = () => setShowSignUpForm(false);
+  const openAuthModal = (view = 'signin') => {
+    setAuthView(view);
+    setShowAuthModal(true);
+  };
+  const handleAuthClose = () => setShowAuthModal(false);
 
-  const handleSignInSuccess = (username, role) => {
+  const handleSignInSuccess = (username, role, authMeta = {}) => {
     setIsLoggedIn(true); // User is now logged in
     setLoggedInUser(username); // Pass the username of the logged in user
     setLoggedInUserRole(role); // This will be passed to the Dashboard Element
-    setShowSignInForm(false);
+    setAccountEmail(authMeta.email || '');
+    setPasswordStatus(authMeta.passwordStatus);
+    setPasswordPolicyVersion(authMeta.passwordPolicyVersion);
+    setShowAuthModal(false);
     setShowDashboard(true);
   };
   const handleSignUpSuccess = () => {
     setToastMessage('Registration Successful. You may now sign in.');
     setToastType('success');
-    setShowSignUpForm(false);
+    setShowAuthModal(false);
+    setAuthView('signin');
     setShowDashboard(false);
     setIsLoggedIn(false); // Don't automatically log the user
+    setLoggedInUser('');
+    setAccountEmail('');
+    setPasswordStatus(undefined);
+    setPasswordPolicyVersion(undefined);
+    setLoggedInUserRole(undefined);
 
     // remove toast after timeout
     setTimeout(() => {
@@ -79,48 +108,82 @@ const Header = ({ initStations = [], showThemeToggle = true }) => {
   const handleSignoutSuccess = () => {
     setShowDashboard(false);
     setIsLoggedIn(false);
+    setLoggedInUser('');
+    setAccountEmail('');
+    setPasswordStatus(undefined);
+    setPasswordPolicyVersion(undefined);
+    setLoggedInUserRole(undefined);
   };
 
   useEffect(() => {
-    const accessTokenExistenceCheck = async () => {
-      try {
-        // Read API host from runtime env (no defaults; .env is expected to be configured)
-        const backend_host = backendHost();
-        axios.defaults.withCredentials = true;
-        const response = await axios.get(`${backend_host}/accounts/profile`, {
-          // Treat 401/403 as handled results instead of throwing errors (keeps console clean)
-          validateStatus: (status) => status < 500,
-        });
-        if (response.status === 200) {
-          setLoggedInUser(response.data.payload?.username || '');
-          // /accounts/profile succeeds only for citizen cookie; set role accordingly
-          setLoggedInUserRole('citizen');
-          return response.data.payload?.email || '';
-        }
-        // Log non-200 auth checks in development for visibility
-        devwarn('[auth] /accounts/profile check', {
-          status: response.status,
-          message: response.data?.message,
-        });
-        return null;
-      } catch (error) {
-        // Network/unexpected error — surface via dev logger
-        deverror('[auth] /accounts/profile request error', error);
-        return null;
-      }
-    };
-
-    const checkAccessToken = async () => {
-      const response = await accessTokenExistenceCheck();
-
-      if (response) {
-        setShowDashboard(false);
-        setIsLoggedIn(true);
-      }
-    };
-
-    checkAccessToken();
+    axios.defaults.withCredentials = true;
   }, []);
+
+  const applySessionFromProfile = useCallback((payload = {}) => {
+    const derivedRole = (payload.roles || []).includes('brgy') ? 'brgy' : 'citizen';
+    setLoggedInUser(payload.username || '');
+    setAccountEmail(payload.email || '');
+    const nextPasswordStatus =
+      payload.passwordStatus ||
+      ((payload.passwordPolicyVersion || 0) >= 2 ? 'current' : undefined);
+    setPasswordStatus(nextPasswordStatus);
+    setPasswordPolicyVersion(payload.passwordPolicyVersion);
+    setLoggedInUserRole(derivedRole);
+    setIsLoggedIn(true);
+  }, []);
+
+  const handleSessionExpiry = useCallback(() => {
+    setShowDashboard(false);
+    setIsLoggedIn(false);
+    setLoggedInUser('');
+    setAccountEmail('');
+    setPasswordStatus(undefined);
+    setPasswordPolicyVersion(undefined);
+    setLoggedInUserRole(undefined);
+  }, []);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      // Read API host from runtime env (no defaults; .env is expected to be configured)
+      const backend_host = backendHost();
+      const response = await axios.get(`${backend_host}/accounts/profile`, {
+        // Treat 401/403 as handled results instead of throwing errors (keeps console clean)
+        validateStatus: (status) => status < 500,
+      });
+      if (response.status === 200 && response.data?.payload?.username) {
+        applySessionFromProfile(response.data.payload);
+        return { ok: true, status: response.status, payload: response.data.payload };
+      }
+      if (response.status === 401 || response.status === 403) {
+        handleSessionExpiry();
+        return { ok: false, status: response.status };
+      }
+      // Log non-200 auth checks in development for visibility
+      devwarn('[auth] /accounts/profile check', {
+        status: response.status,
+        message: response.data?.message,
+      });
+      return { ok: false, status: response.status };
+    } catch (error) {
+      // Network/unexpected error — surface via dev logger
+      deverror('[auth] /accounts/profile request error', error);
+      return { ok: false, error: true };
+    }
+  }, [applySessionFromProfile, handleSessionExpiry]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return undefined;
+    fetchProfile();
+    const sessionPoll = setInterval(() => {
+      fetchProfile();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(sessionPoll);
+  }, [fetchProfile, isLoggedIn]);
 
   // Global toast bridge: react to UI events dispatched by services (e.g., push subscription)
   useEffect(() => {
@@ -173,7 +236,7 @@ const Header = ({ initStations = [], showThemeToggle = true }) => {
           )}
         </div>
         <div className={styles.headerRight}>
-          {showThemeToggle && <ThemeToggle size="compact" />}
+          <ThemeToggle size="compact" />
           {isLoggedIn ? (
             <div
               className={styles.menuToggle}
@@ -193,7 +256,7 @@ const Header = ({ initStations = [], showThemeToggle = true }) => {
             </div>
           ) : (
             <>
-              {isSignificantEQPage ? (
+              {isSignificantEQPage && (
                 // Show Home button if on /significant-eqs or /significant-eq-info
                 <Button
                   hasOutline={false}
@@ -204,34 +267,17 @@ const Header = ({ initStations = [], showThemeToggle = true }) => {
                 >
                   Home
                 </Button>
-              ) : (
-                // Show Sign in and Sign up buttons for other pages
-                <>
-                  <Button
-                    hasOutline={false}
-                    onClick={handleSignInClick}
-                    aria-label="Sign in"
-                    title="Sign in"
-                    data-size="compact"
-                  >
-                    Sign in
-                  </Button>
-                  <Button
-                    hasOutline={true}
-                    onClick={handleSignUpClick}
-                    aria-label="Create an account"
-                    title="Sign up"
-                    data-size="compact"
-                  >
-                    Sign up
-                  </Button>
-
-                  {/* Show Floating Action Button (temporarily disabled by adding 'false' to avoid overlapping Legend control) */}
-                  {false && !showSignInForm && !showSignUpForm && !showDashboard && (
-                    <FloatingButton />
-                  )}
-                </>
               )}
+              <button
+                type="button"
+                className={styles.accountEntry}
+                aria-label="Contributor account"
+                title="Contributor account"
+                onClick={() => openAuthModal('signin')}
+              >
+                <AccountIcon className={styles.accountIcon} />
+                <span className={styles.accountLabel}>Account</span>
+              </button>
             </>
           )}
         </div>
@@ -241,14 +287,24 @@ const Header = ({ initStations = [], showThemeToggle = true }) => {
         toastType={toastType}
         onClose={() => setToastMessage('')}
       />
-      {showSignInForm && <SignInForm onClick={handleSignInClose} onSuccess={handleSignInSuccess} />}
-      {showSignUpForm && <SignUpForm onClick={handleSignUpClose} onSuccess={handleSignUpSuccess} />}
+      {showAuthModal && (
+        <AuthModal
+          initialView={authView}
+          onClose={handleAuthClose}
+          onSignInSuccess={handleSignInSuccess}
+          onSignUpSuccess={handleSignUpSuccess}
+        />
+      )}
       {showDashboard && (
         <Dashboard
           onClick={handleDashboardToggle}
           onEscapeClick={handleDashboardToggle}
           loggedInUserRole={loggedInUserRole}
           loggedInUser={loggedInUser}
+          accountEmail={accountEmail}
+          passwordStatus={passwordStatus}
+          passwordPolicyVersion={passwordPolicyVersion}
+          onProfileRefresh={fetchProfile}
           onSignoutSuccess={handleSignoutSuccess}
           aria-label="User dashboard"
         />
