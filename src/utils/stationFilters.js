@@ -1,11 +1,13 @@
+import { isStreamingActivity } from './deviceStatus';
+
 const normalizeCode = (val) => String(val || '').toUpperCase();
 
 export function filterStations(stations, { searchText = '', statusFilter = null } = {}) {
   const text = searchText.trim().toLowerCase();
   return (stations || []).filter((station) => {
-    const isActive = (station?.activity || '').toLowerCase() === 'active';
-    if (statusFilter === 'active' && !isActive) return false;
-    if (statusFilter === 'inactive' && isActive) return false;
+    const isStreaming = isStreamingActivity(station?.activity);
+    if (statusFilter === 'active' && !isStreaming) return false;
+    if (statusFilter === 'inactive' && isStreaming) return false;
     if (!text) return true;
     const hay = `${station?.code || ''} ${station?.description || ''}`.toLowerCase();
     return hay.includes(text);
@@ -16,8 +18,8 @@ export function sortStations(stations) {
   return (stations || [])
     .slice()
     .sort((a, b) => {
-      const aOnline = (a?.activity || '').toLowerCase() === 'active';
-      const bOnline = (b?.activity || '').toLowerCase() === 'active';
+      const aOnline = isStreamingActivity(a?.activity);
+      const bOnline = isStreamingActivity(b?.activity);
       if (aOnline !== bOnline) return bOnline - aOnline;
       if (aOnline && bOnline) {
         const at = new Date(a?.statusSince || a?.activityToggleTime || a?.lastActive || 0).getTime();

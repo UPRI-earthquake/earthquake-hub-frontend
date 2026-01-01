@@ -13,6 +13,7 @@ import { trackEvent } from '../analytics';
 import { useAppData } from '../hooks/useAppData';
 import { useTheme } from '../theme/ThemeProvider';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { normalizeDeviceActivity } from '../utils/deviceStatus';
 
 const MapView = lazy(() => import('../components/MapView'));
 
@@ -112,9 +113,8 @@ const HomePage = () => {
         raw.network || raw.networkCode || raw.network_code || raw.net || 'AM',
       ).toUpperCase();
       let activity = null;
-      const s = String(raw.status || raw.activity || '').toLowerCase();
-      if (s === 'streaming' || s === 'active' || s === 'online') activity = 'active';
-      else if (s === 'not streaming' || s === 'inactive' || s === 'offline') activity = 'inactive';
+      const state = normalizeDeviceActivity(raw.activity || raw.status || '');
+      if (state === 'active' || state === 'inactive' || state === 'unlinked') activity = state;
       else if (typeof raw.isActive === 'boolean') activity = raw.isActive ? 'active' : 'inactive';
       const since =
         raw.statusSince || raw.status_since || raw.timestamp || raw.time || raw.lastActive || null;
@@ -144,8 +144,13 @@ const HomePage = () => {
             new Map();
           const statusStr =
             (raw.status && String(raw.status).toLowerCase()) ||
-            (next.activity === 'active' ? 'streaming' : 'not streaming');
-          cache.set(key, { t: Date.now(), status: statusStr, statusSince: next.statusSince || null });
+            (next.activity === 'active' ? 'streaming' : next.activity === 'unlinked' ? 'unlinked' : 'inactive');
+          cache.set(key, {
+            t: Date.now(),
+            status: statusStr,
+            statusSince: next.statusSince || null,
+            activity: next.activity || null,
+          });
           if (typeof window !== 'undefined') window.__stationStatusCache = cache;
         } catch (_) {}
         return arr;

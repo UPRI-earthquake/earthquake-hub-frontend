@@ -10,12 +10,13 @@ import { responseCodes } from '../utils/responseCodes';
 import jwtDecode from 'jwt-decode';
 import moment from '../utils/time';
 import InfoTooltip from './InfoTooltip';
+import { normalizeDeviceActivity, toDashboardStatusLabel } from '../utils/deviceStatus';
 
 const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
-  'Not Streaming':
-    'This device has been linked to your account but is currently not sending data to the server.',
+  'Not Streaming': 'This device is linked to your account but is currently not sending data to the server.',
   Streaming: 'This device is sending data to the server.',
+  Unlinked: 'This device was unlinked from the sender but remains associated with your account.',
 };
 
 const roleCopy = {
@@ -57,7 +58,7 @@ const roleCopy = {
       title: 'No managed devices yet',
       body: 'Connect your barangay instruments and forward data with an active access token.',
       steps: [
-        'Generate a barangay access token below and add it to your ringserver configuration.',
+        'Generate a barangay access token in the Tools & tokens tab and add it to your ringserver configuration.',
         'Ensure each station is powered and forwarding to the UPRI endpoint.',
         'Return here to see status once devices begin streaming.',
       ],
@@ -81,6 +82,7 @@ const roleCopy = {
 
 const getStatusVariant = (status) => {
   const value = String(status || '').toLowerCase();
+  if (value.includes('unlinked')) return 'muted';
   // Check negative states first to avoid "not streaming" matching the streaming branch
   if (value.includes('not streaming') || value === 'inactive') return 'warn';
   if (value.includes('streaming') || value === 'active') return 'ok';
@@ -91,6 +93,7 @@ const formatStatusSince = (value) => {
   if (!value) return '—';
   const m = moment(value);
   if (!m.isValid()) return value;
+  if (m.valueOf() <= 0) return '—';
   return `${m.fromNow()} · ${m.format('MMM D, YYYY')}`;
 };
 
@@ -155,6 +158,7 @@ function Dashboard({
   const isClosingRef = useRef(false);
   const isMountedRef = useRef(true); // guard async state updates after unmount
   const timeoutsRef = useRef([]); // track pending timers for cleanup
+  const eventSourceRef = useRef(null);
 
   // Utility: schedule clearing the toast with automatic cleanup
   const scheduleToastClear = useCallback((ms) => {
@@ -203,12 +207,12 @@ function Dashboard({
   const activeSectionMeta = sections.find((section) => section.id === activeSection);
 
   const statusCounts = useMemo(() => {
-    const summary = { streaming: 0, notStreaming: 0, notLinked: 0 };
+    const summary = { streaming: 0, inactive: 0, unlinked: 0 };
     (devices || []).forEach((device) => {
-      const value = String(device.status || '').toLowerCase();
-      if (value.includes('streaming') || value === 'active') summary.streaming += 1;
-      else if (value.includes('not streaming') || value === 'inactive') summary.notStreaming += 1;
-      else summary.notLinked += 1;
+      const state = normalizeDeviceActivity(device.activity || device.status);
+      if (state === 'active') summary.streaming += 1;
+      else if (state === 'unlinked') summary.unlinked += 1;
+      else summary.inactive += 1;
     });
     return summary;
   }, [devices]);
@@ -247,6 +251,96 @@ function Dashboard({
       if (isMountedRef.current) deverror('Error fetching devices:', error);
     }
   };
+
+  const applyDeviceStatusUpdate = useCallback((raw) => {
+    try {
+      const code = String(
+        raw.stationCode || raw.station || raw.code || raw.station_id || raw.stationcode || '',
+      ).toUpperCase();
+      const network = String(
+        raw.network || raw.networkCode || raw.network_code || raw.net || 'AM',
+      ).toUpperCase();
+      if (!code || !network) return;
+      const state = normalizeDeviceActivity(raw.activity || raw.status || '');
+      const statusSince =
+        raw.statusSince ||
+        raw.status_since ||
+        raw.timestamp ||
+        raw.time ||
+        raw.lastActive ||
+        raw.activityToggleTime ||
+        null;
+
+      setDevices((prev) => {
+        let changed = false;
+        const next = prev.map((dev) => {
+          if (
+            String(dev.station || '').toUpperCase() !== code ||
+            String(dev.network || 'AM').toUpperCase() !== network
+          ) {
+            return dev;
+          }
+          const nextActivity = state || dev.activity || dev.status;
+          const nextStatus = toDashboardStatusLabel({
+            activity: nextActivity,
+            status: raw.status || dev.status,
+          });
+          const nextSince = statusSince || dev.statusSince || dev.activityToggleTime || null;
+          changed = true;
+          return {
+            ...dev,
+            activity: nextActivity,
+            status: nextStatus,
+            statusSince: nextSince,
+            activityToggleTime: nextSince,
+          };
+        });
+        return changed ? next : prev;
+      });
+    } catch (_) {}
+  }, []);
+
+  const bindDashboardSSE = useCallback(() => {
+    if (eventSourceRef.current) return eventSourceRef.current;
+    const url = `${backendHost()}/messaging`;
+    try {
+      const src = new EventSource(url);
+      const handler = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          applyDeviceStatusUpdate(data);
+        } catch (_) {}
+      };
+      const names = [
+        'STATION_STATUS',
+        'SC_STATION_STATUS',
+        'SC_STATION',
+        'SC_DEVICE',
+        'DEVICE_STATUS',
+        'STATION_EVENT',
+      ];
+      names.forEach((n) => src.addEventListener(n, handler));
+      src.addEventListener('error', () => {});
+      eventSourceRef.current = { src, names, handler };
+    } catch (_) {
+      eventSourceRef.current = null;
+    }
+    return eventSourceRef.current;
+  }, [applyDeviceStatusUpdate]);
+
+  useEffect(() => {
+    if (!isCitizen && !isBrgy) return undefined;
+    const bound = bindDashboardSSE();
+    return () => {
+      try {
+        if (bound && bound.src) {
+          bound.names?.forEach((n) => bound.src.removeEventListener(n, bound.handler));
+          bound.src.close && bound.src.close();
+        }
+      } catch (_) {}
+      eventSourceRef.current = null;
+    };
+  }, [bindDashboardSSE, isCitizen, isBrgy]);
 
   // Unified close handler with exit animation
   const handleClose = useCallback((_reason = 'backdrop') => {
@@ -757,10 +851,10 @@ function Dashboard({
                       Streaming <strong>{statusCounts.streaming}</strong>
                     </span>
                     <span className={`${styles.summaryPill} ${styles.summaryPillWarning}`}>
-                      Not streaming <strong>{statusCounts.notStreaming}</strong>
+                      Not Streaming <strong>{statusCounts.inactive}</strong>
                     </span>
-                    <span className={styles.summaryPill}>
-                      Not yet linked <strong>{statusCounts.notLinked}</strong>
+                    <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
+                      Unlinked <strong>{statusCounts.unlinked}</strong>
                     </span>
                   </div>
                 </div>
@@ -778,7 +872,10 @@ function Dashboard({
                     <tbody>
                       {hasDevices ? (
                         devices.map((device, index) => {
-                          const statusLabel = device.status || 'Not Yet Linked';
+                          const statusLabel = toDashboardStatusLabel({
+                            activity: device.activity,
+                            status: device.status,
+                          });
                           const statusVariant = getStatusVariant(statusLabel);
                           const badgeClass =
                             statusVariant === 'ok'
@@ -1079,7 +1176,7 @@ function Dashboard({
                         name="confirmPassword"
                         autoComplete="new-password"
                         value={accountForm.confirmPassword}
-                        placeholder="Confirm new password"
+                        placeholder="Re-enter new password"
                         className={`${styles.settingsInput} ${
                           accountErrors.confirmPassword ? styles.inputError : ''
                         }`}

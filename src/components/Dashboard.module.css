@@ -479,6 +479,8 @@
   border: 1px solid var(--border);
   font-weight: 700;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .summaryPillPositive {
@@ -491,6 +493,12 @@
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.28);
   color: #92400e;
+}
+
+.summaryPillMuted {
+  background: rgba(107, 114, 128, 0.10);
+  border-color: rgba(107, 114, 128, 0.22);
+  color: #374151;
 }
 
 .cellHeading {
@@ -513,6 +521,8 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   border: 1px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .statusBadgeOk {
@@ -1229,6 +1239,13 @@ html[data-theme='imagery'] .summaryPillWarning {
   background: rgba(245, 158, 11, 0.22);
   color: #fcd34d;
   border-color: rgba(245, 158, 11, 0.35);
+}
+
+html[data-theme='dark'] .summaryPillMuted,
+html[data-theme='imagery'] .summaryPillMuted {
+  background: rgba(148, 163, 184, 0.16);
+  color: #e5e7eb;
+  border-color: rgba(148, 163, 184, 0.28);
 }
 
 html[data-theme='dark'] .statusBadgeMuted,

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect, useContext } from 'react';
 import styles from './StationListItem.module.css';
 import moment from '../utils/time';
+import { isStreamingActivity, isUnlinkedActivity, normalizeDeviceActivity } from '../utils/deviceStatus';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import SSEContext from '../SSEContext';
@@ -15,7 +16,8 @@ export default function StationListItem({ station }) {
   const name = station.description || 'Unnamed station';
   const netRaw = station.network || 'AM';
   const network = `${netRaw} Network`;
-  const isActive = String(station.activity || '').toLowerCase() === 'active';
+  const isActive = isStreamingActivity(station.activity);
+  const isUnlinked = isUnlinkedActivity(station.activity);
   const statusLabel = isActive ? 'Online' : 'Offline';
   const since = useMemo(() => {
     const v = station.statusSince || station.activityToggleTime || null;
@@ -24,9 +26,10 @@ export default function StationListItem({ station }) {
 
   const initialTooltip = useMemo(() => {
     if (isActive) return since ? `Streaming since ${since.fromNow()}` : 'Streaming';
-    if (since) return since.isAfter(moment().subtract(1, 'month')) ? `Not streaming since ${since.fromNow()}` : 'Device Offline';
+    if (isUnlinked) return 'Device Offline';
+    if (since) return since.isAfter(moment().subtract(1, 'month')) ? `Inactive since ${since.fromNow()}` : 'Device Offline';
     return 'Device Offline';
-  }, [isActive, since]);
+  }, [isActive, isUnlinked, since]);
 
   const [tooltipText, setTooltipText] = useState(initialTooltip);
 
@@ -40,14 +43,15 @@ export default function StationListItem({ station }) {
       ? window['ENV'].REACT_APP_BACKEND
       : window['ENV'].REACT_APP_BACKEND_DEV;
   }, []);
-  const computeTooltip = useCallback((status, statusSince) => {
-    const s = (status || '').toLowerCase();
+  const computeTooltip = useCallback((status, statusSince, activity) => {
+    const state = normalizeDeviceActivity(activity || status);
     const m = statusSince ? moment(statusSince) : null;
-    if (s === 'streaming' || (s === '' && isActive)) {
+    if (state === 'active' || (state === '' && isActive)) {
       return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
     }
+    if (state === 'unlinked') return 'Device Offline';
     if (m && m.isAfter(moment().subtract(1, 'month'))) {
-      return `Not streaming since ${m.fromNow()}`;
+      return `Inactive since ${m.fromNow()}`;
     }
     return 'Device Offline';
   }, [isActive]);
@@ -58,14 +62,14 @@ export default function StationListItem({ station }) {
       const now = Date.now();
       const cached = cache.get(key);
       if (cached && now - cached.t < 60_000) {
-        setTooltipText(computeTooltip(cached.status, cached.statusSince));
+        setTooltipText(computeTooltip(cached.status, cached.statusSince, cached.activity));
         return;
       }
       const url = `${backendHost()}/device/status?network=${(station.network || 'AM').toUpperCase()}&station=${(station.code || '').toUpperCase()}`;
       const resp = await axios.get(url);
       const payload = resp?.data?.payload || {};
-      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince });
-      setTooltipText(computeTooltip(payload.status, payload.statusSince));
+      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince, activity: payload.activity });
+      setTooltipText(computeTooltip(payload.status, payload.statusSince, payload.activity));
     } catch (_) {
       // keep initial tooltip on failure
     }

@@ -7,6 +7,7 @@ import styles from './StationMarker.module.css';
 import SSEContext from '../SSEContext';
 import moment from '../utils/time';
 import axios from 'axios';
+import { normalizeDeviceActivity, toMarkerActivity } from '../utils/deviceStatus';
 // Defer loading of the heavy seisplotjs library until the popup/graph is used
 import { ringserverWS } from '../utils/env';
 import demoMseedUrl from '../assets/demo.mseed';
@@ -339,7 +340,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const [pick, setPick] = useState(false);
   const timerId = useRef(null); // hold running timeout-id across renders
   const eventSource = useContext(SSEContext);
-  const [statusState, setStatusState] = useState({ status: null, statusSince: null });
+  const [statusState, setStatusState] = useState({ status: null, statusSince: null, activity: null });
   const prevStatusRef = useRef(null);
   const [statusChange, setStatusChange] = useState(null); // 'went-online' | 'went-offline' | null
   const statusAnimTimerRef = useRef(null);
@@ -348,8 +349,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const markerPulseTimerRef = useRef(null);
   // Track current marker activity to tint marker (active vs inactive)
   const [markerActivity, setMarkerActivity] = useState(() => {
-    const a = String(initActivity || '').toLowerCase();
-    return a === 'active' || a === 'inactive' ? a : null;
+    return toMarkerActivity(initActivity);
   });
   const backend_host =
     process.env.NODE_ENV === 'production'
@@ -389,10 +389,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
           raw.network || raw.networkCode || raw.network_code || raw.net || 'AM',
         ).toUpperCase();
         if (String(network || 'AM').toUpperCase() !== net) return;
-        const s = String(raw.status || raw.activity || '').toLowerCase();
         let next = null;
-        if (s === 'streaming' || s === 'active' || s === 'online') next = 'active';
-        else if (s === 'not streaming' || s === 'inactive' || s === 'offline') next = 'inactive';
+        const state = normalizeDeviceActivity(raw.activity || raw.status || '');
+        if (state === 'active') next = 'active';
+        else if (state === 'inactive' || state === 'unlinked') next = 'inactive';
         else if (typeof raw.isActive === 'boolean') next = raw.isActive ? 'active' : 'inactive';
         if (next) {
           setMarkerActivity((prev) => {
@@ -454,11 +454,11 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       setStatusState({
         status: nextStatus,
         statusSince: payload.statusSince,
+        activity: payload.activity || null,
       });
       // Also update marker activity color based on current status
       try {
-        const s = String(nextStatus || '').toLowerCase();
-        const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+        const next = toMarkerActivity(payload.activity || nextStatus);
         setMarkerActivity((prev) => {
           if (prev && prev !== next) {
             const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
@@ -501,7 +501,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         'Error occurred while fetching device status or while starting datalink graph:',
         error,
       );
-      setStatusState({ status: null, statusSince: null });
+      setStatusState({ status: null, statusSince: null, activity: null });
       // In case backend is unavailable, still allow demo for styling verification (.env only)
       try {
         const demoFlag = window.ENV && window.ENV.REACT_APP_SEIS_DEMO === '1';
@@ -658,14 +658,15 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       new Map(),
   );
   const [tooltipText, setTooltipText] = useState('Loading status…');
-  const computeTooltip = useCallback((status, statusSince) => {
-    const s = (status || '').toLowerCase();
+  const computeTooltip = useCallback((status, statusSince, activity) => {
+    const state = normalizeDeviceActivity(activity || status);
     const m = statusSince ? moment(statusSince) : null;
-    if (s === 'streaming') {
+    if (state === 'active') {
       return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
     }
+    if (state === 'unlinked') return 'Device Offline';
     if (m && m.isAfter(moment().subtract(1, 'month'))) {
-      return `Not streaming since ${m.fromNow()}`;
+      return `Inactive since ${m.fromNow()}`;
     }
     return 'Device Offline';
   }, []);
@@ -676,11 +677,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const now = Date.now();
       const cached = cache.get(key);
       if (cached && now - cached.t < 60_000) {
-        setTooltipText(computeTooltip(cached.status, cached.statusSince));
+        setTooltipText(computeTooltip(cached.status, cached.statusSince, cached.activity));
         // Update marker color from cache if status present
         try {
-          const s = String(cached.status || '').toLowerCase();
-          const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+          const next = toMarkerActivity(cached.activity || cached.status);
           setMarkerActivity((prev) => {
             if (prev && prev !== next) {
               const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
@@ -696,12 +696,11 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const url = `${backend_host}/device/status?network=${(network || 'AM').toUpperCase()}&station=${(code || '').toUpperCase()}`;
       const resp = await axios.get(url);
       const payload = resp?.data?.payload || {};
-      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince });
-      setTooltipText(computeTooltip(payload.status, payload.statusSince));
+      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince, activity: payload.activity });
+      setTooltipText(computeTooltip(payload.status, payload.statusSince, payload.activity));
       // Update marker activity based on fresh status
       try {
-        const s = String(payload.status || '').toLowerCase();
-        const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+        const next = toMarkerActivity(payload.activity || payload.status);
         setMarkerActivity((prev) => {
           if (prev && prev !== next) {
             const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
@@ -821,19 +820,21 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
               className={
                 `
                 ${styles.statusIndicator}
-                ${statusState.status === 'Streaming' ? styles['streaming'] : styles['not-streaming']}
+                ${normalizeDeviceActivity(statusState.activity || statusState.status) === 'active' ? styles['streaming'] : styles['not-streaming']}
                 ${statusChange ? styles[statusChange] : ''}
               `
               }
             ></span>
-            {statusState.statusSince
-              ? statusState.status === 'Streaming' ||
-                moment(statusState.statusSince) > moment().subtract(1, 'month')
-                ? // If streaming or time of last status toggle is within one month, follow: "<status> since <time> ago"
-                  // else (meaning Not streaming for more than 1 month): "Offline"
-                  `${statusState.status} since ${moment(statusState.statusSince).fromNow()}`
-                : 'Device Offline'
-              : statusState.status}
+            {(() => {
+              const state = normalizeDeviceActivity(statusState.activity || statusState.status);
+              if (state === 'unlinked') return 'Device Offline';
+              const label = statusState.status || (state === 'active' ? 'Streaming' : 'Inactive');
+              if (!statusState.statusSince) return label;
+              if (state === 'active' || moment(statusState.statusSince) > moment().subtract(1, 'month')) {
+                return `${label} since ${moment(statusState.statusSince).fromNow()}`;
+              }
+              return 'Device Offline';
+            })()}
           </p>
           <a href={data_download_URL} target="_blank" rel="noreferrer" onClick={handleDownloadData}>
             Get past 24hrs data
