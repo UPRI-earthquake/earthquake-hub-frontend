@@ -81,8 +81,9 @@ const roleCopy = {
 
 const getStatusVariant = (status) => {
   const value = String(status || '').toLowerCase();
-  if (value.includes('streaming') || value === 'active') return 'ok';
+  // Check negative states first to avoid "not streaming" matching the streaming branch
   if (value.includes('not streaming') || value === 'inactive') return 'warn';
+  if (value.includes('streaming') || value === 'active') return 'ok';
   return 'muted';
 };
 
@@ -219,10 +220,9 @@ function Dashboard({
     setAccountForm((prev) => ({ ...prev, email: accountEmail || '' }));
   }, [accountEmail]);
 
-  // Fetch devices only for citizen role to avoid 403s on strict backend
   useEffect(() => {
-    if (isCitizen) fetchDevices();
-  }, [isCitizen]);
+    if (isCitizen || isBrgy) fetchDevices();
+  }, [isCitizen, isBrgy]);
 
   const fetchDevices = async () => {
     try {
@@ -639,7 +639,7 @@ function Dashboard({
   // handleClose defined above with useCallback
 
   const content = (
-    <div className={styles.modalOverlay} onClick={() => handleClose('backdrop')}>
+    <div className={styles.modalOverlay}>
       <div
         ref={dashboardContainerRef}
         id="dashboard-panel"
@@ -990,7 +990,7 @@ function Dashboard({
                       }`}
                       title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
                     >
-                      Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Current'}
+                      Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
                     </span>
                   </div>
                 </div>

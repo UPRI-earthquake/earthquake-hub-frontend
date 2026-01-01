@@ -173,7 +173,7 @@ const AuthModal = ({ initialView = 'signin', onClose, onSignInSuccess, onSignUpS
   const tabSelection = activeView === 'recover' ? 'signin' : activeView;
 
   const content = (
-    <div className={styles.modal} role="presentation" onClick={onClose}>
+    <div className={styles.modal} role="presentation">
       <div
         ref={formRef}
         className={`${styles.form} ${styles.authShell} ${styles.hidden}`}

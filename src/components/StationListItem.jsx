@@ -16,7 +16,7 @@ export default function StationListItem({ station }) {
   const netRaw = station.network || 'AM';
   const network = `${netRaw} Network`;
   const isActive = String(station.activity || '').toLowerCase() === 'active';
-  const statusLabel = isActive ? 'Active' : 'Inactive';
+  const statusLabel = isActive ? 'Online' : 'Offline';
   const since = useMemo(() => {
     const v = station.statusSince || station.activityToggleTime || null;
     return v ? moment(v) : null;

@@ -88,15 +88,15 @@ html[data-theme='imagery'] .statusPill {
   background: rgba(255, 255, 255, 0.06);
 }
 .statusPillActive {
-  background: rgba(14, 165, 233, 0.12);
-  border-color: rgba(14, 165, 233, 0.2);
-  color: #0f172a;
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(22, 163, 74, 0.32);
+  color: #065f46;
 }
 html[data-theme='dark'] .statusPillActive,
 html[data-theme='imagery'] .statusPillActive {
-  background: rgba(125, 211, 252, 0.2);
-  border-color: rgba(125, 211, 252, 0.24);
-  color: #f3f4f6;
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #ecfdf3;
 }
 .statusPillInactive {
   background: #e5e7eb; /* gray-200 */

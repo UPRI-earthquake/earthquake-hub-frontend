@@ -115,6 +115,7 @@ function EventsPanel({
   };
 
   const resetFilters = () => {
+    if (typeof onSearchText === 'function') onSearchText('');
     updateFilters({
       magMin: 0,
       magMax: 10,
