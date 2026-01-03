@@ -1,9 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect, useContext } from 'react';
+import React, { useRef, useState, useEffect, useContext } from 'react';
 import styles from './StationListItem.module.css';
-import moment from '../utils/time';
-import { isStreamingActivity, isUnlinkedActivity, normalizeDeviceActivity } from '../utils/deviceStatus';
+import { isStreamingActivity } from '../utils/deviceStatus';
 import { useDispatch, useSelector } from 'react-redux';
-import axios from 'axios';
 import SSEContext from '../SSEContext';
 import { trackEvent } from '../analytics';
 
@@ -17,63 +15,8 @@ export default function StationListItem({ station }) {
   const netRaw = station.network || 'AM';
   const network = `${netRaw} Network`;
   const isActive = isStreamingActivity(station.activity);
-  const isUnlinked = isUnlinkedActivity(station.activity);
   const statusLabel = isActive ? 'Online' : 'Offline';
-  const since = useMemo(() => {
-    const v = station.statusSince || station.activityToggleTime || null;
-    return v ? moment(v) : null;
-  }, [station.statusSince, station.activityToggleTime]);
-
-  const initialTooltip = useMemo(() => {
-    if (isActive) return since ? `Streaming since ${since.fromNow()}` : 'Streaming';
-    if (isUnlinked) return 'Device Offline';
-    if (since) return since.isAfter(moment().subtract(1, 'month')) ? `Inactive since ${since.fromNow()}` : 'Device Offline';
-    return 'Device Offline';
-  }, [isActive, isUnlinked, since]);
-
-  const [tooltipText, setTooltipText] = useState(initialTooltip);
-
-  // Lazy-fetch live status on hover/focus to mirror popup text exactly
-  const statusCacheRef = useRef(
-    (typeof window !== 'undefined' && (window.__stationStatusCache || (window.__stationStatusCache = new Map()))) ||
-      new Map(),
-  );
-  const backendHost = useCallback(() => {
-    return (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
-      ? window['ENV'].REACT_APP_BACKEND
-      : window['ENV'].REACT_APP_BACKEND_DEV;
-  }, []);
-  const computeTooltip = useCallback((status, statusSince, activity) => {
-    const state = normalizeDeviceActivity(activity || status);
-    const m = statusSince ? moment(statusSince) : null;
-    if (state === 'active' || (state === '' && isActive)) {
-      return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
-    }
-    if (state === 'unlinked') return 'Device Offline';
-    if (m && m.isAfter(moment().subtract(1, 'month'))) {
-      return `Inactive since ${m.fromNow()}`;
-    }
-    return 'Device Offline';
-  }, [isActive]);
-  const refreshTooltipFromAPI = useCallback(async () => {
-    try {
-      const key = `${(station.network || 'AM').toUpperCase()}:${(station.code || '').toUpperCase()}`;
-      const cache = statusCacheRef.current;
-      const now = Date.now();
-      const cached = cache.get(key);
-      if (cached && now - cached.t < 60_000) {
-        setTooltipText(computeTooltip(cached.status, cached.statusSince, cached.activity));
-        return;
-      }
-      const url = `${backendHost()}/device/status?network=${(station.network || 'AM').toUpperCase()}&station=${(station.code || '').toUpperCase()}`;
-      const resp = await axios.get(url);
-      const payload = resp?.data?.payload || {};
-      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince, activity: payload.activity });
-      setTooltipText(computeTooltip(payload.status, payload.statusSince, payload.activity));
-    } catch (_) {
-      // keep initial tooltip on failure
-    }
-  }, [station.network, station.code, backendHost, computeTooltip]);
+  const tooltipText = String(name || '').trim() || 'Unnamed station';
 
   const dispatch = useDispatch();
   const selectedId = useSelector((state) => state);
@@ -161,7 +104,6 @@ export default function StationListItem({ station }) {
     <div
       className={`${styles.row} ${isSelected ? styles.selected : ''} ${pulse ? styles[pulse] : ''} ${pickPulse ? styles.pickPulse : ''}`}
       title={tooltipText}
-      data-tip={tooltipText}
       role="button"
       /* Make the row keyboard-focusable for accessibility */
       tabIndex={0}
@@ -173,25 +115,22 @@ export default function StationListItem({ station }) {
           onClick();
         }
       }}
-      onMouseEnter={refreshTooltipFromAPI}
-      onFocus={refreshTooltipFromAPI}
       data-selectid={`station:${code}`}
       ref={rowRef}
     >
       <div className={styles.leftWrap}>
-        <div className={styles.codeText} aria-label={`Station ${code}`} title={`Station ${code}`}>
+        <div className={styles.codeText} aria-label={`Station ${code}`}>
           {code}
         </div>
       </div>
       <div className={styles.rightWrap}>
         <p className={styles.desc}>{name}</p>
         <div className={styles.metaRow}>
-          <span className={styles.subDesc} title={network} aria-label={network}>{network}</span>
+          <span className={styles.subDesc} aria-label={network}>{network}</span>
           <span
             className={`${styles.statusPill} ${isActive ? styles.statusPillActive : styles.statusPillInactive}`}
             role="status"
             aria-label={`Status: ${statusLabel}`}
-            title={`Status: ${statusLabel}`}
           >
             <span className={styles.statusText}>{statusLabel}</span>
           </span>

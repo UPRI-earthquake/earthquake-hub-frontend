@@ -142,7 +142,8 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   // Hover/selection will temporarily increase weight for readability/tooltips.
   const faultWeightBase = ZOOM.country(z) ? 0.6 : ZOOM.regional(z) ? 0.8 : 1.0;
   const faultWeight = faultWeightBase;
-  const faultDashed = ZOOM.country(z) && hasEQ && hasFaults;
+  // Keep a solid stroke at all zoom levels to avoid dash artifacts
+  const faultDashed = false;
 
   // Plates
   // Make plate boundaries only slightly thicker than faults and

@@ -19,12 +19,12 @@ const META = {
     label: 'Faults',
     source: 'GEM Global Active Faults (harmonized)',
     // Use centralized dataset URL (jsDelivr GitHub) for exact ref
-    lastUpdateHintUrl: DATASETS.FAULTS.cdnUrl,
+    lastUpdateHintUrl: DATASETS.FAULTS.sourceUrl,
   },
   plates: {
     label: 'Plate Boundaries',
     source: 'PB2002 (Bird, 2003) via tectonicplates',
-    lastUpdateHintUrl: DATASETS.PLATES.cdnUrl,
+    lastUpdateHintUrl: DATASETS.PLATES.sourceUrl,
   },
   // Population overlay removed
 };

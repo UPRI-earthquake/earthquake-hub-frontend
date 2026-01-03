@@ -893,8 +893,42 @@ export default function MapLayersControl({ children, activeTheme }) {
       };
       return (feature, layer) => {
         try {
-          const html = buildTooltipFn(feature && feature.properties);
+          const props = feature && feature.properties;
+          const html = buildTooltipFn ? buildTooltipFn(props) : '';
           const usePopup = Boolean(options && options.usePopup);
+          const nativeTitleFn = options && options.nativeTitleFn;
+          const nativeTitle = nativeTitleFn ? String(nativeTitleFn(props) || '') : '';
+          const disableHover = Boolean(options && options.disableHover);
+          const disableHoverStyling = Boolean(options && options.disableHoverStyling);
+          const applyDomTitle = () => {
+            if (!nativeTitle) return false;
+            const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+            if (!pathEl) return false;
+            try {
+              pathEl.setAttribute('title', nativeTitle);
+              pathEl.setAttribute('aria-label', nativeTitle);
+              return true;
+            } catch (_) {
+              return false;
+            }
+          };
+          const setContainerTitle = (value) => {
+            const container = map?.getContainer?.();
+            if (!container) return;
+            if (value) {
+              if (!Object.prototype.hasOwnProperty.call(container, '__prevTitle')) {
+                container.__prevTitle = container.getAttribute('title');
+              }
+              container.setAttribute('title', value);
+              container.__nativeTitleOwner = layer;
+            } else if (container.__nativeTitleOwner === layer) {
+              const prev = container.__prevTitle;
+              if (prev) container.setAttribute('title', prev);
+              else container.removeAttribute('title');
+              delete container.__prevTitle;
+              delete container.__nativeTitleOwner;
+            }
+          };
           if (html) {
             if (usePopup) {
               layer.bindPopup(html, {
@@ -903,6 +937,12 @@ export default function MapLayersControl({ children, activeTheme }) {
                 closeButton: true,
                 maxWidth: 280,
               });
+              try {
+                if (layer._openPopup) {
+                  layer.off('click', layer._openPopup, layer);
+                  layer.off('keypress', layer._openPopup, layer);
+                }
+              } catch (_) {}
             } else {
               layer.bindTooltip(html, {
                 sticky: true,
@@ -911,34 +951,44 @@ export default function MapLayersControl({ children, activeTheme }) {
               });
             }
           }
+          applyDomTitle();
+          layer.on('add', applyDomTitle);
           const hoverWeightFor = (baseW) =>
             usePopup ? Math.max(baseW + 1.25, baseW * 1.75) : Math.max(baseW + 2.5, baseW * 2.5);
 
-          layer.on('mouseover', () => {
-            try {
-              const el = map?.getContainer?.();
-              if (el && hoverClassName) el.classList.add(hoverClassName);
-              const baseNow = getBase();
-              const baseW = baseNow.weight || 2;
-              // Slight bump on hover for readability; keep same scale for selected
-              const hoverW = hoverWeightFor(baseW);
-              layer.setStyle({ ...baseNow, weight: hoverW, opacity: 1 });
-              if (layer.bringToFront) layer.bringToFront();
-              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-              if (pathEl) {
-                try {
-                  pathEl.classList.add('hover-glow');
-                } catch (_) {}
-              }
-              // keep the pane just below tooltip pane (650)
-              const paneName = layer?.options?.pane;
-              const paneEl = paneName && map?.getPane?.(paneName);
-              if (paneEl) {
-                if (paneEl._prevZ == null) paneEl._prevZ = paneEl.style.zIndex;
-                paneEl.style.zIndex = '645';
-              }
-            } catch (_) {}
-          });
+          if (!disableHover) {
+            layer.on('mouseover', () => {
+              try {
+                const el = map?.getContainer?.();
+                if (el && hoverClassName) el.classList.add(hoverClassName);
+                if (nativeTitle) {
+                  applyDomTitle();
+                  setContainerTitle(nativeTitle);
+                }
+                if (!disableHoverStyling) {
+                  const baseNow = getBase();
+                  const baseW = baseNow.weight || 2;
+                  // Slight bump on hover for readability; keep same scale for selected
+                  const hoverW = hoverWeightFor(baseW);
+                  layer.setStyle({ ...baseNow, weight: hoverW, opacity: 1 });
+                  if (layer.bringToFront) layer.bringToFront();
+                  const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                  if (pathEl) {
+                    try {
+                      pathEl.classList.add('hover-glow');
+                    } catch (_) {}
+                  }
+                  // keep the pane just below tooltip pane (650)
+                  const paneName = layer?.options?.pane;
+                  const paneEl = paneName && map?.getPane?.(paneName);
+                  if (paneEl) {
+                    if (paneEl._prevZ == null) paneEl._prevZ = paneEl.style.zIndex;
+                    paneEl.style.zIndex = '645';
+                  }
+                }
+              } catch (_) {}
+            });
+          }
           const reset = () => {
             // If tooltip is open (selected), keep selected styling
             const tip = !usePopup && typeof layer.getTooltip === 'function' ? layer.getTooltip() : null;
@@ -946,38 +996,45 @@ export default function MapLayersControl({ children, activeTheme }) {
             const isTipOpen = !!(tip && typeof tip.isOpen === 'function' && tip.isOpen());
             const isPopOpen = !!(pop && typeof pop.isOpen === 'function' && pop.isOpen());
             const open = usePopup ? isPopOpen : isTipOpen;
-            if (!open) {
-              try {
-                layer.setStyle(getBase());
-              } catch (_) {}
-            } else {
-              const baseNow = getBase();
-              const baseW = baseNow.weight || 2;
-              // Keep a highlight when info is pinned open, same scale as hover
-              const selectedW = hoverWeightFor(baseW);
-              try {
-                layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
-              } catch (_) {}
+            if (!disableHoverStyling) {
+              if (!open) {
+                try {
+                  layer.setStyle(getBase());
+                } catch (_) {}
+              } else {
+                const baseNow = getBase();
+                const baseW = baseNow.weight || 2;
+                // Keep a highlight when info is pinned open, same scale as hover
+                const selectedW = hoverWeightFor(baseW);
+                try {
+                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                } catch (_) {}
+              }
             }
             const el = map?.getContainer?.();
             if (el && hoverClassName) el.classList.remove(hoverClassName);
+            if (nativeTitle) setContainerTitle('');
             const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-            if (pathEl) {
-              try {
-                if (!open) pathEl.classList.remove('hover-glow');
-              } catch (_) {}
-            }
-            const paneName = layer?.options?.pane;
-            const paneEl = paneName && map?.getPane?.(paneName);
-            if (paneEl && paneEl._prevZ != null) {
-              paneEl.style.zIndex = paneEl._prevZ;
-              paneEl._prevZ = null;
+            if (!disableHoverStyling) {
+              if (pathEl) {
+                try {
+                  if (!open) pathEl.classList.remove('hover-glow');
+                } catch (_) {}
+              }
+              const paneName = layer?.options?.pane;
+              const paneEl = paneName && map?.getPane?.(paneName);
+              if (paneEl && paneEl._prevZ != null) {
+                paneEl.style.zIndex = paneEl._prevZ;
+                paneEl._prevZ = null;
+              }
             }
           };
-          layer.on('mouseout', reset);
+          if (!disableHover) {
+            layer.on('mouseout', reset);
+          }
           if (usePopup) {
             layer.on('popupclose', reset);
-          } else {
+          } else if (!disableHover) {
             layer.on('tooltipclose', reset);
           }
           layer.on('remove', reset);
@@ -989,13 +1046,15 @@ export default function MapLayersControl({ children, activeTheme }) {
                 if (isOpen) {
                   layer.closePopup();
                 } else {
-                  const baseNow = getBase();
-                  const baseW = baseNow.weight || 2;
-                  const selectedW = hoverWeightFor(baseW);
-                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                  if (!disableHoverStyling) {
+                    const baseNow = getBase();
+                    const baseW = baseNow.weight || 2;
+                    const selectedW = hoverWeightFor(baseW);
+                    layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                  }
                   if (layer.bringToFront) layer.bringToFront();
                   const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-                  if (pathEl) {
+                  if (pathEl && !disableHoverStyling) {
                     try { pathEl.classList.add('selected-glow'); } catch (_) {}
                   }
                   if (e && e.latlng && typeof layer.openPopup === 'function') layer.openPopup(e.latlng);
@@ -1003,7 +1062,6 @@ export default function MapLayersControl({ children, activeTheme }) {
                 }
               } catch (_) {}
             };
-            layer.on('click', clickToggle);
             let __lastTapTs = 0;
             layer.on('tap', (ev) => {
               __lastTapTs = Date.now();
@@ -1016,23 +1074,27 @@ export default function MapLayersControl({ children, activeTheme }) {
           }
           if (!usePopup) {
             layer.on('tooltipclose', () => {
-              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-              if (pathEl) {
+              if (!disableHoverStyling) {
+                const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                if (pathEl) {
+                  try {
+                    pathEl.classList.remove('selected-glow');
+                  } catch (_) {}
+                }
                 try {
-                  pathEl.classList.remove('selected-glow');
+                  layer.setStyle(getBase());
                 } catch (_) {}
               }
-              try {
-                layer.setStyle(getBase());
-              } catch (_) {}
             });
           } else {
             layer.on('popupclose', () => {
-              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-              if (pathEl) {
-                try { pathEl.classList.remove('selected-glow'); } catch (_) {}
+              if (!disableHoverStyling) {
+                const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                if (pathEl) {
+                  try { pathEl.classList.remove('selected-glow'); } catch (_) {}
+                }
+                try { layer.setStyle(getBase()); } catch (_) {}
               }
-              try { layer.setStyle(getBase()); } catch (_) {}
             });
           }
         } catch (_) {}

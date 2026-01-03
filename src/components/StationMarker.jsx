@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
-import ReactDOMServer from 'react-dom/server';
-import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
+import { Marker, Popup, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
-import { ReactComponent as Logo } from '../assets/triangle.svg';
 import styles from './StationMarker.module.css';
 import SSEContext from '../SSEContext';
 import moment from '../utils/time';
@@ -18,6 +16,60 @@ import { trackEvent } from '../analytics';
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
+
+// Lightly shaded triangular marker builder (returns inline SVG string)
+function tintHex(hex, amt) {
+  const h = String(hex || '').replace('#', '');
+  if (![3, 6].includes(h.length)) return hex;
+  const n = h.length === 3 ? h.split('').map((c) => parseInt(c + c, 16)) : [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  const res = n.map((v) => clamp(v + 255 * amt));
+  const toHex = (v) => v.toString(16).padStart(2, '0');
+  return `#${toHex(res[0])}${toHex(res[1])}${toHex(res[2])}`;
+}
+
+function buildTriangleSVG(baseHex = '#2e8b57', idSuffix = 'tri') {
+  const safeId = String(idSuffix || 'tri').replace(/[^a-zA-Z0-9_-]/g, '') || 'tri';
+  const prefix = `tri-${safeId}`;
+  const leftId = `${prefix}-left`;
+  const rightId = `${prefix}-right`;
+  const baseId = `${prefix}-base`;
+  const shadowId = `${prefix}-shadow`;
+  const facet1 = tintHex(baseHex, 0.18);
+  const facet2 = tintHex(baseHex, -0.12);
+  const facet3 = tintHex(baseHex, -0.28);
+  const shadow = 'rgba(0,0,0,0.22)';
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 110" role="img" aria-label="Station marker">
+  <defs>
+    <linearGradient id="${leftId}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${facet1}"/>
+      <stop offset="100%" stop-color="${facet2}"/>
+    </linearGradient>
+    <linearGradient id="${rightId}" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="${facet2}"/>
+      <stop offset="100%" stop-color="${facet3}"/>
+    </linearGradient>
+    <linearGradient id="${baseId}" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="${facet2}"/>
+      <stop offset="100%" stop-color="${facet3}"/>
+    </linearGradient>
+    <filter id="${shadowId}" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="${shadow}"/>
+    </filter>
+  </defs>
+  <g filter="url(#${shadowId})">
+    <polygon points="60 6 6 104 60 84" fill="url(#${leftId})"/>
+    <polygon points="60 6 114 104 60 84" fill="url(#${rightId})"/>
+    <polygon points="6 104 114 104 60 84" fill="url(#${baseId})"/>
+  </g>
+</svg>`;
+}
+
 const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
   const map = useMap();
   const realtimeDivRef = useRef(null);
@@ -347,14 +399,25 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   // One-shot pulse on marker when status changes (via SSE/API)
   const [markerPulse, setMarkerPulse] = useState(null); // same class names as CSS: 'went-online' | 'went-offline'
   const markerPulseTimerRef = useRef(null);
+  // Keep per-marker unique SVG ids so gradients don't collide across markers
+  const gradientIdRef = useRef(null);
+  if (!gradientIdRef.current) {
+    const safeNet = String(network || 'am').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const safeCode = String(code || 'station').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const salt = Math.random().toString(36).slice(2, 8);
+    gradientIdRef.current = `${safeNet || 'net'}-${safeCode || 'station'}-${salt}`;
+  }
   // Track current marker activity to tint marker (active vs inactive)
-  const [markerActivity, setMarkerActivity] = useState(() => {
-    return toMarkerActivity(initActivity);
-  });
+  const [markerActivity, setMarkerActivity] = useState(null); // updated via SSE/API
   const backend_host =
     process.env.NODE_ENV === 'production'
       ? window['ENV'].REACT_APP_BACKEND
       : window['ENV'].REACT_APP_BACKEND_DEV;
+
+  // Derive display activity from live state, status, or initial prop
+  const displayActivity = normalizeDeviceActivity(
+    markerActivity || statusState.activity || initActivity,
+  );
 
   useEffect(() => {
     if (!eventSource || typeof eventSource.addEventListener !== 'function') {
@@ -428,19 +491,21 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     };
   }, [code, network, eventSource]);
 
-  const isInactive = String(markerActivity || '').toLowerCase() === 'inactive';
+  const isInactive = displayActivity !== 'active';
   // Online markers should float above offline ones; add a small extra for pick highlight
   const zIndexOffset = (isInactive ? 0 : 200) + (pick ? 20 : 0);
+  // Use legend-consistent colors
+  const baseHex = isInactive ? '#9ca3af' : '#22c55e'; // gray-400 for offline, green-500 for online
+  const triangleMarkup = buildTriangleSVG(baseHex, gradientIdRef.current);
   const divTriangle = new DivIcon({
     className: `${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
       markerPulse ? styles[markerPulse] : ''
     }`,
-    html: ReactDOMServer.renderToString(<Logo />),
+    html: triangleMarkup,
     iconSize: [25, 25],
   });
 
   const handleStationClick = async () => {
-    try { setTooltipDisabled(true); } catch (_) {}
     try { const el = map && map.getContainer && map.getContainer(); el && el.classList.add('hide-marker-tooltips'); } catch (_) {}
     // Ensure map UI panels (Layers/Legend) collapse when a popup opens
     try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
@@ -514,7 +579,6 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     await disconnectDataLinkWS();
     stopDemoMseed();
     try { if (statusAnimTimerRef.current) clearTimeout(statusAnimTimerRef.current); } catch (_) {}
-    try { setTooltipDisabled(false); } catch (_) {}
     try { const el = map && map.getContainer && map.getContainer(); el && el.classList.remove('hide-marker-tooltips'); } catch (_) {}
     try {
       if (selectedId === `station:${code}`) {
@@ -650,73 +714,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const dispatch = useDispatch();
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
-  const [tooltipDisabled, setTooltipDisabled] = useState(false);
-
-  /* Tooltip text mirrors Sidebar station list items */
-  const statusCacheRef = useRef(
-    (typeof window !== 'undefined' && (window.__stationStatusCache || (window.__stationStatusCache = new Map()))) ||
-      new Map(),
-  );
-  const [tooltipText, setTooltipText] = useState('Loading status…');
-  const computeTooltip = useCallback((status, statusSince, activity) => {
-    const state = normalizeDeviceActivity(activity || status);
-    const m = statusSince ? moment(statusSince) : null;
-    if (state === 'active') {
-      return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
-    }
-    if (state === 'unlinked') return 'Device Offline';
-    if (m && m.isAfter(moment().subtract(1, 'month'))) {
-      return `Inactive since ${m.fromNow()}`;
-    }
-    return 'Device Offline';
-  }, []);
-  const refreshTooltipFromAPI = useCallback(async () => {
-    try {
-      const key = `${(network || 'AM').toUpperCase()}:${(code || '').toUpperCase()}`;
-      const cache = statusCacheRef.current;
-      const now = Date.now();
-      const cached = cache.get(key);
-      if (cached && now - cached.t < 60_000) {
-        setTooltipText(computeTooltip(cached.status, cached.statusSince, cached.activity));
-        // Update marker color from cache if status present
-        try {
-          const next = toMarkerActivity(cached.activity || cached.status);
-          setMarkerActivity((prev) => {
-            if (prev && prev !== next) {
-              const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
-              setMarkerPulse(cls);
-              try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
-            }
-            return next;
-          });
-        } catch (_) {}
-        return;
-      }
-      const url = `${backend_host}/device/status?network=${(network || 'AM').toUpperCase()}&station=${(code || '').toUpperCase()}`;
-      const resp = await axios.get(url);
-      const payload = resp?.data?.payload || {};
-      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince, activity: payload.activity });
-      setTooltipText(computeTooltip(payload.status, payload.statusSince, payload.activity));
-      // Update marker activity based on fresh status
-      try {
-        const next = toMarkerActivity(payload.activity || payload.status);
-        setMarkerActivity((prev) => {
-          if (prev && prev !== next) {
-            const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
-            setMarkerPulse(cls);
-            try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
-          }
-          return next;
-        });
-      } catch (_) {}
-    } catch (_) {
-      // Keep previous tooltip on failure
-    }
-  }, [network, code, backend_host, computeTooltip]);
-
-  // Tooltips stay mounted; on mobile they are visually hidden via CSS
+  const markerDesc = String(description || '').trim();
+  const markerTitle = markerDesc
+    ? `Station ${code} - ${markerDesc}`
+    : `Station ${code}`;
 
   // Re-apply seismograph theme on basemap theme changes while popup remains open
   useEffect(() => {
@@ -768,6 +769,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       icon={divTriangle}
       zIndexOffset={zIndexOffset}
       ref={markerRef}
+      title={markerTitle}
       eventHandlers={{
         click: () => {
           try {
@@ -787,24 +789,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         },
         // Fetch status and start graph whenever the popup actually opens
         // (works for both map-click and programmatic open from sidebar)
-        mouseover: refreshTooltipFromAPI,
-        tooltipopen: refreshTooltipFromAPI,
         popupopen: handleStationClick,
         popupclose: handlePopupClose,
       }}
     >
-      <Tooltip
-        direction="top"
-        offset={[0, -2]}
-        opacity={1}
-        sticky
-        className={`feature-tooltip marker-tooltip ${tooltipDisabled ? 'tt-hidden' : ''}`}
-      >
-        <div>
-          <div><strong>Station {code}</strong></div>
-          <div>{tooltipText}</div>
-        </div>
-      </Tooltip>
       <Popup className={styles.popUp}
         autoPan
         >

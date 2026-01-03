@@ -57,12 +57,6 @@
 }
 /* Removed zoom-tier scale tweak; keep marker size constant */
 
-/* While hovering a fault, dim EQ points for context */
-:global(.leaflet-container.fault-hovering) .default,
-:global(.leaflet-container.fault-hovering) .radiate {
-  opacity: 0.5;
-}
-
 /* Apply zoom-based scale directly to marker container classes */
 .default,
 .radiate {

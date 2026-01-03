@@ -1,14 +1,9 @@
 .static {
-  fill: var(--st-fill, #2e8b57);
-  stroke: var(--st-halo, #ffffff);
-  stroke-width: var(--st-halo-w, 2px);
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .dynamic {
-  fill: var(--st-fill, #2e8b57);
-  stroke: #e86a73;
-  stroke-width: var(--st-halo-w, 2px);
+  opacity: 0.95;
   animation-name: radiate;
   animation-duration: 1.5s;
   animation-iteration-count: infinite;
@@ -157,9 +152,7 @@
 
 /* Offline variant: subdued fill, theme-aware via CSS var */
 .offline {
-  /* Use theme token if provided, fallback to higher-contrast neutral on light */
-  fill: var(--st-fill-off, #4b5563);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 /* One-shot radiate pulses for status changes on the marker itself */

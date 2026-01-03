@@ -23,9 +23,82 @@ function parseTriple(val) {
   return nums; // [center, min, max]
 }
 
+// Normalize text fields: replace underscores/double spaces, trim.
+function normalizeLabel(txt) {
+  return String(txt == null ? '' : txt)
+    .replace(/[\\/_|]+/g, ' - ')
+    .replace(/[_]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+// Normalize plate code for lookup (strip non-word, uppercase)
+function normalizeCode(txt) {
+  return String(txt == null ? '' : txt)
+    .replace(/[^\w]/g, '')
+    .toUpperCase();
+}
+
+// Plate identifier → full name mapping (partial list; fallback to code)
+const PLATE_NAME_MAP = {
+  AF: 'Africa',
+  AM: 'Amur',
+  AN: 'Antarctica',
+  AP: 'Altiplano',
+  AR: 'Arabia',
+  AS: 'Aegean Sea',
+  AT: 'Anatolia',
+  AU: 'Australia',
+  BH: 'Birds Head',
+  BR: 'Balmoral',
+  BS: 'Banda Sea',
+  BU: 'Burma',
+  CA: 'Caribbean',
+  CL: 'Caroline',
+  CO: 'Cocos',
+  CR: 'Conway Reef',
+  CA: 'Caribbean',
+  EA: 'Easter',
+  EU: 'Eurasia',
+  FT: 'Futuna',
+  GP: 'Galapagos',
+  IN: 'India',
+  JF: 'Juan de Fuca',
+  JZ: 'Juan Fernandez',
+  KE: 'Kermadec',
+  MA: 'Mariana',
+  MN: 'Manus',
+  MO: 'Maoke',
+  MS: 'Molucca Sea',
+  NA: 'North America',
+  NB: 'North Bismarck',
+  ND: 'North Andes',
+  NH: 'New Hebrides',
+  NI: "Niuafo'ou",
+  NZ: 'Nazca',
+  OK: 'Okhotsk',
+  ON: 'Okinawa',
+  PA: 'Pacific',
+  PM: 'Panama',
+  PS: 'Philippine Sea',
+  RI: 'Rivera',
+  SA: 'South America',
+  SB: 'South Bismarck',
+  SC: 'Scotia',
+  SL: 'Shetland',
+  SO: 'Somalia',
+  SS: 'Solomon Sea',
+  SU: 'Sunda',
+  SW: 'Sandwich',
+  TI: 'Timor',
+  TO: 'Tonga',
+  WL: 'Woodlark',
+  YA: 'Yangtze',
+};
+
 export function buildFaultTooltip(props) {
   if (!props) return '';
-  const name = props.name || 'Unnamed Fault';
+  const name = normalizeLabel(props.name || 'Unnamed Fault');
   const slipType = props.slip_type || props.slipType || '';
   const slip = parseTriple(props.net_slip_rate);
   const dip = parseTriple(props.average_dip);
@@ -91,18 +164,35 @@ export function buildFaultTooltip(props) {
   `;
 }
 
+export function buildFaultTitle(props) {
+  if (!props) return '';
+  return normalizeLabel(props.name || 'Unnamed Fault');
+}
+
 export function buildPlateTooltip(props) {
   if (!props) return '';
   const a = props.PlateA || '';
   const b = props.PlateB || '';
-  const name = props.Name || (a && b ? `${a}-${b}` : 'Plate Boundary');
+  const nameRaw = props.Name || (a && b ? `${a}-${b}` : 'Plate Boundary');
   const type = props.Type || '';
   const src = props.Source || '';
+  const normA = normalizeLabel(a);
+  const normB = normalizeLabel(b);
+  const codeA = normalizeCode(a);
+  const codeB = normalizeCode(b);
+  const fullA = PLATE_NAME_MAP[codeA] || normA || a || '';
+  const fullB = PLATE_NAME_MAP[codeB] || normB || b || '';
+  const codeLabel = [codeA || normA || a, codeB || normB || b].filter(Boolean).join('-');
+  const name =
+    codeLabel ||
+    PLATE_NAME_MAP[normalizeCode(nameRaw)] ||
+    normalizeLabel(nameRaw) ||
+    (fullA && fullB ? `${fullA} – ${fullB}` : 'Plate Boundary');
   const rows = [];
   if (a || b)
     rows.push(
       `<div class="ft-row"><span class="ft-k">Plates</span><span class="ft-v">${escapeHtml(
-        [a, b].filter(Boolean).join(' – '),
+        [fullA || normA || a, fullB || normB || b].filter(Boolean).join(' – '),
       )}</span></div>`,
     );
   if (type)
@@ -123,4 +213,24 @@ export function buildPlateTooltip(props) {
       ${rows.join('')}
     </div>
   `;
+}
+
+export function buildPlateTitle(props) {
+  if (!props) return '';
+  const a = props.PlateA || '';
+  const b = props.PlateB || '';
+  const nameRaw = props.Name || '';
+  const normA = normalizeLabel(a);
+  const normB = normalizeLabel(b);
+  const codeA = normalizeCode(a);
+  const codeB = normalizeCode(b);
+  const fullA = PLATE_NAME_MAP[codeA] || normA || a || '';
+  const fullB = PLATE_NAME_MAP[codeB] || normB || b || '';
+  const codeLabel = [codeA || normA || a, codeB || normB || b].filter(Boolean).join('-');
+  return normalizeLabel(
+    codeLabel ||
+      PLATE_NAME_MAP[normalizeCode(nameRaw)] ||
+      nameRaw ||
+      (fullA && fullB ? `${fullA} – ${fullB}` : 'Plate Boundary'),
+  );
 }

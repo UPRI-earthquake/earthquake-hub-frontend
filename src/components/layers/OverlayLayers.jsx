@@ -2,7 +2,12 @@ import React, { useMemo } from 'react';
 import { LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import RemoteGeoJSONOverlay from '../RemoteGeoJSONOverlay';
-import { buildFaultTooltip, buildPlateTooltip } from './overlayTooltips';
+import {
+  buildFaultTooltip,
+  buildPlateTooltip,
+  buildFaultTitle,
+  buildPlateTitle,
+} from './overlayTooltips';
 import { DATASETS } from '../../config/datasets';
 
 const { Overlay } = LayersControl;
@@ -28,7 +33,7 @@ export default function OverlayLayers({
       <Overlay name="Fault Lines">
         <RemoteGeoJSONOverlay
           ref={setFaultsRef}
-          url={DATASETS.FAULTS.cdnUrl}
+          url={DATASETS.FAULTS.url}
           style={faultsStyleFor}
           renderer={vectorRenderer}
           // Philippines bbox (lon/lat): 116..127E, 4.5..21.5N
@@ -38,7 +43,8 @@ export default function OverlayLayers({
           onEachFeature={makeOnEachWith(
             faultsStyleFor,
             buildFaultTooltip,
-            'fault-hovering'
+            null,
+            { usePopup: true, nativeTitleFn: buildFaultTitle, disableHoverStyling: true }
           )}
         />
       </Overlay>
@@ -46,13 +52,18 @@ export default function OverlayLayers({
       <Overlay name="Plate Boundaries">
         <RemoteGeoJSONOverlay
           ref={setPlatesRef}
-          url={DATASETS.PLATES.cdnUrl}
+          url={DATASETS.PLATES.url}
           style={platesStyleFor}
           renderer={vectorRenderer}
           worldCopies
           lineOnly
           interactive
-          onEachFeature={makeOnEachWith(platesStyleFor, buildPlateTooltip)}
+          onEachFeature={makeOnEachWith(
+            platesStyleFor,
+            buildPlateTooltip,
+            null,
+            { usePopup: true, nativeTitleFn: buildPlateTitle, disableHoverStyling: true }
+          )}
         />
       </Overlay>
 
