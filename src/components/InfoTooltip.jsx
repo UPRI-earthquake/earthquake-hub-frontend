@@ -131,9 +131,12 @@ const InfoTooltip = ({ label = 'More info', title, children, variant = 'default'
     const handleReflow = () => updatePosition();
     window.addEventListener('resize', handleReflow);
     window.addEventListener('scroll', handleReflow, true);
+    const closeOnScroll = () => setOpen(false);
+    window.addEventListener('scroll', closeOnScroll, true);
     return () => {
       window.removeEventListener('resize', handleReflow);
       window.removeEventListener('scroll', handleReflow, true);
+      window.removeEventListener('scroll', closeOnScroll, true);
     };
   }, [open, updatePosition]);
 

@@ -9,7 +9,6 @@ import Toast from './Toast';
 import { responseCodes } from '../utils/responseCodes';
 import jwtDecode from 'jwt-decode';
 import moment from '../utils/time';
-import InfoTooltip from './InfoTooltip';
 import { normalizeDeviceActivity, toDashboardStatusLabel } from '../utils/deviceStatus';
 
 const statusTooltips = {
@@ -113,6 +112,27 @@ const discouragedPasswords = [
   'brgy',
 ];
 
+const USERNAME_RULE = {
+  min: 3,
+  max: 32,
+  pattern: /^[a-zA-Z0-9._-]+$/,
+};
+
+const describeUsernameIssue = (value) => {
+  const normalized = (value || '').trim();
+  if (!normalized) return 'Username is required.';
+  if (normalized.length < USERNAME_RULE.min) {
+    return `Username must be at least ${USERNAME_RULE.min} characters.`;
+  }
+  if (normalized.length > USERNAME_RULE.max) {
+    return `Username must be ${USERNAME_RULE.max} characters or fewer.`;
+  }
+  if (!USERNAME_RULE.pattern.test(normalized)) {
+    return 'Usernames can include letters, numbers, dashes, underscores, and periods only.';
+  }
+  return '';
+};
+
 const describeAccountPasswordIssue = (password) => {
   if (!password) return 'Password is required';
   if (password.length < 12) return 'Password must be at least 12 characters.';
@@ -124,6 +144,24 @@ const describeAccountPasswordIssue = (password) => {
   if (/(.)\1{7,}/.test(trimmed)) return 'Avoid repeating the same character.';
   return '';
 };
+
+const EyeIcon = ({ revealed = false }) => (
+  <svg
+    aria-hidden="true"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M1.5 12s3.5-6 10.5-6 10.5 6 10.5 6-3.5 6-10.5 6S1.5 12 1.5 12Z" />
+    <circle cx="12" cy="12" r="3.25" />
+    {!revealed && <line x1="4" y1="4" x2="20" y2="20" />}
+  </svg>
+);
 
 /**
  * User dashboard modal showing devices and barangay token management.
@@ -141,17 +179,39 @@ function Dashboard({
 }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [devices, setDevices] = useState([]); // hook for list of device in table (array)success message
+  const [devicesFetched, setDevicesFetched] = useState(false);
   const [brgyAccessToken, setBrgyAccessToken] = useState(); // hook for brgyAccessToken
   const [accessTokenExpiry, setAccessTokenExpiry] = useState(); // hook for brgy accessToken expiration
   const [activeSection, setActiveSection] = useState('devices'); // workspace tabs
-  const [accountForm, setAccountForm] = useState({
+  const [openSettingsSection, setOpenSettingsSection] = useState(null); // account settings collapsibles
+  const [emailForm, setEmailForm] = useState({
     email: accountEmail || '',
-    newPassword: '',
-    confirmPassword: '',
     currentPassword: '',
   });
-  const [accountErrors, setAccountErrors] = useState({});
-  const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
+  const [usernameForm, setUsernameForm] = useState({
+    newUsername: '',
+    currentPassword: '',
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [emailErrors, setEmailErrors] = useState({});
+  const [usernameErrors, setUsernameErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    emailCurrent: false,
+    newPassword: false,
+    confirmPassword: false,
+    currentPassword: false,
+    usernameCurrent: false,
+  });
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
@@ -169,6 +229,29 @@ function Dashboard({
     timeoutsRef.current.push(id);
   }, []);
 
+  const toggleSettingsSection = (sectionId) => {
+    const next = openSettingsSection === sectionId ? null : sectionId;
+    setOpenSettingsSection(next);
+    if (next === 'username') {
+      setUsernameForm((prev) => ({
+        ...prev,
+        newUsername: loggedInUser || '',
+        currentPassword: '',
+      }));
+    }
+    if (next === 'email') {
+      setEmailForm((prev) => ({
+        ...prev,
+        email: accountEmail || '',
+        currentPassword: '',
+      }));
+    }
+    setEmailErrors({});
+    setUsernameErrors({});
+    setPasswordErrors({});
+    setShowDeleteConfirm(false);
+  };
+
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
@@ -182,6 +265,12 @@ function Dashboard({
       {
         id: 'devices',
         label: isBrgy ? 'Managed devices' : 'Your devices',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <rect x="3" y="6" width="18" height="12" rx="2" />
+            <path d="M7 10h10M9 14h6" />
+          </svg>
+        ),
         description: isBrgy
           ? 'Check barangay-operated stations and their streaming status.'
           : 'View personal devices linked to your contributor account.',
@@ -189,6 +278,13 @@ function Dashboard({
       {
         id: 'tools',
         label: isBrgy ? 'Tools & tokens' : 'Tools',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <rect x="3" y="7" width="18" height="11" rx="2" />
+            <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M3 12h18" />
+          </svg>
+        ),
         description: isBrgy
           ? 'Access tokens and space reserved for upcoming contributor utilities.'
           : 'Contributor tools coming soon.',
@@ -197,7 +293,13 @@ function Dashboard({
       {
         id: 'account',
         label: 'Account settings',
-        description: 'Update your contact email and password.',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
+          </svg>
+        ),
+        description: 'Manage your username, contact email, and password.',
         badge: passwordStatus === 'legacy' ? 'update' : null,
       },
     ],
@@ -218,10 +320,17 @@ function Dashboard({
   }, [devices]);
 
   const hasDevices = (devices || []).length > 0;
+  const hasLinkedDevices = devicesFetched ? hasDevices : true;
+  const linkedDeviceCount = devicesFetched ? (devices || []).length : '…';
+  const deleteActionLabel = hasLinkedDevices
+    ? devicesFetched
+      ? 'Unlink devices first'
+      : 'Checking devices...'
+    : 'Delete account';
   const emptyState = roleConfig.empty;
 
   useEffect(() => {
-    setAccountForm((prev) => ({ ...prev, email: accountEmail || '' }));
+    setEmailForm((prev) => ({ ...prev, email: accountEmail || '' }));
   }, [accountEmail]);
 
   useEffect(() => {
@@ -249,6 +358,8 @@ function Dashboard({
       if (status === 401 || status === 403) return; // keep devices as []
       // Log unexpected errors for debugging
       if (isMountedRef.current) deverror('Error fetching devices:', error);
+    } finally {
+      if (isMountedRef.current) setDevicesFetched(true);
     }
   };
 
@@ -597,33 +708,22 @@ function Dashboard({
     scheduleToastClear(5000);
   }
 
-  const validateAccountForm = () => {
+  const validateEmailForm = () => {
     const nextErrors = {};
-    const trimmedEmail = (accountForm.email || '').trim();
+    const trimmedEmail = (emailForm.email || '').trim();
     const emailChanged = Boolean(trimmedEmail) && trimmedEmail !== (accountEmail || '');
-    const passwordChanged = Boolean(accountForm.newPassword);
 
-    if (!emailChanged && !passwordChanged) {
-      nextErrors.form = 'Update email or password to save.';
+    if (!emailChanged) {
+      nextErrors.email = 'Enter a new contact email to update.';
     }
-
-    if (emailChanged && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = 'Enter a valid email address';
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      nextErrors.email = 'Enter a valid email address.';
     }
-
-    if (passwordChanged) {
-      const passwordIssue = describeAccountPasswordIssue(accountForm.newPassword);
-      if (passwordIssue) nextErrors.newPassword = passwordIssue;
-      if (accountForm.confirmPassword !== accountForm.newPassword) {
-        nextErrors.confirmPassword = 'Passwords do not match';
-      }
-    }
-
-    if ((emailChanged || passwordChanged) && !accountForm.currentPassword) {
+    if (!emailForm.currentPassword) {
       nextErrors.currentPassword = 'Current password is required.';
     }
 
-    setAccountErrors(nextErrors);
+    setEmailErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
       setToastMessage(Object.values(nextErrors)[0]);
       setToastType('error');
@@ -631,62 +731,252 @@ function Dashboard({
       return null;
     }
 
-    const payload = { currentPassword: accountForm.currentPassword };
-    if (emailChanged) payload.email = trimmedEmail;
-    if (passwordChanged) {
-      payload.newPassword = accountForm.newPassword;
-      payload.confirmPassword = accountForm.confirmPassword;
-    }
-    return payload;
+    return { email: trimmedEmail, currentPassword: emailForm.currentPassword };
   };
 
-  async function handleAccountSubmit(event) {
+  async function handleEmailSubmit(event) {
     event.preventDefault();
-    const payload = validateAccountForm();
+    const payload = validateEmailForm();
     if (!payload) return;
-    setIsUpdatingAccount(true);
+    setIsUpdatingEmail(true);
     try {
       axios.defaults.withCredentials = true;
       const backend_host = backendHost();
-      await axios.patch(`${backend_host}/accounts/profile`, payload);
+      await axios.patch(`${backend_host}/accounts/email`, payload);
       if (!isMountedRef.current) return;
-      setToastMessage('Account updated.');
+      setToastMessage('Email updated.');
       setToastType('success');
-      setAccountErrors({});
-      setAccountForm((prev) => ({
+      setEmailErrors({});
+      setEmailForm((prev) => ({
         ...prev,
+        email: payload.email,
         currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-        email: payload.email ?? prev.email,
       }));
+      setOpenSettingsSection(null);
       scheduleToastClear(6000);
       if (typeof onProfileRefresh === 'function') onProfileRefresh();
     } catch (error) {
       if (error.response) {
         const { data } = error.response;
         if (isMountedRef.current) {
-          setToastMessage(data?.message || 'Unable to update account.');
+          setToastMessage(data?.message || 'Unable to update email.');
           setToastType('error');
           const m = String(data?.message || '').toLowerCase();
           const next = {};
           if (m.includes('email')) next.email = true;
           if (m.includes('current password')) next.currentPassword = true;
-          if (m.includes('password')) next.newPassword = true;
-          setAccountErrors(next);
+          setEmailErrors(next);
           scheduleToastClear(6000);
         }
       } else {
         if (isMountedRef.current) {
-          setToastMessage('Unable to update account right now.');
+          setToastMessage('Unable to update email right now.');
           setToastType('error');
           scheduleToastClear(6000);
         }
       }
-      deverror('Error updating account profile:', error?.response || error);
+      deverror('Error updating account email:', error?.response || error);
     } finally {
       if (isMountedRef.current) {
-        setIsUpdatingAccount(false);
+        setIsUpdatingEmail(false);
+      }
+    }
+  }
+
+  const validateUsernameForm = () => {
+    const nextErrors = {};
+    const trimmedUsername = (usernameForm.newUsername || '').trim();
+    if (!trimmedUsername || trimmedUsername === (loggedInUser || '')) {
+      nextErrors.newUsername = 'Enter a new username to update.';
+    } else {
+      const usernameIssue = describeUsernameIssue(trimmedUsername);
+      if (usernameIssue) nextErrors.newUsername = usernameIssue;
+    }
+    if (!usernameForm.currentPassword) {
+      nextErrors.currentPassword = 'Current password is required.';
+    }
+
+    setUsernameErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setToastMessage(Object.values(nextErrors)[0]);
+      setToastType('error');
+      scheduleToastClear(6000);
+      return null;
+    }
+
+    return { newUsername: trimmedUsername, currentPassword: usernameForm.currentPassword };
+  };
+
+  async function handleUsernameSubmit(event) {
+    event.preventDefault();
+    const payload = validateUsernameForm();
+    if (!payload) return;
+    setIsUpdatingUsername(true);
+    try {
+      axios.defaults.withCredentials = true;
+      const backend_host = backendHost();
+      await axios.patch(`${backend_host}/accounts/username`, payload);
+      if (!isMountedRef.current) return;
+      setToastMessage('Username updated.');
+      setToastType('success');
+      setUsernameErrors({});
+      setUsernameForm((prev) => ({
+        ...prev,
+        newUsername: payload.newUsername,
+        currentPassword: '',
+      }));
+      setOpenSettingsSection(null);
+      scheduleToastClear(6000);
+      if (typeof onProfileRefresh === 'function') onProfileRefresh();
+    } catch (error) {
+      if (error.response) {
+        const { data } = error.response;
+        if (isMountedRef.current) {
+          setToastMessage(data?.message || 'Unable to update username.');
+          setToastType('error');
+          const m = String(data?.message || '').toLowerCase();
+          const next = {};
+          if (m.includes('username')) next.newUsername = true;
+          if (m.includes('password')) next.currentPassword = true;
+          setUsernameErrors(next);
+          scheduleToastClear(6000);
+        }
+      } else if (isMountedRef.current) {
+        setToastMessage('Unable to update username right now.');
+        setToastType('error');
+        scheduleToastClear(6000);
+      }
+      deverror('Error updating account username:', error?.response || error);
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdatingUsername(false);
+      }
+    }
+  }
+
+  const validatePasswordForm = () => {
+    const nextErrors = {};
+    const passwordChanged = Boolean(passwordForm.newPassword);
+
+    if (!passwordChanged) {
+      nextErrors.form = 'Enter a new password to update.';
+    }
+
+    if (passwordChanged) {
+      const passwordIssue = describeAccountPasswordIssue(passwordForm.newPassword);
+      if (passwordIssue) nextErrors.newPassword = passwordIssue;
+      if (passwordForm.confirmPassword !== passwordForm.newPassword) {
+        nextErrors.confirmPassword = 'Passwords do not match.';
+      }
+    }
+
+    if (passwordChanged && !passwordForm.currentPassword) {
+      nextErrors.currentPassword = 'Current password is required.';
+    }
+
+    setPasswordErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setToastMessage(Object.values(nextErrors)[0]);
+      setToastType('error');
+      scheduleToastClear(6000);
+      return null;
+    }
+
+    return {
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+      confirmPassword: passwordForm.confirmPassword,
+    };
+  };
+
+  async function handlePasswordSubmit(event) {
+    event.preventDefault();
+    const payload = validatePasswordForm();
+    if (!payload) return;
+    setIsUpdatingPassword(true);
+    try {
+      axios.defaults.withCredentials = true;
+      const backend_host = backendHost();
+      await axios.patch(`${backend_host}/accounts/password`, payload);
+      if (!isMountedRef.current) return;
+      setToastMessage('Password updated.');
+      setToastType('success');
+      setPasswordErrors({});
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setOpenSettingsSection(null);
+      scheduleToastClear(6000);
+      if (typeof onProfileRefresh === 'function') onProfileRefresh();
+    } catch (error) {
+      if (error.response) {
+        const { data } = error.response;
+        if (isMountedRef.current) {
+          setToastMessage(data?.message || 'Unable to update password.');
+          setToastType('error');
+          const m = String(data?.message || '').toLowerCase();
+          const next = {};
+          if (m.includes('current password')) next.currentPassword = true;
+          if (m.includes('password')) next.newPassword = true;
+          if (m.includes('match')) next.confirmPassword = true;
+          setPasswordErrors(next);
+          scheduleToastClear(6000);
+        }
+      } else {
+        if (isMountedRef.current) {
+          setToastMessage('Unable to update password right now.');
+          setToastType('error');
+          scheduleToastClear(6000);
+        }
+      }
+      deverror('Error updating account password:', error?.response || error);
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdatingPassword(false);
+      }
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (hasLinkedDevices) {
+      setToastMessage('Unlink and reset all devices via rs.local:3000 before deleting this account.');
+      setToastType('error');
+      scheduleToastClear(6000);
+      return;
+    }
+    setIsDeletingAccount(true);
+    try {
+      axios.defaults.withCredentials = true;
+      const backend_host = backendHost();
+      await axios.delete(`${backend_host}/accounts`);
+      if (!isMountedRef.current) return;
+      setToastMessage('Account deleted.');
+      setToastType('success');
+      scheduleToastClear(4000);
+      if (typeof onSignoutSuccess === 'function') onSignoutSuccess();
+    } catch (error) {
+      if (error.response) {
+        const { data } = error.response;
+        if (isMountedRef.current) {
+          setToastMessage(data?.message || 'Unable to delete account.');
+          setToastType('error');
+          if (data?.status === responseCodes.ACCOUNT_DELETE_HAS_DEVICES) {
+            setOpenSettingsSection('delete');
+          }
+          scheduleToastClear(7000);
+        }
+      } else if (isMountedRef.current) {
+        setToastMessage('Unable to delete account right now.');
+        setToastType('error');
+        scheduleToastClear(6000);
+      }
+      deverror('Error deleting account:', error?.response || error);
+    } finally {
+      if (isMountedRef.current) {
+        setIsDeletingAccount(false);
+        setShowDeleteConfirm(false);
       }
     }
   }
@@ -821,13 +1111,16 @@ function Dashboard({
               <button
                 key={section.id}
                 type="button"
-                role="tab"
-                aria-selected={activeSection === section.id}
-                className={`${styles.sectionTab} ${
-                  activeSection === section.id ? styles.sectionTabActive : ''
-                }`}
-                onClick={() => setActiveSection(section.id)}
-              >
+              role="tab"
+              aria-selected={activeSection === section.id}
+              className={`${styles.sectionTab} ${
+                activeSection === section.id ? styles.sectionTabActive : ''
+              }`}
+              onClick={() => setActiveSection(section.id)}
+            >
+                <span className={styles.sectionTabIcon} aria-hidden="true">
+                  {section.icon}
+                </span>
                 <span className={styles.sectionTabLabel}>{section.label}</span>
                 {section.badge && <span className={styles.sectionTabBadge}>{section.badge}</span>}
               </button>
@@ -1077,24 +1370,28 @@ function Dashboard({
                     <p className={styles.panelKicker}>Account</p>
                     <h3 className={styles.panelTitle}>Account settings</h3>
                     <p className={styles.panelSubtitle}>
-                      Manage your contact email and update your password when needed.
+                      Manage your username, contact email, password, or delete your account when safe.
                     </p>
-                  </div>
-                  <div className={styles.accountBadges}>
-                    <span
-                      className={`${styles.statusPill} ${
-                        passwordStatus === 'legacy' ? styles.statusPillWarn : styles.statusPillOk
-                      }`}
-                      title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
-                    >
-                      Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
-                    </span>
                   </div>
                 </div>
 
                 <div className={styles.accountSummary}>
                   <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>Username</p>
+                    <div className={styles.metaHeader}>
+                      <p className={styles.metaLabel}>Username</p>
+                      <button
+                        type="button"
+                        className={`${styles.metaEdit} ${
+                          openSettingsSection === 'username' ? styles.metaEditActive : ''
+                        }`}
+                        onClick={() => toggleSettingsSection('username')}
+                        aria-expanded={openSettingsSection === 'username'}
+                        aria-controls="username-settings-card"
+                      >
+                        <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
+                        Edit
+                      </button>
+                    </div>
                     <p className={styles.metaValue}>{loggedInUser || '—'}</p>
                   </div>
                   <div className={styles.metaItem}>
@@ -1104,127 +1401,481 @@ function Dashboard({
                     </p>
                   </div>
                   <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>Contact email</p>
+                    <div className={styles.metaHeader}>
+                      <p className={styles.metaLabel}>Contact email</p>
+                      <button
+                        type="button"
+                        className={`${styles.metaEdit} ${
+                          openSettingsSection === 'email' ? styles.metaEditActive : ''
+                        }`}
+                        onClick={() => toggleSettingsSection('email')}
+                        aria-expanded={openSettingsSection === 'email'}
+                        aria-controls="email-settings-card"
+                      >
+                        <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
+                        Edit
+                      </button>
+                    </div>
                     <p className={styles.metaValue}>{accountEmail || 'Not set'}</p>
                   </div>
                 </div>
 
-                <form className={styles.accountSettingsForm} onSubmit={handleAccountSubmit} noValidate>
-                  <div className={styles.settingsRow}>
-                    <label className={styles.settingsField} htmlFor="account-email">
-                      <span className={formStyles.fieldLabelRow}>
-                        Contact email
-                        <InfoTooltip
-                          label="Why we need your email"
-                          title="Contact email"
-                          variant="inline"
-                        >
-                          Used for account notices, password resets, and security updates.
-                        </InfoTooltip>
-                      </span>
-                      <input
-                        id="account-email"
-                        type="email"
-                        name="email"
-                        autoComplete="email"
-                        value={accountForm.email}
-                        placeholder="you@example.com"
-                        className={`${styles.settingsInput} ${accountErrors.email ? styles.inputError : ''}`}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAccountForm((prev) => ({ ...prev, email: value }));
-                          setAccountErrors((prev) => ({ ...prev, email: false, form: false }));
-                        }}
-                      />
-                    </label>
+                {(openSettingsSection === 'username' || openSettingsSection === 'email') && (
+                  <div className={styles.accountStack}>
+                    {openSettingsSection === 'username' && (
+                      <div className={styles.settingsCard} id="username-settings-card" aria-label="Update username">
+                        <div className={styles.cardHeaderRow}>
+                          <div>
+                            <p className={styles.panelKicker}>Username</p>
+                            <h4 className={styles.cardTitle}>Update username</h4>
+                            <p className={styles.cardSubtitle}>Change your username and keep your devices labeled correctly.</p>
+                          </div>
+                          <button
+                            type="button"
+                            className={`${styles.settingsToggle} ${
+                              openSettingsSection === 'username' ? styles.settingsToggleActive : ''
+                            }`}
+                            onClick={() => toggleSettingsSection(null)}
+                            aria-label="Close username editor"
+                          >
+                            Close
+                          </button>
+                        </div>
+                        <form className={styles.accountSettingsForm} onSubmit={handleUsernameSubmit} noValidate>
+                          <div className={styles.settingsRow}>
+                            <label className={styles.settingsField} htmlFor="account-username-new">
+                              New username
+                              <input
+                                id="account-username-new"
+                                type="text"
+                                name="newUsername"
+                                autoComplete="username"
+                                value={usernameForm.newUsername}
+                                placeholder="Enter new username"
+                                className={`${styles.settingsInput} ${
+                                  usernameErrors.newUsername ? styles.inputError : ''
+                                }`}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setUsernameForm((prev) => ({ ...prev, newUsername: value }));
+                                  setUsernameErrors((prev) => ({ ...prev, newUsername: false, form: false }));
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <div className={styles.settingsRow}>
+                            <label className={styles.settingsField} htmlFor="account-username-current-password">
+                              Current password
+                              <div className={styles.passwordField}>
+                                <input
+                                  id="account-username-current-password"
+                                  type={passwordVisibility.usernameCurrent ? 'text' : 'password'}
+                                  name="currentPassword"
+                                  autoComplete="current-password"
+                                  value={usernameForm.currentPassword}
+                                  placeholder="Enter current password"
+                                  className={`${styles.settingsInput} ${
+                                    usernameErrors.currentPassword ? styles.inputError : ''
+                                  }`}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setUsernameForm((prev) => ({ ...prev, currentPassword: value }));
+                                    setUsernameErrors((prev) => ({
+                                      ...prev,
+                                      currentPassword: false,
+                                      form: false,
+                                    }));
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.eyeToggle}
+                                  aria-label={`${
+                                    passwordVisibility.usernameCurrent ? 'Hide' : 'Show'
+                                  } current password`}
+                                  aria-pressed={passwordVisibility.usernameCurrent}
+                                  onClick={() =>
+                                    setPasswordVisibility((prev) => ({
+                                      ...prev,
+                                      usernameCurrent: !prev.usernameCurrent,
+                                    }))
+                                  }
+                                >
+                                  <EyeIcon revealed={passwordVisibility.usernameCurrent} />
+                                </button>
+                              </div>
+                            </label>
+                          </div>
+                          <div className={styles.settingsActions}>
+                            <button type="submit" className={styles.saveButton} disabled={isUpdatingUsername}>
+                              {isUpdatingUsername ? 'Updating...' : 'Save username'}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => toggleSettingsSection(null)}
+                              disabled={isUpdatingUsername}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    {openSettingsSection === 'email' && (
+                      <div className={styles.settingsCard} id="email-settings-card" aria-label="Update contact email">
+                        <div className={styles.cardHeaderRow}>
+                          <div>
+                            <p className={styles.panelKicker}>Contact email</p>
+                            <h4 className={styles.cardTitle}>Update contact email</h4>
+                            <p className={styles.cardSubtitle}>Used for notices, resets, and security updates.</p>
+                          </div>
+                          <button
+                            type="button"
+                            className={`${styles.settingsToggle} ${
+                              openSettingsSection === 'email' ? styles.settingsToggleActive : ''
+                            }`}
+                            onClick={() => toggleSettingsSection(null)}
+                            aria-label="Close email editor"
+                          >
+                            Close
+                          </button>
+                        </div>
+                        <form className={styles.accountSettingsForm} onSubmit={handleEmailSubmit} noValidate>
+                          <div className={styles.settingsRow}>
+                        <label className={styles.settingsField} htmlFor="account-email">
+                              <span className={formStyles.fieldLabelRow}>
+                                Contact email
+                              </span>
+                              <input
+                                id="account-email"
+                                type="email"
+                                name="email"
+                                autoComplete="email"
+                                value={emailForm.email}
+                                placeholder="you@example.com"
+                                className={`${styles.settingsInput} ${emailErrors.email ? styles.inputError : ''}`}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setEmailForm((prev) => ({ ...prev, email: value }));
+                                  setEmailErrors((prev) => ({ ...prev, email: false, form: false }));
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <div className={styles.settingsRow}>
+                            <label className={styles.settingsField} htmlFor="account-email-current-password">
+                              Current password
+                              <div className={styles.passwordField}>
+                                <input
+                                  id="account-email-current-password"
+                                  type={passwordVisibility.emailCurrent ? 'text' : 'password'}
+                                  name="currentPassword"
+                                  autoComplete="current-password"
+                                  value={emailForm.currentPassword}
+                                  placeholder="Enter current password"
+                                  className={`${styles.settingsInput} ${
+                                    emailErrors.currentPassword ? styles.inputError : ''
+                                  }`}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setEmailForm((prev) => ({ ...prev, currentPassword: value }));
+                                    setEmailErrors((prev) => ({
+                                      ...prev,
+                                      currentPassword: false,
+                                      form: false,
+                                    }));
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.eyeToggle}
+                                  aria-label={`${passwordVisibility.emailCurrent ? 'Hide' : 'Show'} current password`}
+                                  aria-pressed={passwordVisibility.emailCurrent}
+                                  onClick={() =>
+                                    setPasswordVisibility((prev) => ({
+                                      ...prev,
+                                      emailCurrent: !prev.emailCurrent,
+                                    }))
+                                  }
+                                >
+                                  <EyeIcon revealed={passwordVisibility.emailCurrent} />
+                                </button>
+                              </div>
+                            </label>
+                          </div>
+                          <div className={styles.settingsActions}>
+                            <button type="submit" className={styles.saveButton} disabled={isUpdatingEmail}>
+                              {isUpdatingEmail ? 'Updating...' : 'Save email'}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => toggleSettingsSection(null)}
+                              disabled={isUpdatingEmail}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                  <div className={styles.accountStack}>
+                    <div className={styles.settingsCard} aria-label="Password">
+                      <div className={styles.cardHeaderRow}>
+                        <div>
+                          <p className={styles.panelKicker}>Password</p>
+                          <h4 className={styles.cardTitle}>Update password</h4>
+                          <p className={styles.cardSubtitle}>Minimum 12 characters. Letters, numbers, and symbols allowed.</p>
+                        </div>
+                        <div className={styles.cardHeaderActions}>
+                          <span
+                            className={`${styles.statusPill} ${
+                              passwordStatus === 'legacy' ? styles.statusPillWarn : styles.statusPillOk
+                            }`}
+                            title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
+                          >
+                            Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
+                          </span>
+                          <button
+                            type="button"
+                            className={`${styles.settingsToggle} ${
+                              openSettingsSection === 'password' ? styles.settingsToggleActive : ''
+                            }`}
+                            onClick={() => toggleSettingsSection('password')}
+                            aria-expanded={openSettingsSection === 'password'}
+                            aria-controls="password-settings"
+                          >
+                            {openSettingsSection === 'password' ? 'Close' : 'Change'}
+                          </button>
+                        </div>
+                      </div>
+                      {openSettingsSection === 'password' && (
+                      <form className={styles.accountSettingsForm} id="password-settings" onSubmit={handlePasswordSubmit} noValidate>
+                        <div className={styles.settingsRow}>
+                          <label className={styles.settingsField} htmlFor="account-current-password">
+                            Current password
+                            <div className={styles.passwordField}>
+                              <input
+                                id="account-current-password"
+                                type={passwordVisibility.currentPassword ? 'text' : 'password'}
+                                name="currentPassword"
+                                autoComplete="current-password"
+                                value={passwordForm.currentPassword}
+                                placeholder="Enter current password"
+                                className={`${styles.settingsInput} ${
+                                  passwordErrors.currentPassword ? styles.inputError : ''
+                                }`}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setPasswordForm((prev) => ({ ...prev, currentPassword: value }));
+                                  setPasswordErrors((prev) => ({
+                                    ...prev,
+                                    currentPassword: false,
+                                    form: false,
+                                  }));
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className={styles.eyeToggle}
+                                aria-label={`${passwordVisibility.currentPassword ? 'Hide' : 'Show'} current password`}
+                                aria-pressed={passwordVisibility.currentPassword}
+                                onClick={() =>
+                                  setPasswordVisibility((prev) => ({
+                                    ...prev,
+                                    currentPassword: !prev.currentPassword,
+                                  }))
+                                }
+                              >
+                                <EyeIcon revealed={passwordVisibility.currentPassword} />
+                              </button>
+                            </div>
+                          </label>
+                        </div>
+                        <div className={styles.settingsRow}>
+                          <label className={styles.settingsField} htmlFor="account-new-password">
+                            New password
+                            <div className={styles.passwordField}>
+                              <input
+                                id="account-new-password"
+                                type={passwordVisibility.newPassword ? 'text' : 'password'}
+                                name="newPassword"
+                                autoComplete="new-password"
+                                value={passwordForm.newPassword}
+                                placeholder="Enter new password"
+                                className={`${styles.settingsInput} ${
+                                  passwordErrors.newPassword ? styles.inputError : ''
+                                }`}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setPasswordForm((prev) => ({ ...prev, newPassword: value }));
+                                  setPasswordErrors((prev) => ({ ...prev, newPassword: false, form: false }));
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className={styles.eyeToggle}
+                                aria-label={`${passwordVisibility.newPassword ? 'Hide' : 'Show'} new password`}
+                                aria-pressed={passwordVisibility.newPassword}
+                                onClick={() =>
+                                  setPasswordVisibility((prev) => ({
+                                    ...prev,
+                                    newPassword: !prev.newPassword,
+                                  }))
+                                }
+                              >
+                                <EyeIcon revealed={passwordVisibility.newPassword} />
+                              </button>
+                            </div>
+                          </label>
+                          <label className={styles.settingsField} htmlFor="account-confirm-password">
+                            Confirm new password
+                            <div className={styles.passwordField}>
+                              <input
+                                id="account-confirm-password"
+                                type={passwordVisibility.confirmPassword ? 'text' : 'password'}
+                                name="confirmPassword"
+                                autoComplete="new-password"
+                                value={passwordForm.confirmPassword}
+                                placeholder="Re-enter new password"
+                                className={`${styles.settingsInput} ${
+                                  passwordErrors.confirmPassword ? styles.inputError : ''
+                                }`}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setPasswordForm((prev) => ({ ...prev, confirmPassword: value }));
+                                  setPasswordErrors((prev) => ({
+                                    ...prev,
+                                    confirmPassword: false,
+                                    form: false,
+                                  }));
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className={styles.eyeToggle}
+                                aria-label={`${passwordVisibility.confirmPassword ? 'Hide' : 'Show'} confirmation password`}
+                                aria-pressed={passwordVisibility.confirmPassword}
+                                onClick={() =>
+                                  setPasswordVisibility((prev) => ({
+                                    ...prev,
+                                    confirmPassword: !prev.confirmPassword,
+                                  }))
+                                }
+                              >
+                                <EyeIcon revealed={passwordVisibility.confirmPassword} />
+                              </button>
+                            </div>
+                          </label>
+                        </div>
+                        <div className={styles.settingsActions}>
+                          <button type="submit" className={styles.saveButton} disabled={isUpdatingPassword}>
+                            {isUpdatingPassword ? 'Updating...' : 'Update password'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
                   </div>
 
-                  <div className={styles.settingsRow}>
-                    <label className={styles.settingsField} htmlFor="account-new-password">
-                      <span className={formStyles.fieldLabelRow}>
-                        New password
-                        <InfoTooltip
-                          label="Password requirements"
-                          title="Password requirements"
-                          variant="inline"
-                        >
-                          Minimum 12 characters. Letters, numbers, and special characters.
-                        </InfoTooltip>
-                      </span>
-                      <input
-                        id="account-new-password"
-                        type="password"
-                        name="newPassword"
-                        autoComplete="new-password"
-                        value={accountForm.newPassword}
-                        placeholder="Enter new password"
-                        className={`${styles.settingsInput} ${
-                          accountErrors.newPassword ? styles.inputError : ''
+                  <div className={`${styles.settingsCard} ${styles.dangerCard}`} aria-label="Delete account">
+                    <div className={styles.cardHeaderRow}>
+                      <div>
+                        <p className={styles.panelKicker}>Danger zone</p>
+                        <h4 className={styles.cardTitle}>Delete account</h4>
+                        <p className={styles.cardSubtitle}>
+                          Remove this contributor account after unlinking all devices.
+                        </p>
+                        <p className={styles.settingsSummary}>
+                          Devices linked: {linkedDeviceCount}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${styles.settingsToggle} ${
+                          openSettingsSection === 'delete' ? styles.settingsToggleActive : ''
                         }`}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAccountForm((prev) => ({ ...prev, newPassword: value }));
-                          setAccountErrors((prev) => ({ ...prev, newPassword: false, form: false }));
-                        }}
-                      />
-                    </label>
-                    <label className={styles.settingsField} htmlFor="account-confirm-password">
-                      Confirm new password
-                      <input
-                        id="account-confirm-password"
-                        type="password"
-                        name="confirmPassword"
-                        autoComplete="new-password"
-                        value={accountForm.confirmPassword}
-                        placeholder="Re-enter new password"
-                        className={`${styles.settingsInput} ${
-                          accountErrors.confirmPassword ? styles.inputError : ''
-                        }`}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAccountForm((prev) => ({ ...prev, confirmPassword: value }));
-                          setAccountErrors((prev) => ({
-                            ...prev,
-                            confirmPassword: false,
-                            form: false,
-                          }));
-                        }}
-                      />
-                    </label>
+                        onClick={() => toggleSettingsSection('delete')}
+                        aria-expanded={openSettingsSection === 'delete'}
+                        aria-controls="delete-settings"
+                      >
+                        {openSettingsSection === 'delete' ? 'Close' : 'Review'}
+                      </button>
+                    </div>
+                    {openSettingsSection === 'delete' && (
+                      <div id="delete-settings">
+                        <div className={styles.settingsRow}>
+                          <p className={styles.settingsHint}>
+                            <span className={styles.iconBadge} aria-hidden="true">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                <path d="M9 15 5.5 18.5a3 3 0 0 1-4-4L5 11" />
+                                <path d="M15 9 18.5 5.5a3 3 0 0 1 4 4L19 13" />
+                                <path d="m5.5 11.5 7 1" />
+                                <path d="m17.5 12.5-7-1" />
+                              </svg>
+                            </span>
+                            All devices must be unlinked and reset via the sender software (rs.local:3000) before deleting this account.
+                          </p>
+                        </div>
+                        <div className={styles.settingsActions}>
+                          <button
+                            type="button"
+                            className={styles.secondaryButton}
+                            disabled={isDeletingAccount || hasLinkedDevices}
+                            onClick={() => setShowDeleteConfirm(true)}
+                          >
+                            {deleteActionLabel}
+                          </button>
+                        </div>
+                        {showDeleteConfirm && (
+                          <div className={styles.confirmBox}>
+                            <p className={styles.confirmTitle}>Delete this account?</p>
+                            <ul className={styles.confirmList}>
+                              <li>All devices must be unlinked and reset first.</li>
+                              <li>Device unlinking is done via sender software (rs.local:3000).</li>
+                              <li>This removes access to linked dashboards and tokens.</li>
+                            </ul>
+                            <div className={styles.confirmActions}>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                            onClick={() => setShowDeleteConfirm(false)}
+                            disabled={isDeletingAccount}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.dangerButton}
+                            onClick={handleDeleteAccount}
+                            disabled={isDeletingAccount || hasLinkedDevices}
+                          >
+                            {isDeletingAccount ? 'Deleting...' : (
+                              <>
+                                <span className={styles.iconBadge} aria-hidden="true">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                                    <path d="M10 11v6" />
+                                    <path d="M14 11v6" />
+                                    <path d="M5 6h14l-1 14H6L5 6Z" />
+                                  </svg>
+                                </span>
+                                Confirm delete
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  <div className={styles.settingsRow}>
-                    <label className={styles.settingsField} htmlFor="account-current-password">
-                      Current password
-                      <input
-                        id="account-current-password"
-                        type="password"
-                        name="currentPassword"
-                        autoComplete="current-password"
-                        value={accountForm.currentPassword}
-                        placeholder="Enter current password"
-                        className={`${styles.settingsInput} ${
-                          accountErrors.currentPassword ? styles.inputError : ''
-                        }`}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAccountForm((prev) => ({ ...prev, currentPassword: value }));
-                          setAccountErrors((prev) => ({
-                            ...prev,
-                            currentPassword: false,
-                            form: false,
-                          }));
-                        }}
-                      />
-                    </label>
+                    )}
                   </div>
-
-                  <div className={styles.settingsActions}>
-                    <button type="submit" className={styles.saveButton} disabled={isUpdatingAccount}>
-                      {isUpdatingAccount ? 'Saving...' : 'Save changes'}
-                    </button>
-                  </div>
-                </form>
+                </div>
               </section>
             </div>
           )}

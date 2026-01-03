@@ -44,6 +44,12 @@
   }
 }
 
+@media (max-height: 600px) {
+  :root {
+    --header-h: 56px; /* compact header height for landscape/short viewports */
+  }
+}
+
 :root[data-theme='dark'] {
   --text-primary: #e5e7eb;
   --muted: #94a3b8;

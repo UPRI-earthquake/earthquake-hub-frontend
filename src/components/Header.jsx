@@ -36,8 +36,16 @@ function AccountIcon({ className }) {
  * Shows active station count on the Home page and provides sign-in/up and dashboard.
  * @param {Object} props
  * @param {Array<Object>} [props.initStations] Optional initial stations to compute online count
+ * @param {'default' | 'secure'} [props.variant] Header visual mode
+ * @param {boolean} [props.showAccountControls] Whether to render auth/dashboard controls
+ * @param {boolean} [props.showThemeToggle] Whether to show theme toggle
  */
-const Header = ({ initStations = [] }) => {
+const Header = ({
+  initStations = [],
+  variant = 'default',
+  showAccountControls = true,
+  showThemeToggle = true,
+}) => {
   const [stations] = useState(initStations);
   const stationsCount = stations.filter((station) => station.activity === 'active').length;
 
@@ -56,15 +64,15 @@ const Header = ({ initStations = [] }) => {
 
   const location = useLocation(); // Get the current path
   const navigate = useNavigate(); // For navigation
+  const isSecureFlow = variant === 'secure' || showAccountControls === false;
+  const themeEnabled = showThemeToggle !== false;
 
   // Check if the current path is either /significant-eqs or /significant-eq-info
   const isSignificantEQPage =
     location.pathname === '/significant-eqs' || location.pathname === '/significant-eq-info';
 
   // Handle Home button click
-  const handleHomeClick = () => {
-    navigate('/'); // Navigate to the home page
-  };
+  const handleHomeClick = () => navigate('/');
 
   const openAuthModal = (view = 'signin') => {
     setAuthView(view);
@@ -172,18 +180,46 @@ const Header = ({ initStations = [] }) => {
   }, [applySessionFromProfile, handleSessionExpiry]);
 
   useEffect(() => {
+    if (isSecureFlow) return undefined;
     fetchProfile();
-  }, [fetchProfile]);
+    return undefined;
+  }, [fetchProfile, isSecureFlow]);
 
   useEffect(() => {
-    if (!isLoggedIn) return undefined;
+    const onAuth = (ev) => {
+      const { view = 'signin' } = (ev && ev.detail) || {};
+      setAuthView(view);
+      setShowAuthModal(true);
+    };
+    window.addEventListener('ui:auth', onAuth);
+    try {
+      const queue = (typeof window !== 'undefined' && window.__authQueue) || [];
+      if (queue.length) {
+        const last = queue[queue.length - 1];
+        window.__authQueue = [];
+        onAuth({ detail: last });
+      }
+    } catch (_) {}
+    return () => {
+      window.removeEventListener('ui:auth', onAuth);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || isSecureFlow) return undefined;
     fetchProfile();
     const sessionPoll = setInterval(() => {
       fetchProfile();
     }, 5 * 60 * 1000);
 
     return () => clearInterval(sessionPoll);
-  }, [fetchProfile, isLoggedIn]);
+  }, [fetchProfile, isLoggedIn, isSecureFlow]);
+
+  useEffect(() => {
+    if (isSecureFlow) {
+      setShowDashboard(false);
+    }
+  }, [isSecureFlow]);
 
   // Global toast bridge: react to UI events dispatched by services (e.g., push subscription)
   useEffect(() => {
@@ -213,20 +249,27 @@ const Header = ({ initStations = [] }) => {
   }, []);
 
   return (
-    <div className={styles.header}>
+    <div className={`${styles.header} ${isSecureFlow ? styles.secure : ''}`}>
       {/* Skip to content (visible on keyboard focus) */}
       <a href="#main" className={styles.skipLink} aria-label="Skip to main content">
         Skip to content
       </a>
-      <div className={styles.headerContent}>
+      <div className={`${styles.headerContent} ${isSecureFlow ? styles.secureContent : ''}`}>
         <div className={styles.headerLeft}>
-          <Logo className={styles.logo} role="img" aria-label="UPRI logo" />
-          <div className={styles.brandText}>
-            <p className={styles.kicker}>Earthquake Hub</p>
-            <h1 className={styles.title} title="Citizen Science • UPRI">
-              CS•UPRI
-            </h1>
-          </div>
+          <button
+            type="button"
+            className={styles.brandButton}
+            aria-label="Go to Earthquake Hub home"
+            onClick={handleHomeClick}
+          >
+            <Logo className={styles.logo} role="img" aria-label="UPRI logo" />
+            <div className={styles.brandText}>
+              <p className={styles.kicker}>Earthquake Hub</p>
+              <h1 className={styles.title} title="Citizen Science • UPRI">
+                CS•UPRI
+              </h1>
+            </div>
+          </button>
           {/* Temporarily hide header stations online indicator to avoid redundancy with sidebar */}
           {false && (
             <p>
@@ -234,51 +277,53 @@ const Header = ({ initStations = [] }) => {
               {stationsCount}
             </p>
           )}
-        </div>
+      </div>
         <div className={styles.headerRight}>
-          <ThemeToggle size="compact" />
-          {isLoggedIn ? (
-            <div
-              className={styles.menuToggle}
-              onClick={handleDashboardToggle}
-              role="button"
-              tabIndex={0}
-              aria-label={showDashboard ? 'Toggle dashboard' : 'Toggle dashboard'}
-              aria-expanded={showDashboard}
-              aria-controls="dashboard-panel"
-              title="Dashboard"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') handleDashboardToggle();
-              }}
-            >
-              {/* Keep burger icon even when dashboard is open; rely on in-panel × to close */}
-              <BurgerMenu className={styles.burgerMenu} />
-            </div>
-          ) : (
-            <>
-              {isSignificantEQPage && (
-                // Show Home button if on /significant-eqs or /significant-eq-info
-                <Button
-                  hasOutline={false}
-                  onClick={handleHomeClick}
-                  aria-label="Go to home"
-                  title="Home"
-                  data-size="compact"
-                >
-                  Home
-                </Button>
-              )}
-              <button
-                type="button"
-                className={styles.accountEntry}
-                aria-label="Contributor account"
-                title="Contributor account"
-                onClick={() => openAuthModal('signin')}
+          {themeEnabled && <ThemeToggle size="compact" />}
+          {!isSecureFlow && showAccountControls && (
+            isLoggedIn ? (
+              <div
+                className={styles.menuToggle}
+                onClick={handleDashboardToggle}
+                role="button"
+                tabIndex={0}
+                aria-label={showDashboard ? 'Toggle dashboard' : 'Toggle dashboard'}
+                aria-expanded={showDashboard}
+                aria-controls="dashboard-panel"
+                title="Dashboard"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handleDashboardToggle();
+                }}
               >
-                <AccountIcon className={styles.accountIcon} />
-                <span className={styles.accountLabel}>Account</span>
-              </button>
-            </>
+                {/* Keep burger icon even when dashboard is open; rely on in-panel × to close */}
+                <BurgerMenu className={styles.burgerMenu} />
+              </div>
+            ) : (
+              <>
+                {isSignificantEQPage && (
+                  // Show Home button if on /significant-eqs or /significant-eq-info
+                  <Button
+                    hasOutline={false}
+                    onClick={handleHomeClick}
+                    aria-label="Go to home"
+                    title="Home"
+                    data-size="compact"
+                  >
+                    Home
+                  </Button>
+                )}
+                <button
+                  type="button"
+                  className={styles.accountEntry}
+                  aria-label="Contributor account"
+                  title="Contributor account"
+                  onClick={() => openAuthModal('signin')}
+                >
+                  <AccountIcon className={styles.accountIcon} />
+                  <span className={styles.accountLabel}>Account</span>
+                </button>
+              </>
+            )
           )}
         </div>
       </div>
@@ -287,7 +332,7 @@ const Header = ({ initStations = [] }) => {
         toastType={toastType}
         onClose={() => setToastMessage('')}
       />
-      {showAuthModal && (
+      {!isSecureFlow && showAuthModal && (
         <AuthModal
           initialView={authView}
           onClose={handleAuthClose}
@@ -295,7 +340,7 @@ const Header = ({ initStations = [] }) => {
           onSignUpSuccess={handleSignUpSuccess}
         />
       )}
-      {showDashboard && (
+      {!isSecureFlow && showDashboard && (
         <Dashboard
           onClick={handleDashboardToggle}
           onEscapeClick={handleDashboardToggle}

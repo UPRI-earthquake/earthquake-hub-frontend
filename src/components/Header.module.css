@@ -10,6 +10,10 @@
   background: transparent;
 }
 
+.secure {
+  --header-h: 64px;
+}
+
 .headerContent {
   --header-padding-y: var(--space-1-5, 12px);
   --header-padding-x: 16px;
@@ -34,12 +38,40 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
+.secureContent {
+  --header-padding-y: 10px;
+  --header-padding-x: 14px;
+  --header-gap: 10px;
+  --header-logo-size: 40px;
+  border-radius: 0 0 14px 14px;
+}
+
 .headerLeft {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   color: var(--text-primary);
   min-width: 0;
+}
+
+.brandButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.brandButton:focus-visible {
+  outline: 2px solid rgba(14, 165, 233, 0.5);
+  outline-offset: 4px;
+  border-radius: 14px;
 }
 
 .headerLeft > p {
@@ -260,6 +292,9 @@ html[data-theme='imagery'] .accountEntry:hover {
     --header-logo-size: 42px;
     width: calc(100% - 10px);
   }
+  .secure {
+    --header-h: 60px;
+  }
   .title {
     font-size: 22px;
   }
@@ -280,6 +315,9 @@ html[data-theme='imagery'] .accountEntry:hover {
     --header-logo-size: 36px;
     width: calc(100% - 8px);
     border-radius: 0 0 14px 14px;
+  }
+  .secure {
+    --header-h: 56px;
   }
   .headerLeft {
     gap: 10px;

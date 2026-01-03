@@ -271,6 +271,42 @@
   font-size: 14px;
 }
 
+.passwordField {
+  position: relative;
+}
+
+.passwordField input[type='password'],
+.passwordField input[type='text'] {
+  padding-right: 42px;
+}
+
+.eyeToggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 120ms ease, transform 120ms ease;
+}
+
+.eyeToggle:hover {
+  color: var(--primary);
+  transform: translateY(-50%) scale(1.02);
+}
+
+.eyeToggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .inlineFields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

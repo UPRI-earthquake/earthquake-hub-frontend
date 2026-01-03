@@ -277,6 +277,12 @@
   letter-spacing: 0.02em;
 }
 
+.sectionTabIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .sectionDescription {
   margin: 2px 0 8px;
   color: var(--muted);
@@ -726,6 +732,19 @@
   background: #f8fafc;
 }
 
+html[data-theme='dark'] .metaItem,
+html[data-theme='imagery'] .metaItem {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.metaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .metaLabel {
   margin: 0 0 4px;
   font-size: 12px;
@@ -738,6 +757,54 @@
   margin: 0;
   font-weight: 700;
   color: #0f172a;
+}
+
+html[data-theme='dark'] .metaValue,
+html[data-theme='imagery'] .metaValue {
+  color: #e5e7eb;
+}
+
+.metaEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+
+html[data-theme='dark'] .metaEdit,
+html[data-theme='imagery'] .metaEdit {
+  background: #0f172a;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+
+.metaEdit:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.metaEditActive {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.18);
+}
+
+html[data-theme='dark'] .metaEditActive,
+html[data-theme='imagery'] .metaEditActive {
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.28);
+}
+
+.metaEditIcon {
+  font-size: 12px;
+  line-height: 1;
 }
 
 .accountSettingsForm {
@@ -780,10 +847,138 @@
   box-sizing: border-box;
 }
 
+.passwordField {
+  position: relative;
+}
+
+.passwordField .settingsInput {
+  padding-right: 42px;
+}
+
+.eyeToggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 120ms ease, transform 120ms ease;
+}
+
+.eyeToggle:hover {
+  color: var(--primary);
+  transform: translateY(-50%) scale(1.02);
+}
+
+.eyeToggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .settingsInput:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+html[data-theme='dark'] .settingsInput,
+html[data-theme='imagery'] .settingsInput {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+.accountStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingsCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fdfefe;
+}
+
+.settingsToggle {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.settingsToggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.settingsToggleActive {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.16);
+}
+
+.settingsSummary {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cardHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.cardHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.cardSubtitle {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+html[data-theme='dark'] .settingsCard,
+html[data-theme='imagery'] .settingsCard {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme='dark'] .settingsToggle,
+html[data-theme='imagery'] .settingsToggle {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+}
+
+html[data-theme='dark'] .dangerCard {
+  background: #1a0c0c;
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .inputError {
@@ -802,6 +997,52 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.inlineForm {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.inlineField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.inlineField small {
+  color: var(--muted);
+}
+
+.inlineActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iconBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+}
+
+html[data-theme='dark'] .inlineForm,
+html[data-theme='imagery'] .inlineForm {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
 }
 
 .saveButton {
@@ -829,10 +1070,115 @@
   box-shadow: none;
 }
 
+.secondaryButton {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.secondaryButton:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.dangerButton {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid #ef4444;
+  background: linear-gradient(120deg, #ef4444, #f87171);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.25);
+  transition: transform 120ms ease, box-shadow 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dangerButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.3);
+}
+
+.dangerButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .saveButton,
+html[data-theme='imagery'] .saveButton {
+  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.35);
+}
+
+html[data-theme='dark'] .secondaryButton,
+html[data-theme='imagery'] .secondaryButton {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+}
+
 .settingsSupport {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+.dangerCard {
+  border-color: #fca5a5;
+  background: #fff7f7;
+}
+
+.confirmBox {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  margin-top: 10px;
+}
+
+.confirmTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.confirmList {
+  margin: 0 0 12px 18px;
+  padding: 0;
+  color: var(--muted);
+}
+
+.confirmList li {
+  margin-bottom: 6px;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+html[data-theme='dark'] .confirmBox,
+html[data-theme='imagery'] .confirmBox {
+  background: #0f172a;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Mobile-friendly adjustments */

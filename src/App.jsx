@@ -7,6 +7,7 @@ import ConsentBanner from './components/ConsentBanner';
 // Lazy-load heavy routes to improve initial load
 const SignificantEQsPage = lazy(() => import('./pages/SignificantEQsPage'));
 const EQInfoPage = lazy(() => import('./pages/EQInfoPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 /**
  * Root application router and top-level layout. Routes are split to reduce
@@ -23,6 +24,7 @@ function App() {
             <Route path="/" exact element={<HomePage />} />
             <Route path="/significant-eqs" element={<SignificantEQsPage />} />
             <Route path="/significant-eq-info" element={<EQInfoPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Routes>
         </Suspense>
       </Router>

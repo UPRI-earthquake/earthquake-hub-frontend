@@ -96,6 +96,43 @@ function describeRegistrationPasswordIssue(password) {
   return '';
 }
 
+const USERNAME_RULE = {
+  min: 3,
+  max: 32,
+  pattern: /^[a-zA-Z0-9._-]+$/,
+};
+
+function describeUsernameIssue(username, label = 'Username') {
+  const value = (username || '').trim();
+  if (!value) return `${label} is required`;
+  if (value.length < USERNAME_RULE.min) return `${label} must be at least ${USERNAME_RULE.min} characters.`;
+  if (value.length > USERNAME_RULE.max) return `${label} must be ${USERNAME_RULE.max} characters or fewer.`;
+  if (!USERNAME_RULE.pattern.test(value)) {
+    return `${label} can include letters, numbers, dashes, underscores, and periods only.`;
+  }
+  return '';
+}
+
+function EyeIcon({ revealed = false }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M1.5 12s3.5-6 10.5-6 10.5 6 10.5 6-3.5 6-10.5 6S1.5 12 1.5 12Z" />
+      <circle cx="12" cy="12" r="3.25" />
+      {!revealed && <line x1="4" y1="4" x2="20" y2="20" />}
+    </svg>
+  );
+}
+
 const AuthModal = ({ initialView = 'signin', onClose, onSignInSuccess, onSignUpSuccess }) => {
   const [activeView, setActiveView] = useState(initialView);
   const formRef = useRef(null);
@@ -293,6 +330,7 @@ function SignInFields({ onSuccess, onForgotPassword }) {
   const [toastType, setToastType] = useState('error');
   const [selectedRole, setSelectedRole] = useState('citizen');
   const [errors, setErrors] = useState({});
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleForgotPassword = () => {
     if (typeof onForgotPassword === 'function') onForgotPassword();
@@ -304,11 +342,12 @@ function SignInFields({ onSuccess, onForgotPassword }) {
   };
 
   function validateClient(event) {
-    const username = event.target.elements.username.value.trim();
+    const identifier =
+      event.target.elements.identifier?.value.trim() || event.target.elements.username?.value.trim() || '';
     const password = event.target.elements.password.value || '';
     const role = event.target.elements.role.value;
     const nextErrors = {};
-    if (!username) nextErrors.username = 'Username is required';
+    if (!identifier) nextErrors.identifier = 'Username or email is required';
     if (!password) nextErrors.password = 'Password is required';
     if (!role) nextErrors.role = 'Role is required';
     setErrors(nextErrors);
@@ -317,22 +356,20 @@ function SignInFields({ onSuccess, onForgotPassword }) {
       setToastType('error');
       return null;
     }
-    return { username, password, role };
+    return { identifier, password, role };
   }
 
   async function handleSignInSubmit(event) {
     event.preventDefault();
-    const username = event.target.elements.username.value;
-    const password = event.target.elements.password.value;
-    const role = event.target.elements.role.value;
     const valid = validateClient(event);
     if (!valid) return;
+    const { identifier, password, role } = valid;
     try {
       axios.defaults.withCredentials = true;
       const response = await axios.post(`${backend_host}/accounts/authenticate`, {
-        username: username,
-        password: password,
-        role: role,
+        identifier,
+        password,
+        role,
       });
 
       if (response.data.status === responseCodes.AUTHENTICATION_TOKEN_COOKIE) {
@@ -341,7 +378,8 @@ function SignInFields({ onSuccess, onForgotPassword }) {
           passwordStatus: response.data.passwordStatus,
           passwordPolicyVersion: response.data.passwordPolicyVersion,
         };
-        onSuccess(username, role, authMeta);
+        const resolvedUsername = response.data.username || identifier;
+        onSuccess(resolvedUsername, role, authMeta);
       } else {
         devlog('Something went wrong in submitting sign-in request');
       }
@@ -354,7 +392,7 @@ function SignInFields({ onSuccess, onForgotPassword }) {
         const next = {};
         if (m.includes('role')) next.role = true;
         if (m.includes('password')) next.password = true;
-        if (m.includes("doesn't exists") || m.includes('user') || m.includes('username')) next.username = true;
+        if (m.includes('username') || m.includes('email') || m.includes('credential')) next.identifier = true;
         setErrors(next);
         deverror('Error occurred while signing in:', data);
       } else {
@@ -366,28 +404,39 @@ function SignInFields({ onSuccess, onForgotPassword }) {
   return (
     <form className={styles.authForm} onSubmit={handleSignInSubmit} noValidate>
       <label className={styles.fieldGroup} htmlFor="signin-username">
-        Contributor username
+        Username or email
         <input
           id="signin-username"
           type="text"
-          name="username"
+          name="identifier"
           autoComplete="username"
-          placeholder="your-username"
-          className={errors.username ? styles.inputError : ''}
-          onChange={() => setErrors((prev) => ({ ...prev, username: false }))}
+          placeholder="Enter username or email"
+          className={errors.identifier ? styles.inputError : ''}
+           onChange={() => setErrors((prev) => ({ ...prev, identifier: false }))}
         />
       </label>
       <label className={styles.fieldGroup} htmlFor="signin-password">
         Password
-        <input
-          id="signin-password"
-          type="password"
-          name="password"
-          autoComplete="current-password"
-          placeholder="Enter password"
-          className={errors.password ? styles.inputError : ''}
-          onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
-        />
+        <div className={styles.passwordField}>
+          <input
+            id="signin-password"
+            type={passwordVisible ? 'text' : 'password'}
+            name="password"
+            autoComplete="current-password"
+            placeholder="Enter password"
+            className={errors.password ? styles.inputError : ''}
+            onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
+          />
+          <button
+            type="button"
+            className={styles.eyeToggle}
+            aria-label={`${passwordVisible ? 'Hide' : 'Show'} password`}
+            aria-pressed={passwordVisible}
+            onClick={() => setPasswordVisible((prev) => !prev)}
+          >
+            <EyeIcon revealed={passwordVisible} />
+          </button>
+        </div>
       </label>
       <label className={styles.fieldGroup} htmlFor="signin-role">
         Contributor role
@@ -431,6 +480,10 @@ function SignUpFields({ onSuccess }) {
 
   const [selectedRole, setSelectedRole] = useState('citizen');
   const [errors, setErrors] = useState({});
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    password: false,
+    confirmPassword: false,
+  });
 
   const handleRoleChange = (event) => {
     setSelectedRole(event.target.value);
@@ -446,7 +499,8 @@ function SignUpFields({ onSuccess }) {
     const nextErrors = {};
     if (!role) nextErrors.role = 'Role is required';
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) nextErrors.email = 'Enter a valid email address';
-    if (!username) nextErrors.username = 'Username is required';
+    const usernameIssue = describeUsernameIssue(username, 'Username');
+    if (usernameIssue) nextErrors.username = usernameIssue;
     const passwordIssue = describeRegistrationPasswordIssue(password);
     if (passwordIssue) nextErrors.password = passwordIssue;
     if (password && confirmPassword !== password) nextErrors.confirmPassword = 'Passwords do not match';
@@ -468,8 +522,8 @@ function SignUpFields({ onSuccess }) {
   async function handleSignUpSubmit(event) {
     event.preventDefault();
     const role = event.target.elements.role.value;
-    const email = event.target.elements.email.value;
-    const username = event.target.elements.username.value;
+    const email = (event.target.elements.email.value || '').trim();
+    const username = (event.target.elements.username.value || '').trim();
     const password = event.target.elements.password.value;
     const confirmPassword = event.target.elements.confirmPassword.value;
     const ok = validateClient(event);
@@ -593,28 +647,57 @@ function SignUpFields({ onSuccess }) {
               Minimum 12 characters. Letters, numbers, and special characters.
             </InfoTooltip>
           </span>
-          <input
-            id="signup-password"
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            placeholder="Enter password"
-            className={errors.password ? styles.inputError : ''}
-            onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
-          />
+          <div className={styles.passwordField}>
+            <input
+              id="signup-password"
+              type={passwordVisibility.password ? 'text' : 'password'}
+              name="password"
+              autoComplete="new-password"
+              placeholder="Enter password"
+              className={errors.password ? styles.inputError : ''}
+              onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
+            />
+            <button
+              type="button"
+              className={styles.eyeToggle}
+              aria-label={`${passwordVisibility.password ? 'Hide' : 'Show'} password`}
+              aria-pressed={passwordVisibility.password}
+              onClick={() =>
+                setPasswordVisibility((prev) => ({ ...prev, password: !prev.password }))
+              }
+            >
+              <EyeIcon revealed={passwordVisibility.password} />
+            </button>
+          </div>
         </label>
       </div>
       <label className={styles.fieldGroup} htmlFor="signup-password-confirm">
         Confirm password
-        <input
-          id="signup-password-confirm"
-          type="password"
-          name="confirmPassword"
-          autoComplete="new-password"
-          placeholder="Re-enter password"
-          className={errors.confirmPassword ? styles.inputError : ''}
-          onChange={() => setErrors((prev) => ({ ...prev, confirmPassword: false }))}
-        />
+        <div className={styles.passwordField}>
+          <input
+            id="signup-password-confirm"
+            type={passwordVisibility.confirmPassword ? 'text' : 'password'}
+            name="confirmPassword"
+            autoComplete="new-password"
+            placeholder="Re-enter password"
+            className={errors.confirmPassword ? styles.inputError : ''}
+            onChange={() => setErrors((prev) => ({ ...prev, confirmPassword: false }))}
+          />
+          <button
+            type="button"
+            className={styles.eyeToggle}
+            aria-label={`${passwordVisibility.confirmPassword ? 'Hide' : 'Show'} confirmation password`}
+            aria-pressed={passwordVisibility.confirmPassword}
+            onClick={() =>
+              setPasswordVisibility((prev) => ({
+                ...prev,
+                confirmPassword: !prev.confirmPassword,
+              }))
+            }
+          >
+            <EyeIcon revealed={passwordVisibility.confirmPassword} />
+          </button>
+        </div>
       </label>
       <div className={styles.formFooter}>
         <div className={styles.inlineToast}>
@@ -652,7 +735,7 @@ function RecoverPasswordFields({ onBack }) {
       axios.defaults.withCredentials = true;
       await axios.post(`${backend_host}/accounts/forgot-password`, { email });
       setToastMessage(
-        'If this email is registered, we sent a verification link or code to reset your password.',
+        'If this email is registered, we sent a reset link to update your password.',
       );
       setToastType('success');
     } catch (error) {
@@ -668,8 +751,8 @@ function RecoverPasswordFields({ onBack }) {
     <form className={styles.authForm} onSubmit={handleSubmit} noValidate>
       <p className={styles.intentTitle}>Reset your password</p>
       <p className={styles.intentText}>
-        Enter the email linked to your contributor account. We will email a verification link or
-        code if an account exists.
+        Enter the email linked to your contributor account. We will email a reset link if an account
+        exists.
       </p>
       <label className={styles.fieldGroup} htmlFor="recover-email">
         Registered email
@@ -688,8 +771,8 @@ function RecoverPasswordFields({ onBack }) {
           For security, we never confirm whether an email exists in the system.
         </p>
         <ol className={styles.resetSteps}>
-          <li>Check your email for a verification link or code.</li>
-          <li>Follow the link to confirm your identity.</li>
+          <li>Check your email for a password reset link.</li>
+          <li>Open the link to confirm your identity.</li>
           <li>Create a new password to complete the reset.</li>
         </ol>
       </div>
