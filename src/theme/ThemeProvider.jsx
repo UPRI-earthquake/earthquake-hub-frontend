@@ -6,6 +6,8 @@ const ThemeContext = createContext({
   systemTheme: 'light',
   setTheme: () => {},
   effectiveTheme: 'light',
+  themeToggleDisabled: false,
+  setThemeToggleDisabled: () => {},
 });
 
 const STORAGE_KEY = 'earthquake-hub-theme';
@@ -29,6 +31,7 @@ export function ThemeProvider({ children }) {
   // theme: user preference; null means follow system
   const [theme, setThemeState] = useState(() => readStoredPreference());
   const [systemTheme, setSystemTheme] = useState(() => getSystemTheme());
+  const [themeToggleDisabled, setThemeToggleDisabledState] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
@@ -71,6 +74,10 @@ export function ThemeProvider({ children }) {
     setThemeState((prev) => (prev === normalized ? prev : normalized));
   }, []);
 
+  const setThemeToggleDisabled = useCallback((next) => {
+    setThemeToggleDisabledState(Boolean(next));
+  }, []);
+
   const value = useMemo(
     () => ({
       theme,
@@ -78,8 +85,10 @@ export function ThemeProvider({ children }) {
       resolvedTheme,
       setTheme,
       effectiveTheme: resolvedTheme,
+      themeToggleDisabled,
+      setThemeToggleDisabled,
     }),
-    [theme, systemTheme, resolvedTheme, setTheme],
+    [theme, systemTheme, resolvedTheme, setTheme, themeToggleDisabled, setThemeToggleDisabled],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

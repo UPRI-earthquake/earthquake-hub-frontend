@@ -79,8 +79,8 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
       ref={output}
       data-publicid={publicID}
       data-selectid={publicID}
-      title={isSelected ? 'Deselect earthquake' : 'Fly to earthquake'}
-      aria-label={isSelected ? 'Deselect earthquake' : 'Fly to earthquake'}
+      title={isSelected ? 'Deselect earthquake' : 'Go to earthquake'}
+      aria-label={isSelected ? 'Deselect earthquake' : 'Go to earthquake'}
     >
       <div className={styles.magWrap}>
         <div className={styles.magText} title={`Magnitude ${title}`} aria-label={`Magnitude ${title}`}>

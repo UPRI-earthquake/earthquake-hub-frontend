@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
 import { Marker, Popup, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import styles from './StationMarker.module.css';
+import InfoTooltip from './InfoTooltip';
 import SSEContext from '../SSEContext';
 import moment from '../utils/time';
 import axios from 'axios';
@@ -11,64 +12,13 @@ import { ringserverWS } from '../utils/env';
 import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
-import { themeFromMapContainer } from '../config/mapStyles';
+import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
 import { trackEvent } from '../analytics';
+import { buildTriangleSVG } from '../utils/triangleMarker';
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
 
-// Lightly shaded triangular marker builder (returns inline SVG string)
-function tintHex(hex, amt) {
-  const h = String(hex || '').replace('#', '');
-  if (![3, 6].includes(h.length)) return hex;
-  const n = h.length === 3 ? h.split('').map((c) => parseInt(c + c, 16)) : [
-    parseInt(h.slice(0, 2), 16),
-    parseInt(h.slice(2, 4), 16),
-    parseInt(h.slice(4, 6), 16),
-  ];
-  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
-  const res = n.map((v) => clamp(v + 255 * amt));
-  const toHex = (v) => v.toString(16).padStart(2, '0');
-  return `#${toHex(res[0])}${toHex(res[1])}${toHex(res[2])}`;
-}
-
-function buildTriangleSVG(baseHex = '#2e8b57', idSuffix = 'tri') {
-  const safeId = String(idSuffix || 'tri').replace(/[^a-zA-Z0-9_-]/g, '') || 'tri';
-  const prefix = `tri-${safeId}`;
-  const leftId = `${prefix}-left`;
-  const rightId = `${prefix}-right`;
-  const baseId = `${prefix}-base`;
-  const shadowId = `${prefix}-shadow`;
-  const facet1 = tintHex(baseHex, 0.18);
-  const facet2 = tintHex(baseHex, -0.12);
-  const facet3 = tintHex(baseHex, -0.28);
-  const shadow = 'rgba(0,0,0,0.22)';
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 110" role="img" aria-label="Station marker">
-  <defs>
-    <linearGradient id="${leftId}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${facet1}"/>
-      <stop offset="100%" stop-color="${facet2}"/>
-    </linearGradient>
-    <linearGradient id="${rightId}" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="${facet2}"/>
-      <stop offset="100%" stop-color="${facet3}"/>
-    </linearGradient>
-    <linearGradient id="${baseId}" x1="50%" y1="0%" x2="50%" y2="100%">
-      <stop offset="0%" stop-color="${facet2}"/>
-      <stop offset="100%" stop-color="${facet3}"/>
-    </linearGradient>
-    <filter id="${shadowId}" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="${shadow}"/>
-    </filter>
-  </defs>
-  <g filter="url(#${shadowId})">
-    <polygon points="60 6 6 104 60 84" fill="url(#${leftId})"/>
-    <polygon points="60 6 114 104 60 84" fill="url(#${rightId})"/>
-    <polygon points="6 104 114 104 60 84" fill="url(#${baseId})"/>
-  </g>
-</svg>`;
-}
 
 const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
   const map = useMap();
@@ -77,6 +27,9 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
   const connected = useRef(false); // flag used in connectDataLinkWS(), ws is not connected by default
+  const [markerTheme, setMarkerTheme] = useState(() =>
+    themeFromMapContainer(map?.getContainer?.()),
+  );
   const demoTimerRef = useRef(null);
   const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
   const ringserver_ws = ringserverWS();
@@ -494,8 +447,18 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const isInactive = displayActivity !== 'active';
   // Online markers should float above offline ones; add a small extra for pick highlight
   const zIndexOffset = (isInactive ? 0 : 200) + (pick ? 20 : 0);
-  // Use legend-consistent colors
-  const baseHex = isInactive ? '#9ca3af' : '#22c55e'; // gray-400 for offline, green-500 for online
+  const stationTokens = useMemo(() => {
+    try {
+      return buildThemeTokens({
+        theme: markerTheme,
+        zoom: zoomFromMap(map),
+        overlays: null,
+      }).stations;
+    } catch (_) {
+      return { fill: '#22c55e', offlineFill: '#9ca3af' };
+    }
+  }, [markerTheme, map]);
+  const baseHex = isInactive ? stationTokens.offlineFill : stationTokens.fill;
   const triangleMarkup = buildTriangleSVG(baseHex, gradientIdRef.current);
   const divTriangle = new DivIcon({
     className: `${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
@@ -723,10 +686,11 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   useEffect(() => {
     if (!map) return undefined;
     const retheme = () => {
+      const theme = themeFromMapContainer(map?.getContainer?.());
+      setMarkerTheme(theme);
       try {
         graphListRef.current.forEach((plot) => {
           try {
-            const theme = themeFromMapContainer(map?.getContainer?.());
             const dark = theme === 'dark' || theme === 'satellite';
             if (plot && plot.seismographConfig) {
               plot.seismographConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
@@ -793,50 +757,63 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         popupclose: handlePopupClose,
       }}
     >
-      <Popup className={styles.popUp}
-        autoPan
-        >
+      <Popup className={styles.popUp} autoPan>
         <div className={styles.popUpBody}>
-          <div>
-            <b>Station {code} </b>
-            <i>{description}</i>
+          <div className={styles.popupHeader}>
+            <div className={styles.popupTitleRow}>
+              <div className={styles.popupTitle}>Station {code}</div>
+              <InfoTooltip label="Station location info" title="Approximate location" variant="inline">
+                Location is intentionally offset to protect device privacy.
+              </InfoTooltip>
+            </div>
+            {markerDesc ? <div className={styles.popupSubtitle}>{markerDesc}</div> : null}
           </div>
-          <hr />
-          <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
-          <p>
-            <span
-              className={
-                `
-                ${styles.statusIndicator}
-                ${normalizeDeviceActivity(statusState.activity || statusState.status) === 'active' ? styles['streaming'] : styles['not-streaming']}
-                ${statusChange ? styles[statusChange] : ''}
-              `
-              }
-            ></span>
-            {(() => {
-              const state = normalizeDeviceActivity(statusState.activity || statusState.status);
-              if (state === 'unlinked') return 'Device Offline';
-              const label = statusState.status || (state === 'active' ? 'Streaming' : 'Inactive');
-              if (!statusState.statusSince) return label;
-              if (state === 'active' || moment(statusState.statusSince) > moment().subtract(1, 'month')) {
-                return `${label} since ${moment(statusState.statusSince).fromNow()}`;
-              }
-              return 'Device Offline';
-            })()}
-          </p>
-          <a href={data_download_URL} target="_blank" rel="noreferrer" onClick={handleDownloadData}>
-            Get past 24hrs data
-          </a>
-          <br />
-          <a
-            href={metadata_download_URL}
-            target="_blank"
-            rel="noreferrer"
-            onClick={handleDownloadMetadata}
-          >
-            Get station metadata
-          </a>
-          <br />
+          <div className={styles.popupSection}>
+            <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
+          </div>
+          <div className={styles.popupSection}>
+            <div className={styles.statusRow}>
+              <span
+                className={`
+                  ${styles.statusIndicator}
+                  ${normalizeDeviceActivity(statusState.activity || statusState.status) === 'active' ? styles['streaming'] : styles['not-streaming']}
+                  ${statusChange ? styles[statusChange] : ''}
+                `}
+              ></span>
+              <span className={styles.statusText}>
+                {(() => {
+                  const state = normalizeDeviceActivity(statusState.activity || statusState.status);
+                  if (state === 'unlinked') return 'Device Offline';
+                  const label = statusState.status || (state === 'active' ? 'Streaming' : 'Inactive');
+                  if (!statusState.statusSince) return label;
+                  if (state === 'active' || moment(statusState.statusSince) > moment().subtract(1, 'month')) {
+                    return `${label} since ${moment(statusState.statusSince).fromNow()}`;
+                  }
+                  return 'Device Offline';
+                })()}
+              </span>
+            </div>
+          </div>
+          <div className={`${styles.popupSection} ${styles.popupActions}`}>
+            <a
+              href={data_download_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleDownloadData}
+              className={styles.actionLink}
+            >
+              Get past 24hrs data
+            </a>
+            <a
+              href={metadata_download_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleDownloadMetadata}
+              className={styles.actionLink}
+            >
+              Get station metadata
+            </a>
+          </div>
         </div>
       </Popup>
     </Marker>

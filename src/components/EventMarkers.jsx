@@ -79,6 +79,10 @@ const EventMarkers = ({
     const magnitude = Number.isFinite(Number(event.magnitude_value))
       ? Number(event.magnitude_value)
       : 0;
+    const locationText =
+      event && event.place && !['Unavailable', 'Unable to geocode', ''].includes(event.place)
+        ? event.place
+        : event?.text || '';
 
     const displayLng = normalizeLngNear(lng, centerLng);
 
@@ -93,6 +97,7 @@ const EventMarkers = ({
         depthKm={eventDepth(event)}
         status={event.eventType ? event.eventType : null}
         last_modification={event.last_modification}
+        location={locationText}
         // Suppress only the initial mount/appear animation on All Stations
         enableAnimation={datasetKey !== 'all-stations'}
         suppressInitialRadiate={datasetKey === 'all-stations'}

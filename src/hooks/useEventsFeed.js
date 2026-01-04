@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import axios from 'axios';
 import moment from '../utils/time';
+import { emitToast } from '../utils/toast';
 // Performance: avoid shipping the EventSource polyfill to modern browsers.
 // We dynamically import it only if the native API is unavailable.
 function backendHost() {
@@ -59,6 +60,40 @@ const dedupeInitial = (input) => {
  */
 export function useEventsFeed({ sseEnabledRef, setEvents }) {
   const eventSourceRef = useRef(null);
+  const toastCacheRef = useRef(new Map());
+
+  const maybeToastNewEvent = useCallback((data) => {
+    try {
+      const id = data && (data.publicID || data.publicId || data.id);
+      if (!id) return;
+      const cache = toastCacheRef.current;
+      const now = Date.now();
+      const last = cache.get(id);
+      if (last && now - last < 5 * 60 * 1000) return;
+      cache.set(id, now);
+      if (cache.size > 120) {
+        const entries = Array.from(cache.entries()).sort((a, b) => a[1] - b[1]);
+        entries.slice(0, 40).forEach(([key]) => cache.delete(key));
+      }
+      const magValue = Number(data.magnitude_value ?? data.magnitude ?? data.mag);
+      const magText = Number.isFinite(magValue) ? `M${magValue.toFixed(1)}` : 'M?';
+      const isUnavailable = (value) => {
+        if (!value) return true;
+        const v = String(value).trim().toLowerCase();
+        return (
+          !v ||
+          v === 'unavailable' ||
+          v === 'unable to geocode' ||
+          v === 'nominatim unavailable'
+        );
+      };
+      const place = !isUnavailable(data.place) ? String(data.place).trim() : '';
+      const text = !isUnavailable(data.text) ? String(data.text).trim() : '';
+      const location = place || text || '';
+      const suffix = location ? ` • ${location}` : '';
+      emitToast(`New earthquake: ${magText}${suffix}`, 'info');
+    } catch (_) {}
+  }, []);
 
   const fetchEventsForRange = useCallback(
     async (startDateISO, endDateISO, { setState = true } = {}) => {
@@ -102,7 +137,9 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
         const data = JSON.parse(event.data);
         const depthVal =
           data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
-        if (data.eventType === 'NEW') {
+        const eventType = String(data.eventType || '').toUpperCase();
+        if (eventType === 'NEW') {
+          maybeToastNewEvent(data);
           setEvents((prev) => {
             const idx = prev.findIndex((e) => e.publicID === data.publicID);
             const nextEvent = {
@@ -136,7 +173,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
             } catch (_) {}
             return [nextEvent, ...prev];
           });
-        } else if (data.eventType === 'UPDATE') {
+        } else if (eventType === 'UPDATE') {
           setEvents((prev) => {
             const idx = prev.findIndex((e) => e.publicID === data.publicID);
             if (idx !== -1) {
@@ -205,7 +242,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
     } catch (_) {}
 
     return ret;
-  }, [setEvents, sseEnabledRef]);
+  }, [maybeToastNewEvent, setEvents, sseEnabledRef]);
 
   const closeSSE = useCallback(() => {
     if (eventSourceRef.current) {

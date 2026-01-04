@@ -1,22 +1,9 @@
 import { devlog } from '../utils/devlog';
+import { emitToast } from '../utils/toast';
 
 // Lightweight UI notification bridge: emit a global event that Header listens for
 function notifyUser(message, type = 'error') {
-  try {
-    if (typeof window !== 'undefined') {
-      try {
-        const q = (window.__toastQueue = window.__toastQueue || []);
-        q.push({ message, type, t: Date.now() });
-        // cap queue length to avoid unbounded growth
-        if (q.length > 10) q.splice(0, q.length - 10);
-      } catch (_) {}
-    }
-    const ev = new CustomEvent('ui:toast', { detail: { message, type } });
-    window.dispatchEvent(ev);
-  } catch (_) {
-    // As a last resort, avoid silent failures for end users
-    try { alert(message); } catch (_) {}
-  }
+  emitToast(message, type);
 }
 let convertedVapidKey;
 try {

@@ -85,4 +85,96 @@ self.addEventListener('message', (event) => {
   }
 });
 
+const parsePushPayload = (event) => {
+  if (!event || !event.data) return {};
+  try {
+    return event.data.json();
+  } catch (_) {
+    try {
+      const text = event.data.text();
+      return text ? JSON.parse(text) : {};
+    } catch (err) {
+      return {};
+    }
+  }
+};
+
+const formatEqNotification = async (payload) => {
+  const data = (payload && payload.data) || payload || {};
+  const eventType = String(data.eventType || data.type || '').toUpperCase();
+  const isUpdate = eventType === 'UPDATE';
+  const publicID = data.publicID || data.publicId || data.id;
+  const tag = publicID ? `eq:${publicID}` : undefined;
+  let updateCount = 0;
+  if (isUpdate && tag) {
+    try {
+      const existing = await self.registration.getNotifications({ tag });
+      if (existing && existing.length) {
+        const prev = existing[0]?.data?.updateCount;
+        updateCount = Number.isFinite(prev) ? prev + 1 : 2;
+      } else {
+        updateCount = 1;
+      }
+    } catch (_) {
+      updateCount = 1;
+    }
+  }
+  const magnitudeRaw = data.magnitude_value ?? data.magnitude ?? data.mag;
+  const magnitudeValue = Number(magnitudeRaw);
+  const magText = Number.isFinite(magnitudeValue) ? `M${magnitudeValue.toFixed(1)}` : 'Magnitude unknown';
+  const placeRaw = data.place || data.text || data.location || '';
+  const place = String(placeRaw || '').trim();
+  const locationText = place || 'Unknown location';
+  const updateLabel = isUpdate && updateCount ? `Update #${updateCount}` : '';
+  const baseTitle = payload && payload.title ? String(payload.title) : 'Earthquake Alert';
+  const title = isUpdate && updateCount ? `${baseTitle} #${updateCount}` : baseTitle;
+  const baseBody = payload && payload.body ? String(payload.body) : `${magText} in ${locationText}`;
+  const body = isUpdate && updateLabel ? `${updateLabel} • ${baseBody}` : baseBody;
+  const url = data.url || (publicID ? `/?event=${encodeURIComponent(publicID)}` : '/');
+  return {
+    title,
+    options: {
+      body,
+      tag,
+      renotify: isUpdate,
+      data: {
+        url,
+        publicID,
+        eventType,
+        updateCount,
+      },
+    },
+  };
+};
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    const payload = parsePushPayload(event);
+    const { title, options } = await formatEqNotification(payload);
+    await self.registration.showNotification(title, options);
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification?.data?.url || '/';
+  const absoluteUrl = new URL(targetUrl, self.location.origin).href;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus().then(() => {
+            if (client.url !== absoluteUrl && 'navigate' in client) {
+              return client.navigate(absoluteUrl);
+            }
+            return client;
+          });
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(absoluteUrl);
+      return undefined;
+    }),
+  );
+});
+
 // Any other custom service worker logic can go here.

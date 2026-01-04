@@ -9,6 +9,8 @@ import { getLastUpdated, partsForCdnUrl } from '../utils/lastUpdated';
 import './legend.css';
 import { DEPTH_RAMP } from '../config/mapStyles';
 import { trackEvent } from '../analytics';
+import { buildTriangleSVG } from '../utils/triangleMarker';
+import InfoTooltip from './InfoTooltip';
 
 /**
  * Legend and metadata control synced with overlay visibility.
@@ -60,80 +62,42 @@ function useLastUpdatedGitHubFirst(url) {
 
 // Population HEAD Last-Modified helper removed
 
-// Depth ramp chips only (no toggle here)
-function DepthRampSub() {
+function DepthRampLegend() {
   const map = useMap();
-  const [enabled, setEnabled] = useState(() => {
-    try {
-      return sessionStorage.getItem('eqDepthRamp') === '1';
-    } catch (_) {
-      return false;
-    }
-  });
-  useEffect(() => {
-    const on = (e) => setEnabled(!!(e && e.detail && e.detail.enabled));
-    window.addEventListener('eqDepthRamp:toggle', on);
-    return () => window.removeEventListener('eqDepthRamp:toggle', on);
-  }, []);
-  if (!enabled) return null;
   let theme = 'light';
   try {
     theme = themeFromMapContainer(map?.getContainer?.());
   } catch (_) {}
   const [c1, c2, c3] = (DEPTH_RAMP && DEPTH_RAMP[theme]) || DEPTH_RAMP.light;
   return (
-    <div className="legend-subrow ramp-in" onClick={(e) => e.stopPropagation()}>
-      <span className="legend-chip">
-        <i style={{ background: c1 }} /> 0–70 km
-      </span>
-      <span className="legend-chip">
-        <i style={{ background: c2 }} /> 70–300 km
-      </span>
-      <span className="legend-chip">
-        <i style={{ background: c3 }} /> 300+ km
-      </span>
+    <div className="legend-depth">
+      <div className="legend-subtitle">Depth (km)</div>
+      <div className="legend-chip-row legend-chip-row-eq">
+        <span className="legend-chip">
+          <i style={{ background: c1 }} /> 0-70 km
+        </span>
+        <span className="legend-chip">
+          <i style={{ background: c2 }} /> 70-300 km
+        </span>
+        <span className="legend-chip">
+          <i style={{ background: c3 }} /> 300+ km
+        </span>
+      </div>
     </div>
   );
 }
 
-// Inline-only toggle button (used next to Earthquakes label)
-function DepthRampToggleInline() {
-  const [enabled, setEnabled] = useState(() => {
-    try {
-      return sessionStorage.getItem('eqDepthRamp') === '1';
-    } catch (_) {
-      return false;
-    }
-  });
-  useEffect(() => {
-    const on = (e) => setEnabled(!!(e && e.detail && e.detail.enabled));
-    window.addEventListener('eqDepthRamp:toggle', on);
-    return () => window.removeEventListener('eqDepthRamp:toggle', on);
-  }, []);
-  const toggle = (e) => {
-    e?.stopPropagation?.();
-    const next = !enabled;
-    setEnabled(next);
-    try {
-      sessionStorage.setItem('eqDepthRamp', next ? '1' : '0');
-      window.dispatchEvent(new CustomEvent('eqDepthRamp:toggle', { detail: { enabled: next } }));
-    } catch (_) {}
-    try {
-      trackEvent('depth_ramp', { enabled: next, trigger: 'legend' });
-    } catch (_) {}
-  };
+function StationTriangleSwatch({ color, size = 16 }) {
+  const idRef = useRef(`legend-tri-${Math.random().toString(36).slice(2, 10)}`);
+  const markup = useMemo(() => buildTriangleSVG(color, idRef.current), [color]);
+  const height = Math.round(size * 0.92);
   return (
-    <button
-      type="button"
-      className="legend-toggle-inline"
-      onClick={toggle}
-      role="switch"
-      aria-checked={enabled}
-      aria-label="Depth ramp"
-      title={enabled ? 'Disable depth ramp coloring' : 'Enable depth ramp coloring'}
-    >
-      Depth ramp
-    </button>
+    <span
+      className="station-triangle-swatch"
+      aria-hidden="true"
+      style={{ width: `${size}px`, height: `${height}px` }}
+      dangerouslySetInnerHTML={{ __html: markup }}
+    />
   );
 }
 
@@ -160,174 +124,118 @@ function LegendContent({ active, tokens }) {
   // Legend is display-only; no overlay toggling here for clarity
 
   const anyShown = shown.faults || shown.plates || shown.stations || shown.earthquakes;
-  const hints = {
-    earthquakes: 'Marker size ∝ Earthquake magnitude',
-    faults: 'Mapped active faults (GEM)',
-    plates: 'PB2002 (Bird, 2003)',
-    stations: 'UPRI sensor sites',
+  const renderLastUpdated = (meta) => {
+    if (!meta) return 'Last updated: Unknown';
+    const base = meta.displayDate ? `Last updated: ${meta.displayDate}` : 'Last updated: Unknown';
+    if (meta.source === 'github' && meta.commitSha && meta.commitUrl) {
+      return (
+        <>
+          {base} (
+          <a href={meta.commitUrl} target="_blank" rel="noopener noreferrer">
+            {meta.commitSha}
+          </a>
+          )
+        </>
+      );
+    }
+    if (meta.source === 'cdn') return `${base} (CDN header)`;
+    return base;
   };
+  const renderMetaTooltip = (meta, lastUpdated) => (
+    <InfoTooltip label={`${meta.label} details`} title="Dataset details" variant="inline">
+      <>
+        Source: {meta.source}
+        <br />
+        {renderLastUpdated(lastUpdated)}
+      </>
+    </InfoTooltip>
+  );
 
   return (
     <div className="map-legend" role="region" aria-label="Map legend">
       {!anyShown && <div className="legend-empty">No overlays enabled</div>}
       {shown.faults && (
-        <div className="legend-item" data-key="faults" title={hints.faults}>
-          <div className="legend-swatch">
-            <span
-              className="swatch-line"
-              style={{
-                background: tokens.faults.color,
-                opacity: tokens.faults.opacity,
-                height: 0,
-                borderTop: `${Math.max(2, (tokens.faults.weight || 1) * 2)}px ${
-                  tokens.faults.dashArray ? 'dashed' : 'solid'
-                } ${tokens.faults.color}`,
-              }}
-            />
-          </div>
+        <div className="legend-section" data-key="faults">
           <div className="legend-meta">
-            <div className="legend-label">{META.faults.label}</div>
-            <div className="legend-source-line">{META.faults.source}</div>
-            <div
-              className="legend-update-line"
-              title={faultsLU?.tooltip || ''}
-              aria-label={faultsLU?.tooltip || ''}
-            >
-              {faultsLU ? (
-                <>
-                  Last updated: {faultsLU.displayDate || 'Unknown'}
-                  {faultsLU.source === 'github' && faultsLU.commitUrl && faultsLU.commitSha ? (
-                    <>
-                      {' '}
-                      ·{' '}
-                      <a
-                        href={faultsLU.commitUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
-                        }}
-                      >
-                        {faultsLU.commitSha}
-                      </a>
-                    </>
-                  ) : null}
-                  {faultsLU.source === 'cdn' ? ' (from CDN header)' : null}
-                </>
-              ) : (
-                'Last updated: —'
-              )}
+            <div className="legend-label-row">
+              <div className="legend-label">{META.faults.label}</div>
+              {renderMetaTooltip(META.faults, faultsLU)}
+            </div>
+            <div className="legend-symbol-row">
+              <span
+                className="swatch-line"
+                style={{
+                  background: tokens.faults.color,
+                  opacity: tokens.faults.opacity,
+                  height: 0,
+                  borderTop: `${Math.max(2, (tokens.faults.weight || 1) * 2)}px ${
+                    tokens.faults.dashArray ? 'dashed' : 'solid'
+                  } ${tokens.faults.color}`,
+                }}
+              />
             </div>
           </div>
         </div>
       )}
       {shown.plates && (
-        <div className="legend-item" data-key="plates" title={hints.plates}>
-          <div className="legend-swatch">
-            <span
-              className="swatch-line"
-              style={{
-                borderTop: `${Math.max(2, (tokens.plates.weight || 1) * 2)}px ${
-                  tokens.plates.dashArray ? 'dashed' : 'solid'
-                } ${tokens.plates.color}`,
-                opacity: tokens.plates.opacity,
-              }}
-            />
-          </div>
+        <div className="legend-section" data-key="plates">
           <div className="legend-meta">
-            <div className="legend-label">{META.plates.label}</div>
-            <div className="legend-source-line">{META.plates.source}</div>
-            <div
-              className="legend-update-line"
-              title={platesLU?.tooltip || ''}
-              aria-label={platesLU?.tooltip || ''}
-            >
-              {platesLU ? (
-                <>
-                  Last updated: {platesLU.displayDate || 'Unknown'}
-                  {platesLU.source === 'github' && platesLU.commitUrl && platesLU.commitSha ? (
-                    <>
-                      {' '}
-                      ·{' '}
-                      <a
-                        href={platesLU.commitUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
-                        }}
-                      >
-                        {platesLU.commitSha}
-                      </a>
-                    </>
-                  ) : null}
-                  {platesLU.source === 'cdn' ? ' (from CDN header)' : null}
-                </>
-              ) : (
-                'Last updated: —'
-              )}
+            <div className="legend-label-row">
+              <div className="legend-label">{META.plates.label}</div>
+              {renderMetaTooltip(META.plates, platesLU)}
+            </div>
+            <div className="legend-symbol-row">
+              <span
+                className="swatch-line"
+                style={{
+                  borderTop: `${Math.max(2, (tokens.plates.weight || 1) * 2)}px ${
+                    tokens.plates.dashArray ? 'dashed' : 'solid'
+                  } ${tokens.plates.color}`,
+                  opacity: tokens.plates.opacity,
+                }}
+              />
             </div>
           </div>
         </div>
       )}
       {/* Population overlay removed */}
       {shown.stations && (
-        <div className="legend-item" data-key="stations" title={hints.stations}>
-          <div className="legend-swatch">
-            {/* Main symbol for stations: triangle, matches marker shape */}
-            <span
-              className="swatch-triangle"
-              aria-hidden
-              style={{ borderBottomColor: tokens.stations.fill }}
-            />
-          </div>
+        <div className="legend-section" data-key="stations">
           <div className="legend-meta">
-            <div className="legend-label">Stations</div>
-            <div className="legend-subrow" onClick={(e) => e.stopPropagation()}>
-              <span className="legend-chip">
-                <i style={{ background: tokens.stations.fill }} /> Online
-              </span>
-              <span className="legend-chip">
-                <i style={{ background: tokens.stations.offlineFill }} /> Offline
-              </span>
+            <div className="legend-label-row">
+              <div className="legend-label">Stations</div>
+            </div>
+            <div className="legend-symbol-row">
+              <div className="legend-depth">
+                <div className="legend-subtitle">Status</div>
+                <div className="legend-chip-row">
+                  <span className="legend-chip">
+                    <StationTriangleSwatch color={tokens.stations.fill} size={12} /> Online
+                  </span>
+                  <span className="legend-chip">
+                    <StationTriangleSwatch color={tokens.stations.offlineFill} size={12} /> Offline
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
       {shown.earthquakes && (
-        <div className="legend-item" data-key="earthquakes" title={hints.earthquakes}>
-          <div className="legend-swatch">
-            <span
-              className="swatch-circle"
-              aria-hidden
-              style={{
-                background: tokens.eq.fill,
-                borderColor: tokens.eq.halo,
-                borderWidth: `${
-                  active.has('earthquakes') && !active.has('faults')
-                    ? tokens.eq.haloWidthOnlyEQ
-                    : tokens.eq.haloWidth
-                }px`,
-                opacity: tokens.eq.fillOpacity,
-              }}
-            />
-          </div>
+        <div className="legend-section" data-key="earthquakes">
           <div className="legend-meta">
-            <div className="legend-label-with-toggle">
+            <div className="legend-label-row">
               <div className="legend-label">Earthquakes</div>
-              <DepthRampToggleInline />
+              <InfoTooltip label="Earthquake marker details" title="Earthquake markers" variant="inline">
+                Marker size reflects magnitude. Color reflects depth.
+              </InfoTooltip>
             </div>
-            <DepthRampSub />
+            <div className="legend-symbol-row">
+              <DepthRampLegend />
+            </div>
           </div>
         </div>
       )}
-      {/* No empty-state text; tooltip handled on toggle via title */}
     </div>
   );
 }
@@ -404,9 +312,15 @@ export default function LegendControl({ position = 'bottomright' }) {
     applyZoom();
     map.on('baselayerchange', applyTheme);
     map.on('zoomend', applyZoom);
+    let mo = null;
+    try {
+      mo = new MutationObserver(applyTheme);
+      mo.observe(el, { attributes: true, attributeFilter: ['data-basemap-theme'] });
+    } catch (_) {}
     return () => {
       map.off('baselayerchange', applyTheme);
       map.off('zoomend', applyZoom);
+      try { mo && mo.disconnect(); } catch (_) {}
     };
   }, [map]);
 
@@ -502,6 +416,11 @@ export default function LegendControl({ position = 'bottomright' }) {
     const onPointerDown = (e) => {
       const container = containerRef.current;
       if (!container) return;
+      try {
+        if (e && e.target && typeof e.target.closest === 'function') {
+          if (e.target.closest('[data-info-tooltip="true"]')) return;
+        }
+      } catch (_) {}
       if (container.contains(e.target)) return;
       toggleLegend(true, 'outside');
     };

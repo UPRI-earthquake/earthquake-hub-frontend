@@ -11,9 +11,11 @@ import StationsPanel from '../components/StationsPanel';
 import { resetToPH } from '../utils/resetView';
 import { trackEvent } from '../analytics';
 import { useAppData } from '../hooks/useAppData';
+import { useStations } from '../hooks/useStations';
 import { useTheme } from '../theme/ThemeProvider';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { normalizeDeviceActivity } from '../utils/deviceStatus';
+import { emitToast } from '../utils/toast';
 
 const MapView = lazy(() => import('../components/MapView'));
 
@@ -76,6 +78,7 @@ const HomePage = () => {
   const [stations, setStations] = useState([]);
   const [stationSearch, setStationSearch] = useState('');
   const [stationStatusFilter, setStationStatusFilter] = useState(null);
+  const newStationToastRef = useRef(new Set());
 
   const [latestEvents, setLatestEvents] = useState([]);
   const [allEvents, setAllEvents] = useState([]);
@@ -97,6 +100,7 @@ const HomePage = () => {
 
   const allEqsCacheRef = useRef(null);
   const sseEnabledRef = useRef(true);
+  const { fetchStations } = useStations();
 
   const setStationsRefStable = useCallback((arr) => {
     stationsRef.current = arr;
@@ -124,7 +128,19 @@ const HomePage = () => {
             String(st.code || '').toUpperCase() === code &&
             String(st.network || 'AM').toUpperCase() === network,
         );
-        if (idx === -1) return prev;
+        if (idx === -1) {
+          const key = `${network}:${code}`;
+          if (!newStationToastRef.current.has(key)) {
+            newStationToastRef.current.add(key);
+            emitToast(`New station deployed: ${network} ${code}`, 'info');
+            fetchStations()
+              .then((arr) => {
+                setStationsRefStable(arr);
+              })
+              .catch(() => {});
+          }
+          return prev;
+        }
         const curr = prev[idx];
         const next = { ...curr };
         if (activity) next.activity = activity;
@@ -156,7 +172,7 @@ const HomePage = () => {
         return arr;
       });
     } catch (_) {}
-  }, []);
+  }, [fetchStations, setStationsRefStable]);
 
   const { eventSourceRef, fetchEventsForRange, performInitialLoad } = useAppData({
     sseEnabledRef,

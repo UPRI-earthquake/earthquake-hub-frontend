@@ -46,11 +46,20 @@ const OPTIONS = [
 function ThemeToggle({ themeValue, size = 'regular' }) {
   const context = useTheme();
   const { theme, resolvedTheme, setTheme } = themeValue || context;
+  const themeToggleDisabled = themeValue?.themeToggleDisabled ?? context.themeToggleDisabled;
   const active = (theme || resolvedTheme) === 'dark' ? 'dark' : 'light';
   const variant = size === 'compact' ? 'compact' : 'regular';
+  const disabled = Boolean(themeToggleDisabled);
 
   return (
-    <div className={styles.toggle} role="group" aria-label="Color mode" data-size={variant}>
+    <div
+      className={styles.toggle}
+      role="group"
+      aria-label="Color mode"
+      aria-disabled={disabled ? 'true' : 'false'}
+      data-size={variant}
+      data-disabled={disabled ? '1' : '0'}
+    >
       {OPTIONS.map(({ key, label, Icon }) => {
         const isActive = active === key;
         return (
@@ -59,8 +68,10 @@ function ThemeToggle({ themeValue, size = 'regular' }) {
             type="button"
             className={`${styles.button} ${isActive ? styles.buttonActive : ''}`}
             onClick={() => {
+              if (disabled) return;
               if (!isActive) setTheme(key);
             }}
+            disabled={disabled}
             aria-pressed={isActive}
             title={label}
             aria-label={label}

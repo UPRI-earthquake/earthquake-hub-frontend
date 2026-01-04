@@ -32,6 +32,15 @@ function normalizeLabel(txt) {
     .trim();
 }
 
+// Slip types often come as single descriptors with underscores; keep hyphens that indicate combos.
+function normalizeSlipType(txt) {
+  return String(txt == null ? '' : txt)
+    .replace(/_/g, ' ')
+    .replace(/[\\|/]+/g, ' / ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 // Normalize plate code for lookup (strip non-word, uppercase)
 function normalizeCode(txt) {
   return String(txt == null ? '' : txt)
@@ -57,7 +66,6 @@ const PLATE_NAME_MAP = {
   CL: 'Caroline',
   CO: 'Cocos',
   CR: 'Conway Reef',
-  CA: 'Caribbean',
   EA: 'Easter',
   EU: 'Eurasia',
   FT: 'Futuna',
@@ -99,7 +107,7 @@ const PLATE_NAME_MAP = {
 export function buildFaultTooltip(props) {
   if (!props) return '';
   const name = normalizeLabel(props.name || 'Unnamed Fault');
-  const slipType = props.slip_type || props.slipType || '';
+  const slipType = normalizeSlipType(props.slip_type || props.slipType || '');
   const slip = parseTriple(props.net_slip_rate);
   const dip = parseTriple(props.average_dip);
   const rake = parseTriple(props.average_rake);
@@ -174,7 +182,7 @@ export function buildPlateTooltip(props) {
   const a = props.PlateA || '';
   const b = props.PlateB || '';
   const nameRaw = props.Name || (a && b ? `${a}-${b}` : 'Plate Boundary');
-  const type = props.Type || '';
+  const type = normalizeLabel(props.Type || '');
   const src = props.Source || '';
   const normA = normalizeLabel(a);
   const normB = normalizeLabel(b);

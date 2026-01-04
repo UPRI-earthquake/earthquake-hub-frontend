@@ -38,14 +38,16 @@ export default function MapLayersControl({ children, activeTheme }) {
   const { registerLayer, activeIds } = useOverlayState();
   const baseLayerRefs = useRef({});
   const basemapThemeRef = useRef(null);
+  const prevBaseRef = useRef('default');
+  const defaultThemeRef = useRef(null);
   const [activeBase, setActiveBase] = useState('default');
-  const { setTheme } = useTheme();
+  const { theme, setTheme, setThemeToggleDisabled } = useTheme();
   // Memoize basemap provider props so layers are not recreated
   const bases = useMemo(
     () => ({
       defaultLight: BASEMAPS.Carto_Positron(),
       defaultDark: BASEMAPS.Carto_DarkMatter(),
-      streets: BASEMAPS.OSM_Standard(),
+      terrain: BASEMAPS.Esri_WorldTopoMap(),
       satellite: BASEMAPS.Esri_WorldImagery(),
     }),
     [],
@@ -64,20 +66,55 @@ export default function MapLayersControl({ children, activeTheme }) {
     const normalizeBase = (name) => {
       const n = String(name || '').toLowerCase();
       if (n.includes('satellite')) return 'satellite';
-      if (n.includes('street') || n.includes('osm')) return 'streets';
+      if (n.includes('terrain') || n.includes('topo')) return 'terrain';
       return 'default';
     };
     const onBaseLayerChange = (e) => {
       const next = normalizeBase(e && e.name);
       setActiveBase(next);
-      if (next === 'satellite') setTheme && setTheme('dark');
-      else if (next === 'streets') setTheme && setTheme('light');
     };
     map.on('baselayerchange', onBaseLayerChange);
     return () => {
       map.off('baselayerchange', onBaseLayerChange);
     };
-  }, [map, setTheme]);
+  }, [map]);
+
+  useEffect(() => {
+    const prevBase = prevBaseRef.current;
+    const isDefault = activeBase === 'default';
+    const wasDefault = prevBase === 'default';
+
+    if (setThemeToggleDisabled) {
+      const lockThemeToggle = activeBase === 'terrain' || activeBase === 'satellite';
+      setThemeToggleDisabled(lockThemeToggle);
+    }
+
+    if (isDefault) {
+      if (!wasDefault) {
+        const desired = defaultThemeRef.current;
+        if (setTheme) {
+          if (desired == null) setTheme(null);
+          else setTheme(desired);
+        }
+      } else {
+        defaultThemeRef.current = theme;
+      }
+    } else {
+      if (wasDefault) defaultThemeRef.current = theme;
+      if (setTheme) {
+        if (activeBase === 'satellite') setTheme('dark');
+        else if (activeBase === 'terrain') setTheme('light');
+      }
+    }
+
+    prevBaseRef.current = activeBase;
+  }, [activeBase, theme, setTheme, setThemeToggleDisabled]);
+
+  useEffect(() => {
+    return () => {
+      if (setThemeToggleDisabled) setThemeToggleDisabled(false);
+    };
+  }, [setThemeToggleDisabled]);
 
   // overlays are handled by OverlayLayers subcomponent
 
@@ -660,7 +697,7 @@ export default function MapLayersControl({ children, activeTheme }) {
             ? bases.defaultDark.url
             : bases.defaultLight.url,
       },
-      Streets: { key: 'streets', url: bases.streets.url },
+      Terrain: { key: 'terrain', url: bases.terrain.url },
       Satellite: { key: 'satellite', url: bases.satellite.url },
     };
     base.querySelectorAll('label').forEach((lab) => {
@@ -697,9 +734,9 @@ export default function MapLayersControl({ children, activeTheme }) {
         });
       }
     });
-    // Enforce order: Default, Streets, Satellite
+    // Enforce order: Default, Terrain, Satellite
     const enforceBaseOrder = () => {
-      const order = ['Default', 'Streets', 'Satellite'];
+      const order = ['Default', 'Terrain', 'Satellite'];
       const labels = Array.from(base.querySelectorAll('label'));
       order.forEach((name) => {
         const node = labels.find((lab) => (lab.textContent || '').trim() === name);

@@ -43,6 +43,7 @@ const PALETTE = {
 // Theme-specific colors that are easy to extend when adding new basemaps
 const FAULT_COLORS = { light: PALETTE.faults.light, dark: PALETTE.faults.dark, satellite: PALETTE.faults.dark };
 const PLATE_COLORS = { light: PALETTE.plates.stroke, dark: '#7DD3FC', satellite: '#22D3EE' };
+const STATION_FILL_LIGHT = '#22C55E';
 
 // Depth ramp colors chosen to avoid conflict with station markers
 // and to maintain contrast on satellite imagery.
@@ -156,7 +157,8 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   // Stations
   // On satellite imagery, use a high-contrast fill and thicker white halo
   // so markers remain visible over greens (land) and dark blues (water).
-  const stFill = t === 'satellite' ? '#FFD54F' : PALETTE.stations.fill; // amber 300
+  const stFill =
+    t === 'satellite' ? '#FFD54F' : t === 'dark' ? PALETTE.stations.fill : STATION_FILL_LIGHT; // amber 300
   const stHalo =
     t === 'satellite'
       ? '#FFFFFF'
@@ -168,7 +170,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   // Theme-aware offline marker fill: neutral slate/gray with sufficient contrast
   const stOfflineFill =
     t === 'satellite'
-      ? '#E5E7EB' // gray-200: brighter on imagery for contrast
+      ? '#FFFFFF' // white: matches satellite legend swatch
       : t === 'dark'
       ? '#CBD5E1' // slate-300: light neutral on dark basemap
       : '#4B5563'; // gray-600: stronger contrast on standard/light basemap

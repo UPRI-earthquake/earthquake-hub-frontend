@@ -5,8 +5,8 @@ import { BASEMAPS } from '../../config/mapLayers';
 const { BaseLayer } = LayersControl;
 
 /**
- * Basemap options for the map. Uses leaflet-providers via config to render OSM,
- * CARTO light/dark (auto-selected), and Esri World Imagery.
+ * Basemap options for the map. Uses leaflet-providers via config to render
+ * CARTO light/dark (auto-selected), Esri World Topo Map, and Esri World Imagery.
  */
 export default function BasemapLayers({
   bases: basesProp,
@@ -19,7 +19,7 @@ export default function BasemapLayers({
       basesProp || {
         defaultLight: BASEMAPS.Carto_Positron(),
         defaultDark: BASEMAPS.Carto_DarkMatter(),
-        streets: BASEMAPS.OSM_Standard(),
+        terrain: BASEMAPS.Esri_WorldTopoMap(),
         satellite: BASEMAPS.Esri_WorldImagery(),
       },
     [basesProp],
@@ -46,8 +46,8 @@ export default function BasemapLayers({
           key={`default-${defaultVariant}`}
         />
       </BaseLayer>
-      <BaseLayer checked={activeBase === 'streets'} name="Streets">
-        <TileLayer ref={attach('streets')} url={bases.streets.url} {...bases.streets.options} />
+      <BaseLayer checked={activeBase === 'terrain'} name="Terrain">
+        <TileLayer ref={attach('terrain')} url={bases.terrain.url} {...bases.terrain.options} />
       </BaseLayer>
       <BaseLayer checked={activeBase === 'satellite'} name="Satellite">
         <TileLayer

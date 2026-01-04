@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import moment from '../utils/time';
-import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
+import { Marker, useMap, Popup } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactDOMServer from 'react-dom/server';
@@ -16,10 +16,42 @@ function toRadius(magnitude) {
   return d / 2;
 }
 
+const formatCoord = (value, positiveLabel, negativeLabel) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 'Unknown';
+  const hemi = num >= 0 ? positiveLabel : negativeLabel;
+  return `${Math.abs(num).toFixed(3)}\u00B0${hemi}`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return 'Unknown';
+  const parsed = moment(value);
+  if (!parsed || typeof parsed.isValid !== 'function' || !parsed.isValid()) return 'Unknown';
+  return parsed.format('YYYY-MM-DD HH:mm:ss [UTC]Z');
+};
+
+const normalizeLocation = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw || raw === 'Unavailable' || raw === 'Unable to geocode') return '';
+  return raw;
+};
+
 /**
  * Individual earthquake marker with popup and selection sync via Redux.
  */
-const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modification, enableAnimation = true, suppressInitialRadiate = false }) => {
+const EventMarker = ({
+  publicID,
+  time,
+  lat,
+  lng,
+  mag,
+  depthKm,
+  status,
+  last_modification,
+  location,
+  enableAnimation = true,
+  suppressInitialRadiate = false,
+}) => {
   // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
@@ -120,20 +152,6 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   // Opacity is now driven purely by CSS var --eq-opacity on the map container.
   // Avoid binding it into the icon to prevent DivIcon churn on zoom changes.
 
-  // Depth ramp toggle listener
-  const [depthRamp, setDepthRamp] = useState(() => {
-    try {
-      return sessionStorage.getItem('eqDepthRamp') === '1';
-    } catch (_) {
-      return false;
-    }
-  });
-  useEffect(() => {
-    const onToggle = (e) => setDepthRamp(!!(e && e.detail && e.detail.enabled));
-    window.addEventListener('eqDepthRamp:toggle', onToggle);
-    return () => window.removeEventListener('eqDepthRamp:toggle', onToggle);
-  }, []);
-
   // Track basemap theme to ensure depth colors update when switching base layers
   const [themeKey, setThemeKey] = useState(() => {
     try {
@@ -164,8 +182,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
   }, [map]);
 
   const depthColor = eqDepthColor(themeKey, depthKm);
-
-  const fillColor = depthRamp && depthColor ? depthColor : undefined; // undefined → use CSS var theme color
+  const fillColor = depthColor || undefined; // undefined -> use CSS var theme color
 
   // Fallback to default marker pane if custom pane does not yet exist
   const paneName = useMemo(() => {
@@ -249,8 +266,36 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     };
   }, [enableAnimation]);
 
-  // Tooltips stay mounted; mobile visibility handled via CSS to avoid Leaflet race conditions
-  const [tooltipDisabled, setTooltipDisabled] = useState(false);
+  const tooltipText = useMemo(() => {
+    const magValue = Number(mag);
+    const timeValue = moment(time);
+
+    const magText = Number.isFinite(magValue) ? `M${magValue.toFixed(1)}` : null;
+    const timeText = timeValue && timeValue.isValid()
+      ? `${timeValue.format('MMM D, YYYY • h:mm A')} (${timeValue.fromNow()})`
+      : null;
+
+    return [magText, timeText].filter(Boolean).join(' • ');
+  }, [mag, time]);
+
+  const locationLabel = useMemo(() => normalizeLocation(location), [location]);
+  const magnitudeText = useMemo(() => {
+    const value = Number(mag);
+    return Number.isFinite(value) ? `M ${value.toFixed(1)}` : 'Unknown';
+  }, [mag]);
+  const depthText = useMemo(() => {
+    const value = Number(depthKm);
+    return Number.isFinite(value) ? `${value.toFixed(0)} km` : 'Unknown';
+  }, [depthKm]);
+  const latText = useMemo(() => formatCoord(lat, 'N', 'S'), [lat]);
+  const lngText = useMemo(() => formatCoord(lng, 'E', 'W'), [lng]);
+  const timestampText = useMemo(() => formatDateTime(time), [time]);
+  const updatedText = useMemo(
+    () => formatDateTime(last_modification || time),
+    [last_modification, time],
+  );
+  const locationText = locationLabel || `${latText}, ${lngText}`;
+  const showCoordRows = Boolean(locationLabel);
 
   // If bad coords slipped through, skip rendering after hooks have been called
   if (!hasValidCoords) {
@@ -265,6 +310,7 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
     <Marker
       ref={markerRef}
       icon={divCircle}
+      title={tooltipText}
       stroke={false}
       position={[lat, lng]}
       {...(paneName ? { pane: paneName } : {})} // only pass pane when available
@@ -287,8 +333,6 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
           } catch (_) {}
         },
         popupopen: () => {
-          try { setTooltipDisabled(true); } catch (_) {}
-          try { const el = map && map.getContainer && map.getContainer(); el && el.classList.add('hide-marker-tooltips'); } catch (_) {}
           try {
             // Any popup opening should collapse Layers/Legend panels
             try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
@@ -318,35 +362,49 @@ const EventMarker = ({ publicID, time, lat, lng, mag, depthKm, status, last_modi
               dispatch({ type: 'DESELECT' });
             }
           } catch (_) {}
-          try { setTooltipDisabled(false); } catch (_) {}
-          try { const el = map && map.getContainer && map.getContainer(); el && el.classList.remove('hide-marker-tooltips'); } catch (_) {}
         },
       }}
     >
-      <Tooltip
-        direction="top"
-        offset={[0, -2]}
-        opacity={1}
-        sticky
-        className={`feature-tooltip marker-tooltip ${tooltipDisabled ? 'tt-hidden' : ''}`}
-      >
-        <div>
-          <div><strong>Magnitude {(+mag).toFixed(1)}</strong></div>
-          <div>{moment(time).format('YYYY-MM-DD hh:mm:ss A')}</div>
-        </div>
-      </Tooltip>
-      <Popup ref={popupRef} autoPan={!(typeof window !== 'undefined' && window.innerWidth <= 767)}>
-        <div>
-          <h2>Magnitude {+mag.toFixed(1)}</h2>
-          <p>{moment(time).format('YYYY-MM-DD hh:mm:ss A [(UTC]Z[)]')}</p>
-          <p>
-            {lat.toFixed(3)}&#176;N&nbsp;
-            {lng.toFixed(3)}&#176;E,&nbsp;
-            {depthKm != null && !Number.isNaN(Number(depthKm)) && (
-              <>Depth {Number(depthKm).toFixed(0)} km</>
-            )}
-          </p>
-          <p style={{ color: 'gray' }}>Last updated {moment(time).fromNow()}</p>
+      <Popup ref={popupRef} autoPan>
+        <div className={styles.popupCard}>
+          <div className={`${styles.popupGroup} ${styles.popupGroupPrimary}`}>
+            <div className={styles.popupRow}>
+              <span className={styles.popupKey}>Magnitude</span>
+              <span className={styles.popupValue}>{magnitudeText}</span>
+            </div>
+            <div className={styles.popupRow}>
+              <span className={styles.popupKey}>Location</span>
+              <span className={styles.popupValue}>{locationText}</span>
+            </div>
+            <div className={styles.popupRow}>
+              <span className={styles.popupKey}>Time</span>
+              <span className={styles.popupValue}>{timestampText}</span>
+            </div>
+          </div>
+          <div className={`${styles.popupGroup} ${styles.popupGroupSecondary}`}>
+            <div className={styles.popupRow}>
+              <span className={styles.popupKey}>Depth</span>
+              <span className={styles.popupValue}>{depthText}</span>
+            </div>
+            {showCoordRows ? (
+              <>
+                <div className={styles.popupRow}>
+                  <span className={styles.popupKey}>Lat</span>
+                  <span className={styles.popupValue}>{latText}</span>
+                </div>
+                <div className={styles.popupRow}>
+                  <span className={styles.popupKey}>Lon</span>
+                  <span className={styles.popupValue}>{lngText}</span>
+                </div>
+              </>
+            ) : null}
+          </div>
+          <div className={`${styles.popupGroup} ${styles.popupGroupTertiary}`}>
+            <div className={styles.popupRow}>
+              <span className={styles.popupKey}>Updated</span>
+              <span className={styles.popupValue}>{updatedText}</span>
+            </div>
+          </div>
         </div>
       </Popup>
     </Marker>
@@ -366,6 +424,7 @@ export default React.memo(EventMarker, (prev, next) => {
     prev.mag === next.mag &&
     prev.depthKm === next.depthKm &&
     prev.status === next.status &&
-    prev.last_modification === next.last_modification
+    prev.last_modification === next.last_modification &&
+    prev.location === next.location
   );
 });

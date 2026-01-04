@@ -195,6 +195,7 @@ const InfoTooltip = ({ label = 'More info', title, children, variant = 'default'
       role="tooltip"
       id={tooltipId}
       data-placement={placement}
+      data-info-tooltip="true"
       style={tooltipStyle}
     >
       {title ? <p className={styles.title}>{title}</p> : null}
