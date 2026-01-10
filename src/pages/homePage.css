@@ -1,5 +1,6 @@
 :root {
   --panel-width: 360px;
+  --panel-live-width: var(--panel-width);
   --panel-gap: var(--layout-side-offset, 16px);
   --panel-top-gap: var(--layout-top-offset, 24px);
   --panel-bottom-gap: var(--layout-bottom-offset, 16px);
@@ -33,7 +34,7 @@
   position: fixed;
   top: calc(var(--header-h, 72px) + var(--panel-top-gap));
   left: var(--panel-gap);
-  width: var(--panel-width);
+  width: var(--panel-live-width, var(--panel-width));
   max-width: min(94vw, 440px);
   z-index: 4;
   display: flex;
@@ -53,7 +54,7 @@
 .panelColumn[data-compact='true'] {
   left: var(--panel-gap);
   top: calc(var(--header-h, 72px) + var(--panel-top-gap));
-  width: min(100vw, var(--panel-width));
+  width: min(100vw, var(--panel-live-width, var(--panel-width)));
   height: auto;
   max-height: calc(
     100vh - var(--header-h, 72px) - var(--panel-top-gap) - var(--panel-bottom-gap)
@@ -295,4 +296,46 @@ html[data-theme='dark'] .panelSwitcher {
   font-weight: 700;
   color: var(--text-primary);
   z-index: 5;
+}
+
+/* Mobile landscape: treat as its own mode with docked panels and a narrower control stack */
+@media (max-width: 960px) and (orientation: landscape) {
+  :root {
+    --layout-side-offset: var(--space-1, 8px);
+    --layout-top-offset: var(--space-1-5, 12px);
+    --layout-bottom-offset: calc(var(--space-1, 8px) + env(safe-area-inset-bottom, 0px));
+  }
+  .App-body[data-mobile-landscape='1'] {
+    --panel-live-width: clamp(260px, 40vw, 420px);
+    --panel-stack-gap: var(--space-1-5, 12px);
+    --panel-top-gap: var(--layout-top-offset, 12px);
+    --panel-bottom-gap: var(--layout-bottom-offset, 10px);
+    --panel-gap: var(--layout-side-offset, 8px);
+  }
+  .App-body[data-mobile-landscape='1'] .panelColumn {
+    left: var(--panel-gap);
+    width: var(--panel-live-width);
+    top: calc(var(--header-h, 72px) + var(--panel-top-gap));
+    height: auto;
+    max-height: calc(100vh - var(--header-h, 72px) - var(--panel-top-gap) - var(--panel-bottom-gap));
+  }
+  .App-body[data-mobile-landscape='1'] .mapShell {
+    left: 0;
+    width: 100%;
+  }
+  .App-body[data-mobile-landscape='1'] .panelControlsFloating {
+    top: calc(var(--header-h, 72px) + var(--panel-top-gap));
+    left: var(--panel-gap);
+    gap: 8px;
+  }
+  .App-body[data-mobile-landscape='1'] .panelSwitcher button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .App-body[data-mobile-landscape='1'] .panelHideBtn {
+    min-width: 40px;
+    height: 40px;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
 }

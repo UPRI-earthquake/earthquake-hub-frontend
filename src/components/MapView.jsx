@@ -10,6 +10,7 @@ import ResetViewControl from './ResetViewControl';
 import RegisterableLayerGroup from './RegisterableLayerGroup';
 import { OverlayStateProvider } from './OverlayStateContext';
 import { trackEvent } from '../analytics';
+import { resetToPH } from '../utils/resetView';
 
 // Keep markers lazy inside the map chunk to avoid blocking map shell render
 const StationMarkers = lazy(() => import('./StationMarkers'));
@@ -72,6 +73,7 @@ function MapView({
         <ScaleControl position="bottomright" metric imperial={false} maxWidth={140} />
         <LegendControl />
         <MapAnalyticsBridge />
+        <InitialResetView />
       </OverlayStateProvider>
     </MapContainer>
   );
@@ -147,6 +149,22 @@ function MapAnalyticsBridge() {
       map.off('dragend', onDragEnd);
       map.off('baselayerchange', onBaseLayerChange);
     };
+  }, [map]);
+
+  return null;
+}
+
+function InitialResetView() {
+  const map = useMap();
+  const didResetRef = useRef(false);
+
+  useEffect(() => {
+    if (!map || didResetRef.current) return undefined;
+    didResetRef.current = true;
+    try {
+      resetToPH({ map, animate: false, padding: [20, 20] });
+    } catch (_) {}
+    return undefined;
   }, [map]);
 
   return null;

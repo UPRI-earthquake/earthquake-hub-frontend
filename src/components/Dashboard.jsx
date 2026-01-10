@@ -184,6 +184,57 @@ const CloseIcon = ({ className }) => (
     <path d="M6 6 18 18" />
   </svg>
 );
+const BrokenChainIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9 15 5.5 18.5a3 3 0 0 1-4-4L5 11" />
+    <path d="M15 9 18.5 5.5a3 3 0 0 1 4 4L19 13" />
+    <path d="m5.5 11.5 7 1" />
+    <path d="m17.5 12.5-7-1" />
+  </svg>
+);
+const TrashIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 6h18" />
+    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M5 6h14l-1 14H6L5 6Z" />
+  </svg>
+);
+
+const PencilIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+    <path d="m13.5 6.5 3 3" />
+  </svg>
+);
 
 const renderEmptyStateDetails = (emptyState) => {
   if (!emptyState) return '';
@@ -256,12 +307,22 @@ function Dashboard({
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [confirmDeleteChecked, setConfirmDeleteChecked] = useState(false);
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
   const profileScrollRef = useRef(null);
   const usernameCardRef = useRef(null);
   const emailCardRef = useRef(null);
+  const passwordCardRef = useRef(null);
+  const deleteCardRef = useRef(null);
+  const deleteConfirmRef = useRef(null);
+  const deleteDialogId = useMemo(
+    () => `delete-confirm-${Math.random().toString(36).slice(2, 8)}`,
+    [],
+  );
+  const deleteTitleId = `${deleteDialogId}-title`;
+  const deleteBodyId = `${deleteDialogId}-body`;
   const isClosingRef = useRef(false);
   const isMountedRef = useRef(true); // guard async state updates after unmount
   const timeoutsRef = useRef([]); // track pending timers for cleanup
@@ -274,6 +335,16 @@ function Dashboard({
       setToastMessage('');
     }, ms);
     timeoutsRef.current.push(id);
+  }, []);
+
+  const formatAccessTokenExpiry = useCallback((duration) => {
+    if (!duration || typeof duration.asDays !== 'function' || typeof duration.asHours !== 'function') {
+      return '—';
+    }
+    const days = Math.floor(duration.asDays());
+    if (days >= 1) return `${days} day${days === 1 ? '' : 's'}`;
+    const hours = Math.max(1, Math.ceil(duration.asHours()));
+    return `${hours} hr${hours === 1 ? '' : 's'}`;
   }, []);
 
   const toggleSettingsSection = (sectionId) => {
@@ -299,31 +370,67 @@ function Dashboard({
     setShowDeleteConfirm(false);
   };
 
-  useEffect(() => {
-    if (openSettingsSection !== 'username' && openSettingsSection !== 'email') return;
-    const target =
-      openSettingsSection === 'username' ? usernameCardRef.current : emailCardRef.current;
+  const scrollToSettingsCard = useCallback((target) => {
     if (!target) return;
-    const scrollTarget = () => {
-      const container = profileScrollRef.current;
-      if (!container) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-      const containerRect = container.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const padding = 24;
-      const outOfView =
-        targetRect.top < containerRect.top + padding ||
-        targetRect.bottom > containerRect.bottom - padding;
-      if (outOfView) {
-        const nextTop = container.scrollTop + (targetRect.top - containerRect.top) - padding;
-        container.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
-      }
+    const container = profileScrollRef.current;
+    if (!container) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const padding = 24;
+    const outOfView =
+      targetRect.top < containerRect.top + padding ||
+      targetRect.bottom > containerRect.bottom - padding;
+    if (outOfView) {
+      const nextTop = container.scrollTop + (targetRect.top - containerRect.top) - padding;
+      container.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+    }
+  }, []);
+
+  const handleOpenPasswordSettings = useCallback(() => {
+    setActiveSection('account');
+    setOpenSettingsSection('password');
+    setEmailErrors({});
+    setUsernameErrors({});
+    setPasswordErrors({});
+    setShowDeleteConfirm(false);
+    const id = setTimeout(() => {
+      scrollToSettingsCard(passwordCardRef.current);
+    }, 0);
+    timeoutsRef.current.push(id);
+  }, [
+    scrollToSettingsCard,
+    setActiveSection,
+    setOpenSettingsSection,
+    setEmailErrors,
+    setUsernameErrors,
+    setPasswordErrors,
+    setShowDeleteConfirm,
+  ]);
+
+  useEffect(() => {
+    const targetMap = {
+      username: usernameCardRef.current,
+      email: emailCardRef.current,
+      password: passwordCardRef.current,
+      delete: deleteCardRef.current,
     };
-    const id = setTimeout(scrollTarget, 0);
+    const target = targetMap[openSettingsSection];
+    if (!target) return;
+    const id = setTimeout(() => scrollToSettingsCard(target), 0);
     return () => clearTimeout(id);
-  }, [openSettingsSection]);
+  }, [openSettingsSection, scrollToSettingsCard]);
+
+  useEffect(() => {
+    if (!showDeleteConfirm) return;
+    const btn = deleteConfirmRef.current;
+    if (btn && btn.focus) btn.focus();
+  }, [showDeleteConfirm]);
+  useEffect(() => {
+    if (showDeleteConfirm) setConfirmDeleteChecked(false);
+  }, [showDeleteConfirm]);
 
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
@@ -339,9 +446,10 @@ function Dashboard({
         id: 'devices',
         label: isBrgy ? 'Managed devices' : 'Your devices',
         icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <rect x="3" y="6" width="18" height="12" rx="2" />
-            <path d="M7 10h10M9 14h6" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+            <path d="M13 9a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-10" />
+            <path d="M18 8v-3a1 1 0 0 0 -1 -1h-13a1 1 0 0 0 -1 1v12a1 1 0 0 0 1 1h9" />
+            <path d="M16 9h2" />
           </svg>
         ),
         description: isBrgy
@@ -352,10 +460,8 @@ function Dashboard({
         id: 'tools',
         label: isBrgy ? 'Tools & tokens' : 'Tools',
         icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <rect x="3" y="7" width="18" height="11" rx="2" />
-            <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M3 12h18" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+            <path d="M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5" />
           </svg>
         ),
         description: isBrgy
@@ -367,9 +473,16 @@ function Dashboard({
         id: 'account',
         label: 'Account settings',
         icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+            <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+            <path d="M6 21v-2a4 4 0 0 1 4 -4h2.5" />
+            <path d="M17.001 19a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+            <path d="M19.001 15.5v1.5" />
+            <path d="M19.001 21v1.5" />
+            <path d="M22.032 17.25l-1.299 .75" />
+            <path d="M17.27 20l-1.3 .75" />
+            <path d="M15.97 17.25l1.3 .75" />
+            <path d="M20.733 20l1.3 .75" />
           </svg>
         ),
         description: 'Manage your username, contact email, and password.',
@@ -740,7 +853,7 @@ function Dashboard({
       devlog('Token Expiry: ', remainingTime.days());
 
       if (isMountedRef.current) {
-        setAccessTokenExpiry(remainingTime.days()); // set brgyAccessTokenExpiry value
+        setAccessTokenExpiry(formatAccessTokenExpiry(remainingTime)); // human-friendly expiry
         setBrgyAccessToken(response.data.accessToken); // set brgyAccessToken value
         setToastMessage('Brgy access token request success');
         setToastType('success');
@@ -1194,8 +1307,8 @@ function Dashboard({
                 </div>
                 <button
                   type="button"
-                  className={`${styles.toolBtn} ${styles.noticeAction} ${styles.actionBtn}`}
-                  onClick={() => setActiveSection('account')}
+                  className={`${styles.toolBtn} ${styles.noticeAction} ${styles.actionBtn} ${styles.collapseLabel}`}
+                  onClick={handleOpenPasswordSettings}
                   aria-label="Open account settings"
                 >
                   <SettingsIcon className={styles.actionIcon} />
@@ -1350,7 +1463,7 @@ function Dashboard({
                           <div className={styles.tokenRow}>
                             <p className={styles.tokenLabel}>Barangay access token</p>
                             <span className={styles.tokenExpiry}>
-                              Valid for {accessTokenExpiry ?? '—'} days
+                              Valid for {accessTokenExpiry ?? '—'}
                             </span>
                           </div>
                           <p className={styles.tokenValue} ref={textRef}>
@@ -1437,8 +1550,8 @@ function Dashboard({
                           aria-expanded={openSettingsSection === 'username'}
                           aria-controls="username-settings-card"
                         >
-                          <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
-                          Edit
+                          <PencilIcon className={styles.actionIcon} />
+                          <span className={styles.buttonLabel}>Edit</span>
                         </button>
                       </div>
                       <p className={styles.metaValue}>{loggedInUser || '—'}</p>
@@ -1461,8 +1574,8 @@ function Dashboard({
                           aria-expanded={openSettingsSection === 'email'}
                           aria-controls="email-settings-card"
                         >
-                          <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
-                          Edit
+                          <PencilIcon className={styles.actionIcon} />
+                          <span className={styles.buttonLabel}>Edit</span>
                         </button>
                       </div>
                       <p className={styles.metaValue}>{accountEmail || 'Not set'}</p>
@@ -1490,15 +1603,15 @@ function Dashboard({
                             </div>
                             <button
                               type="button"
-                              className={`${styles.settingsToggle} ${
-                                openSettingsSection === 'username' ? styles.settingsToggleActive : ''
-                              }`}
-                              onClick={() => toggleSettingsSection(null)}
-                              aria-label="Close username editor"
-                            >
-                              Close
-                            </button>
-                          </div>
+                            className={`${styles.settingsToggle} ${
+                              openSettingsSection === 'username' ? styles.settingsToggleActive : ''
+                            }`}
+                            onClick={() => toggleSettingsSection(null)}
+                            aria-label="Hide username editor"
+                          >
+                            Hide
+                          </button>
+                        </div>
                           <form className={styles.accountSettingsForm} onSubmit={handleUsernameSubmit} noValidate>
                             <div className={styles.settingsRow}>
                               <label className={styles.settingsField} htmlFor="account-username-new">
@@ -1592,15 +1705,15 @@ function Dashboard({
                             </div>
                             <button
                               type="button"
-                              className={`${styles.settingsToggle} ${
-                                openSettingsSection === 'email' ? styles.settingsToggleActive : ''
-                              }`}
-                              onClick={() => toggleSettingsSection(null)}
-                              aria-label="Close email editor"
-                            >
-                              Close
-                            </button>
-                          </div>
+                            className={`${styles.settingsToggle} ${
+                              openSettingsSection === 'email' ? styles.settingsToggleActive : ''
+                            }`}
+                            onClick={() => toggleSettingsSection(null)}
+                            aria-label="Hide email editor"
+                          >
+                            Hide
+                          </button>
+                        </div>
                           <form className={styles.accountSettingsForm} onSubmit={handleEmailSubmit} noValidate>
                             <div className={styles.settingsRow}>
                           <label className={styles.settingsField} htmlFor="account-email">
@@ -1675,42 +1788,44 @@ function Dashboard({
                     </div>
                   )}
 
-                    <div className={styles.accountStack}>
-                      <div className={styles.settingsCard} aria-label="Password">
-                        <div className={styles.cardHeaderRow}>
-                          <div>
-                            <p className={styles.panelKicker}>Password</p>
-                            <div className={styles.cardTitleRow}>
-                              <h4 className={styles.cardTitle}>Update password</h4>
-                              <InfoTooltip label="Password requirements" title="Password requirements" variant="inline">
-                                Minimum 12 characters. Letters, numbers, and symbols allowed.
-                              </InfoTooltip>
+                      <div className={styles.accountStack}>
+                        <div className={styles.settingsCard} aria-label="Password" ref={passwordCardRef}>
+                          <div className={styles.cardHeaderRow}>
+                            <div>
+                              <div className={styles.kickerRow}>
+                                <p className={styles.panelKicker}>Password</p>
+                                <span
+                                  className={`${styles.statusPill} ${
+                                    passwordStatus === 'legacy' ? styles.statusPillWarn : styles.statusPillOk
+                                  }`}
+                                  title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
+                                >
+                                  {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
+                                </span>
+                              </div>
+                              <div className={styles.cardTitleRow}>
+                                <h4 className={styles.cardTitle}>Update password</h4>
+                                <InfoTooltip label="Password requirements" title="Password requirements" variant="inline">
+                                  Minimum 12 characters. Letters, numbers, and symbols allowed.
+                                </InfoTooltip>
+                              </div>
                             </div>
-                          </div>
-                          <div className={styles.cardHeaderActions}>
-                            <span
-                              className={`${styles.statusPill} ${
-                                passwordStatus === 'legacy' ? styles.statusPillWarn : styles.statusPillOk
-                              }`}
-                              title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
-                            >
-                              Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
-                            </span>
-                            <button
-                              type="button"
-                              className={`${styles.settingsToggle} ${
-                                openSettingsSection === 'password' ? styles.settingsToggleActive : ''
-                              }`}
-                              onClick={() => toggleSettingsSection('password')}
-                              aria-expanded={openSettingsSection === 'password'}
-                              aria-controls="password-settings"
-                            >
-                              {openSettingsSection === 'password' ? 'Close' : 'Change'}
-                            </button>
-                          </div>
-                        </div>
-                        {openSettingsSection === 'password' && (
-                        <form className={styles.accountSettingsForm} id="password-settings" onSubmit={handlePasswordSubmit} noValidate>
+                            <div className={styles.cardHeaderActions}>
+                              <button
+                          type="button"
+                          className={`${styles.settingsToggle} ${
+                            openSettingsSection === 'password' ? styles.settingsToggleActive : ''
+                          }`}
+                          onClick={() => toggleSettingsSection('password')}
+                          aria-expanded={openSettingsSection === 'password'}
+                          aria-controls="password-settings"
+                        >
+                          {openSettingsSection === 'password' ? 'Close' : 'Change'}
+                        </button>
+                            </div>
+                            </div>
+                            {openSettingsSection === 'password' && (
+                            <form className={styles.accountSettingsForm} id="password-settings" onSubmit={handlePasswordSubmit} noValidate>
                           <div className={styles.settingsRow}>
                             <label className={styles.settingsField} htmlFor="account-current-password">
                               Current password
@@ -1830,109 +1945,53 @@ function Dashboard({
                           </div>
                           <div className={styles.settingsActions}>
                             <button type="submit" className={styles.saveButton} disabled={isUpdatingPassword}>
-                              {isUpdatingPassword ? 'Updating...' : 'Update password'}
+                              {isUpdatingPassword ? 'Updating...' : 'Save new password'}
                             </button>
                           </div>
                         </form>
                       )}
                     </div>
 
-                    <div className={`${styles.settingsCard} ${styles.dangerCard}`} aria-label="Delete account">
+                    <div
+                      className={`${styles.settingsCard} ${styles.dangerCard}`}
+                      aria-label="Delete account"
+                      ref={deleteCardRef}
+                    >
                       <div className={styles.cardHeaderRow}>
                         <div>
                           <p className={styles.panelKicker}>Danger zone</p>
                           <div className={styles.cardTitleRow}>
                             <h4 className={styles.cardTitle}>Delete account</h4>
                             <InfoTooltip label="Account deletion details" title="Before deleting" variant="inline">
-                              Remove this contributor account after unlinking all devices.
+                              All devices must be unlinked and reset via the sender software (rs.local:3000) before deleting this account.
                             </InfoTooltip>
                           </div>
                           <p className={styles.settingsSummary}>
                             Devices linked: {linkedDeviceCount}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          className={`${styles.settingsToggle} ${
-                            openSettingsSection === 'delete' ? styles.settingsToggleActive : ''
-                          }`}
-                          onClick={() => toggleSettingsSection('delete')}
-                          aria-expanded={openSettingsSection === 'delete'}
-                          aria-controls="delete-settings"
-                        >
-                          {openSettingsSection === 'delete' ? 'Close' : 'Review'}
-                        </button>
-                      </div>
-                      {openSettingsSection === 'delete' && (
-                        <div id="delete-settings">
-                          <div className={styles.settingsRow}>
-                            <p className={styles.settingsHint}>
+                        <div className={styles.cardHeaderActions}>
+                          <button
+                            type="button"
+                            className={`${styles.secondaryButton} ${styles.collapseLabel}`}
+                            disabled={isDeletingAccount || hasLinkedDevices}
+                            onClick={() => setShowDeleteConfirm(true)}
+                          >
+                            {deleteActionLabel === 'Unlink devices first' ? (
                               <span className={styles.iconBadge} aria-hidden="true">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                                  <path d="M9 15 5.5 18.5a3 3 0 0 1-4-4L5 11" />
-                                  <path d="M15 9 18.5 5.5a3 3 0 0 1 4 4L19 13" />
-                                  <path d="m5.5 11.5 7 1" />
-                                  <path d="m17.5 12.5-7-1" />
-                                </svg>
+                                <BrokenChainIcon />
                               </span>
-                              All devices must be unlinked and reset via the sender software (rs.local:3000) before deleting this account.
-                            </p>
-                          </div>
-                          <div className={styles.settingsActions}>
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              disabled={isDeletingAccount || hasLinkedDevices}
-                              onClick={() => setShowDeleteConfirm(true)}
-                            >
-                              {deleteActionLabel}
-                            </button>
-                          </div>
-                          {showDeleteConfirm && (
-                            <div className={styles.confirmBox}>
-                              <p className={styles.confirmTitle}>Delete this account?</p>
-                              <ul className={styles.confirmList}>
-                                <li>All devices must be unlinked and reset first.</li>
-                                <li>Device unlinking is done via sender software (rs.local:3000).</li>
-                                <li>This removes access to linked dashboards and tokens.</li>
-                              </ul>
-                              <div className={styles.confirmActions}>
-                                <button
-                                  type="button"
-                                  className={styles.secondaryButton}
-                              onClick={() => setShowDeleteConfirm(false)}
-                              disabled={isDeletingAccount}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.dangerButton}
-                              onClick={handleDeleteAccount}
-                              disabled={isDeletingAccount || hasLinkedDevices}
-                            >
-                              {isDeletingAccount ? 'Deleting...' : (
-                                <>
-                                  <span className={styles.iconBadge} aria-hidden="true">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                                      <path d="M3 6h18" />
-                                      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-                                      <path d="M10 11v6" />
-                                      <path d="M14 11v6" />
-                                      <path d="M5 6h14l-1 14H6L5 6Z" />
-                                    </svg>
-                                  </span>
-                                  Confirm delete
-                                </>
-                              )}
-                            </button>
-                          </div>
+                            ) : (
+                              <span className={styles.iconBadge} aria-hidden="true">
+                                <TrashIcon />
+                              </span>
+                            )}
+                            <span className={styles.buttonLabel}>{deleteActionLabel}</span>
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
-                      )}
                     </div>
-                  </div>
                 </section>
               </div>
             )}
@@ -2000,6 +2059,55 @@ function Dashboard({
             </div>
           </div>
         </form>
+      )}
+      {pageTransition < 2 && showDeleteConfirm && (
+        <div
+          className={styles.confirmOverlay}
+          role="presentation"
+        >
+          <div
+            className={styles.confirmCard}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={deleteTitleId}
+            aria-describedby={deleteBodyId}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className={styles.confirmTitle} id={deleteTitleId}>
+              Delete this account?
+            </p>
+            <p className={styles.confirmText} id={deleteBodyId}>
+              This removes access to linked dashboards and tokens. This action cannot be undone.
+            </p>
+            <label className={styles.confirmCheckRow}>
+              <input
+                type="checkbox"
+                checked={confirmDeleteChecked}
+                onChange={(event) => setConfirmDeleteChecked(event.target.checked)}
+              />
+              I understand this permanently deletes my contributor account.
+            </label>
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount || hasLinkedDevices || !confirmDeleteChecked}
+                ref={deleteConfirmRef}
+              >
+                {isDeletingAccount ? 'Deleting...' : 'Delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </div>

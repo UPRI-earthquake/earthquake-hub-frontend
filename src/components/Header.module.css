@@ -353,3 +353,40 @@ html[data-theme='imagery'] .accountEntry:hover {
     display: none;
   }
 }
+
+@media (max-width: 960px) and (orientation: landscape) {
+  .headerContent {
+    --header-padding-y: 8px;
+    --header-padding-x: 12px;
+    --header-gap: 8px;
+    --header-logo-size: 36px;
+    width: calc(100% - 8px);
+    border-radius: 0 0 14px 14px;
+  }
+  .secure {
+    --header-h: 56px;
+  }
+  .title {
+    font-size: 20px;
+    margin-top: 0;
+  }
+  .kicker {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+  }
+  .headerLeft {
+    gap: 10px;
+  }
+  .headerRight {
+    gap: 8px;
+  }
+  .menuToggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .burgerMenu {
+    width: 20px;
+    height: 20px;
+  }
+}

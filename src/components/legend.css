@@ -100,7 +100,7 @@
   right: calc(48px + var(--leaflet-flyout-gap, 10px));
   top: auto;
   bottom: 0;
-  width: max-content;
+  /* width: max-content; */
   max-width: min(92vw, 380px);
   min-width: 220px;
   background: var(--panel-bg);
@@ -174,6 +174,29 @@
   }
 }
 
+@media (max-width: 720px), (max-width: 960px) and (orientation: landscape) {
+  .legend-shell {
+    gap: var(--leaflet-control-gap, 8px);
+  }
+  .legend-toggle {
+    height: 42px;
+    width: 42px;
+    min-width: 42px;
+    border-radius: 10px;
+  }
+  .legend-toggle svg {
+    width: 20px;
+    height: 20px;
+  }
+  .legend-flyout {
+    right: calc(42px + var(--leaflet-flyout-gap, 8px));
+    max-width: min(82vw, 320px);
+  }
+  .legend-flyout {
+    min-width: 270px;
+  }
+}
+
 .legend-section {
   padding: 10px 12px;
   border-radius: 10px;
@@ -215,10 +238,16 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: nowrap;
+}
+.legend-label-row .legend-info-btn {
+  margin-left: 6px;
 }
 .legend-label {
   font-weight: 600;
   font-size: 13px;
+  /* flex: 1 1 auto; */
+  /* min-width: 0; */
 }
 .legend-subtitle {
   font-size: 11px;
@@ -297,5 +326,19 @@
   .legend-body {
     max-height: none;
     overflow: visible;
+  }
+}
+
+@media (max-width: 960px) and (orientation: landscape) {
+  .legend-body {
+    overflow: auto;
+  }
+  .map-legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .map-legend > .legend-section {
+    min-width: 0;
   }
 }

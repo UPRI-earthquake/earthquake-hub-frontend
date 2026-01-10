@@ -67,17 +67,19 @@ const BeaconIcon = ({ size = 18 }) => (
     strokeLinejoin="round"
     aria-hidden
   >
-    <circle cx="12" cy="8" r="2" />
-    <path d="M5 8a7 7 0 0 1 14 0" />
-    <path d="M7.5 8a4.5 4.5 0 0 1 9 0" />
-    <path d="M12 10v9" />
-    <path d="M8 21h8" />
+    <path d="M3 15a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -4" />
+    <path d="M17 17l0 .01" />
+    <path d="M13 17l0 .01" />
+    <path d="M15 13l0 -2" />
+    <path d="M11.75 8.75a4 4 0 0 1 6.5 0" />
+    <path d="M8.5 6.5a8 8 0 0 1 13 0" />
   </svg>
 );
 const HomePage = () => {
   const dispatch = useDispatch();
   const { resolvedTheme } = useTheme();
   const isCompactPanels = useMediaQuery('(max-width: 1100px)');
+  const isMobileLandscape = useMediaQuery('(max-width: 960px) and (orientation: landscape)');
   const [activePanel, setActivePanel] = useState('events');
   const [panelOpen, setPanelOpen] = useState(false);
   const panelRef = useRef(null);
@@ -206,6 +208,16 @@ const HomePage = () => {
     sseEnabledRef.current = true;
   }, []);
 
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const map = window.__leaflet_map__;
+      if (map && typeof map.invalidateSize === 'function') {
+        map.invalidateSize();
+      }
+    } catch (_) {}
+  }, [panelOpen, isMobileLandscape]);
+
   const applyAllEqsBounds = useCallback(
     (arr) => {
       const end = moment().format('YYYY-MM-DD');
@@ -333,9 +345,20 @@ const HomePage = () => {
   ) : (
     <div className="App">
       <Header initStations={stationsRef.current} />
-      <div className="App-body" id="main" role="main" aria-label="Main content">
+      <div
+        className="App-body"
+        id="main"
+        role="main"
+        aria-label="Main content"
+        data-mobile-landscape={isMobileLandscape ? '1' : '0'}
+        data-panel-open={panelOpen ? '1' : '0'}
+      >
         <SSEContext.Provider value={eventSourceRef.current}>
-          <div className="mapShell">
+          <div
+            className="mapShell"
+            data-mobile-landscape={isMobileLandscape ? '1' : '0'}
+            data-panel-open={panelOpen ? '1' : '0'}
+          >
             <Suspense fallback={null}>
               <MapView
                 datasetKey={eventScope}
@@ -351,7 +374,10 @@ const HomePage = () => {
             </Suspense>
           </div>
 
-          <div className="panelControls panelControlsFloating" aria-label="Panel controls">
+          <div
+            className={`panelControls panelControlsFloating ${isMobileLandscape ? 'isLandscape' : ''}`}
+            aria-label="Panel controls"
+          >
             {panelOpen && (
               <button
                 type="button"
@@ -390,6 +416,7 @@ const HomePage = () => {
           <div
             className={`panelColumn ${panelOpen ? 'isOpen' : 'isCollapsed'}`}
             data-compact={isCompactPanels}
+            data-mobile-landscape={isMobileLandscape ? '1' : '0'}
             role="complementary"
             aria-label="Data panels"
             aria-hidden={!panelOpen}
@@ -427,7 +454,7 @@ const HomePage = () => {
             </div>
           </div>
 
-          {isCompactPanels && panelOpen && (
+          {isCompactPanels && panelOpen && !isMobileLandscape && (
             <div
               className="panelScrim"
               onClick={hidePanel}

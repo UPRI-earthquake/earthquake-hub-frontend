@@ -431,7 +431,60 @@
 .leaflet-container[data-basemap-theme='dark'] .leaflet-control-resetview a.resetview-btn:hover,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-control-resetview a.resetview-btn:hover { background: #111827; }
 
+@media (max-width: 720px), (max-width: 960px) and (orientation: landscape) {
+  .leaflet-container {
+    --leaflet-control-gap: var(--space-1, 8px);
+    --leaflet-right-offset: max(
+      var(--panel-gap, var(--layout-side-offset, 12px)),
+      calc(env(safe-area-inset-right, 0px) + 6px)
+    );
+    --leaflet-flyout-width: min(280px, calc(100vw - (var(--panel-gap, 12px) * 2) - 56px));
+  }
+  .leaflet-container .leaflet-control-zoom {
+    border-radius: 12px;
+  }
+  .leaflet-container .leaflet-control-zoom a {
+    width: 42px;
+    height: 42px;
+    line-height: 40px;
+  }
+  .leaflet-container .leaflet-control-resetview {
+    border-radius: 12px;
+  }
+  .leaflet-container .leaflet-control-resetview a.resetview-btn {
+    width: 42px;
+    height: 42px;
+  }
+  .leaflet-container .leaflet-control-resetview .reset-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .leaflet-container .leaflet-control-scale-line {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .leaflet-container .leaflet-control-zoom a,
   .leaflet-container .leaflet-control-resetview a.resetview-btn { transition: none; }
+}
+
+@media (max-width: 960px) and (orientation: landscape) {
+  /* Arrange top-right controls into a 2x2 grid: zoom stack left; layers above reset */
+  .leaflet-top.leaflet-right {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      'zoom layers'
+      'zoom reset';
+    align-items: start;
+    justify-items: end;
+    gap: var(--leaflet-control-gap);
+  }
+  .leaflet-top.leaflet-right .leaflet-control-zoom { grid-area: zoom; }
+  .leaflet-top.leaflet-right .custom-layers-toggle,
+  .leaflet-top.leaflet-right .leaflet-control-layers { grid-area: layers; }
+  .leaflet-top.leaflet-right .leaflet-control-resetview { grid-area: reset; }
 }

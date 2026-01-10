@@ -20,6 +20,7 @@
   padding: 18px 22px 22px 22px;
   border-radius: 16px;
   width: min(900px, 95vw);
+  position: relative;
   /* Fill all available space below the fixed header */
   height: calc(100dvh - var(--header-h, 72px) - 24px);
   display: flex;
@@ -309,13 +310,15 @@
 .noticeTitle {
   margin: 0 0 4px;
   font-weight: 700;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .noticeTitleRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .noticeTitleInline {
@@ -372,6 +375,17 @@
 .actionLabel {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
+}
+
+.buttonLabel {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.collapseLabel {
+  min-width: 0;
 }
 
 /* Accent variant for Request Token aligned with new brand */
@@ -486,6 +500,13 @@
   margin-bottom: 10px;
 }
 
+.kickerRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .panelKicker {
   margin: 0 0 4px;
   letter-spacing: 0.06em;
@@ -498,13 +519,15 @@
 .panelTitle {
   margin: 0 0 4px;
   font-size: 18px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .panelTitleRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .panelSubtitle {
@@ -555,13 +578,15 @@
 .cellHeading {
   font-weight: 700;
   letter-spacing: -0.01em;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .cellHeadingRow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .statusBadge {
@@ -610,12 +635,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .emptyTitle {
   margin: 0 0 6px;
   font-weight: 700;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .emptyTitleInline {
@@ -754,13 +781,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
   border: 1px solid var(--border);
   background: #f3f4f6;
   color: #0f172a;
+  line-height: 1;
 }
 .statusPillOk {
   background: rgba(34, 197, 94, 0.12);
@@ -774,8 +802,8 @@
 }
 
 .accountSummary {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin: 0 0 12px;
 }
@@ -878,8 +906,8 @@ html[data-theme='imagery'] .metaEditActive {
 }
 
 .settingsRow {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -1012,13 +1040,15 @@ html[data-theme='imagery'] .settingsInput {
   margin: 0;
   font-size: 18px;
   letter-spacing: -0.01em;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .cardTitleRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .cardSubtitle {
@@ -1097,9 +1127,15 @@ html[data-theme='dark'] .dangerCard {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-right: 6px;
+  width: 18px;
+  height: 18px;
+  line-height: 0;
+  flex-shrink: 0;
+}
+.iconBadge svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 html[data-theme='dark'] .inlineForm,
@@ -1144,6 +1180,9 @@ html[data-theme='imagery'] .inlineForm {
   font-weight: 700;
   cursor: pointer;
   transition: color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .secondaryButton:hover {
@@ -1173,6 +1212,10 @@ html[data-theme='imagery'] .inlineForm {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.dangerButton .buttonLabel {
+  white-space: nowrap;
 }
 
 .dangerButton:hover {
@@ -1239,6 +1282,49 @@ html[data-theme='imagery'] .secondaryButton {
   flex-wrap: wrap;
 }
 
+.confirmOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 11, 20, 0.46);
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 16px;
+  z-index: 40;
+  border-radius: 16px;
+}
+
+.confirmCard {
+  width: min(92%, 380px);
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.22);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confirmText {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.confirmCheckRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.confirmCheckRow input {
+  accent-color: var(--primary);
+}
+
 html[data-theme='dark'] .confirmBox,
 html[data-theme='imagery'] .confirmBox {
   background: #0f172a;
@@ -1257,14 +1343,22 @@ html[data-theme='imagery'] .confirmBox {
   .deviceListTable th { font-size: 13px; padding: 8px; }
   .deviceListTable td { font-size: 13px; padding: 8px; }
   .summaryPills { justify-content: flex-end; }
-}
-
-@media (max-width: 720px) {
-  .statusPill { display: none; }
+  .sectionTabLabel { display: none; }
+  .sectionTab { padding: 8px 10px; }
 }
 
 @media (max-width: 540px) {
-  .actionLabel { display: none; }
+  .collapseLabel .actionLabel,
+  .collapseLabel .buttonLabel {
+    display: none;
+  }
+  .collapseLabel {
+    padding: 0 10px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 540px) {
   .actionBtn { padding: 0 10px; }
 }
 
@@ -1823,6 +1917,34 @@ html[data-theme='imagery'] .inputError {
 html[data-theme='dark'] .settingsHint,
 html[data-theme='imagery'] .settingsHint {
   color: #cbd5e1;
+}
+
+@media (max-width: 960px) and (orientation: landscape) {
+  .dashboardModal {
+    width: min(96vw, 900px);
+    padding: 16px 18px 18px 18px;
+    gap: 10px;
+  }
+  .profileContainer {
+    gap: 12px;
+  }
+  .profileScroll {
+    padding-bottom: 18px;
+  }
+  .contextHeader {
+    gap: 12px;
+    align-items: center;
+  }
+  .sectionNav {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .panelBody {
+    padding: 14px;
+  }
+  .panelHeader {
+    padding: 0.75rem 1rem;
+  }
 }
 
 html[data-theme='dark'] .saveButton,
