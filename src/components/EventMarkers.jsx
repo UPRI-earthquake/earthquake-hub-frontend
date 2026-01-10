@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useMap } from 'react-leaflet';
-import { ZOOM } from '../config/mapStyles';
 import { filterEvents, eventDepth } from '../utils/eventFilters';
 import EventMarker from './EventMarker';
 
 /**
- * Renders earthquake markers filtered by magnitude/date and current zoom level.
+ * Renders earthquake markers filtered by magnitude/date.
  * @param {{initEvents: Array, selectedEvent?: any, filters?: Object, sseEnabled?: boolean, datasetKey?: string}} props
  */
 const EventMarkers = ({
@@ -17,7 +16,6 @@ const EventMarkers = ({
 }) => {
   const map = useMap();
   const [events, setEvents] = useState(initEvents);
-  const [zoom, setZoom] = useState(() => (map ? map.getZoom() : 6));
   // Track center longitude so we can render markers on the nearest world copy
   const [centerLng, setCenterLng] = useState(() => {
     try {
@@ -33,30 +31,23 @@ const EventMarkers = ({
 
   useEffect(() => {
     if (!map) return undefined;
-    const onZoom = () => setZoom(map.getZoom());
     const onMove = () => {
       try { setCenterLng(map.getCenter().lng); } catch (_) {}
     };
-    map.on('zoomend', onZoom);
     map.on('moveend', onMove);
     return () => {
-      map.off('zoomend', onZoom);
       map.off('moveend', onMove);
     };
   }, [map]);
 
   const filtered = filterEvents(events, filters);
 
-  const visible = ZOOM.country(zoom)
-    ? filtered.filter((e) => (Number(e.magnitude_value) || 0) >= 5)
-    : filtered;
-
   const toFinite = (value) => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : null;
   };
 
-  const eventsWithCoords = visible.filter((event) => {
+  const eventsWithCoords = filtered.filter((event) => {
     return toFinite(event.latitude_value) != null && toFinite(event.longitude_value) != null;
   });
 
