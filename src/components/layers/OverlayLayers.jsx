@@ -30,7 +30,7 @@ export default function OverlayLayers({
 
   return (
     <>
-      <Overlay name="Fault Lines">
+      <Overlay name="Fault Lines" checked>
         <RemoteGeoJSONOverlay
           ref={setFaultsRef}
           url={DATASETS.FAULTS.url}
@@ -49,7 +49,7 @@ export default function OverlayLayers({
         />
       </Overlay>
 
-      <Overlay name="Plate Boundaries">
+      <Overlay name="Plate Boundaries" checked>
         <RemoteGeoJSONOverlay
           ref={setPlatesRef}
           url={DATASETS.PLATES.url}

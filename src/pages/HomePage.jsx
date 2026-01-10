@@ -40,7 +40,7 @@ const ChevronLeftIcon = ({ size = 18 }) => (
     <polyline points="14 4 8 12 14 20" />
   </svg>
 );
-const ChevronRightIcon = ({ size = 18 }) => (
+const WaveIcon = ({ size = 18 }) => (
   <svg
     width={size}
     height={size}
@@ -52,10 +52,28 @@ const ChevronRightIcon = ({ size = 18 }) => (
     strokeLinejoin="round"
     aria-hidden
   >
-    <polyline points="10 4 16 12 10 20" />
+    <path d="M2 12h3l2-6 4 12 3-8 3 8 3-6h2" />
   </svg>
 );
-
+const BeaconIcon = ({ size = 18 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <circle cx="12" cy="8" r="2" />
+    <path d="M5 8a7 7 0 0 1 14 0" />
+    <path d="M7.5 8a4.5 4.5 0 0 1 9 0" />
+    <path d="M12 10v9" />
+    <path d="M8 21h8" />
+  </svg>
+);
 const HomePage = () => {
   const dispatch = useDispatch();
   const { resolvedTheme } = useTheme();
@@ -63,7 +81,6 @@ const HomePage = () => {
   const [activePanel, setActivePanel] = useState('events');
   const [panelOpen, setPanelOpen] = useState(false);
   const panelRef = useRef(null);
-  const revealButtonRef = useRef(null);
 
   useEffect(() => {
     if (!isCompactPanels) {
@@ -297,17 +314,17 @@ const HomePage = () => {
     blurIfFocusInsidePanel();
     setPanelOpen(false);
   }, [blurIfFocusInsidePanel]);
-  const showPanel = useCallback(() => setPanelOpen(true), []);
   const visiblePanelLabel = activePanel === 'stations' ? 'Stations' : 'Events';
+  const switcherActive = panelOpen ? activePanel : null;
 
   useEffect(() => {
-    if (!panelOpen) {
-      blurIfFocusInsidePanel();
-      if (revealButtonRef.current) {
-        revealButtonRef.current.focus();
-      }
-    }
-  }, [panelOpen, blurIfFocusInsidePanel]);
+    const handleListSelect = () => {
+      if (!isCompactPanels || !panelOpen) return;
+      hidePanel();
+    };
+    window.addEventListener('selection:fromList', handleListSelect);
+    return () => window.removeEventListener('selection:fromList', handleListSelect);
+  }, [hidePanel, isCompactPanels, panelOpen]);
 
   return serverError ? (
     <ErrorScreen />
@@ -334,15 +351,8 @@ const HomePage = () => {
             </Suspense>
           </div>
 
-          <div
-            className={`panelColumn ${panelOpen ? 'isOpen' : 'isCollapsed'}`}
-            data-compact={isCompactPanels}
-            role="complementary"
-            aria-label="Data panels"
-            aria-hidden={!panelOpen}
-            ref={panelRef}
-          >
-            <div className="panelControls">
+          <div className="panelControls panelControlsFloating" aria-label="Panel controls">
+            {panelOpen && (
               <button
                 type="button"
                 className="panelHideBtn"
@@ -352,27 +362,40 @@ const HomePage = () => {
               >
                 <ChevronLeftIcon />
               </button>
-              <div className="panelSwitcher" aria-label="Choose panel">
-                <button
-                  type="button"
-                  className={activePanel === 'events' ? 'isActive' : ''}
-                  onClick={() => handlePanelSelect('events')}
-                  aria-pressed={activePanel === 'events'}
-                  aria-expanded={panelOpen && activePanel === 'events'}
-                >
-                  Events
-                </button>
-                <button
-                  type="button"
-                  className={activePanel === 'stations' ? 'isActive' : ''}
-                  onClick={() => handlePanelSelect('stations')}
-                  aria-pressed={activePanel === 'stations'}
-                  aria-expanded={panelOpen && activePanel === 'stations'}
-                >
-                  Stations
-                </button>
-              </div>
+            )}
+            <div className="panelSwitcher" aria-label="Choose panel">
+              <button
+                type="button"
+                className={switcherActive === 'events' ? 'isActive' : ''}
+                onClick={() => handlePanelSelect('events')}
+                aria-pressed={switcherActive === 'events'}
+                aria-expanded={panelOpen && activePanel === 'events'}
+              >
+                <span className="panelSwitchIcon"><WaveIcon /></span>
+                <span className="panelSwitchLabel">Events</span>
+              </button>
+              <button
+                type="button"
+                className={switcherActive === 'stations' ? 'isActive' : ''}
+                onClick={() => handlePanelSelect('stations')}
+                aria-pressed={switcherActive === 'stations'}
+                aria-expanded={panelOpen && activePanel === 'stations'}
+              >
+                <span className="panelSwitchIcon"><BeaconIcon /></span>
+                <span className="panelSwitchLabel">Stations</span>
+              </button>
             </div>
+          </div>
+
+          <div
+            className={`panelColumn ${panelOpen ? 'isOpen' : 'isCollapsed'}`}
+            data-compact={isCompactPanels}
+            role="complementary"
+            aria-label="Data panels"
+            aria-hidden={!panelOpen}
+            ref={panelRef}
+          >
+            <div className="panelControlsSpacer" aria-hidden />
 
             <div className={`panelSlot ${activePanel !== 'events' ? 'isHidden' : ''}`}>
               <EventsPanel
@@ -404,18 +427,6 @@ const HomePage = () => {
             </div>
           </div>
 
-          {!panelOpen && (
-            <button
-              type="button"
-              className="panelRevealBtn"
-              onClick={showPanel}
-              aria-label={`Show ${visiblePanelLabel} panel`}
-              ref={revealButtonRef}
-            >
-              <ChevronRightIcon />
-              Show {visiblePanelLabel}
-            </button>
-          )}
           {isCompactPanels && panelOpen && (
             <div
               className="panelScrim"

@@ -4,6 +4,7 @@
   --panel-top-gap: var(--layout-top-offset, 24px);
   --panel-bottom-gap: var(--layout-bottom-offset, 16px);
   --panel-stack-gap: var(--space-1-5, 12px);
+  --panel-controls-height: 46px;
   --sidebar-width: var(--panel-width);
   --sidebar-gap: var(--panel-gap);
 }
@@ -107,6 +108,18 @@
   z-index: 5;
 }
 
+.panelControlsFloating {
+  position: fixed;
+  top: calc(var(--header-h, 72px) + var(--panel-top-gap));
+  left: var(--panel-gap);
+  z-index: 620;
+}
+
+.panelControlsSpacer {
+  height: var(--panel-controls-height);
+  flex: 0 0 auto;
+}
+
 .panelSwitcher {
   display: inline-flex;
   align-items: center;
@@ -128,6 +141,9 @@
 }
 
 .panelSwitcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: none;
   background: transparent;
   color: var(--muted);
@@ -136,6 +152,21 @@
   border-radius: 10px;
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.panelSwitchIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+.panelSwitchIcon svg {
+  width: 18px;
+  height: 18px;
+}
+.panelSwitchLabel {
+  font-weight: inherit;
 }
 
 .panelSwitcher button:hover {
@@ -190,33 +221,6 @@
   transform: translateX(-2px);
 }
 
-.panelRevealBtn {
-  position: fixed;
-  top: calc(var(--header-h, 72px) + var(--panel-top-gap));
-  left: var(--panel-gap);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
-  font-weight: 700;
-  color: var(--text-primary);
-  z-index: 4;
-  transition: transform 240ms cubic-bezier(0.33, 1, 0.68, 1), opacity 200ms ease, box-shadow 150ms ease;
-}
-
-.panelRevealBtn:hover {
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.22);
-  transform: translateX(2px);
-}
-
-.panelRevealBtn:active {
-  transform: translateX(0);
-}
-
 @media (max-width: 1100px) {
   :root {
     --layout-side-offset: var(--space-1-5, 12px);
@@ -241,6 +245,15 @@ html[data-theme='dark'] .panelSwitcher {
   background: rgba(17, 24, 39, 0.88);
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 540px) {
+  .panelSwitcher button {
+    padding: 6px 10px;
+  }
+  .panelSwitchLabel {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {

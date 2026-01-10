@@ -84,7 +84,14 @@ export default function StationListItem({ station }) {
   };
   const onClick = () => {
     flyTo();
-    if (!isSelected) dispatch({ type: 'SELECT', payload: `station:${code}` });
+    if (!isSelected) {
+      const id = `station:${code}`;
+      dispatch({ type: 'SELECT', payload: id });
+      try {
+        const ev = new CustomEvent('selection:fromList', { detail: { id } });
+        window.dispatchEvent(ev);
+      } catch (_) {}
+    }
     else dispatch({ type: 'DESELECT' });
     if (!isSelected) {
       try {

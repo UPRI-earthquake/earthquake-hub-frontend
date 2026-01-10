@@ -224,6 +224,85 @@
   font-size: 14px;
 }
 
+.confirmOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 11, 20, 0.46);
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 16px;
+  z-index: 20;
+  border-radius: 16px;
+}
+
+.confirmCard {
+  width: min(92%, 360px);
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.22);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confirmTitle {
+  margin: 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.confirmText {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.confirmSecondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 120ms ease, border-color 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.confirmSecondary:hover {
+  color: var(--text-primary);
+  border-color: rgba(15, 23, 42, 0.2);
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.confirmPrimary {
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+.confirmPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+}
+
 .authBody {
   display: flex;
   flex-direction: column;
@@ -454,6 +533,19 @@ html[data-theme='imagery'] .form button[type='submit'] {
   border-color: #334155;
 }
 
+html[data-theme='dark'] .confirmPrimary,
+html[data-theme='imagery'] .confirmPrimary {
+  background: #e5e7eb;
+  color: #0b1220;
+  border-color: #334155;
+}
+
+html[data-theme='dark'] .confirmSecondary,
+html[data-theme='imagery'] .confirmSecondary {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+}
+
 /* Fallback: respect OS dark mode if app theme isn't set yet */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]) .form {
@@ -472,6 +564,10 @@ html[data-theme='imagery'] .form button[type='submit'] {
     background: #e5e7eb;
     color: #0b1220;
   }
+  html:not([data-theme]) .confirmPrimary {
+    background: #e5e7eb;
+    color: #0b1220;
+  }
 }
 
 /* Make the modal width adapt a bit on small screens */
@@ -482,6 +578,8 @@ html[data-theme='imagery'] .form button[type='submit'] {
   .inlineFields { grid-template-columns: 1fr; }
   .recoverActions { flex-direction: column; align-items: stretch; }
   .recoverActions button { width: 100%; }
+  .confirmActions { flex-direction: column; align-items: stretch; }
+  .confirmActions button { width: 100%; }
 }
 
 @media (max-width: 540px) {

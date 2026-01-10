@@ -46,7 +46,7 @@ export default function ResetViewControl({ position = 'topleft', padding = [20, 
         try {
           trackEvent('reset_view', { trigger: 'control_button' });
         } catch (_) {}
-        resetToPH({ map, dispatch, animate: true });
+        resetToPH({ map, dispatch, animate: true, padding });
       };
 
       // Mouse and keyboard activation

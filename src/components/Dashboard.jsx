@@ -6,6 +6,7 @@ import { devlog, deverror } from '../utils/devlog';
 import styles from './Dashboard.module.css';
 import formStyles from './Form.module.css';
 import Toast from './Toast';
+import InfoTooltip from './InfoTooltip';
 import { responseCodes } from '../utils/responseCodes';
 import jwtDecode from 'jwt-decode';
 import moment from '../utils/time';
@@ -33,20 +34,6 @@ const roleCopy = {
         'Link the device to your account, then return here to verify it is streaming.',
       ],
     },
-    nextSteps: [
-      {
-        title: 'Verify the link',
-        copy: 'Use rs.local:3000 to confirm the device is linked to this account.',
-      },
-      {
-        title: 'Keep it online',
-        copy: 'Stable power and internet keep your stream healthy. Check cabling and router uptime.',
-      },
-      {
-        title: 'Plan for growth',
-        copy: 'Future tools will surface alerts and basic reports here as they roll out.',
-      },
-    ],
   },
   brgy: {
     overline: 'Barangay operator workspace',
@@ -62,20 +49,6 @@ const roleCopy = {
         'Return here to see status once devices begin streaming.',
       ],
     },
-    nextSteps: [
-      {
-        title: 'Rotate access tokens',
-        copy: 'Request fresh tokens before expiry and update your ringserver configuration.',
-      },
-      {
-        title: 'Watch streaming health',
-        copy: 'Investigate “Not streaming” rows quickly to keep coverage active.',
-      },
-      {
-        title: 'Prepare for reports',
-        copy: 'This workspace will house barangay reports and monitoring summaries.',
-      },
-    ],
   },
 };
 
@@ -163,6 +136,77 @@ const EyeIcon = ({ revealed = false }) => (
   </svg>
 );
 
+const SignOutIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M15 4h-6a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h6" />
+    <path d="M10 12h10" />
+    <path d="m16 8 4 4-4 4" />
+  </svg>
+);
+
+const SettingsIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.7l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.7-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.7.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.7 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.7.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.7-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.7 1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" />
+  </svg>
+);
+
+const CloseIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 6 6 18" />
+    <path d="M6 6 18 18" />
+  </svg>
+);
+
+const renderEmptyStateDetails = (emptyState) => {
+  if (!emptyState) return '';
+  const steps = emptyState.steps || [];
+  return (
+    <>
+      {emptyState.body || ''}
+      {steps.length ? (
+        <>
+          <br />
+          <br />
+          {steps.map((step, idx) => (
+            <span key={`${idx}-${step}`}>
+              {idx + 1}. {step}
+              {idx < steps.length - 1 ? <br /> : null}
+            </span>
+          ))}
+        </>
+      ) : null}
+    </>
+  );
+};
+
 /**
  * User dashboard modal showing devices and barangay token management.
  */
@@ -215,6 +259,9 @@ function Dashboard({
   const addDeviceFormRef = useRef(null);
   const dashboardContainerRef = useRef(null);
   const profileRef = useRef(null);
+  const profileScrollRef = useRef(null);
+  const usernameCardRef = useRef(null);
+  const emailCardRef = useRef(null);
   const isClosingRef = useRef(false);
   const isMountedRef = useRef(true); // guard async state updates after unmount
   const timeoutsRef = useRef([]); // track pending timers for cleanup
@@ -252,6 +299,32 @@ function Dashboard({
     setShowDeleteConfirm(false);
   };
 
+  useEffect(() => {
+    if (openSettingsSection !== 'username' && openSettingsSection !== 'email') return;
+    const target =
+      openSettingsSection === 'username' ? usernameCardRef.current : emailCardRef.current;
+    if (!target) return;
+    const scrollTarget = () => {
+      const container = profileScrollRef.current;
+      if (!container) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const padding = 24;
+      const outOfView =
+        targetRect.top < containerRect.top + padding ||
+        targetRect.bottom > containerRect.bottom - padding;
+      if (outOfView) {
+        const nextTop = container.scrollTop + (targetRect.top - containerRect.top) - padding;
+        container.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+      }
+    };
+    const id = setTimeout(scrollTarget, 0);
+    return () => clearTimeout(id);
+  }, [openSettingsSection]);
+
   // TOASTS
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
@@ -286,7 +359,7 @@ function Dashboard({
           </svg>
         ),
         description: isBrgy
-          ? 'Access tokens and space reserved for upcoming contributor utilities.'
+          ? 'Access tokens for barangay ringservers.'
           : 'Contributor tools coming soon.',
         badge: isBrgy ? null : 'beta',
       },
@@ -1059,7 +1132,26 @@ function Dashboard({
                   {isBrgy ? 'Barangay operator' : 'Citizen scientist'}
                 </span>
               </div>
-              <p className={styles.subtitle}>{roleConfig.subtitle}</p>
+              <div className={styles.sectionNav} role="tablist" aria-label="Dashboard sections">
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeSection === section.id}
+                    className={`${styles.sectionTab} ${
+                      activeSection === section.id ? styles.sectionTabActive : ''
+                    }`}
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    <span className={styles.sectionTabIcon} aria-hidden="true">
+                      {section.icon}
+                    </span>
+                    <span className={styles.sectionTabLabel}>{section.label}</span>
+                    {section.badge && <span className={styles.sectionTabBadge}>{section.badge}</span>}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className={styles.actionStack} role="toolbar" aria-label="Dashboard actions">
               <div className={styles.signedInMeta}>
@@ -1068,12 +1160,13 @@ function Dashboard({
               <div className={styles.topBarTools}>
                 <button
                   type="button"
-                  className={styles.toolBtn}
+                  className={`${styles.toolBtn} ${styles.actionBtn}`}
                   onClick={handleSignout}
                   title="Sign out of your account"
                   aria-label="Sign out"
                 >
-                  Sign out
+                  <SignOutIcon className={styles.actionIcon} />
+                  <span className={styles.actionLabel}>Sign out</span>
                 </button>
                 <button
                   type="button"
@@ -1082,180 +1175,162 @@ function Dashboard({
                   aria-label="Close dashboard"
                   title="Close"
                 >
-                  ×
+                  <CloseIcon className={styles.actionIcon} />
                 </button>
               </div>
             </div>
           </div>
 
-          {passwordStatus === 'legacy' && (
-            <div className={styles.passwordNotice} role="status" aria-live="polite">
-              <div>
-                <p className={styles.noticeTitle}>Password update recommended</p>
-                <p className={styles.noticeText}>
-                  This account uses an older password. Update it in Account settings when convenient.
-                </p>
+          <div ref={profileScrollRef} className={styles.profileScroll}>
+            {passwordStatus === 'legacy' && (
+              <div className={styles.passwordNotice} role="status" aria-live="polite">
+                <div>
+                  <div className={styles.noticeTitleRow}>
+                    <p className={`${styles.noticeTitle} ${styles.noticeTitleInline}`}>Password update recommended</p>
+                    <InfoTooltip label="Password update details" title="Why update?" variant="inline">
+                      This account uses an older password. Update it in Account settings when convenient.
+                    </InfoTooltip>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`${styles.toolBtn} ${styles.noticeAction} ${styles.actionBtn}`}
+                  onClick={() => setActiveSection('account')}
+                  aria-label="Open account settings"
+                >
+                  <SettingsIcon className={styles.actionIcon} />
+                  <span className={styles.actionLabel}>Open settings</span>
+                </button>
               </div>
-              <button
-                type="button"
-                className={`${styles.toolBtn} ${styles.noticeAction}`}
-                onClick={() => setActiveSection('account')}
-              >
-                Open settings
-              </button>
-            </div>
-          )}
+            )}
 
-          <div className={styles.sectionNav} role="tablist" aria-label="Dashboard sections">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-              role="tab"
-              aria-selected={activeSection === section.id}
-              className={`${styles.sectionTab} ${
-                activeSection === section.id ? styles.sectionTabActive : ''
-              }`}
-              onClick={() => setActiveSection(section.id)}
-            >
-                <span className={styles.sectionTabIcon} aria-hidden="true">
-                  {section.icon}
-                </span>
-                <span className={styles.sectionTabLabel}>{section.label}</span>
-                {section.badge && <span className={styles.sectionTabBadge}>{section.badge}</span>}
-              </button>
-            ))}
-          </div>
-          {activeSectionMeta?.description && (
-            <p className={styles.sectionDescription}>{activeSectionMeta.description}</p>
-          )}
+            {activeSectionMeta?.description && (
+              <p className={styles.sectionDescription}>{activeSectionMeta.description}</p>
+            )}
 
-          {activeSection === 'devices' && (
-            <div className={styles.sectionGrid}>
-              <section className={styles.panelBody} aria-label="Device overview">
-                <div className={styles.panelHeaderRow}>
-                  <div>
-                    <p className={styles.panelKicker}>Connectivity</p>
-                    <h3 className={styles.panelTitle}>Device overview</h3>
-                    <p className={styles.panelSubtitle}>{roleConfig.devicesIntro}</p>
+            {activeSection === 'devices' && (
+              <div className={styles.sectionGridSingle}>
+                <section className={styles.panelBody} aria-label="Device overview">
+                  <div className={styles.panelHeaderRow}>
+                    <div>
+                      <p className={styles.panelKicker}>Connectivity</p>
+                      <div className={styles.panelTitleRow}>
+                        <h3 className={styles.panelTitle}>Device overview</h3>
+                        <InfoTooltip label="Device overview details" title="Connectivity overview" variant="inline">
+                          {roleConfig.devicesIntro}
+                        </InfoTooltip>
+                      </div>
+                    </div>
+                    <div className={styles.summaryPills} aria-label="Device status summary">
+                      <span className={`${styles.summaryPill} ${styles.summaryPillPositive}`}>
+                        Streaming <strong>{statusCounts.streaming}</strong>
+                      </span>
+                      <span className={`${styles.summaryPill} ${styles.summaryPillWarning}`}>
+                        Not Streaming <strong>{statusCounts.inactive}</strong>
+                      </span>
+                      <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
+                        Unlinked <strong>{statusCounts.unlinked}</strong>
+                      </span>
+                    </div>
                   </div>
-                  <div className={styles.summaryPills} aria-label="Device status summary">
-                    <span className={`${styles.summaryPill} ${styles.summaryPillPositive}`}>
-                      Streaming <strong>{statusCounts.streaming}</strong>
-                    </span>
-                    <span className={`${styles.summaryPill} ${styles.summaryPillWarning}`}>
-                      Not Streaming <strong>{statusCounts.inactive}</strong>
-                    </span>
-                    <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
-                      Unlinked <strong>{statusCounts.unlinked}</strong>
-                    </span>
-                  </div>
-                </div>
 
-                <div className={styles.deviceListTableContainer}>
-                  <table className={styles.deviceListTable}>
-                    <thead>
-                      <tr>
-                        <th scope="col">Network</th>
-                        <th scope="col">Station</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Status since</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hasDevices ? (
-                        devices.map((device, index) => {
-                          const statusLabel = toDashboardStatusLabel({
-                            activity: device.activity,
-                            status: device.status,
-                          });
-                          const statusVariant = getStatusVariant(statusLabel);
-                          const badgeClass =
-                            statusVariant === 'ok'
-                              ? styles.statusBadgeOk
-                              : statusVariant === 'warn'
-                                ? styles.statusBadgeWarn
-                                : styles.statusBadgeMuted;
-                          const key = `${device.network || 'net'}-${device.station || index}-${index}`;
-                          return (
-                            <tr key={key}>
-                              <td>
-                                <div className={styles.cellHeading}>{device.network || '—'}</div>
-                              </td>
-                              <td>
-                                <div className={styles.cellHeading}>{device.station || '—'}</div>
-                                {device.description && (
-                                  <div className={styles.cellMeta}>{device.description}</div>
-                                )}
-                              </td>
-                              <td>
-                                <span
-                                  className={`${styles.statusBadge} ${badgeClass}`}
-                                  title={statusTooltips[statusLabel] || statusLabel}
-                                >
-                                  {statusLabel}
-                                </span>
-                              </td>
-                              <td>
-                                <span className={styles.sinceLabel} title={device.statusSince || ''}>
-                                  {formatStatusSince(device.statusSince)}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      ) : (
+                  <div className={styles.deviceListTableContainer}>
+                    <table className={styles.deviceListTable}>
+                      <thead>
                         <tr>
-                          <td colSpan="4">
-                            <div className={styles.emptyState}>
-                              <p className={styles.emptyTitle}>{emptyState.title}</p>
-                              <p className={styles.emptyBody}>{emptyState.body}</p>
-                              <ul className={styles.emptyList}>
-                                {emptyState.steps.map((step, idx) => (
-                                  <li key={idx}>{step}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          </td>
+                          <th scope="col">Network</th>
+                          <th scope="col">Station</th>
+                          <th scope="col">Status</th>
+                          <th scope="col">Status since</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <section className={`${styles.panelBody} ${styles.hintPanel}`} aria-label="Contributor guidance">
-                <div className={styles.panelHeaderRow}>
-                  <div>
-                    <p className={styles.panelKicker}>Next steps</p>
-                    <h3 className={styles.panelTitle}>Keep your station active</h3>
+                      </thead>
+                      <tbody>
+                        {hasDevices ? (
+                          devices.map((device, index) => {
+                            const statusLabel = toDashboardStatusLabel({
+                              activity: device.activity,
+                              status: device.status,
+                            });
+                            const statusVariant = getStatusVariant(statusLabel);
+                            const badgeClass =
+                              statusVariant === 'ok'
+                                ? styles.statusBadgeOk
+                                : statusVariant === 'warn'
+                                  ? styles.statusBadgeWarn
+                                  : styles.statusBadgeMuted;
+                            const key = `${device.network || 'net'}-${device.station || index}-${index}`;
+                            return (
+                              <tr key={key}>
+                                <td>
+                                  <div className={styles.cellHeading}>{device.network || '—'}</div>
+                                </td>
+                                <td>
+                                  <div className={styles.cellHeadingRow}>
+                                    <div className={styles.cellHeading}>{device.station || '—'}</div>
+                                    {device.description && (
+                                      <InfoTooltip
+                                        label={`${device.station || 'Station'} details`}
+                                        title="Station details"
+                                        variant="inline"
+                                      >
+                                        {device.description}
+                                      </InfoTooltip>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span
+                                    className={`${styles.statusBadge} ${badgeClass}`}
+                                    title={statusTooltips[statusLabel] || statusLabel}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={styles.sinceLabel} title={device.statusSince || ''}>
+                                    {formatStatusSince(device.statusSince)}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan="4">
+                              <div className={styles.emptyState}>
+                                <div className={styles.emptyTitleRow}>
+                                  <p className={`${styles.emptyTitle} ${styles.emptyTitleInline}`}>
+                                    {emptyState.title}
+                                  </p>
+                                  <InfoTooltip label={`${emptyState.title} details`} title="Getting started" variant="inline">
+                                    {renderEmptyStateDetails(emptyState)}
+                                  </InfoTooltip>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-                <ul className={styles.hintList}>
-                  {roleConfig.nextSteps.map((hint) => (
-                    <li key={hint.title}>
-                      <p className={styles.hintTitle}>{hint.title}</p>
-                      <p className={styles.hintText}>{hint.copy}</p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-          )}
+                </section>
+              </div>
+            )}
 
-          {activeSection === 'tools' && (
-            <div className={styles.sectionGrid}>
-              {isBrgy ? (
-                <>
+            {activeSection === 'tools' && (
+              <div className={styles.sectionGridSingle}>
+                {isBrgy ? (
                   <section className={styles.panelBody} aria-label="Access tokens">
                     <div className={styles.panelHeaderRow}>
-                      <div>
-                        <p className={styles.panelKicker}>Access control</p>
+                    <div>
+                      <p className={styles.panelKicker}>Access control</p>
+                      <div className={styles.panelTitleRow}>
                         <h3 className={styles.panelTitle}>Tokens & credentials</h3>
-                        <p className={styles.panelSubtitle}>
+                        <InfoTooltip label="Tokens and credentials details" title="Access control" variant="inline">
                           Generate a token for barangay ringservers to access the UPRI network.
-                        </p>
+                        </InfoTooltip>
                       </div>
+                    </div>
                       <div className={styles.actionRow}>
                         <button
                           type="button"
@@ -1297,190 +1372,363 @@ function Dashboard({
                             </small>
                           </div>
                         </>
-                      ) : (
-                        <div className={styles.tokenPlaceholder}>
-                          <p className={styles.emptyTitle}>No token generated yet</p>
-                          <p className={styles.emptyBody}>
+                    ) : (
+                      <div className={styles.tokenPlaceholder}>
+                        <div className={styles.emptyTitleRow}>
+                          <p className={`${styles.emptyTitle} ${styles.emptyTitleInline}`}>
+                            No token generated yet
+                          </p>
+                          <InfoTooltip label="Token placeholder details" title="How to generate a token" variant="inline">
                             Use “Request token” to generate credentials for your barangay devices. The
                             token will appear here once created.
-                          </p>
+                          </InfoTooltip>
                         </div>
-                      )}
-                    </div>
-                  </section>
-
-                  <section className={`${styles.panelBody} ${styles.futurePanel}`} aria-label="Upcoming tools">
+                      </div>
+                    )}
+                  </div>
+                </section>
+                ) : (
+                  <section className={`${styles.panelBody} ${styles.futurePanel}`} aria-label="Contributor tools">
                     <div className={styles.panelHeaderRow}>
                       <div>
-                        <p className={styles.panelKicker}>Coming soon</p>
-                        <h3 className={styles.panelTitle}>Workspace add-ons</h3>
+                        <p className={styles.panelKicker}>Tools</p>
+                        <h3 className={styles.panelTitle}>Contributor tools</h3>
                         <p className={styles.panelSubtitle}>
-                          This dashboard is built to host monitoring, reports, and new contributor
-                          tools as they launch.
+                          No tools available yet. Linking devices is handled by your sender software.
                         </p>
                       </div>
                     </div>
-                    <ul className={styles.hintList}>
-                      <li>
-                        <p className={styles.hintTitle}>Multi-device health</p>
-                        <p className={styles.hintText}>Rollup views for uptime and streaming quality.</p>
-                      </li>
-                      <li>
-                        <p className={styles.hintTitle}>Reports & exports</p>
-                        <p className={styles.hintText}>
-                          Reserved space for barangay reports and download tools.
-                        </p>
-                      </li>
-                      <li>
-                        <p className={styles.hintTitle}>Role-specific alerts</p>
-                        <p className={styles.hintText}>
-                          Notifications tuned to how you participate in the network.
-                        </p>
-                      </li>
-                    </ul>
-                  </section>
-                </>
-              ) : (
-                <section className={`${styles.panelBody} ${styles.futurePanel}`} aria-label="Contributor tools">
-                  <div className={styles.panelHeaderRow}>
-                    <div>
-                      <p className={styles.panelKicker}>Tools</p>
-                      <h3 className={styles.panelTitle}>Contributor tools</h3>
-                      <p className={styles.panelSubtitle}>
-                        No tools available yet. Linking devices is handled by your sender software.
+                    <div className={styles.tokenPlaceholder}>
+                      <p className={styles.emptyTitle}>No tools yet</p>
+                      <p className={styles.emptyBody}>
+                        This space will host contributor utilities when they launch.
                       </p>
                     </div>
-                  </div>
-                  <div className={styles.tokenPlaceholder}>
-                    <p className={styles.emptyTitle}>No tools yet</p>
-                    <p className={styles.emptyBody}>
-                      This space will host contributor utilities when they launch.
-                    </p>
-                  </div>
-                </section>
-              )}
-            </div>
-          )}
+                  </section>
+                )}
+              </div>
+            )}
 
-          {activeSection === 'account' && (
-            <div className={styles.sectionGridSingle}>
-              <section className={styles.panelBody} aria-label="Account settings">
+            {activeSection === 'account' && (
+              <div className={styles.sectionGridSingle}>
+                <section className={styles.panelBody} aria-label="Account settings">
                 <div className={styles.panelHeaderRow}>
                   <div>
                     <p className={styles.panelKicker}>Account</p>
-                    <h3 className={styles.panelTitle}>Account settings</h3>
-                    <p className={styles.panelSubtitle}>
-                      Manage your username, contact email, password, or delete your account when safe.
-                    </p>
+                    <div className={styles.panelTitleRow}>
+                      <h3 className={styles.panelTitle}>Account settings</h3>
+                      <InfoTooltip label="Account settings details" title="Account settings" variant="inline">
+                        Manage your username, contact email, password, or delete your account when safe.
+                      </InfoTooltip>
+                    </div>
                   </div>
                 </div>
 
-                <div className={styles.accountSummary}>
-                  <div className={styles.metaItem}>
-                    <div className={styles.metaHeader}>
-                      <p className={styles.metaLabel}>Username</p>
-                      <button
-                        type="button"
-                        className={`${styles.metaEdit} ${
-                          openSettingsSection === 'username' ? styles.metaEditActive : ''
-                        }`}
-                        onClick={() => toggleSettingsSection('username')}
-                        aria-expanded={openSettingsSection === 'username'}
-                        aria-controls="username-settings-card"
-                      >
-                        <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
-                        Edit
-                      </button>
+                  <div className={styles.accountSummary}>
+                    <div className={styles.metaItem}>
+                      <div className={styles.metaHeader}>
+                        <p className={styles.metaLabel}>Username</p>
+                        <button
+                          type="button"
+                          className={`${styles.metaEdit} ${
+                            openSettingsSection === 'username' ? styles.metaEditActive : ''
+                          }`}
+                          onClick={() => toggleSettingsSection('username')}
+                          aria-expanded={openSettingsSection === 'username'}
+                          aria-controls="username-settings-card"
+                        >
+                          <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
+                          Edit
+                        </button>
+                      </div>
+                      <p className={styles.metaValue}>{loggedInUser || '—'}</p>
                     </div>
-                    <p className={styles.metaValue}>{loggedInUser || '—'}</p>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>Role</p>
-                    <p className={styles.metaValue}>
-                      {isBrgy ? 'Barangay operator' : 'Citizen scientist'}
-                    </p>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <div className={styles.metaHeader}>
-                      <p className={styles.metaLabel}>Contact email</p>
-                      <button
-                        type="button"
-                        className={`${styles.metaEdit} ${
-                          openSettingsSection === 'email' ? styles.metaEditActive : ''
-                        }`}
-                        onClick={() => toggleSettingsSection('email')}
-                        aria-expanded={openSettingsSection === 'email'}
-                        aria-controls="email-settings-card"
-                      >
-                        <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
-                        Edit
-                      </button>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>Role</p>
+                      <p className={styles.metaValue}>
+                        {isBrgy ? 'Barangay operator' : 'Citizen scientist'}
+                      </p>
                     </div>
-                    <p className={styles.metaValue}>{accountEmail || 'Not set'}</p>
+                    <div className={styles.metaItem}>
+                      <div className={styles.metaHeader}>
+                        <p className={styles.metaLabel}>Contact email</p>
+                        <button
+                          type="button"
+                          className={`${styles.metaEdit} ${
+                            openSettingsSection === 'email' ? styles.metaEditActive : ''
+                          }`}
+                          onClick={() => toggleSettingsSection('email')}
+                          aria-expanded={openSettingsSection === 'email'}
+                          aria-controls="email-settings-card"
+                        >
+                          <span className={styles.metaEditIcon} aria-hidden="true">✎</span>
+                          Edit
+                        </button>
+                      </div>
+                      <p className={styles.metaValue}>{accountEmail || 'Not set'}</p>
+                    </div>
                   </div>
-                </div>
 
-                {(openSettingsSection === 'username' || openSettingsSection === 'email') && (
-                  <div className={styles.accountStack}>
-                    {openSettingsSection === 'username' && (
-                      <div className={styles.settingsCard} id="username-settings-card" aria-label="Update username">
-                        <div className={styles.cardHeaderRow}>
-                          <div>
-                            <p className={styles.panelKicker}>Username</p>
-                            <h4 className={styles.cardTitle}>Update username</h4>
-                            <p className={styles.cardSubtitle}>Change your username and keep your devices labeled correctly.</p>
+                  {(openSettingsSection === 'username' || openSettingsSection === 'email') && (
+                    <div className={styles.accountStack}>
+                      {openSettingsSection === 'username' && (
+                        <div
+                          className={styles.settingsCard}
+                          id="username-settings-card"
+                          aria-label="Update username"
+                          ref={usernameCardRef}
+                        >
+                          <div className={styles.cardHeaderRow}>
+                            <div>
+                              <p className={styles.panelKicker}>Username</p>
+                              <div className={styles.cardTitleRow}>
+                                <h4 className={styles.cardTitle}>Update username</h4>
+                                <InfoTooltip label="Username update details" title="Why update?" variant="inline">
+                                  Change your username and keep your devices labeled correctly.
+                                </InfoTooltip>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className={`${styles.settingsToggle} ${
+                                openSettingsSection === 'username' ? styles.settingsToggleActive : ''
+                              }`}
+                              onClick={() => toggleSettingsSection(null)}
+                              aria-label="Close username editor"
+                            >
+                              Close
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            className={`${styles.settingsToggle} ${
-                              openSettingsSection === 'username' ? styles.settingsToggleActive : ''
-                            }`}
-                            onClick={() => toggleSettingsSection(null)}
-                            aria-label="Close username editor"
-                          >
-                            Close
-                          </button>
-                        </div>
-                        <form className={styles.accountSettingsForm} onSubmit={handleUsernameSubmit} noValidate>
-                          <div className={styles.settingsRow}>
-                            <label className={styles.settingsField} htmlFor="account-username-new">
-                              New username
-                              <input
-                                id="account-username-new"
-                                type="text"
-                                name="newUsername"
-                                autoComplete="username"
-                                value={usernameForm.newUsername}
-                                placeholder="Enter new username"
-                                className={`${styles.settingsInput} ${
-                                  usernameErrors.newUsername ? styles.inputError : ''
-                                }`}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  setUsernameForm((prev) => ({ ...prev, newUsername: value }));
-                                  setUsernameErrors((prev) => ({ ...prev, newUsername: false, form: false }));
-                                }}
-                              />
-                            </label>
-                          </div>
-                          <div className={styles.settingsRow}>
-                            <label className={styles.settingsField} htmlFor="account-username-current-password">
-                              Current password
-                              <div className={styles.passwordField}>
+                          <form className={styles.accountSettingsForm} onSubmit={handleUsernameSubmit} noValidate>
+                            <div className={styles.settingsRow}>
+                              <label className={styles.settingsField} htmlFor="account-username-new">
+                                New username
                                 <input
-                                  id="account-username-current-password"
-                                  type={passwordVisibility.usernameCurrent ? 'text' : 'password'}
-                                  name="currentPassword"
-                                  autoComplete="current-password"
-                                  value={usernameForm.currentPassword}
-                                  placeholder="Enter current password"
+                                  id="account-username-new"
+                                  type="text"
+                                  name="newUsername"
+                                  autoComplete="username"
+                                  value={usernameForm.newUsername}
+                                  placeholder="Enter new username"
                                   className={`${styles.settingsInput} ${
-                                    usernameErrors.currentPassword ? styles.inputError : ''
+                                    usernameErrors.newUsername ? styles.inputError : ''
                                   }`}
                                   onChange={(e) => {
                                     const value = e.target.value;
-                                    setUsernameForm((prev) => ({ ...prev, currentPassword: value }));
-                                    setUsernameErrors((prev) => ({
+                                    setUsernameForm((prev) => ({ ...prev, newUsername: value }));
+                                    setUsernameErrors((prev) => ({ ...prev, newUsername: false, form: false }));
+                                  }}
+                                />
+                              </label>
+                            </div>
+                            <div className={styles.settingsRow}>
+                              <label className={styles.settingsField} htmlFor="account-username-current-password">
+                                Current password
+                                <div className={styles.passwordField}>
+                                  <input
+                                    id="account-username-current-password"
+                                    type={passwordVisibility.usernameCurrent ? 'text' : 'password'}
+                                    name="currentPassword"
+                                    autoComplete="current-password"
+                                    value={usernameForm.currentPassword}
+                                    placeholder="Enter current password"
+                                    className={`${styles.settingsInput} ${
+                                      usernameErrors.currentPassword ? styles.inputError : ''
+                                    }`}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setUsernameForm((prev) => ({ ...prev, currentPassword: value }));
+                                      setUsernameErrors((prev) => ({
+                                        ...prev,
+                                        currentPassword: false,
+                                        form: false,
+                                      }));
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className={styles.eyeToggle}
+                                    aria-label={`${
+                                      passwordVisibility.usernameCurrent ? 'Hide' : 'Show'
+                                    } current password`}
+                                    aria-pressed={passwordVisibility.usernameCurrent}
+                                    onClick={() =>
+                                      setPasswordVisibility((prev) => ({
+                                        ...prev,
+                                        usernameCurrent: !prev.usernameCurrent,
+                                      }))
+                                    }
+                                  >
+                                    <EyeIcon revealed={passwordVisibility.usernameCurrent} />
+                                  </button>
+                                </div>
+                              </label>
+                            </div>
+                            <div className={styles.settingsActions}>
+                              <button type="submit" className={styles.saveButton} disabled={isUpdatingUsername}>
+                                {isUpdatingUsername ? 'Updating...' : 'Save username'}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+
+                      {openSettingsSection === 'email' && (
+                        <div
+                          className={styles.settingsCard}
+                          id="email-settings-card"
+                          aria-label="Update contact email"
+                          ref={emailCardRef}
+                        >
+                          <div className={styles.cardHeaderRow}>
+                            <div>
+                              <p className={styles.panelKicker}>Contact email</p>
+                              <div className={styles.cardTitleRow}>
+                                <h4 className={styles.cardTitle}>Update contact email</h4>
+                                <InfoTooltip label="Contact email details" title="Why update?" variant="inline">
+                                  Used for notices, resets, and security updates.
+                                </InfoTooltip>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className={`${styles.settingsToggle} ${
+                                openSettingsSection === 'email' ? styles.settingsToggleActive : ''
+                              }`}
+                              onClick={() => toggleSettingsSection(null)}
+                              aria-label="Close email editor"
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <form className={styles.accountSettingsForm} onSubmit={handleEmailSubmit} noValidate>
+                            <div className={styles.settingsRow}>
+                          <label className={styles.settingsField} htmlFor="account-email">
+                                <span className={formStyles.fieldLabelRow}>
+                                  Contact email
+                                </span>
+                                <input
+                                  id="account-email"
+                                  type="email"
+                                  name="email"
+                                  autoComplete="email"
+                                  value={emailForm.email}
+                                  placeholder="you@example.com"
+                                  className={`${styles.settingsInput} ${emailErrors.email ? styles.inputError : ''}`}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setEmailForm((prev) => ({ ...prev, email: value }));
+                                    setEmailErrors((prev) => ({ ...prev, email: false, form: false }));
+                                  }}
+                                />
+                              </label>
+                            </div>
+                            <div className={styles.settingsRow}>
+                              <label className={styles.settingsField} htmlFor="account-email-current-password">
+                                Current password
+                                <div className={styles.passwordField}>
+                                  <input
+                                    id="account-email-current-password"
+                                    type={passwordVisibility.emailCurrent ? 'text' : 'password'}
+                                    name="currentPassword"
+                                    autoComplete="current-password"
+                                    value={emailForm.currentPassword}
+                                    placeholder="Enter current password"
+                                    className={`${styles.settingsInput} ${
+                                      emailErrors.currentPassword ? styles.inputError : ''
+                                    }`}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEmailForm((prev) => ({ ...prev, currentPassword: value }));
+                                      setEmailErrors((prev) => ({
+                                        ...prev,
+                                        currentPassword: false,
+                                        form: false,
+                                      }));
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className={styles.eyeToggle}
+                                    aria-label={`${passwordVisibility.emailCurrent ? 'Hide' : 'Show'} current password`}
+                                    aria-pressed={passwordVisibility.emailCurrent}
+                                    onClick={() =>
+                                      setPasswordVisibility((prev) => ({
+                                        ...prev,
+                                        emailCurrent: !prev.emailCurrent,
+                                      }))
+                                    }
+                                  >
+                                    <EyeIcon revealed={passwordVisibility.emailCurrent} />
+                                  </button>
+                                </div>
+                              </label>
+                            </div>
+                            <div className={styles.settingsActions}>
+                              <button type="submit" className={styles.saveButton} disabled={isUpdatingEmail}>
+                                {isUpdatingEmail ? 'Updating...' : 'Save email'}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                    <div className={styles.accountStack}>
+                      <div className={styles.settingsCard} aria-label="Password">
+                        <div className={styles.cardHeaderRow}>
+                          <div>
+                            <p className={styles.panelKicker}>Password</p>
+                            <div className={styles.cardTitleRow}>
+                              <h4 className={styles.cardTitle}>Update password</h4>
+                              <InfoTooltip label="Password requirements" title="Password requirements" variant="inline">
+                                Minimum 12 characters. Letters, numbers, and symbols allowed.
+                              </InfoTooltip>
+                            </div>
+                          </div>
+                          <div className={styles.cardHeaderActions}>
+                            <span
+                              className={`${styles.statusPill} ${
+                                passwordStatus === 'legacy' ? styles.statusPillWarn : styles.statusPillOk
+                              }`}
+                              title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
+                            >
+                              Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
+                            </span>
+                            <button
+                              type="button"
+                              className={`${styles.settingsToggle} ${
+                                openSettingsSection === 'password' ? styles.settingsToggleActive : ''
+                              }`}
+                              onClick={() => toggleSettingsSection('password')}
+                              aria-expanded={openSettingsSection === 'password'}
+                              aria-controls="password-settings"
+                            >
+                              {openSettingsSection === 'password' ? 'Close' : 'Change'}
+                            </button>
+                          </div>
+                        </div>
+                        {openSettingsSection === 'password' && (
+                        <form className={styles.accountSettingsForm} id="password-settings" onSubmit={handlePasswordSubmit} noValidate>
+                          <div className={styles.settingsRow}>
+                            <label className={styles.settingsField} htmlFor="account-current-password">
+                              Current password
+                              <div className={styles.passwordField}>
+                                <input
+                                  id="account-current-password"
+                                  type={passwordVisibility.currentPassword ? 'text' : 'password'}
+                                  name="currentPassword"
+                                  autoComplete="current-password"
+                                  value={passwordForm.currentPassword}
+                                  placeholder="Enter current password"
+                                  className={`${styles.settingsInput} ${
+                                    passwordErrors.currentPassword ? styles.inputError : ''
+                                  }`}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setPasswordForm((prev) => ({ ...prev, currentPassword: value }));
+                                    setPasswordErrors((prev) => ({
                                       ...prev,
                                       currentPassword: false,
                                       form: false,
@@ -1490,100 +1738,75 @@ function Dashboard({
                                 <button
                                   type="button"
                                   className={styles.eyeToggle}
-                                  aria-label={`${
-                                    passwordVisibility.usernameCurrent ? 'Hide' : 'Show'
-                                  } current password`}
-                                  aria-pressed={passwordVisibility.usernameCurrent}
+                                  aria-label={`${passwordVisibility.currentPassword ? 'Hide' : 'Show'} current password`}
+                                  aria-pressed={passwordVisibility.currentPassword}
                                   onClick={() =>
                                     setPasswordVisibility((prev) => ({
                                       ...prev,
-                                      usernameCurrent: !prev.usernameCurrent,
+                                      currentPassword: !prev.currentPassword,
                                     }))
                                   }
                                 >
-                                  <EyeIcon revealed={passwordVisibility.usernameCurrent} />
+                                  <EyeIcon revealed={passwordVisibility.currentPassword} />
                                 </button>
                               </div>
                             </label>
                           </div>
-                          <div className={styles.settingsActions}>
-                            <button type="submit" className={styles.saveButton} disabled={isUpdatingUsername}>
-                              {isUpdatingUsername ? 'Updating...' : 'Save username'}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() => toggleSettingsSection(null)}
-                              disabled={isUpdatingUsername}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    )}
-
-                    {openSettingsSection === 'email' && (
-                      <div className={styles.settingsCard} id="email-settings-card" aria-label="Update contact email">
-                        <div className={styles.cardHeaderRow}>
-                          <div>
-                            <p className={styles.panelKicker}>Contact email</p>
-                            <h4 className={styles.cardTitle}>Update contact email</h4>
-                            <p className={styles.cardSubtitle}>Used for notices, resets, and security updates.</p>
-                          </div>
-                          <button
-                            type="button"
-                            className={`${styles.settingsToggle} ${
-                              openSettingsSection === 'email' ? styles.settingsToggleActive : ''
-                            }`}
-                            onClick={() => toggleSettingsSection(null)}
-                            aria-label="Close email editor"
-                          >
-                            Close
-                          </button>
-                        </div>
-                        <form className={styles.accountSettingsForm} onSubmit={handleEmailSubmit} noValidate>
                           <div className={styles.settingsRow}>
-                        <label className={styles.settingsField} htmlFor="account-email">
-                              <span className={formStyles.fieldLabelRow}>
-                                Contact email
-                              </span>
-                              <input
-                                id="account-email"
-                                type="email"
-                                name="email"
-                                autoComplete="email"
-                                value={emailForm.email}
-                                placeholder="you@example.com"
-                                className={`${styles.settingsInput} ${emailErrors.email ? styles.inputError : ''}`}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  setEmailForm((prev) => ({ ...prev, email: value }));
-                                  setEmailErrors((prev) => ({ ...prev, email: false, form: false }));
-                                }}
-                              />
-                            </label>
-                          </div>
-                          <div className={styles.settingsRow}>
-                            <label className={styles.settingsField} htmlFor="account-email-current-password">
-                              Current password
+                            <label className={styles.settingsField} htmlFor="account-new-password">
+                              New password
                               <div className={styles.passwordField}>
                                 <input
-                                  id="account-email-current-password"
-                                  type={passwordVisibility.emailCurrent ? 'text' : 'password'}
-                                  name="currentPassword"
-                                  autoComplete="current-password"
-                                  value={emailForm.currentPassword}
-                                  placeholder="Enter current password"
+                                  id="account-new-password"
+                                  type={passwordVisibility.newPassword ? 'text' : 'password'}
+                                  name="newPassword"
+                                  autoComplete="new-password"
+                                  value={passwordForm.newPassword}
+                                  placeholder="Enter new password"
                                   className={`${styles.settingsInput} ${
-                                    emailErrors.currentPassword ? styles.inputError : ''
+                                    passwordErrors.newPassword ? styles.inputError : ''
                                   }`}
                                   onChange={(e) => {
                                     const value = e.target.value;
-                                    setEmailForm((prev) => ({ ...prev, currentPassword: value }));
-                                    setEmailErrors((prev) => ({
+                                    setPasswordForm((prev) => ({ ...prev, newPassword: value }));
+                                    setPasswordErrors((prev) => ({ ...prev, newPassword: false, form: false }));
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.eyeToggle}
+                                  aria-label={`${passwordVisibility.newPassword ? 'Hide' : 'Show'} new password`}
+                                  aria-pressed={passwordVisibility.newPassword}
+                                  onClick={() =>
+                                    setPasswordVisibility((prev) => ({
                                       ...prev,
-                                      currentPassword: false,
+                                      newPassword: !prev.newPassword,
+                                    }))
+                                  }
+                                >
+                                  <EyeIcon revealed={passwordVisibility.newPassword} />
+                                </button>
+                              </div>
+                            </label>
+                            <label className={styles.settingsField} htmlFor="account-confirm-password">
+                              Confirm new password
+                              <div className={styles.passwordField}>
+                                <input
+                                  id="account-confirm-password"
+                                  type={passwordVisibility.confirmPassword ? 'text' : 'password'}
+                                  name="confirmPassword"
+                                  autoComplete="new-password"
+                                  value={passwordForm.confirmPassword}
+                                  placeholder="Re-enter new password"
+                                  className={`${styles.settingsInput} ${
+                                    passwordErrors.confirmPassword ? styles.inputError : ''
+                                  }`}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setPasswordForm((prev) => ({ ...prev, confirmPassword: value }));
+                                    setPasswordErrors((prev) => ({
+                                      ...prev,
+                                      confirmPassword: false,
                                       form: false,
                                     }));
                                   }}
@@ -1591,294 +1814,129 @@ function Dashboard({
                                 <button
                                   type="button"
                                   className={styles.eyeToggle}
-                                  aria-label={`${passwordVisibility.emailCurrent ? 'Hide' : 'Show'} current password`}
-                                  aria-pressed={passwordVisibility.emailCurrent}
+                                  aria-label={`${passwordVisibility.confirmPassword ? 'Hide' : 'Show'} confirmation password`}
+                                  aria-pressed={passwordVisibility.confirmPassword}
                                   onClick={() =>
                                     setPasswordVisibility((prev) => ({
                                       ...prev,
-                                      emailCurrent: !prev.emailCurrent,
+                                      confirmPassword: !prev.confirmPassword,
                                     }))
                                   }
                                 >
-                                  <EyeIcon revealed={passwordVisibility.emailCurrent} />
+                                  <EyeIcon revealed={passwordVisibility.confirmPassword} />
                                 </button>
                               </div>
                             </label>
                           </div>
                           <div className={styles.settingsActions}>
-                            <button type="submit" className={styles.saveButton} disabled={isUpdatingEmail}>
-                              {isUpdatingEmail ? 'Updating...' : 'Save email'}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() => toggleSettingsSection(null)}
-                              disabled={isUpdatingEmail}
-                            >
-                              Cancel
+                            <button type="submit" className={styles.saveButton} disabled={isUpdatingPassword}>
+                              {isUpdatingPassword ? 'Updating...' : 'Update password'}
                             </button>
                           </div>
                         </form>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
 
-                  <div className={styles.accountStack}>
-                    <div className={styles.settingsCard} aria-label="Password">
+                    <div className={`${styles.settingsCard} ${styles.dangerCard}`} aria-label="Delete account">
                       <div className={styles.cardHeaderRow}>
                         <div>
-                          <p className={styles.panelKicker}>Password</p>
-                          <h4 className={styles.cardTitle}>Update password</h4>
-                          <p className={styles.cardSubtitle}>Minimum 12 characters. Letters, numbers, and symbols allowed.</p>
-                        </div>
-                        <div className={styles.cardHeaderActions}>
-                          <span
-                            className={`${styles.statusPill} ${
-                              passwordStatus === 'legacy' ? styles.statusPillWarn : styles.statusPillOk
-                            }`}
-                            title={`Password policy version ${passwordPolicyVersion || 'legacy'}`}
-                          >
-                            Password: {passwordStatus === 'legacy' ? 'Legacy' : 'Secure'}
-                          </span>
-                          <button
-                            type="button"
-                            className={`${styles.settingsToggle} ${
-                              openSettingsSection === 'password' ? styles.settingsToggleActive : ''
-                            }`}
-                            onClick={() => toggleSettingsSection('password')}
-                            aria-expanded={openSettingsSection === 'password'}
-                            aria-controls="password-settings"
-                          >
-                            {openSettingsSection === 'password' ? 'Close' : 'Change'}
-                          </button>
-                        </div>
-                      </div>
-                      {openSettingsSection === 'password' && (
-                      <form className={styles.accountSettingsForm} id="password-settings" onSubmit={handlePasswordSubmit} noValidate>
-                        <div className={styles.settingsRow}>
-                          <label className={styles.settingsField} htmlFor="account-current-password">
-                            Current password
-                            <div className={styles.passwordField}>
-                              <input
-                                id="account-current-password"
-                                type={passwordVisibility.currentPassword ? 'text' : 'password'}
-                                name="currentPassword"
-                                autoComplete="current-password"
-                                value={passwordForm.currentPassword}
-                                placeholder="Enter current password"
-                                className={`${styles.settingsInput} ${
-                                  passwordErrors.currentPassword ? styles.inputError : ''
-                                }`}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  setPasswordForm((prev) => ({ ...prev, currentPassword: value }));
-                                  setPasswordErrors((prev) => ({
-                                    ...prev,
-                                    currentPassword: false,
-                                    form: false,
-                                  }));
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className={styles.eyeToggle}
-                                aria-label={`${passwordVisibility.currentPassword ? 'Hide' : 'Show'} current password`}
-                                aria-pressed={passwordVisibility.currentPassword}
-                                onClick={() =>
-                                  setPasswordVisibility((prev) => ({
-                                    ...prev,
-                                    currentPassword: !prev.currentPassword,
-                                  }))
-                                }
-                              >
-                                <EyeIcon revealed={passwordVisibility.currentPassword} />
-                              </button>
-                            </div>
-                          </label>
-                        </div>
-                        <div className={styles.settingsRow}>
-                          <label className={styles.settingsField} htmlFor="account-new-password">
-                            New password
-                            <div className={styles.passwordField}>
-                              <input
-                                id="account-new-password"
-                                type={passwordVisibility.newPassword ? 'text' : 'password'}
-                                name="newPassword"
-                                autoComplete="new-password"
-                                value={passwordForm.newPassword}
-                                placeholder="Enter new password"
-                                className={`${styles.settingsInput} ${
-                                  passwordErrors.newPassword ? styles.inputError : ''
-                                }`}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  setPasswordForm((prev) => ({ ...prev, newPassword: value }));
-                                  setPasswordErrors((prev) => ({ ...prev, newPassword: false, form: false }));
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className={styles.eyeToggle}
-                                aria-label={`${passwordVisibility.newPassword ? 'Hide' : 'Show'} new password`}
-                                aria-pressed={passwordVisibility.newPassword}
-                                onClick={() =>
-                                  setPasswordVisibility((prev) => ({
-                                    ...prev,
-                                    newPassword: !prev.newPassword,
-                                  }))
-                                }
-                              >
-                                <EyeIcon revealed={passwordVisibility.newPassword} />
-                              </button>
-                            </div>
-                          </label>
-                          <label className={styles.settingsField} htmlFor="account-confirm-password">
-                            Confirm new password
-                            <div className={styles.passwordField}>
-                              <input
-                                id="account-confirm-password"
-                                type={passwordVisibility.confirmPassword ? 'text' : 'password'}
-                                name="confirmPassword"
-                                autoComplete="new-password"
-                                value={passwordForm.confirmPassword}
-                                placeholder="Re-enter new password"
-                                className={`${styles.settingsInput} ${
-                                  passwordErrors.confirmPassword ? styles.inputError : ''
-                                }`}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  setPasswordForm((prev) => ({ ...prev, confirmPassword: value }));
-                                  setPasswordErrors((prev) => ({
-                                    ...prev,
-                                    confirmPassword: false,
-                                    form: false,
-                                  }));
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className={styles.eyeToggle}
-                                aria-label={`${passwordVisibility.confirmPassword ? 'Hide' : 'Show'} confirmation password`}
-                                aria-pressed={passwordVisibility.confirmPassword}
-                                onClick={() =>
-                                  setPasswordVisibility((prev) => ({
-                                    ...prev,
-                                    confirmPassword: !prev.confirmPassword,
-                                  }))
-                                }
-                              >
-                                <EyeIcon revealed={passwordVisibility.confirmPassword} />
-                              </button>
-                            </div>
-                          </label>
-                        </div>
-                        <div className={styles.settingsActions}>
-                          <button type="submit" className={styles.saveButton} disabled={isUpdatingPassword}>
-                            {isUpdatingPassword ? 'Updating...' : 'Update password'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                  </div>
-
-                  <div className={`${styles.settingsCard} ${styles.dangerCard}`} aria-label="Delete account">
-                    <div className={styles.cardHeaderRow}>
-                      <div>
-                        <p className={styles.panelKicker}>Danger zone</p>
-                        <h4 className={styles.cardTitle}>Delete account</h4>
-                        <p className={styles.cardSubtitle}>
-                          Remove this contributor account after unlinking all devices.
-                        </p>
-                        <p className={styles.settingsSummary}>
-                          Devices linked: {linkedDeviceCount}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className={`${styles.settingsToggle} ${
-                          openSettingsSection === 'delete' ? styles.settingsToggleActive : ''
-                        }`}
-                        onClick={() => toggleSettingsSection('delete')}
-                        aria-expanded={openSettingsSection === 'delete'}
-                        aria-controls="delete-settings"
-                      >
-                        {openSettingsSection === 'delete' ? 'Close' : 'Review'}
-                      </button>
-                    </div>
-                    {openSettingsSection === 'delete' && (
-                      <div id="delete-settings">
-                        <div className={styles.settingsRow}>
-                          <p className={styles.settingsHint}>
-                            <span className={styles.iconBadge} aria-hidden="true">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                                <path d="M9 15 5.5 18.5a3 3 0 0 1-4-4L5 11" />
-                                <path d="M15 9 18.5 5.5a3 3 0 0 1 4 4L19 13" />
-                                <path d="m5.5 11.5 7 1" />
-                                <path d="m17.5 12.5-7-1" />
-                              </svg>
-                            </span>
-                            All devices must be unlinked and reset via the sender software (rs.local:3000) before deleting this account.
+                          <p className={styles.panelKicker}>Danger zone</p>
+                          <div className={styles.cardTitleRow}>
+                            <h4 className={styles.cardTitle}>Delete account</h4>
+                            <InfoTooltip label="Account deletion details" title="Before deleting" variant="inline">
+                              Remove this contributor account after unlinking all devices.
+                            </InfoTooltip>
+                          </div>
+                          <p className={styles.settingsSummary}>
+                            Devices linked: {linkedDeviceCount}
                           </p>
                         </div>
-                        <div className={styles.settingsActions}>
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            disabled={isDeletingAccount || hasLinkedDevices}
-                            onClick={() => setShowDeleteConfirm(true)}
-                          >
-                            {deleteActionLabel}
-                          </button>
-                        </div>
-                        {showDeleteConfirm && (
-                          <div className={styles.confirmBox}>
-                            <p className={styles.confirmTitle}>Delete this account?</p>
-                            <ul className={styles.confirmList}>
-                              <li>All devices must be unlinked and reset first.</li>
-                              <li>Device unlinking is done via sender software (rs.local:3000).</li>
-                              <li>This removes access to linked dashboards and tokens.</li>
-                            </ul>
-                            <div className={styles.confirmActions}>
-                              <button
-                                type="button"
-                                className={styles.secondaryButton}
-                            onClick={() => setShowDeleteConfirm(false)}
-                            disabled={isDeletingAccount}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.dangerButton}
-                            onClick={handleDeleteAccount}
-                            disabled={isDeletingAccount || hasLinkedDevices}
-                          >
-                            {isDeletingAccount ? 'Deleting...' : (
-                              <>
-                                <span className={styles.iconBadge} aria-hidden="true">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                                    <path d="M3 6h18" />
-                                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-                                    <path d="M10 11v6" />
-                                    <path d="M14 11v6" />
-                                    <path d="M5 6h14l-1 14H6L5 6Z" />
-                                  </svg>
-                                </span>
-                                Confirm delete
-                              </>
-                            )}
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          className={`${styles.settingsToggle} ${
+                            openSettingsSection === 'delete' ? styles.settingsToggleActive : ''
+                          }`}
+                          onClick={() => toggleSettingsSection('delete')}
+                          aria-expanded={openSettingsSection === 'delete'}
+                          aria-controls="delete-settings"
+                        >
+                          {openSettingsSection === 'delete' ? 'Close' : 'Review'}
+                        </button>
                       </div>
-                    )}
+                      {openSettingsSection === 'delete' && (
+                        <div id="delete-settings">
+                          <div className={styles.settingsRow}>
+                            <p className={styles.settingsHint}>
+                              <span className={styles.iconBadge} aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                  <path d="M9 15 5.5 18.5a3 3 0 0 1-4-4L5 11" />
+                                  <path d="M15 9 18.5 5.5a3 3 0 0 1 4 4L19 13" />
+                                  <path d="m5.5 11.5 7 1" />
+                                  <path d="m17.5 12.5-7-1" />
+                                </svg>
+                              </span>
+                              All devices must be unlinked and reset via the sender software (rs.local:3000) before deleting this account.
+                            </p>
+                          </div>
+                          <div className={styles.settingsActions}>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              disabled={isDeletingAccount || hasLinkedDevices}
+                              onClick={() => setShowDeleteConfirm(true)}
+                            >
+                              {deleteActionLabel}
+                            </button>
+                          </div>
+                          {showDeleteConfirm && (
+                            <div className={styles.confirmBox}>
+                              <p className={styles.confirmTitle}>Delete this account?</p>
+                              <ul className={styles.confirmList}>
+                                <li>All devices must be unlinked and reset first.</li>
+                                <li>Device unlinking is done via sender software (rs.local:3000).</li>
+                                <li>This removes access to linked dashboards and tokens.</li>
+                              </ul>
+                              <div className={styles.confirmActions}>
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                              onClick={() => setShowDeleteConfirm(false)}
+                              disabled={isDeletingAccount}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.dangerButton}
+                              onClick={handleDeleteAccount}
+                              disabled={isDeletingAccount || hasLinkedDevices}
+                            >
+                              {isDeletingAccount ? 'Deleting...' : (
+                                <>
+                                  <span className={styles.iconBadge} aria-hidden="true">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                      <path d="M3 6h18" />
+                                      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                                      <path d="M10 11v6" />
+                                      <path d="M14 11v6" />
+                                      <path d="M5 6h14l-1 14H6L5 6Z" />
+                                    </svg>
+                                  </span>
+                                  Confirm delete
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                      )}
+                    </div>
                   </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
+                </section>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

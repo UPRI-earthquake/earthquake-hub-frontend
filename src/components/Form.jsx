@@ -291,14 +291,6 @@ const AuthModal = ({ initialView = 'signin', onClose, onSignInSuccess, onSignUpS
           </button>
         </div>
 
-        <div className={styles.intentBox}>
-          <p className={styles.intentTitle}>For contributors only</p>
-          <p className={styles.intentText}>
-            Earthquake maps, alerts, and data are publicly accessible. An account is required only for contributors who
-            connect devices or submit seismic data to the UPRI network.
-          </p>
-        </div>
-
         <div className={styles.authBody}>
           {activeView === 'signin' && (
             <SignInFields
@@ -484,11 +476,27 @@ function SignUpFields({ onSuccess }) {
     password: false,
     confirmPassword: false,
   });
+  const [showContributorConfirm, setShowContributorConfirm] = useState(false);
+  const pendingPayloadRef = useRef(null);
+  const confirmButtonRef = useRef(null);
+  const submitButtonRef = useRef(null);
+  const confirmDialogId = useMemo(
+    () => `contributors-confirm-${Math.random().toString(36).slice(2, 8)}`,
+    [],
+  );
+  const confirmTitleId = `${confirmDialogId}-title`;
+  const confirmBodyId = `${confirmDialogId}-body`;
 
   const handleRoleChange = (event) => {
     setSelectedRole(event.target.value);
     setErrors((prev) => ({ ...prev, role: false }));
   };
+
+  useEffect(() => {
+    if (!showContributorConfirm) return;
+    const btn = confirmButtonRef.current;
+    if (btn && btn.focus) btn.focus();
+  }, [showContributorConfirm]);
 
   function validateClient(event) {
     const role = event.target.elements.role.value;
@@ -519,31 +527,32 @@ function SignUpFields({ onSuccess }) {
     return true;
   }
 
-  async function handleSignUpSubmit(event) {
-    event.preventDefault();
-    const role = event.target.elements.role.value;
-    const email = (event.target.elements.email.value || '').trim();
-    const username = (event.target.elements.username.value || '').trim();
-    const password = event.target.elements.password.value;
-    const confirmPassword = event.target.elements.confirmPassword.value;
-    const ok = validateClient(event);
-    if (!ok) return;
+  const buildRequestPayload = (form) => {
+    const role = form.elements.role.value;
+    const email = (form.elements.email.value || '').trim();
+    const username = (form.elements.username.value || '').trim();
+    const password = form.elements.password.value;
+    const confirmPassword = form.elements.confirmPassword.value;
+    const requestPayload = {
+      role,
+      email,
+      username,
+      password,
+      confirmPassword,
+    };
+
+    if (role === 'brgy') {
+      const ringserverUrl = (form.elements.ringserverUrl.value || '').trim();
+      const ringserverPort = (form.elements.ringserverPort.value || '').trim();
+      requestPayload.ringserverUrl = ringserverUrl;
+      requestPayload.ringserverPort = ringserverPort;
+    }
+
+    return requestPayload;
+  };
+
+  const submitRequest = async (requestPayload) => {
     try {
-      let requestPayload = {
-        role: role,
-        email: email,
-        username: username,
-        password: password,
-        confirmPassword: confirmPassword,
-      };
-
-      if (role === 'brgy') {
-        const ringserverUrl = event.target.elements.ringserverUrl.value;
-        const ringserverPort = event.target.elements.ringserverPort.value;
-        requestPayload.ringserverUrl = ringserverUrl;
-        requestPayload.ringserverPort = ringserverPort;
-      }
-
       const response = await axios.post(`${backend_host}/accounts/register`, requestPayload);
       if (response.data.status === responseCodes.REGISTRATION_SUCCESS) {
         devlog('Sign up successful!');
@@ -567,145 +576,215 @@ function SignUpFields({ onSuccess }) {
         deverror('Error occurred while signing up:', error);
       }
     }
+  };
+
+  const handleConfirmCancel = () => {
+    pendingPayloadRef.current = null;
+    setShowContributorConfirm(false);
+    if (submitButtonRef.current && submitButtonRef.current.focus) submitButtonRef.current.focus();
+  };
+
+  const handleConfirmProceed = () => {
+    const payload = pendingPayloadRef.current;
+    setShowContributorConfirm(false);
+    pendingPayloadRef.current = null;
+    if (!payload) return;
+    submitRequest(payload);
+  };
+
+  async function handleSignUpSubmit(event) {
+    event.preventDefault();
+    if (showContributorConfirm) return;
+    const ok = validateClient(event);
+    if (!ok) return;
+    pendingPayloadRef.current = buildRequestPayload(event.target);
+    setShowContributorConfirm(true);
   }
 
   return (
-    <form className={styles.authForm} onSubmit={handleSignUpSubmit} noValidate>
-      <label className={styles.fieldGroup} htmlFor="signup-role">
-        Contributor role
-        <span className={styles.fieldHint}>Select how you contribute to the UPRI network.</span>
-        <select
-          id="signup-role"
-          name="role"
-          value={selectedRole}
-          onChange={handleRoleChange}
-          className={errors.role ? styles.inputError : ''}
-        >
-          <option value="citizen">Citizen scientist</option>
-          <option value="brgy">Barangay operator</option>
-        </select>
-      </label>
-      {selectedRole === 'brgy' && (
-        <div className={styles.inlineFields}>
-          <label className={styles.fieldGroup} htmlFor="signup-ringserver-url">
-            Ringserver URL
-            <span className={styles.fieldHint}>Host where your seismic stream is exposed.</span>
-            <input
-              id="signup-ringserver-url"
-              type="text"
-              name="ringserverUrl"
-              autoComplete="url"
-              placeholder="e.g. https://ringserver.example.com"
-              className={errors.ringserverUrl ? styles.inputError : ''}
-              onChange={() => setErrors((prev) => ({ ...prev, ringserverUrl: false }))}
-            />
-          </label>
-          <label className={styles.fieldGroup} htmlFor="signup-ringserver-port">
-            Ringserver port
-            <span className={styles.fieldHint}>Port used by your device.</span>
-            <input
-              id="signup-ringserver-port"
-              type="text"
-              name="ringserverPort"
-              inputMode="numeric"
-              placeholder="16022"
-              className={errors.ringserverPort ? styles.inputError : ''}
-              onChange={() => setErrors((prev) => ({ ...prev, ringserverPort: false }))}
-            />
-          </label>
-        </div>
-      )}
-      <label className={styles.fieldGroup} htmlFor="signup-email">
-        Contact email
-        <input
-          id="signup-email"
-          type="text"
-          name="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          className={errors.email ? styles.inputError : ''}
-          onChange={() => setErrors((prev) => ({ ...prev, email: false }))}
-        />
-      </label>
-      <div className={styles.inlineFields}>
-        <label className={styles.fieldGroup} htmlFor="signup-username">
-          Username
+    <>
+      <form className={styles.authForm} onSubmit={handleSignUpSubmit} noValidate>
+        <label className={styles.fieldGroup} htmlFor="signup-role">
+          Contributor role
+          <span className={styles.fieldHint}>Select how you contribute to the UPRI network.</span>
+          <select
+            id="signup-role"
+            name="role"
+            value={selectedRole}
+            onChange={handleRoleChange}
+            className={errors.role ? styles.inputError : ''}
+          >
+            <option value="citizen">Citizen scientist</option>
+            <option value="brgy">Barangay operator</option>
+          </select>
+        </label>
+        {selectedRole === 'brgy' && (
+          <div className={styles.inlineFields}>
+            <label className={styles.fieldGroup} htmlFor="signup-ringserver-url">
+              Ringserver URL
+              <span className={styles.fieldHint}>Host where your seismic stream is exposed.</span>
+              <input
+                id="signup-ringserver-url"
+                type="text"
+                name="ringserverUrl"
+                autoComplete="url"
+                placeholder="e.g. https://ringserver.example.com"
+                className={errors.ringserverUrl ? styles.inputError : ''}
+                onChange={() => setErrors((prev) => ({ ...prev, ringserverUrl: false }))}
+              />
+            </label>
+            <label className={styles.fieldGroup} htmlFor="signup-ringserver-port">
+              Ringserver port
+              <span className={styles.fieldHint}>Port used by your device.</span>
+              <input
+                id="signup-ringserver-port"
+                type="text"
+                name="ringserverPort"
+                inputMode="numeric"
+                placeholder="16022"
+                className={errors.ringserverPort ? styles.inputError : ''}
+                onChange={() => setErrors((prev) => ({ ...prev, ringserverPort: false }))}
+              />
+            </label>
+          </div>
+        )}
+        <label className={styles.fieldGroup} htmlFor="signup-email">
+          Contact email
           <input
-            id="signup-username"
+            id="signup-email"
             type="text"
-            name="username"
-            autoComplete="username"
-            placeholder="Create a username"
-            className={errors.username ? styles.inputError : ''}
-            onChange={() => setErrors((prev) => ({ ...prev, username: false }))}
+            name="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className={errors.email ? styles.inputError : ''}
+            onChange={() => setErrors((prev) => ({ ...prev, email: false }))}
           />
         </label>
-        <label className={styles.fieldGroup} htmlFor="signup-password">
-          <span className={styles.fieldLabelRow}>
-            Password
-            <InfoTooltip label="Password requirements" title="Password requirements" variant="inline">
-              Minimum 12 characters. Letters, numbers, and special characters.
-            </InfoTooltip>
-          </span>
+        <div className={styles.inlineFields}>
+          <label className={styles.fieldGroup} htmlFor="signup-username">
+            Username
+            <input
+              id="signup-username"
+              type="text"
+              name="username"
+              autoComplete="username"
+              placeholder="Create a username"
+              className={errors.username ? styles.inputError : ''}
+              onChange={() => setErrors((prev) => ({ ...prev, username: false }))}
+            />
+          </label>
+          <label className={styles.fieldGroup} htmlFor="signup-password">
+            <span className={styles.fieldLabelRow}>
+              Password
+              <InfoTooltip label="Password requirements" title="Password requirements" variant="inline">
+                Minimum 12 characters. Letters, numbers, and special characters.
+              </InfoTooltip>
+            </span>
+            <div className={styles.passwordField}>
+              <input
+                id="signup-password"
+                type={passwordVisibility.password ? 'text' : 'password'}
+                name="password"
+                autoComplete="new-password"
+                placeholder="Enter password"
+                className={errors.password ? styles.inputError : ''}
+                onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
+              />
+              <button
+                type="button"
+                className={styles.eyeToggle}
+                aria-label={`${passwordVisibility.password ? 'Hide' : 'Show'} password`}
+                aria-pressed={passwordVisibility.password}
+                onClick={() =>
+                  setPasswordVisibility((prev) => ({ ...prev, password: !prev.password }))
+                }
+              >
+                <EyeIcon revealed={passwordVisibility.password} />
+              </button>
+            </div>
+          </label>
+        </div>
+        <label className={styles.fieldGroup} htmlFor="signup-password-confirm">
+          Confirm password
           <div className={styles.passwordField}>
             <input
-              id="signup-password"
-              type={passwordVisibility.password ? 'text' : 'password'}
-              name="password"
+              id="signup-password-confirm"
+              type={passwordVisibility.confirmPassword ? 'text' : 'password'}
+              name="confirmPassword"
               autoComplete="new-password"
-              placeholder="Enter password"
-              className={errors.password ? styles.inputError : ''}
-              onChange={() => setErrors((prev) => ({ ...prev, password: false }))}
+              placeholder="Re-enter password"
+              className={errors.confirmPassword ? styles.inputError : ''}
+              onChange={() => setErrors((prev) => ({ ...prev, confirmPassword: false }))}
             />
             <button
               type="button"
               className={styles.eyeToggle}
-              aria-label={`${passwordVisibility.password ? 'Hide' : 'Show'} password`}
-              aria-pressed={passwordVisibility.password}
+              aria-label={`${passwordVisibility.confirmPassword ? 'Hide' : 'Show'} confirmation password`}
+              aria-pressed={passwordVisibility.confirmPassword}
               onClick={() =>
-                setPasswordVisibility((prev) => ({ ...prev, password: !prev.password }))
+                setPasswordVisibility((prev) => ({
+                  ...prev,
+                  confirmPassword: !prev.confirmPassword,
+                }))
               }
             >
-              <EyeIcon revealed={passwordVisibility.password} />
+              <EyeIcon revealed={passwordVisibility.confirmPassword} />
             </button>
           </div>
         </label>
-      </div>
-      <label className={styles.fieldGroup} htmlFor="signup-password-confirm">
-        Confirm password
-        <div className={styles.passwordField}>
-          <input
-            id="signup-password-confirm"
-            type={passwordVisibility.confirmPassword ? 'text' : 'password'}
-            name="confirmPassword"
-            autoComplete="new-password"
-            placeholder="Re-enter password"
-            className={errors.confirmPassword ? styles.inputError : ''}
-            onChange={() => setErrors((prev) => ({ ...prev, confirmPassword: false }))}
-          />
-          <button
-            type="button"
-            className={styles.eyeToggle}
-            aria-label={`${passwordVisibility.confirmPassword ? 'Hide' : 'Show'} confirmation password`}
-            aria-pressed={passwordVisibility.confirmPassword}
-            onClick={() =>
-              setPasswordVisibility((prev) => ({
-                ...prev,
-                confirmPassword: !prev.confirmPassword,
-              }))
-            }
-          >
-            <EyeIcon revealed={passwordVisibility.confirmPassword} />
+        <div className={styles.formFooter}>
+          <div className={styles.inlineToast}>
+            <Toast message={toastMessage} toastType={toastType} placement="inline" />
+          </div>
+          <button type="submit" ref={submitButtonRef}>
+            Create account
           </button>
         </div>
-      </label>
-      <div className={styles.formFooter}>
-        <div className={styles.inlineToast}>
-          <Toast message={toastMessage} toastType={toastType} placement="inline" />
+      </form>
+      {showContributorConfirm && (
+        <div
+          className={styles.confirmOverlay}
+          role="presentation"
+          onClick={handleConfirmCancel}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+              handleConfirmCancel();
+            }
+          }}
+        >
+          <div
+            className={styles.confirmCard}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={confirmTitleId}
+            aria-describedby={confirmBodyId}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className={styles.confirmTitle} id={confirmTitleId}>
+              For contributors only
+            </p>
+            <p className={styles.confirmText} id={confirmBodyId}>
+              Earthquake maps, alerts, and data are publicly accessible. An account is required only for contributors who
+              connect devices or submit seismic data to the UPRI network.
+            </p>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.confirmSecondary} onClick={handleConfirmCancel}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.confirmPrimary}
+                ref={confirmButtonRef}
+                onClick={handleConfirmProceed}
+              >
+                Create account
+              </button>
+            </div>
+          </div>
         </div>
-        <button type="submit">Create account</button>
-      </div>
-    </form>
+      )}
+    </>
   );
 }
 

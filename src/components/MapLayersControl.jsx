@@ -455,17 +455,37 @@ export default function MapLayersControl({ children, activeTheme }) {
     return () => window.removeEventListener('pointerdown', onPointerDown);
   }, [map, isLayersOpen, setLayersOpenState]);
 
+  const restyleOverlays = useCallback(() => {
+    if (!map) return;
+    const theme = basemapThemeRef.current || themeFromMapContainer(map.getContainer());
+    const zoom = zoomFromMap(map);
+    const f = faultsStyle({ theme, zoom, overlays: activeIds });
+    const p = platesStyle({ theme, zoom });
+    try {
+      faultsRef.current && faultsRef.current.setStyle && faultsRef.current.setStyle(f);
+    } catch (_) {}
+    try {
+      platesRef.current && platesRef.current.setStyle && platesRef.current.setStyle(p);
+    } catch (_) {}
+  }, [map, activeIds]);
+
   // Track basemap theme (light | dark | imagery) and set on map container for CSS
   useEffect(() => {
     if (!map) return undefined;
     const el = map.getContainer();
-    const resolveTheme = () => {
-      if (activeBase === 'satellite') return 'imagery';
-      if (activeBase === 'default') return activeTheme === 'dark' ? 'dark' : 'light';
+    const resolveThemeForBase = (base) => {
+      if (base === 'satellite') return 'imagery';
+      if (base === 'default') return activeTheme === 'dark' ? 'dark' : 'light';
       return 'light';
     };
-    const applyBasemapTheme = () => {
-      const theme = resolveTheme();
+    const normalizeBase = (name) => {
+      const n = String(name || '').toLowerCase();
+      if (n.includes('satellite')) return 'satellite';
+      if (n.includes('terrain') || n.includes('topo')) return 'terrain';
+      return 'default';
+    };
+    const applyBasemapTheme = (baseOverride = null) => {
+      const theme = resolveThemeForBase(baseOverride || activeBase);
       if (!theme) return;
       try {
         el.setAttribute('data-basemap-theme', theme);
@@ -473,12 +493,17 @@ export default function MapLayersControl({ children, activeTheme }) {
       } catch (_) {}
     };
     applyBasemapTheme();
-    const onBase = () => applyBasemapTheme();
+    restyleOverlays();
+    const onBase = (e) => {
+      const nextBase = normalizeBase(e && e.name);
+      applyBasemapTheme(nextBase);
+      restyleOverlays();
+    };
     map.on('baselayerchange', onBase);
     return () => {
       map.off('baselayerchange', onBase);
     };
-  }, [map, activeTheme, activeBase]);
+  }, [map, activeTheme, activeBase, restyleOverlays]);
 
   // When Default is active, swap the provider URL to match the theme
   // and emit a synthetic baselayerchange so dependent styling re-syncs.
@@ -857,35 +882,27 @@ export default function MapLayersControl({ children, activeTheme }) {
   // Keep line styles in sync with theme/zoom/overlay state
   useEffect(() => {
     if (!map) return undefined;
-    const restyle = () => {
-      const theme = themeFromMapContainer(map.getContainer());
-      const zoom = zoomFromMap(map);
-      const f = faultsStyle({ theme, zoom, overlays: activeIds });
-      const p = platesStyle({ theme, zoom });
-      try {
-        faultsRef.current && faultsRef.current.setStyle && faultsRef.current.setStyle(f);
-      } catch (_) {}
-      try {
-        platesRef.current && platesRef.current.setStyle && platesRef.current.setStyle(p);
-      } catch (_) {}
-    };
     let id = null;
     const schedule = () => {
       cancelAnimationFrame(id);
-      id = requestAnimationFrame(restyle);
+      id = requestAnimationFrame(restyleOverlays);
     };
     schedule();
     // Update styles continuously during zoom/fly animations for smoother transitions
     map.on('zoom', schedule);
     map.on('zoomend', schedule);
     map.on('baselayerchange', schedule);
+    map.on('overlayadd', schedule);
+    map.on('overlayremove', schedule);
     return () => {
       cancelAnimationFrame(id);
       map.off('zoom', schedule);
       map.off('zoomend', schedule);
       map.off('baselayerchange', schedule);
+      map.off('overlayadd', schedule);
+      map.off('overlayremove', schedule);
     };
-  }, [map, activeIds]);
+  }, [map, activeIds, restyleOverlays, activeTheme, activeBase]);
 
   // Keep faults visually above plates when both are on (shared pane)
   useEffect(() => {

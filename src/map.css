@@ -329,6 +329,13 @@
 .leaflet-container[data-basemap-theme='dark'] .leaflet-tooltip.feature-tooltip .ft-k,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-tooltip.feature-tooltip .ft-k { color: #d1d5db; opacity: 0.85; }
 
+/* Ensure event/station popups render above Leaflet controls */
+.leaflet-container .leaflet-popup-pane,
+.leaflet-pane.leaflet-popup-pane,
+.leaflet-container .leaflet-popup {
+  z-index: 1400 !important;
+}
+
 /* Themed popups (all) */
 .leaflet-container .leaflet-popup-content-wrapper { border-radius: 10px; }
 .leaflet-container .leaflet-popup-content { margin: 10px 12px; }

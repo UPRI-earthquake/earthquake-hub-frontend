@@ -31,18 +31,26 @@ const PALETTE = {
     haloDark: '#1A1A1A',
   },
   faults: {
-    light: '#9C4231',
-    dark: '#FFA07A',
-    satellite: '#FFA07A',
-    secondary: '#B36B5E',
+    light: '#C48A2C',
+    dark: '#C48A2C',
+    satellite: '#C48A2C',
+    secondary: '#D7A657',
   },
   // Default plate stroke retained for light; per-theme overrides below
-  plates: { stroke: '#1C88B6' },
+  plates: { stroke: '#D7A657' },
 };
 
 // Theme-specific colors that are easy to extend when adding new basemaps
-const FAULT_COLORS = { light: PALETTE.faults.light, dark: PALETTE.faults.dark, satellite: PALETTE.faults.dark };
-const PLATE_COLORS = { light: PALETTE.plates.stroke, dark: '#7DD3FC', satellite: '#22D3EE' };
+const FAULT_COLORS = {
+  light: PALETTE.faults.light,
+  dark: PALETTE.faults.light,
+  satellite: PALETTE.faults.light,
+};
+const PLATE_COLORS = {
+  light: PALETTE.plates.stroke,
+  dark: PALETTE.plates.stroke,
+  satellite: PALETTE.plates.stroke,
+};
 const STATION_FILL_LIGHT = '#22C55E';
 
 // Depth ramp colors chosen to avoid conflict with station markers
@@ -136,13 +144,11 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
 
   // Faults
   const faultColor = FAULT_COLORS[t] || FAULT_COLORS.light;
-  const faultOpacityBase = 0.9;
+  const faultOpacityBase = 0.7;
   const faultOpacity =
     !hasEQ && hasFaults ? Math.min(1, faultOpacityBase + 0.05) : faultOpacityBase;
-  // Keep base stroke weights thin to match basemap scale; do not up-scale with zoom.
-  // Hover/selection will temporarily increase weight for readability/tooltips.
-  const faultWeightBase = ZOOM.country(z) ? 0.6 : ZOOM.regional(z) ? 0.8 : 1.0;
-  const faultWeight = faultWeightBase;
+  // Keep stroke weights fixed across zoom to reduce visual jitter.
+  const faultWeight = t === 'satellite' ? 0.9 : t === 'dark' ? 0.85 : 0.8;
   // Keep a solid stroke at all zoom levels to avoid dash artifacts
   const faultDashed = false;
 
@@ -151,8 +157,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   // keep thickness stable across zooms (no scale multiplier).
   // This aligns with the visual goal: plates ≈ faults, just a touch heavier.
   const plateDash = '6,6';
-  let plateWeight = faultWeight + 0.3; // subtle emphasis over faults
-  if (t === 'satellite') plateWeight += 0.2; // minor boost for imagery contrast
+  const plateWeight = faultWeight + 0.2; // subtle emphasis over faults
 
   // Stations
   // On satellite imagery, use a high-contrast fill and thicker white halo
@@ -199,7 +204,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
     plates: {
       color: PLATE_COLORS[t] || PLATE_COLORS.light,
       weight: plateWeight,
-      opacity: 0.85,
+      opacity: 0.7,
       dashArray: plateDash,
     },
     stations: {

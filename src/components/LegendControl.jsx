@@ -127,17 +127,6 @@ function LegendContent({ active, tokens }) {
   const renderLastUpdated = (meta) => {
     if (!meta) return 'Last updated: Unknown';
     const base = meta.displayDate ? `Last updated: ${meta.displayDate}` : 'Last updated: Unknown';
-    if (meta.source === 'github' && meta.commitSha && meta.commitUrl) {
-      return (
-        <>
-          {base} (
-          <a href={meta.commitUrl} target="_blank" rel="noopener noreferrer">
-            {meta.commitSha}
-          </a>
-          )
-        </>
-      );
-    }
     if (meta.source === 'cdn') return `${base} (CDN header)`;
     return base;
   };

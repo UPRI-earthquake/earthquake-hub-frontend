@@ -9,23 +9,6 @@ const SearchIcon = () => (
   </svg>
 );
 
-const ChevronIcon = ({ className }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 20 20"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden
-  >
-    <path d="M6 8.5l4 4 4-4" />
-  </svg>
-);
-
 const ACCORDION_MS = 260; // Keep in sync with panel slide duration/easing
 
 const useDelayedRender = (open) => {
@@ -43,19 +26,6 @@ const useDelayedRender = (open) => {
   }, [open]);
   return shouldRender;
 };
-
-const AccordionHeader = ({ label, expanded, onToggle, ariaLabel }) => (
-  <button
-    type="button"
-    className={`${styles.collapseHeader} ${expanded ? styles.collapseHeaderOpen : ''}`}
-    onClick={onToggle}
-    aria-expanded={expanded}
-    aria-label={ariaLabel || `${expanded ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
-  >
-    <span className={`${styles.fieldLabel} ${styles.collapseLabel}`}>{label}</span>
-    <ChevronIcon className={`${styles.collapseCaret} ${expanded ? styles.collapseCaretOpen : ''}`} />
-  </button>
-);
 
 const Collapsible = ({ expanded, children }) => {
   const shouldRender = useDelayedRender(expanded);
@@ -122,6 +92,9 @@ function EventsPanel({
       startDate: filterBounds?.minDate || '',
       endDate: filterBounds?.maxDate || '',
     });
+    if (typeof onSortChange === 'function') {
+      onSortChange({ by: 'time', order: 'desc' });
+    }
   };
 
   const handleSortField = (by) => {
@@ -137,6 +110,18 @@ function EventsPanel({
     if (typeof onSortChange !== 'function') return;
     const order = sort?.order === 'asc' ? 'desc' : 'asc';
     onSortChange({ ...sort, order });
+  };
+
+  const openFilters = () => {
+    if (showFilters) return;
+    setShowFilters(true);
+    setShowSort(false);
+  };
+
+  const openSort = () => {
+    if (showSort) return;
+    setShowSort(true);
+    setShowFilters(false);
   };
 
   const scopeLabel =
@@ -183,121 +168,126 @@ function EventsPanel({
               aria-label="Search earthquakes"
             />
           </div>
+        </div>
+
+        <div className={styles.filtersToggleRow}>
+          <div className={styles.pillRow}>
+            <button
+              type="button"
+              className={`${styles.pill} ${showFilters ? styles.pillActive : ''}`}
+              onClick={openFilters}
+              aria-pressed={showFilters}
+              aria-label={showFilters ? 'Filters shown' : 'Show filters'}
+            >
+              Filters
+            </button>
+            <button
+              type="button"
+              className={`${styles.pill} ${showSort ? styles.pillActive : ''}`}
+              onClick={openSort}
+              aria-pressed={showSort}
+              aria-label={showSort ? 'Sort shown' : 'Show sort options'}
+            >
+              Sort
+            </button>
+          </div>
           <button type="button" className={styles.linkButton} onClick={resetFilters}>
             Reset
           </button>
         </div>
 
-        <div className={styles.accordionBlock}>
-          <AccordionHeader
-            label="Filters"
-            expanded={showFilters}
-            onToggle={() => setShowFilters((v) => !v)}
-            ariaLabel={`${showFilters ? 'Hide' : 'Show'} filters`}
-          />
-
-          <Collapsible expanded={showFilters}>
-            <div className={styles.dualRow}>
-              <div>
-                <div className={styles.fieldLabel}>Magnitude</div>
-                <div className={styles.dualRow}>
-                  <input
-                    className={styles.input}
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="10"
-                    value={filters?.magMin ?? 0}
-                    onChange={(e) => updateMagnitude('magMin', e.target.value)}
-                    aria-label="Minimum magnitude"
-                  />
-                  <input
-                    className={styles.input}
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="10"
-                    value={filters?.magMax ?? 10}
-                    onChange={(e) => updateMagnitude('magMax', e.target.value)}
-                    aria-label="Maximum magnitude"
-                  />
-                </div>
-                <p className={styles.hint}>Range 0.0 — 10.0</p>
+        <Collapsible expanded={showFilters}>
+          <div className={styles.dualRow}>
+            <div>
+              <div className={styles.fieldLabel}>Magnitude</div>
+              <div className={styles.dualRow}>
+                <input
+                  className={styles.input}
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="10"
+                  value={filters?.magMin ?? 0}
+                  onChange={(e) => updateMagnitude('magMin', e.target.value)}
+                  aria-label="Minimum magnitude"
+                />
+                <input
+                  className={styles.input}
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="10"
+                  value={filters?.magMax ?? 10}
+                  onChange={(e) => updateMagnitude('magMax', e.target.value)}
+                  aria-label="Maximum magnitude"
+                />
               </div>
-              <div>
-                <div className={styles.fieldLabel}>Date range</div>
-                <div className={styles.dualRow}>
-                  <input
-                    className={styles.input}
-                    type="date"
-                    value={filters?.startDate || ''}
-                    min={filterBounds?.minDate}
-                    max={filters?.endDate || filterBounds?.maxDate}
-                    onChange={(e) => updateDate('startDate', e.target.value)}
-                    aria-label="Start date"
-                  />
-                  <input
-                    className={styles.input}
-                    type="date"
-                    value={filters?.endDate || ''}
-                    min={filters?.startDate || filterBounds?.minDate}
-                    max={filterBounds?.maxDate}
-                    onChange={(e) => updateDate('endDate', e.target.value)}
-                    aria-label="End date"
-                  />
-                </div>
-                <p className={styles.hint}>
-                  {filterBounds?.minDate || '—'} to {filterBounds?.maxDate || '—'}
-                </p>
-              </div>
+              <p className={styles.hint}>Range 0.0 — 10.0</p>
             </div>
-          </Collapsible>
-        </div>
-
-        <div className={styles.accordionBlock}>
-          <AccordionHeader
-            label="Sort"
-            expanded={showSort}
-            onToggle={() => setShowSort((v) => !v)}
-            ariaLabel={`${showSort ? 'Hide' : 'Show'} sort options`}
-          />
-
-          <Collapsible expanded={showSort}>
-            <div className={styles.sortRow}>
-              <div className={styles.sortGroup}>
-                <button
-                  type="button"
-                  className={`${styles.sortButton} ${sort?.by === 'time' ? styles.sortButtonActive : ''}`}
-                  onClick={() => handleSortField('time')}
-                >
-                  Time
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.sortButton} ${sort?.by === 'mag' ? styles.sortButtonActive : ''}`}
-                  onClick={() => handleSortField('mag')}
-                >
-                  Magnitude
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.sortButton} ${sort?.by === 'depth' ? styles.sortButtonActive : ''}`}
-                  onClick={() => handleSortField('depth')}
-                >
-                  Depth
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.sortButton} ${styles.sortButtonActive}`}
-                  onClick={toggleSortOrder}
-                  aria-label="Toggle sort order"
-                >
-                  {sort?.order === 'asc' ? 'Asc ↑' : 'Desc ↓'}
-                </button>
+            <div>
+              <div className={styles.fieldLabel}>Date range</div>
+              <div className={styles.dualRow}>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={filters?.startDate || ''}
+                  min={filterBounds?.minDate}
+                  max={filters?.endDate || filterBounds?.maxDate}
+                  onChange={(e) => updateDate('startDate', e.target.value)}
+                  aria-label="Start date"
+                />
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={filters?.endDate || ''}
+                  min={filters?.startDate || filterBounds?.minDate}
+                  max={filterBounds?.maxDate}
+                  onChange={(e) => updateDate('endDate', e.target.value)}
+                  aria-label="End date"
+                />
               </div>
+              <p className={styles.hint}>
+                {filterBounds?.minDate || '—'} to {filterBounds?.maxDate || '—'}
+              </p>
             </div>
-          </Collapsible>
-        </div>
+          </div>
+        </Collapsible>
+
+        <Collapsible expanded={showSort}>
+          <div className={styles.sortRow}>
+            <div className={styles.sortGroup}>
+              <button
+                type="button"
+                className={`${styles.sortButton} ${sort?.by === 'time' ? styles.sortButtonActive : ''}`}
+                onClick={() => handleSortField('time')}
+              >
+                Time
+              </button>
+              <button
+                type="button"
+                className={`${styles.sortButton} ${sort?.by === 'mag' ? styles.sortButtonActive : ''}`}
+                onClick={() => handleSortField('mag')}
+              >
+                Magnitude
+              </button>
+              <button
+                type="button"
+                className={`${styles.sortButton} ${sort?.by === 'depth' ? styles.sortButtonActive : ''}`}
+                onClick={() => handleSortField('depth')}
+              >
+                Depth
+              </button>
+              <button
+                type="button"
+                className={`${styles.sortButton} ${styles.sortButtonActive}`}
+                onClick={toggleSortOrder}
+                aria-label="Toggle sort order"
+              >
+                {sort?.order === 'asc' ? 'Asc ↑' : 'Desc ↓'}
+              </button>
+            </div>
+          </div>
+        </Collapsible>
       </div>
     </div>
   );
