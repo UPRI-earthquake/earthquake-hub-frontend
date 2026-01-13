@@ -81,13 +81,17 @@ const HomePage = () => {
   const isCompactPanels = useMediaQuery('(max-width: 1100px)');
   const isMobileLandscape = useMediaQuery('(max-width: 960px) and (orientation: landscape)');
   const [activePanel, setActivePanel] = useState('events');
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(!isCompactPanels);
   const panelRef = useRef(null);
 
   useEffect(() => {
     if (!isCompactPanels) {
       setActivePanel('events');
     }
+  }, [isCompactPanels]);
+
+  useEffect(() => {
+    setPanelOpen(!isCompactPanels);
   }, [isCompactPanels]);
 
   const [loading, setLoading] = useState(true);
