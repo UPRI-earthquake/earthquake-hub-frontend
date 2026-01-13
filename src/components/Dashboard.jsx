@@ -512,7 +512,7 @@ function Dashboard({
     ? devicesFetched
       ? 'Unlink devices first'
       : 'Checking devices...'
-    : 'Delete account';
+    : 'Delete';
   const emptyState = roleConfig.empty;
 
   useEffect(() => {
@@ -2103,7 +2103,7 @@ function Dashboard({
                 disabled={isDeletingAccount || hasLinkedDevices || !confirmDeleteChecked}
                 ref={deleteConfirmRef}
               >
-                {isDeletingAccount ? 'Deleting...' : 'Delete account'}
+                {isDeletingAccount ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
