@@ -621,8 +621,12 @@ function SignUpFields({ onSuccess }) {
         {selectedRole === 'brgy' && (
           <div className={styles.inlineFields}>
             <label className={styles.fieldGroup} htmlFor="signup-ringserver-url">
-              Ringserver URL
-              <span className={styles.fieldHint}>Host where your seismic stream is exposed.</span>
+              <span className={styles.fieldLabelRow}>
+                Ringserver URL
+                <InfoTooltip label="Ringserver URL details" title="Ringserver URL" variant="inline">
+                  Host where your seismic stream is exposed.
+                </InfoTooltip>
+              </span>
               <input
                 id="signup-ringserver-url"
                 type="text"
@@ -634,8 +638,12 @@ function SignUpFields({ onSuccess }) {
               />
             </label>
             <label className={styles.fieldGroup} htmlFor="signup-ringserver-port">
-              Ringserver port
-              <span className={styles.fieldHint}>Port used by your device.</span>
+              <span className={styles.fieldLabelRow}>
+                Ringserver port
+                <InfoTooltip label="Ringserver port details" title="Ringserver port" variant="inline">
+                  Port used by your device.
+                </InfoTooltip>
+              </span>
               <input
                 id="signup-ringserver-port"
                 type="text"

@@ -19,6 +19,9 @@
   --header-padding-x: 16px;
   --header-gap: 12px;
   --header-logo-size: 44px;
+  --header-logo-brand: #3a6a50;
+  --header-logo-bg: rgba(255, 255, 255, 0.9);
+  --header-logo-fill: var(--header-logo-brand);
 
   width: calc(100% - 12px);
   max-width: none;
@@ -102,12 +105,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--header-logo-bg);
   box-shadow: 0 8px 16px rgba(14, 165, 233, 0.18);
 }
 
 .logo path {
-  fill: #0f172a;
+  fill: var(--header-logo-fill);
 }
 
 .brandText {
@@ -238,15 +241,23 @@ html[data-theme='dark'] .headerContent {
   background: linear-gradient(120deg, rgba(56, 189, 248, 0.2), rgba(34, 197, 94, 0.16));
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --header-logo-bg: var(--header-logo-brand);
+  --header-logo-fill: #f8fafc;
 }
 
-html[data-theme='dark'] .logo {
-  background: rgba(15, 23, 42, 0.9);
+html[data-theme='imagery'] .headerContent {
+  --header-logo-bg: var(--header-logo-brand);
+  --header-logo-fill: #f8fafc;
+}
+
+html[data-theme='dark'] .logo,
+html[data-theme='imagery'] .logo {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.32);
 }
 
-html[data-theme='dark'] .logo path {
-  fill: #e5e7eb;
+html[data-theme='dark'] .logo path,
+html[data-theme='imagery'] .logo path {
+  fill: var(--header-logo-fill);
 }
 
 html[data-theme='dark'] .menuToggle {
