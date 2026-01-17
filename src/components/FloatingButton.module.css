@@ -1,39 +1,46 @@
 .fab {
   position: fixed;
+  left: calc(var(--panel-gap, 16px) + env(safe-area-inset-left, 0px));
+  bottom: calc(var(--panel-gap, 16px) + env(safe-area-inset-bottom, 0px));
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #0f172a;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text-primary);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
   cursor: pointer;
   font-weight: 700;
   z-index: 1000;
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background-color 140ms ease;
 }
 
-:global(:root[data-theme='dark']) .fab,
+:global(:root[data-theme='dark']) .fab {
+  background: rgba(17, 24, 39, 0.92);
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+}
 :global(:root[data-theme='imagery']) .fab {
-  background: rgba(15, 23, 42, 0.9);
-  color: #e5e7eb;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+  background: rgba(17, 24, 39, 0.9);
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
 
 .fab:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
   border-color: rgba(0, 0, 0, 0.16);
 }
 
 :global(:root[data-theme='dark']) .fab:hover,
 :global(:root[data-theme='imagery']) .fab:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
 }
 
 .fab:active {
@@ -69,10 +76,6 @@
 
 @media (max-width: 960px) and (orientation: landscape) {
   .fab {
-    bottom: calc(max(16px, env(safe-area-inset-bottom, 12px)) + 48px); /* leave space for attribution */
-  }
-
-  .fab .label {
-    display: none;
+    bottom: max(16px, env(safe-area-inset-bottom, 12px));
   }
 }

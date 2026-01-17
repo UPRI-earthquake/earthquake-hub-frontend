@@ -42,7 +42,7 @@
   gap: var(--panel-stack-gap);
   height: auto;
   max-height: calc(
-    100vh - var(--header-h, 72px) - var(--panel-top-gap) - var(--panel-bottom-gap)
+    100vh - var(--header-h, 72px) - var(--panel-top-gap) - max(var(--panel-bottom-gap), 75px)
   );
   transform: translateX(0);
   transition: transform 260ms cubic-bezier(0.33, 1, 0.68, 1), opacity 200ms ease;
