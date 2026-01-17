@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styles from './Header.module.css';
 import { ReactComponent as Logo } from '../assets/upri-logo.svg';
-import Button from './Button';
 import { AuthModal } from './Form';
 import { Dashboard } from './Dashboard';
 import { ReactComponent as BurgerMenu } from '../assets/burger-menu-white.svg';
@@ -62,14 +61,9 @@ const Header = ({
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('error');
 
-  const location = useLocation(); // Get the current path
   const navigate = useNavigate(); // For navigation
   const isSecureFlow = variant === 'secure' || showAccountControls === false;
   const themeEnabled = showThemeToggle !== false;
-
-  // Check if the current path is either /significant-eqs or /significant-eq-info
-  const isSignificantEQPage =
-    location.pathname === '/significant-eqs' || location.pathname === '/significant-eq-info';
 
   // Handle Home button click
   const handleHomeClick = () => navigate('/');
@@ -300,18 +294,6 @@ const Header = ({
               </div>
             ) : (
               <>
-                {isSignificantEQPage && (
-                  // Show Home button if on /significant-eqs or /significant-eq-info
-                  <Button
-                    hasOutline={false}
-                    onClick={handleHomeClick}
-                    aria-label="Go to home"
-                    title="Home"
-                    data-size="compact"
-                  >
-                    Home
-                  </Button>
-                )}
                 <button
                   type="button"
                   className={styles.accountEntry}

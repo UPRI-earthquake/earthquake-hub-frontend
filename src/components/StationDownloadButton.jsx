@@ -1,12 +1,15 @@
 // src/StationDownloadButtons.js
 import React from 'react';
 import './StationDownloadButton.css';
+import Button from './Button';
 import { trackEvent } from '../analytics';
+import axios from 'axios';
 
 /**
  * Download links for station metadata and waveform around event time.
  */
 const StationDownloadButtons = (stationInfo) => {
+  const network = 'AM';
   function formatDateTime(dateString, secondsToAdd = 0) {
     const date = new Date(dateString);
     date.setUTCHours(date.getUTCHours() - 8); // -8hours since this is Ph Time (to make this UTC time)
@@ -25,8 +28,18 @@ const StationDownloadButtons = (stationInfo) => {
   }
 
   const stationCode = stationInfo.stationCode;
+  const stationCodeUpper = String(stationCode || '').toUpperCase();
   const startTime = formatDateTime(stationInfo.eventTime, -60);
   const endTime = formatDateTime(stationInfo.eventTime, 60 * 10); // seconds to minutes
+  const dateSuffix = (() => {
+    const d = new Date(stationInfo.eventTime || Date.now());
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}${dd}${yy}`;
+  })();
+  const metadataFilename = `${network}.${stationCodeUpper}.00.MULTI.xml`;
+  const waveformFilename = `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.mseed`;
 
   const emitDownload = (kind) => {
     try {
@@ -38,26 +51,71 @@ const StationDownloadButtons = (stationInfo) => {
     } catch (_) {}
   };
 
+  const fetchAndDownload = async (url, filename, kind, acceptHeader) => {
+    try {
+      emitDownload(kind);
+      const resp = await axios.get(url, {
+        responseType: 'blob',
+        withCredentials: false,
+        validateStatus: () => true,
+        headers: acceptHeader ? { Accept: acceptHeader } : undefined,
+        timeout: 15000,
+      });
+      if (resp.status !== 200) {
+        window.open(url, '_blank', 'noreferrer');
+        return;
+      }
+      const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data]);
+      if (!blob || blob.size === 0) {
+        window.open(url, '_blank', 'noreferrer');
+        return;
+      }
+      const objUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(objUrl);
+    } catch (_) {
+      try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
+    }
+  };
+
   return (
     <div className="download-links">
-      <a
-        href={`https://earthquake.science.upd.edu.ph/fdsnws/station/1/query?level=response&starttime=${startTime}&endtime=${endTime}&station=${stationCode}&formatted=true&nodata=404`}
-        className="station-download-links"
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => emitDownload('metadata')}
+      <Button
+        hasOutline
+        data-size="compact"
+        aria-label={`Download station metadata for ${stationCodeUpper} (XML)`}
+        title={`Download station metadata for ${stationCodeUpper}`}
+        onClick={() =>
+          fetchAndDownload(
+            `https://earthquake.science.upd.edu.ph/fdsnws/station/1/query?level=response&starttime=${startTime}&endtime=${endTime}&station=${stationCode}&formatted=true&nodata=404`,
+            metadataFilename,
+            'metadata',
+            'application/xml, text/xml; q=0.9, */*; q=0.1'
+          )
+        }
       >
-        Download Metadata
-      </a>
-      <a
-        href={`https://earthquake.science.upd.edu.ph/fdsnws/dataselect/1/query?starttime=${startTime}&endtime=${endTime}&station=${stationCode}&nodata=404`}
-        className="station-download-links"
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => emitDownload('waveform')}
+        Metadata
+      </Button>
+      <Button
+        data-size="compact"
+        aria-label={`Download waveform for ${stationCodeUpper} (MiniSEED)`}
+        title={`Download waveform for ${stationCodeUpper}`}
+        onClick={() =>
+          fetchAndDownload(
+            `https://earthquake.science.upd.edu.ph/fdsnws/dataselect/1/query?starttime=${startTime}&endtime=${endTime}&station=${stationCode}&nodata=404`,
+            waveformFilename,
+            'waveform',
+            'application/vnd.fdsn.mseed, application/octet-stream, */*;q=0.1'
+          )
+        }
       >
-        Download Data
-      </a>
+        Waveform
+      </Button>
     </div>
   );
 };

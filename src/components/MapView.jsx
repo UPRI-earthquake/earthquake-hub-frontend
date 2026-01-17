@@ -11,6 +11,7 @@ import RegisterableLayerGroup from './RegisterableLayerGroup';
 import { OverlayStateProvider } from './OverlayStateContext';
 import { trackEvent } from '../analytics';
 import { resetToPH } from '../utils/resetView';
+import FloatingButton from './FloatingButton';
 
 // Keep markers lazy inside the map chunk to avoid blocking map shell render
 const StationMarkers = lazy(() => import('./StationMarkers'));
@@ -45,6 +46,7 @@ function MapView({
       <Pane name="eqMarkers" style={{ zIndex: 620, pointerEvents: 'auto' }} />
       <ZoomControl position="topright" />
       <ResetViewControl position="topright" />
+      <FloatingButton />
       <AttributionControl />
       <OverlayStateProvider>
         <MapLayersControl activeTheme={theme}>

@@ -632,7 +632,7 @@ function SignUpFields({ onSuccess }) {
                 type="text"
                 name="ringserverUrl"
                 autoComplete="url"
-                placeholder="e.g. https://ringserver.example.com"
+                placeholder="https://ringserver.example.com"
                 className={errors.ringserverUrl ? styles.inputError : ''}
                 onChange={() => setErrors((prev) => ({ ...prev, ringserverUrl: false }))}
               />
@@ -649,7 +649,7 @@ function SignUpFields({ onSuccess }) {
                 type="text"
                 name="ringserverPort"
                 inputMode="numeric"
-                placeholder="16022"
+                placeholder="16000"
                 className={errors.ringserverPort ? styles.inputError : ''}
                 onChange={() => setErrors((prev) => ({ ...prev, ringserverPort: false }))}
               />

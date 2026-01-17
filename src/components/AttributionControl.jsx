@@ -70,11 +70,12 @@ export default function AttributionControl() {
 
     // Restore collapsed state from sessionStorage
     const key = 'map:attr:collapsed';
-    // Default: expanded unless user previously collapsed
-    let collapsed = false;
+    // Default: collapsed unless user previously expanded
+    let collapsed = true;
     try {
       const v = sessionStorage.getItem(key);
-      if (v === '1') collapsed = true;
+      if (v === '0') collapsed = false;
+      else if (v === '1') collapsed = true;
     } catch (_) {}
     el.classList.toggle('is-collapsed', collapsed);
 

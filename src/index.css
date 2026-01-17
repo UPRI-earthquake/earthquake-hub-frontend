@@ -8,6 +8,14 @@
   --bg-gradient: radial-gradient(circle at 20% 20%, #e0f2fe 0, transparent 25%),
     radial-gradient(circle at 80% 0%, #ecfdf3 0, transparent 22%),
     #f6f7fb;
+  --panel-hero-bg: linear-gradient(145deg, rgba(14, 165, 233, 0.14), rgba(16, 185, 129, 0.12)), #e8f4ff;
+  --panel-hero-text: #ffffff;
+  --hero-overlay: linear-gradient(135deg, rgba(7, 11, 20, 0.72), rgba(14, 165, 233, 0.24));
+  --hero-card-glass: rgba(7, 11, 20, 0.38);
+  --hero-card-border: rgba(255, 255, 255, 0.18);
+  --hero-card-text: #e5e7eb;
+  --panel-surface: #ffffff;
+  --panel-subtle: #f8fafc;
   --primary: #0ea5e9;
   --primary-strong: #0284c7;
   --accent: #10b981;
@@ -17,6 +25,21 @@
   --shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
   --radius-lg: 18px;
   --radius-md: 12px;
+  --pill-strong-bg: rgba(14, 165, 233, 0.14);
+  --pill-strong-border: rgba(14, 165, 233, 0.3);
+  --pill-strong-text: #0b4f6c;
+  --pill-soft-bg: rgba(15, 23, 42, 0.06);
+  --pill-soft-border: rgba(15, 23, 42, 0.08);
+  --pill-soft-text: #0f172a;
+  --metric-card-bg: #f8fafc;
+  --metric-card-border: #e2e8f0;
+  --metric-card-label: #475569;
+  --metric-card-value: #0f172a;
+  --article-bg: rgba(255, 255, 255, 0.96);
+  --article-text: #0f172a;
+  --article-muted: #475569;
+  --article-tag-bg: linear-gradient(120deg, #0ea5e9, #10b981);
+  --article-shadow: 0 18px 32px rgba(15, 23, 42, 0.16);
 
   /* Spacing system: base unit + layout anchors */
   --space-1: 8px;
@@ -57,6 +80,14 @@
   --bg-gradient: radial-gradient(circle at 18% 20%, rgba(56, 189, 248, 0.12) 0, transparent 26%),
     radial-gradient(circle at 82% 8%, rgba(34, 197, 94, 0.12) 0, transparent 22%),
     #0b1220;
+  --panel-hero-bg: linear-gradient(145deg, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.92)), #0b1220;
+  --panel-hero-text: #e2e8f0;
+  --hero-overlay: linear-gradient(135deg, rgba(7, 11, 20, 0.75), rgba(14, 165, 233, 0.2));
+  --hero-card-glass: rgba(15, 23, 42, 0.6);
+  --hero-card-border: rgba(255, 255, 255, 0.12);
+  --hero-card-text: #e5e7eb;
+  --panel-surface: #0f172a;
+  --panel-subtle: #0f172a;
   --primary: #38bdf8;
   --primary-strong: #0ea5e9;
   --accent: #22c55e;
@@ -64,6 +95,21 @@
   --danger: #f87171;
   --border: #1f2937;
   --shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+  --pill-strong-bg: rgba(56, 189, 248, 0.16);
+  --pill-strong-border: rgba(56, 189, 248, 0.35);
+  --pill-strong-text: #e0f2fe;
+  --pill-soft-bg: rgba(255, 255, 255, 0.06);
+  --pill-soft-border: rgba(255, 255, 255, 0.14);
+  --pill-soft-text: #e5e7eb;
+  --metric-card-bg: rgba(255, 255, 255, 0.06);
+  --metric-card-border: rgba(255, 255, 255, 0.14);
+  --metric-card-label: #cbd5e1;
+  --metric-card-value: #f8fafc;
+  --article-bg: rgba(15, 23, 42, 0.8);
+  --article-text: #e5e7eb;
+  --article-muted: #cbd5e1;
+  --article-tag-bg: linear-gradient(120deg, #38bdf8, #22c55e);
+  --article-shadow: 0 18px 30px rgba(0, 0, 0, 0.45);
 }
 :root[data-theme='imagery'] {
   --text-primary: #e9eef7;
@@ -72,6 +118,14 @@
   --bg-gradient: radial-gradient(circle at 20% 18%, rgba(125, 211, 252, 0.14) 0, transparent 26%),
     radial-gradient(circle at 78% 6%, rgba(52, 211, 153, 0.12) 0, transparent 22%),
     #070b14;
+  --panel-hero-bg: linear-gradient(150deg, rgba(56, 189, 248, 0.2), rgba(7, 11, 20, 0.94));
+  --panel-hero-text: #e2e8f0;
+  --hero-overlay: linear-gradient(140deg, rgba(7, 11, 20, 0.75), rgba(125, 211, 252, 0.22));
+  --hero-card-glass: rgba(7, 11, 20, 0.65);
+  --hero-card-border: rgba(255, 255, 255, 0.16);
+  --hero-card-text: #e5e7eb;
+  --panel-surface: #0b1220;
+  --panel-subtle: #0b1220;
   --primary: #7dd3fc;
   --primary-strong: #38bdf8;
   --accent: #34d399;
@@ -79,6 +133,21 @@
   --danger: #fb7185;
   --border: #111827;
   --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  --pill-strong-bg: rgba(125, 211, 252, 0.18);
+  --pill-strong-border: rgba(125, 211, 252, 0.35);
+  --pill-strong-text: #e0f2fe;
+  --pill-soft-bg: rgba(255, 255, 255, 0.08);
+  --pill-soft-border: rgba(255, 255, 255, 0.16);
+  --pill-soft-text: #e5e7eb;
+  --metric-card-bg: rgba(255, 255, 255, 0.06);
+  --metric-card-border: rgba(255, 255, 255, 0.16);
+  --metric-card-label: #cbd5e1;
+  --metric-card-value: #f8fafc;
+  --article-bg: rgba(7, 11, 20, 0.82);
+  --article-text: #e5e7eb;
+  --article-muted: #cbd5e1;
+  --article-tag-bg: linear-gradient(120deg, #7dd3fc, #34d399);
+  --article-shadow: 0 20px 36px rgba(0, 0, 0, 0.5);
 }
 
 body {

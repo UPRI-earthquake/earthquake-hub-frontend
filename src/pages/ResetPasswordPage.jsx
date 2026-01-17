@@ -23,7 +23,7 @@ const weakPasswords = [
   'brgy',
 ];
 const PASSWORD_MAX_LENGTH = 128;
-const RESET_LINK_EXPIRY_MINUTES = 30;
+const RESET_LINK_EXPIRY_MINUTES_FALLBACK = 30;
 
 function maskEmail(email) {
   if (!email) return '';
@@ -43,6 +43,20 @@ function extractEmailFromToken(token) {
     return typeof decoded.email === 'string' ? decoded.email : '';
   } catch (_) {
     return '';
+  }
+}
+
+function parseTokenMeta(token) {
+  if (!token) return {};
+  try {
+    const [, payload] = token.split('.');
+    if (!payload || typeof atob !== 'function') return {};
+    const decoded = JSON.parse(atob(payload));
+    const exp = typeof decoded.exp === 'number' ? decoded.exp * 1000 : undefined;
+    const iat = typeof decoded.iat === 'number' ? decoded.iat * 1000 : undefined;
+    return { exp, iat };
+  } catch (_) {
+    return {};
   }
 }
 
@@ -83,11 +97,27 @@ const ResetPasswordPage = () => {
   const accountLine = maskedEmail
     ? `Resetting password for ${maskedEmail}`
     : 'Resetting password for your account';
+  const tokenMeta = useMemo(() => parseTokenMeta(token), [token]);
+  const tokenExpired = useMemo(
+    () => Boolean(tokenMeta.exp && tokenMeta.exp <= Date.now()),
+    [tokenMeta.exp]
+  );
+  const tokenExpiryMinutes = useMemo(() => {
+    if (tokenMeta.exp) {
+      const minutes = Math.round((tokenMeta.exp - Date.now()) / (60 * 1000));
+      return Math.max(minutes, 0);
+    }
+    return RESET_LINK_EXPIRY_MINUTES_FALLBACK;
+  }, [tokenMeta.exp]);
+  const tokenExpiryCopy = !token
+    ? 'Reset link unavailable.'
+    : tokenExpired
+    ? 'This reset link has expired.'
+    : `This link expires in about ${tokenExpiryMinutes} minute${tokenExpiryMinutes === 1 ? '' : 's'}.`;
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [tokenError, setTokenError] = useState(token ? '' : 'Reset link is missing or invalid.');
   const [toastMessage, setToastMessage] = useState(
     token ? 'Enter a new password to complete your reset.' : 'Resend your reset link to continue.'
   );
@@ -96,6 +126,12 @@ const ResetPasswordPage = () => {
 
   useEffect(() => {
     axios.defaults.withCredentials = true;
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = 'Reset Password | Earthquake Hub';
+    }
   }, []);
 
   const handleRequestNewLink = () => {
@@ -110,8 +146,12 @@ const ResetPasswordPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!token) {
-      setTokenError('Reset link is missing or invalid.');
       setToastMessage('Reset link is missing or invalid.');
+      setToastType('error');
+      return;
+    }
+    if (tokenExpired) {
+      setToastMessage('This reset link has expired. Resend a reset link to continue.');
       setToastType('error');
       return;
     }
@@ -133,7 +173,6 @@ const ResetPasswordPage = () => {
 
     setSubmitting(true);
     setPasswordError('');
-    setTokenError('');
     try {
       const apiHost = backendHost();
       const response = await axios.post(`${apiHost}/accounts/reset-password`, {
@@ -164,11 +203,14 @@ const ResetPasswordPage = () => {
       setToastMessage(message);
       setToastType('error');
       if (statusCode === responseCodes.PASSWORD_RESET_EXPIRED) {
-        setTokenError('This reset link has expired. Resend a reset link to continue.');
+        setToastMessage('This reset link has expired. Resend a reset link to continue.');
+        setToastType('error');
       } else if (statusCode === responseCodes.PASSWORD_RESET_INVALID) {
-        setTokenError('This reset link is invalid. Resend a reset link to continue.');
+        setToastMessage('This reset link is invalid. Resend a reset link to continue.');
+        setToastType('error');
       } else if (statusCode === responseCodes.PASSWORD_RESET_USER_MISSING) {
-        setTokenError('We could not find an account for this link. Resend a reset link to continue.');
+        setToastMessage('We could not find an account for this link. Resend a reset link to continue.');
+        setToastType('error');
       } else if (statusCode === responseCodes.VALIDATION_ERROR) {
         setPasswordError(message);
       }
@@ -176,6 +218,15 @@ const ResetPasswordPage = () => {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (tokenExpired) {
+      setToastMessage('This reset link has expired. Resend a reset link to continue.');
+      setToastType('error');
+    }
+  }, [tokenExpired]);
+
+  const disabledForExpiry = tokenExpired;
 
   return (
     <div className={styles.page}>
@@ -193,18 +244,8 @@ const ResetPasswordPage = () => {
             {accountLine}
           </p>
           <p className={styles.lede}>
-            Follow the link we sent to your email to confirm your identity. Your new password should
-            be strong and unique to keep your account secure.
+            Your new password should be strong and unique to keep your account secure.
           </p>
-          {tokenError && (
-            <div className={styles.inlineAlert} role="alert">
-              <div className={styles.alertTitle}>Reset link issue</div>
-              <p className={styles.alertBody}>{tokenError}</p>
-              <button type="button" className={styles.ghostButton} onClick={handleRequestNewLink}>
-                Resend reset link
-              </button>
-            </div>
-          )}
 
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
             <label className={styles.fieldGroup} htmlFor="new-password">
@@ -223,6 +264,7 @@ const ResetPasswordPage = () => {
                 minLength={12}
                 maxLength={PASSWORD_MAX_LENGTH}
                 required
+                disabled={disabledForExpiry}
               />
               <span className={styles.hint}>Minimum 12 characters. Avoid common phrases or repeats.</span>
             </label>
@@ -241,6 +283,7 @@ const ResetPasswordPage = () => {
                   setPasswordError('');
                 }}
                 required
+                disabled={disabledForExpiry}
               />
             </label>
 
@@ -249,13 +292,17 @@ const ResetPasswordPage = () => {
                 <Toast message={toastMessage} toastType={toastType} placement="inline" />
               </div>
               <div className={styles.actions}>
-                <span className={styles.expiryNote}>
-                  This link expires in about {RESET_LINK_EXPIRY_MINUTES} minutes.
-                </span>
-                <button type="button" className={styles.linkButton} onClick={handleRequestNewLink}>
+                <span className={styles.expiryNote}>{tokenExpiryCopy}</span>
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={handleRequestNewLink}
+                  disabled={disabledForExpiry && submitting}
+                  aria-disabled={disabledForExpiry && submitting}
+                >
                   Resend reset link
                 </button>
-                <button type="submit" disabled={submitting || !token}>
+                <button type="submit" disabled={submitting || !token || disabledForExpiry}>
                   {submitting ? 'Updating…' : 'Update password'}
                 </button>
               </div>

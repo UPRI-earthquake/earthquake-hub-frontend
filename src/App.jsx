@@ -8,6 +8,7 @@ import ConsentBanner from './components/ConsentBanner';
 const SignificantEQsPage = lazy(() => import('./pages/SignificantEQsPage'));
 const EQInfoPage = lazy(() => import('./pages/EQInfoPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 /**
  * Root application router and top-level layout. Routes are split to reduce
@@ -25,6 +26,7 @@ function App() {
             <Route path="/significant-eqs" element={<SignificantEQsPage />} />
             <Route path="/significant-eq-info" element={<EQInfoPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </Router>
