@@ -57,6 +57,48 @@
   line-height: 1;
 }
 
+.icon svg {
+  display: block;
+}
+
+.mountainLeft,
+.mountainRight,
+.crack {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.fab:hover .mountainLeft,
+.fab:focus-visible .mountainLeft {
+  transform: translateX(-1.2px) rotate(-2deg);
+}
+
+.fab:hover .mountainRight,
+.fab:focus-visible .mountainRight {
+  transform: translateX(1.2px) rotate(2deg);
+}
+
+.fab:hover .crack,
+.fab:focus-visible .crack {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mountainLeft,
+  .mountainRight,
+  .crack {
+    transition: none;
+  }
+
+  .fab:hover .mountainLeft,
+  .fab:focus-visible .mountainLeft,
+  .fab:hover .mountainRight,
+  .fab:focus-visible .mountainRight {
+    transform: none;
+  }
+}
+
 .label {
   white-space: nowrap;
 }

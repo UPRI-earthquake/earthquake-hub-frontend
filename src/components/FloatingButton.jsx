@@ -33,10 +33,15 @@ function FloatingButton() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M3 17.5 8.5 9l1.5 2.4 1-2.4L14 5l3.5 5.5 3.5 7" />
+          <g className={styles.mountainLeft}>
+            <path d="M3 17.5 8.5 9l1.5 2.4 1-2.4" />
+          </g>
+          <g className={styles.mountainRight}>
+            <path d="M11 9L14 5l3.5 5.5 3.5 7" />
+          </g>
           <path d="M4 18h16" />
           <path d="M6 20h12" />
-          <path d="M11 12.4l1.4-2.2" />
+          <path className={styles.crack} d="M11 12.4l1.4-2.2" />
         </svg>
       </span>
       <span className={styles.label}>
