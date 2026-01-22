@@ -67,9 +67,9 @@
   }
 }
 
-@media (max-height: 600px) {
+@media (max-width: 960px) and (orientation: landscape) {
   :root {
-    --header-h: 56px; /* compact header height for landscape/short viewports */
+    --header-h: 56px; /* compact header height for landscape viewports */
   }
 }
 

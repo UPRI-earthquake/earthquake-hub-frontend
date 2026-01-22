@@ -112,7 +112,8 @@ html[data-theme='imagery'] .sidebar {
   --accent: #7dd3fc;
 }
 
-@media (max-width: 960px) and (orientation: landscape) {
+@media (max-width: 960px) and (orientation: landscape),
+  (max-width: 1100px) and (max-height: 600px) and (orientation: landscape) {
   .sidebar {
     background-color: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(12px);

@@ -299,7 +299,8 @@ html[data-theme='dark'] .panelSwitcher {
 }
 
 /* Mobile landscape: treat as its own mode with docked panels and a narrower control stack */
-@media (max-width: 960px) and (orientation: landscape) {
+@media (max-width: 960px) and (orientation: landscape),
+  (max-width: 1100px) and (max-height: 600px) and (orientation: landscape) {
   :root {
     --layout-side-offset: var(--space-1, 8px);
     --layout-top-offset: var(--space-1-5, 12px);

@@ -79,7 +79,9 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const { resolvedTheme } = useTheme();
   const isCompactPanels = useMediaQuery('(max-width: 1100px)');
-  const isMobileLandscape = useMediaQuery('(max-width: 960px) and (orientation: landscape)');
+  const isMobileLandscape = useMediaQuery(
+    '(max-width: 960px) and (orientation: landscape), (max-width: 1100px) and (max-height: 600px) and (orientation: landscape)'
+  );
   const [activePanel, setActivePanel] = useState('events');
   const [panelOpen, setPanelOpen] = useState(!isCompactPanels);
   const panelRef = useRef(null);
