@@ -27,7 +27,7 @@
 
 .popUp {
   width: min(90vw, 360px);
-  min-width: 240px;
+  min-width: 200px;
 }
 
 .popUpBody {
@@ -73,12 +73,15 @@
 }
 .popupActions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
   font-size: 12px;
 }
 .actionLink {
   opacity: 0.75;
+  white-space: nowrap;
 }
 .actionLink:hover {
   opacity: 1;
@@ -168,12 +171,37 @@
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
+:global(.leaflet-container[data-basemap-theme='dark']) .realtimeGraphDiv:not(:empty),
+:global(.leaflet-container[data-basemap-theme='imagery']) .realtimeGraphDiv:not(:empty) {
+  background-color: #0b1220;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #e5e7eb;
+}
 
 /* Dark/Imagery themed variant (scoped to Leaflet container) */
 :global(.leaflet-container[data-basemap-theme='dark']) .realtimeGraphDiv:not(:empty),
 :global(.leaflet-container[data-basemap-theme='imagery']) .realtimeGraphDiv:not(:empty) {
   background-color: #0b1220;
   border-color: rgba(255, 255, 255, 0.18);
+}
+
+@media (max-height: 540px), (max-width: 960px) and (orientation: landscape) {
+  .popUp {
+    width: min(86vw, 300px);
+  }
+  .popupActions {
+    gap: 10px;
+  }
+  .realtimeGraphDiv:not(:empty) {
+    padding: 2px;
+  }
+  .realtimeGraphDiv svg,
+  .realtimeGraphDiv canvas {
+    max-height: 90px;
+    height: auto !important;
+    width: 100% !important;
+    display: block;
+  }
 }
 /* No canvas inversion; match default seisplotjs appearance */
 

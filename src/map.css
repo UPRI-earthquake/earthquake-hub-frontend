@@ -336,7 +336,7 @@
 .leaflet-container .leaflet-popup-pane,
 .leaflet-pane.leaflet-popup-pane,
 .leaflet-container .leaflet-popup {
-  z-index: 1400 !important;
+  z-index: 3000 !important;
 }
 
 /* Themed popups (all) */
@@ -380,20 +380,6 @@
 .leaflet-popup.feature-popup .ft-k { color: #6b7280; }
 .leaflet-container[data-basemap-theme='dark'] .leaflet-popup.feature-popup .ft-k,
 .leaflet-container[data-basemap-theme='imagery'] .leaflet-popup.feature-popup .ft-k { color: #d1d5db; opacity: 0.85; }
-
-/* Themed station seismograph container */
-.leaflet-container .realtimeGraphDiv:not(:empty) {
-  background: #f4f4f4;
-  padding: 6px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-.leaflet-container[data-basemap-theme='dark'] .realtimeGraphDiv:not(:empty),
-.leaflet-container[data-basemap-theme='imagery'] .realtimeGraphDiv:not(:empty) {
-  background: #0b1220;
-  border-color: rgba(255, 255, 255, 0.18);
-  color: #e5e7eb;
-}
 
 /* Reset-to-Philippines control */
 .leaflet-container .leaflet-control-resetview {

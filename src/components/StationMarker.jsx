@@ -13,6 +13,11 @@ import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
 import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
+import {
+  computePopupAutoPanPadding,
+  POPUP_AUTOPAN_PADDING_BOTTOMRIGHT,
+  POPUP_AUTOPAN_PADDING_TOPLEFT,
+} from '../config/popupOptions';
 import { trackEvent } from '../analytics';
 import { buildTriangleSVG } from '../utils/triangleMarker';
 /**
@@ -22,6 +27,10 @@ import { buildTriangleSVG } from '../utils/triangleMarker';
 
 const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
   const map = useMap();
+  const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } = useMemo(
+    () => computePopupAutoPanPadding(map),
+    [map],
+  );
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
@@ -757,7 +766,12 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         popupclose: handlePopupClose,
       }}
     >
-      <Popup className={styles.popUp} autoPan>
+      <Popup
+        className={styles.popUp}
+        autoPan
+        autoPanPaddingTopLeft={popupPaddingTopLeft || POPUP_AUTOPAN_PADDING_TOPLEFT}
+        autoPanPaddingBottomRight={popupPaddingBottomRight || POPUP_AUTOPAN_PADDING_BOTTOMRIGHT}
+      >
         <div className={styles.popUpBody}>
           <div className={styles.popupHeader}>
             <div className={styles.popupTitleRow}>

@@ -8,6 +8,11 @@ import styles from './EventMarker.module.css';
 import { ReactComponent as Circle } from '../assets/circle.svg';
 import { ReactComponent as CircleWithBorder } from '../assets/circleWithBorder.svg';
 import { eqSizePx, themeFromMapContainer, eqDepthColor } from '../config/mapStyles';
+import {
+  computePopupAutoPanPadding,
+  POPUP_AUTOPAN_PADDING_BOTTOMRIGHT,
+  POPUP_AUTOPAN_PADDING_TOPLEFT,
+} from '../config/popupOptions';
 import { trackEvent } from '../analytics';
 
 function toRadius(magnitude) {
@@ -62,6 +67,10 @@ const EventMarker = ({
   const popupRef = useRef(null);
   const markerRef = useRef(null);
   const prevSelectedRef = useRef(null);
+  const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } = useMemo(
+    () => computePopupAutoPanPadding(map),
+    [map],
+  );
   // Track origin of selection to control flyTo animation
   const selectionOriginRef = useRef({ type: 'unknown', id: null });
   useEffect(() => {
@@ -365,7 +374,12 @@ const EventMarker = ({
         },
       }}
     >
-      <Popup ref={popupRef} autoPan>
+      <Popup
+        ref={popupRef}
+        autoPan
+        autoPanPaddingTopLeft={popupPaddingTopLeft || POPUP_AUTOPAN_PADDING_TOPLEFT}
+        autoPanPaddingBottomRight={popupPaddingBottomRight || POPUP_AUTOPAN_PADDING_BOTTOMRIGHT}
+      >
         <div className={styles.popupCard}>
           <div className={`${styles.popupGroup} ${styles.popupGroupPrimary}`}>
             <div className={styles.popupRow}>
