@@ -505,6 +505,42 @@ function Dashboard({
     return summary;
   }, [devices]);
 
+  const sortedDevices = useMemo(() => {
+    const statusRank = {
+      streaming: 0,
+      'not streaming': 1,
+      'not yet linked': 1,
+      unlinked: 2,
+    };
+    const getRank = (label) => statusRank[String(label || '').toLowerCase()] ?? 99;
+    const toTimeValue = (value) => {
+      const m = moment(value);
+      if (!m.isValid()) return -Infinity;
+      const v = m.valueOf();
+      return v > 0 ? v : -Infinity;
+    };
+
+    return [...(devices || [])]
+      .map((device, index) => {
+        const statusLabel = toDashboardStatusLabel({
+          activity: device.activity,
+          status: device.status,
+        });
+        return {
+          device,
+          statusLabel,
+          rank: getRank(statusLabel),
+          sinceValue: toTimeValue(device.statusSince || device.activityToggleTime),
+          index,
+        };
+      })
+      .sort((a, b) => {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        if (a.sinceValue !== b.sinceValue) return b.sinceValue - a.sinceValue;
+        return (a.device.station || '').localeCompare(b.device.station || '');
+      });
+  }, [devices]);
+
   const hasDevices = (devices || []).length > 0;
   const hasLinkedDevices = devicesFetched ? hasDevices : true;
   const linkedDeviceCount = devicesFetched ? (devices || []).length : '…';
@@ -1359,11 +1395,7 @@ function Dashboard({
                       </thead>
                       <tbody>
                         {hasDevices ? (
-                          devices.map((device, index) => {
-                            const statusLabel = toDashboardStatusLabel({
-                              activity: device.activity,
-                              status: device.status,
-                            });
+                          sortedDevices.map(({ device, statusLabel, index }) => {
                             const statusVariant = getStatusVariant(statusLabel);
                             const badgeClass =
                               statusVariant === 'ok'
