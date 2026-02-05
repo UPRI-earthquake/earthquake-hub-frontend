@@ -495,43 +495,65 @@ function Dashboard({
 
   const activeSectionMeta = sections.find((section) => section.id === activeSection);
 
+  const overviewDevices = useMemo(() => {
+    const normalizeKey = (value) => String(value || '').trim().toUpperCase();
+    const buildKey = (entry, fallback) => {
+      const network = normalizeKey(entry.network);
+      const station = normalizeKey(entry.station);
+      if (network || station) return `${network}|${station}`;
+      return entry.deviceId || entry.streamId || entry.macAddress || fallback;
+    };
+
+    const linkedItems = (devices || []).map((device, index) => ({
+      ...device,
+      _overviewKey: buildKey(device, `linked-${index}`),
+    }));
+
+    const linkedKeys = new Set(linkedItems.map((item) => item._overviewKey));
+    const releasedMap = new Map();
+
+    (releasedDevices || []).forEach((entry, index) => {
+      const key = buildKey(entry, `released-${index}`);
+      if (linkedKeys.has(key)) return;
+      const releasedAtValue = entry.releasedAt ? new Date(entry.releasedAt).getTime() : 0;
+      const existing = releasedMap.get(key);
+      if (!existing || releasedAtValue > existing.releasedAtValue) {
+        releasedMap.set(key, {
+          entry,
+          releasedAtValue,
+          key,
+        });
+      }
+    });
+
+    const releasedItems = Array.from(releasedMap.values()).map(({ entry, key }) => ({
+      network: entry.network,
+      station: entry.station,
+      description: entry.description,
+      streamId: entry.streamId,
+      macAddress: entry.macAddress,
+      activity: 'unlinked',
+      status: 'Unlinked',
+      statusSince: entry.releasedAt || null,
+      activityToggleTime: entry.releasedAt || null,
+      _overviewKey: key,
+    }));
+
+    return [...linkedItems, ...releasedItems];
+  }, [devices, releasedDevices]);
+
   const statusCounts = useMemo(() => {
     const summary = { streaming: 0, inactive: 0, unlinked: 0 };
-    (devices || []).forEach((device) => {
+    (overviewDevices || []).forEach((device) => {
       const state = normalizeDeviceActivity(device.activity || device.status);
       if (state === 'active') summary.streaming += 1;
       else if (state === 'unlinked') summary.unlinked += 1;
       else summary.inactive += 1;
     });
-    summary.unlinked += (releasedDevices || []).length;
     return summary;
-  }, [devices, releasedDevices]);
+  }, [overviewDevices]);
 
-  const releasedCount = (releasedDevices || []).length;
-
-  const sortedReleasedDevices = useMemo(() => {
-    const toTimeValue = (value) => {
-      const m = moment(value);
-      if (!m.isValid()) return -Infinity;
-      const v = m.valueOf();
-      return v > 0 ? v : -Infinity;
-    };
-
-    return [...(releasedDevices || [])]
-      .map((entry, index) => ({
-        entry,
-        index,
-        sinceValue: toTimeValue(entry.releasedAt),
-      }))
-      .sort((a, b) => {
-        if (a.sinceValue !== b.sinceValue) return b.sinceValue - a.sinceValue;
-        const stationA = (a.entry.station || '').toString();
-        const stationB = (b.entry.station || '').toString();
-        return stationA.localeCompare(stationB);
-      });
-  }, [releasedDevices]);
-
-  const sortedDevices = useMemo(() => {
+  const sortedOverviewDevices = useMemo(() => {
     const statusRank = {
       streaming: 0,
       'not streaming': 1,
@@ -546,7 +568,7 @@ function Dashboard({
       return v > 0 ? v : -Infinity;
     };
 
-    return [...(devices || [])]
+    return [...(overviewDevices || [])]
       .map((device, index) => {
         const statusLabel = toDashboardStatusLabel({
           activity: device.activity,
@@ -565,15 +587,15 @@ function Dashboard({
         if (a.sinceValue !== b.sinceValue) return b.sinceValue - a.sinceValue;
         return (a.device.station || '').localeCompare(b.device.station || '');
       });
-  }, [devices]);
+  }, [overviewDevices]);
 
   const hasDevices = (devices || []).length > 0;
-  const hasReleasedDevices = releasedCount > 0;
+  const hasOverviewDevices = (overviewDevices || []).length > 0;
   const hasLinkedDevices = devicesFetched ? hasDevices : true;
   const linkedDeviceCount = devicesFetched ? (devices || []).length : '…';
   const deleteActionLabel = hasLinkedDevices
     ? devicesFetched
-      ? 'Release devices first'
+      ? 'Unlink devices first'
       : 'Checking devices...'
     : 'Delete';
   const emptyState = roleConfig.empty;
@@ -1423,8 +1445,8 @@ function Dashboard({
                         </tr>
                       </thead>
                       <tbody>
-                        {hasDevices ? (
-                          sortedDevices.map(({ device, statusLabel, index }) => {
+                        {hasOverviewDevices ? (
+                          sortedOverviewDevices.map(({ device, statusLabel, index }) => {
                             const statusVariant = getStatusVariant(statusLabel);
                             const badgeClass =
                               statusVariant === 'ok'
@@ -1487,59 +1509,6 @@ function Dashboard({
                       </tbody>
                     </table>
                   </div>
-                  {hasReleasedDevices && (
-                    <>
-                      <div className={styles.panelHeaderRow}>
-                        <div>
-                          <p className={styles.panelKicker}>History</p>
-                          <div className={styles.panelTitleRow}>
-                            <h4 className={styles.panelTitle}>Unlinked devices</h4>
-                            <InfoTooltip label="Unlinked devices details" title="Unlinked devices" variant="inline">
-                              These devices were unlinked from your account and can now be linked elsewhere.
-                            </InfoTooltip>
-                          </div>
-                          <p className={styles.panelSubtitle}>
-                            Unlinked devices no longer count toward your linked devices.
-                          </p>
-                        </div>
-                      </div>
-                      <div className={styles.deviceListTableContainer}>
-                        <table className={styles.deviceListTable}>
-                          <thead>
-                            <tr>
-                              <th scope="col">Network</th>
-                              <th scope="col">Station</th>
-                              <th scope="col">Unlinked on</th>
-                              <th scope="col">Description</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sortedReleasedDevices.map(({ entry, index }) => {
-                              const key = `${entry.network || 'net'}-${entry.station || index}-${index}`;
-                              return (
-                                <tr key={key}>
-                                  <td>
-                                    <div className={styles.cellHeading}>{entry.network || '—'}</div>
-                                  </td>
-                                  <td>
-                                    <div className={styles.cellHeading}>{entry.station || '—'}</div>
-                                  </td>
-                                  <td>
-                                    <span className={styles.sinceLabel} title={entry.releasedAt || ''}>
-                                      {formatStatusSince(entry.releasedAt)}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <div className={styles.cellHeading}>{entry.description || '—'}</div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  )}
                 </section>
               </div>
             )}
@@ -2077,7 +2046,7 @@ function Dashboard({
                           <div className={styles.cardTitleRow}>
                             <h4 className={styles.cardTitle}>Delete account</h4>
                             <InfoTooltip label="Account deletion details" title="Before deleting" variant="inline">
-                              All devices must be released from this account via the sender software (rs.local:3000) before deleting this account.
+                              All devices must be unlinked from this account via the sender software (rs.local:3000) before deleting this account.
                             </InfoTooltip>
                           </div>
                           <p className={styles.settingsSummary}>
@@ -2091,7 +2060,7 @@ function Dashboard({
                             disabled={isDeletingAccount || hasLinkedDevices}
                             onClick={() => setShowDeleteConfirm(true)}
                           >
-                            {deleteActionLabel === 'Release devices first' ? (
+                            {deleteActionLabel === 'Unlink devices first' ? (
                               <span className={styles.iconBadge} aria-hidden="true">
                                 <BrokenChainIcon />
                               </span>
