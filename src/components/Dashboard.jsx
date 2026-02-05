@@ -16,7 +16,7 @@ const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
   'Not Streaming': 'This device is linked to your account but is currently not sending data to the server.',
   Streaming: 'This device is sending data to the server.',
-  Unlinked: 'This device was unlinked on the sender but is still associated with your account.',
+  Unlinked: 'This device was unlinked from the sender.',
 };
 
 const roleCopy = {
@@ -503,8 +503,9 @@ function Dashboard({
       else if (state === 'unlinked') summary.unlinked += 1;
       else summary.inactive += 1;
     });
+    summary.unlinked += (releasedDevices || []).length;
     return summary;
-  }, [devices]);
+  }, [devices, releasedDevices]);
 
   const releasedCount = (releasedDevices || []).length;
 
@@ -1408,9 +1409,6 @@ function Dashboard({
                       <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
                         Unlinked <strong>{statusCounts.unlinked}</strong>
                       </span>
-                      <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
-                        Released <strong>{releasedCount}</strong>
-                      </span>
                     </div>
                   </div>
 
@@ -1495,13 +1493,13 @@ function Dashboard({
                         <div>
                           <p className={styles.panelKicker}>History</p>
                           <div className={styles.panelTitleRow}>
-                            <h4 className={styles.panelTitle}>Released devices</h4>
-                            <InfoTooltip label="Released devices details" title="Released devices" variant="inline">
-                              These devices were released from your account and can now be linked elsewhere.
+                            <h4 className={styles.panelTitle}>Unlinked devices</h4>
+                            <InfoTooltip label="Unlinked devices details" title="Unlinked devices" variant="inline">
+                              These devices were unlinked from your account and can now be linked elsewhere.
                             </InfoTooltip>
                           </div>
                           <p className={styles.panelSubtitle}>
-                            Released devices no longer count toward your linked devices.
+                            Unlinked devices no longer count toward your linked devices.
                           </p>
                         </div>
                       </div>
@@ -1511,7 +1509,7 @@ function Dashboard({
                             <tr>
                               <th scope="col">Network</th>
                               <th scope="col">Station</th>
-                              <th scope="col">Released on</th>
+                              <th scope="col">Unlinked on</th>
                               <th scope="col">Description</th>
                             </tr>
                           </thead>
