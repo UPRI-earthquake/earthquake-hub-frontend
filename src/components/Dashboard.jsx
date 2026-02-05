@@ -16,7 +16,7 @@ const statusTooltips = {
   'Not Yet Linked': 'Access your raspberry shake device to link it to your e-hub account.',
   'Not Streaming': 'This device is linked to your account but is currently not sending data to the server.',
   Streaming: 'This device is sending data to the server.',
-  Unlinked: 'This device was unlinked from the sender but remains associated with your account.',
+  Unlinked: 'This device was unlinked on the sender but is still associated with your account.',
 };
 
 const roleCopy = {
@@ -274,6 +274,7 @@ function Dashboard({
 }) {
   const [pageTransition, setPageTransition] = useState(0); // controls dashboard transition from pageX to profile or vice-versa
   const [devices, setDevices] = useState([]); // hook for list of device in table (array)success message
+  const [releasedDevices, setReleasedDevices] = useState([]);
   const [devicesFetched, setDevicesFetched] = useState(false);
   const [brgyAccessToken, setBrgyAccessToken] = useState(); // hook for brgyAccessToken
   const [accessTokenExpiry, setAccessTokenExpiry] = useState(); // hook for brgy accessToken expiration
@@ -505,6 +506,30 @@ function Dashboard({
     return summary;
   }, [devices]);
 
+  const releasedCount = (releasedDevices || []).length;
+
+  const sortedReleasedDevices = useMemo(() => {
+    const toTimeValue = (value) => {
+      const m = moment(value);
+      if (!m.isValid()) return -Infinity;
+      const v = m.valueOf();
+      return v > 0 ? v : -Infinity;
+    };
+
+    return [...(releasedDevices || [])]
+      .map((entry, index) => ({
+        entry,
+        index,
+        sinceValue: toTimeValue(entry.releasedAt),
+      }))
+      .sort((a, b) => {
+        if (a.sinceValue !== b.sinceValue) return b.sinceValue - a.sinceValue;
+        const stationA = (a.entry.station || '').toString();
+        const stationB = (b.entry.station || '').toString();
+        return stationA.localeCompare(stationB);
+      });
+  }, [releasedDevices]);
+
   const sortedDevices = useMemo(() => {
     const statusRank = {
       streaming: 0,
@@ -542,11 +567,12 @@ function Dashboard({
   }, [devices]);
 
   const hasDevices = (devices || []).length > 0;
+  const hasReleasedDevices = releasedCount > 0;
   const hasLinkedDevices = devicesFetched ? hasDevices : true;
   const linkedDeviceCount = devicesFetched ? (devices || []).length : '…';
   const deleteActionLabel = hasLinkedDevices
     ? devicesFetched
-      ? 'Unlink devices first'
+      ? 'Release devices first'
       : 'Checking devices...'
     : 'Delete';
   const emptyState = roleConfig.empty;
@@ -570,9 +596,11 @@ function Dashboard({
       if (!isMountedRef.current) return;
       if (response.status === 200) {
         setDevices(response.data.devices || []);
+        setReleasedDevices(response.data.releasedDevices || []);
       } else {
         // For 401/403 or other handled statuses, clear list silently
         setDevices([]);
+        setReleasedDevices([]);
       }
     } catch (error) {
       // Suppress expected auth errors to keep console clean; UI remains the same
@@ -1380,6 +1408,9 @@ function Dashboard({
                       <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
                         Unlinked <strong>{statusCounts.unlinked}</strong>
                       </span>
+                      <span className={`${styles.summaryPill} ${styles.summaryPillMuted}`}>
+                        Released <strong>{releasedCount}</strong>
+                      </span>
                     </div>
                   </div>
 
@@ -1458,6 +1489,59 @@ function Dashboard({
                       </tbody>
                     </table>
                   </div>
+                  {hasReleasedDevices && (
+                    <>
+                      <div className={styles.panelHeaderRow}>
+                        <div>
+                          <p className={styles.panelKicker}>History</p>
+                          <div className={styles.panelTitleRow}>
+                            <h4 className={styles.panelTitle}>Released devices</h4>
+                            <InfoTooltip label="Released devices details" title="Released devices" variant="inline">
+                              These devices were released from your account and can now be linked elsewhere.
+                            </InfoTooltip>
+                          </div>
+                          <p className={styles.panelSubtitle}>
+                            Released devices no longer count toward your linked devices.
+                          </p>
+                        </div>
+                      </div>
+                      <div className={styles.deviceListTableContainer}>
+                        <table className={styles.deviceListTable}>
+                          <thead>
+                            <tr>
+                              <th scope="col">Network</th>
+                              <th scope="col">Station</th>
+                              <th scope="col">Released on</th>
+                              <th scope="col">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedReleasedDevices.map(({ entry, index }) => {
+                              const key = `${entry.network || 'net'}-${entry.station || index}-${index}`;
+                              return (
+                                <tr key={key}>
+                                  <td>
+                                    <div className={styles.cellHeading}>{entry.network || '—'}</div>
+                                  </td>
+                                  <td>
+                                    <div className={styles.cellHeading}>{entry.station || '—'}</div>
+                                  </td>
+                                  <td>
+                                    <span className={styles.sinceLabel} title={entry.releasedAt || ''}>
+                                      {formatStatusSince(entry.releasedAt)}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <div className={styles.cellHeading}>{entry.description || '—'}</div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </section>
               </div>
             )}
@@ -1995,7 +2079,7 @@ function Dashboard({
                           <div className={styles.cardTitleRow}>
                             <h4 className={styles.cardTitle}>Delete account</h4>
                             <InfoTooltip label="Account deletion details" title="Before deleting" variant="inline">
-                              All devices must be unlinked and reset via the sender software (rs.local:3000) before deleting this account.
+                              All devices must be released from this account via the sender software (rs.local:3000) before deleting this account.
                             </InfoTooltip>
                           </div>
                           <p className={styles.settingsSummary}>
@@ -2009,7 +2093,7 @@ function Dashboard({
                             disabled={isDeletingAccount || hasLinkedDevices}
                             onClick={() => setShowDeleteConfirm(true)}
                           >
-                            {deleteActionLabel === 'Unlink devices first' ? (
+                            {deleteActionLabel === 'Release devices first' ? (
                               <span className={styles.iconBadge} aria-hidden="true">
                                 <BrokenChainIcon />
                               </span>
