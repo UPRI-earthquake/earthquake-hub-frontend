@@ -126,10 +126,16 @@ const formatEqNotification = async (payload) => {
   const place = String(placeRaw || '').trim();
   const locationText = place || 'Unknown location';
   const updateLabel = isUpdate && updateCount ? `Update #${updateCount}` : '';
-  const baseTitle = payload && payload.title ? String(payload.title) : 'Earthquake Alert';
-  const title = isUpdate && updateCount ? `${baseTitle} #${updateCount}` : baseTitle;
-  const baseBody = payload && payload.body ? String(payload.body) : `${magText} in ${locationText}`;
-  const body = isUpdate && updateLabel ? `${updateLabel} • ${baseBody}` : baseBody;
+  const titleBase = isUpdate ? 'Earthquake Update' : 'New Earthquake Alert';
+  const title = isUpdate && updateCount ? `${titleBase} #${updateCount}` : titleBase;
+  const defaultBody = isUpdate
+    ? `${magText} updated near ${locationText}`
+    : `${magText} detected near ${locationText}`;
+  const bodyBase = payload && payload.body ? String(payload.body) : defaultBody;
+  const bodyPrefix = isUpdate ? 'Updated event' : 'New event';
+  const body = isUpdate && updateLabel
+    ? `${bodyPrefix} • ${updateLabel} • ${bodyBase}`
+    : `${bodyPrefix} • ${bodyBase}`;
   const url = data.url || (publicID ? `/?event=${encodeURIComponent(publicID)}` : '/');
   return {
     title,
@@ -137,6 +143,7 @@ const formatEqNotification = async (payload) => {
       body,
       tag,
       renotify: isUpdate,
+      badge: '/logo192.png',
       data: {
         url,
         publicID,
@@ -160,18 +167,9 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = event.notification?.data?.url || '/';
   const absoluteUrl = new URL(targetUrl, self.location.origin).href;
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url && client.url.startsWith(self.location.origin) && 'focus' in client) {
-          return client.focus().then(() => {
-            if (client.url !== absoluteUrl && 'navigate' in client) {
-              return client.navigate(absoluteUrl);
-            }
-            return client;
-          });
-        }
-      }
-      if (clients.openWindow) return clients.openWindow(absoluteUrl);
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(() => {
+      // Always open the app route in a browser tab on notification click.
+      if (self.clients.openWindow) return self.clients.openWindow(absoluteUrl);
       return undefined;
     }),
   );

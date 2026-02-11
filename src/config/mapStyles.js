@@ -57,9 +57,9 @@ const STATION_FILL_LIGHT = '#22C55E';
 // and to maintain contrast on satellite imagery.
 // Order: [shallow (0–70), intermediate (70–300), deep (300+)]
 // Define core ramps and alias to all basemap variants for easy editing
-const DR_LIGHT = ['#CC3A3A','#FF6B6B', '#FF8A65'];
-const DR_DARK = ['#CC3A3A','#FF6B6B', '#FF8A65'];
-const DR_SAT = ['#CC3A3A','#FF6B6B', '#FF8A65'];
+const DR_LIGHT = ['#DC2626', '#F97316', '#FACC15'];
+const DR_DARK = ['#EF4444', '#FB923C', '#FDE047'];
+const DR_SAT = ['#EF4444', '#FB923C', '#FDE047'];
 export const DEPTH_RAMP = {
   // canonical keys
   light: DR_LIGHT,

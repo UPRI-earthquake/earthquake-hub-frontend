@@ -62,15 +62,17 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
   const eventSourceRef = useRef(null);
   const toastCacheRef = useRef(new Map());
 
-  const maybeToastNewEvent = useCallback((data) => {
+  const maybeToastEvent = useCallback((data, kind = 'new') => {
     try {
       const id = data && (data.publicID || data.publicId || data.id);
       if (!id) return;
+      const t = String(kind || 'new').toLowerCase();
       const cache = toastCacheRef.current;
       const now = Date.now();
-      const last = cache.get(id);
-      if (last && now - last < 5 * 60 * 1000) return;
-      cache.set(id, now);
+      const key = `${t}:${id}`;
+      const last = cache.get(key);
+      if (last && now - last < 3 * 60 * 1000) return;
+      cache.set(key, now);
       if (cache.size > 120) {
         const entries = Array.from(cache.entries()).sort((a, b) => a[1] - b[1]);
         entries.slice(0, 40).forEach(([key]) => cache.delete(key));
@@ -91,7 +93,8 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
       const text = !isUnavailable(data.text) ? String(data.text).trim() : '';
       const location = place || text || '';
       const suffix = location ? ` • ${location}` : '';
-      emitToast(`New earthquake: ${magText}${suffix}`, 'info');
+      if (t === 'update') emitToast(`Earthquake updated: ${magText}${suffix}`, 'warning');
+      else emitToast(`New earthquake: ${magText}${suffix}`, 'error');
     } catch (_) {}
   }, []);
 
@@ -139,7 +142,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
           data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
         const eventType = String(data.eventType || '').toUpperCase();
         if (eventType === 'NEW') {
-          maybeToastNewEvent(data);
+          maybeToastEvent(data, 'new');
           setEvents((prev) => {
             const idx = prev.findIndex((e) => e.publicID === data.publicID);
             const nextEvent = {
@@ -174,6 +177,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
             return [nextEvent, ...prev];
           });
         } else if (eventType === 'UPDATE') {
+          maybeToastEvent(data, 'update');
           setEvents((prev) => {
             const idx = prev.findIndex((e) => e.publicID === data.publicID);
             if (idx !== -1) {
@@ -242,7 +246,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
     } catch (_) {}
 
     return ret;
-  }, [maybeToastNewEvent, setEvents, sseEnabledRef]);
+  }, [maybeToastEvent, setEvents, sseEnabledRef]);
 
   const closeSSE = useCallback(() => {
     if (eventSourceRef.current) {

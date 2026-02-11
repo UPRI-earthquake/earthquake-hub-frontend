@@ -1,108 +1,166 @@
-import { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
+import L from 'leaflet';
 import { useMap } from 'react-leaflet';
+import InfoTooltip from './InfoTooltip';
 import { trackEvent } from '../analytics';
 
+const AttributionIcon = ({ className }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 10.5v6" />
+    <circle cx="12" cy="7.25" r="0.85" fill="currentColor" />
+  </svg>
+);
+
+const equalEntries = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
+const collectActiveAttributions = (ctrl) => {
+  try {
+    const dict = (ctrl && ctrl._attributions) || {};
+    return Object.keys(dict)
+      .filter((entry) => dict[entry])
+      .map((entry) => String(entry || '').trim())
+      .filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+};
+
+function AttributionList({ entries }) {
+  if (!entries || entries.length === 0) {
+    return <span className="map-attribution-empty">No active attributions.</span>;
+  }
+  return (
+    <ul className="map-attribution-list">
+      {entries.map((entry, index) => (
+        <li
+          // Attribution strings are controlled by known map providers and overlay configs.
+          key={`attr-${index}-${entry.slice(0, 24)}`}
+          dangerouslySetInnerHTML={{ __html: entry }}
+        />
+      ))}
+    </ul>
+  );
+}
+
 /**
- * Removes the default Leaflet attribution prefix for a cleaner footer.
- * @returns {null}
+ * Replaces Leaflet's collapsing attribution footer with a tooltip-style control.
+ * Source entries stay dynamic via Leaflet attribution bookkeeping.
  */
-export default function AttributionControl() {
+export default function AttributionControl({ position = 'bottomright' }) {
   const map = useMap();
+  const containerRef = useRef(null);
+  const [attributionEntries, setAttributionEntries] = useState([]);
+  const [, forceRender] = useState(0);
+
   useEffect(() => {
-    if (!map || !map.attributionControl) return;
+    if (!map || !map.attributionControl) return undefined;
     const ctrl = map.attributionControl;
     ctrl.setPrefix(false);
 
-    // Enhance the default attribution into a compact, collapsible control
-    const el = ctrl._container; // Leaflet internal; stable for control containers
-    if (!el) return;
+    const hiddenEl = ctrl._container; // Leaflet internal control element
+    if (hiddenEl) {
+      hiddenEl.classList.add('leaflet-attribution-hidden');
+      hiddenEl.setAttribute('aria-hidden', 'true');
+    }
 
-    // Idempotent DOM enhancement that survives Leaflet's innerHTML updates
-    const ensureEnhanced = () => {
-      let btn = el.querySelector('button.attr-toggle');
-      let panel = el.querySelector('span.attr-text');
-      if (!panel) {
-        panel = document.createElement('span');
-        panel.className = 'attr-text';
-        // Move all non-toggle children into panel
-        const toMove = [];
-        el.childNodes.forEach((n) => {
-          if (!(n.nodeType === 1 && n.classList && n.classList.contains('attr-toggle'))) {
-            toMove.push(n);
-          }
-        });
-        toMove.forEach((n) => panel.appendChild(n));
-        el.appendChild(panel);
-      }
-      if (!btn) {
-        btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'attr-toggle';
-        btn.setAttribute('aria-label', 'Attribution');
-        btn.setAttribute('title', 'Attribution');
-        btn.innerHTML =
-          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>';
-        el.insertBefore(btn, panel);
-        // Wire events once
-        const key = 'map:attr:collapsed';
-        const toggle = (e) => {
-          e && e.preventDefault && e.preventDefault();
-          const collapsed = el.classList.toggle('is-collapsed');
-          try { sessionStorage.setItem(key, collapsed ? '1' : '0'); } catch (_) {}
-          try { btn.focus(); } catch (_) {}
-          try {
-            trackEvent('attribution_toggle', { state: collapsed ? 'closed' : 'open' });
-          } catch (_) {}
-        };
-        btn.addEventListener('click', toggle);
-        btn.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') toggle(e);
-        });
-        el.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && !el.classList.contains('is-collapsed')) toggle(e);
-        });
-      }
-      return { btn: el.querySelector('button.attr-toggle'), panel: el.querySelector('span.attr-text') };
+    const syncAttributions = () => {
+      const next = collectActiveAttributions(ctrl);
+      setAttributionEntries((prev) => (equalEntries(prev, next) ? prev : next));
     };
 
-    // Initial enhance
-    const { btn } = ensureEnhanced();
+    // Patch Leaflet's internal attribution update path so dynamic changes remain in sync.
+    const originalUpdate = ctrl._update;
+    if (typeof originalUpdate === 'function') {
+      ctrl._update = function patchedUpdate(...args) {
+        const result = originalUpdate.apply(this, args);
+        syncAttributions();
+        return result;
+      };
+    }
 
-    // Restore collapsed state from sessionStorage
-    const key = 'map:attr:collapsed';
-    // Default: collapsed unless user previously expanded
-    let collapsed = true;
-    try {
-      const v = sessionStorage.getItem(key);
-      if (v === '0') collapsed = false;
-      else if (v === '1') collapsed = true;
-    } catch (_) {}
-    el.classList.toggle('is-collapsed', collapsed);
+    const Control = L.Control.extend({
+      onAdd: () => {
+        const div = L.DomUtil.create('div', 'leaflet-control custom-attribution-control');
+        div.setAttribute('aria-label', 'Attributions');
+        div.setAttribute('role', 'group');
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        containerRef.current = div;
+        return div;
+      },
+    });
 
-    // Update ARIA label and tooltip based on state
-    const setA11y = () => {
-      const collapsed = el.classList.contains('is-collapsed');
-      const lbl = collapsed ? 'Show attribution' : 'Hide attribution';
-      try {
-        btn?.setAttribute('aria-label', lbl);
-        btn?.setAttribute('title', lbl);
-        btn?.setAttribute('aria-expanded', String(!collapsed));
-      } catch (_) {}
-    };
-    setA11y();
+    const customCtrl = new Control({ position });
+    customCtrl.addTo(map);
+    forceRender((n) => n + 1);
 
-    // Keep ARIA in sync on class changes
-    const moState = new MutationObserver(setA11y);
-    moState.observe(el, { attributes: true, attributeFilter: ['class'] });
+    map.on('baselayerchange', syncAttributions);
+    map.on('overlayadd', syncAttributions);
+    map.on('overlayremove', syncAttributions);
+    map.on('layeradd', syncAttributions);
+    map.on('layerremove', syncAttributions);
 
-    // Observe and re‑enhance when Leaflet rewrites innerHTML
-    const mo = new MutationObserver(() => ensureEnhanced());
-    mo.observe(el, { childList: true, subtree: false });
+    syncAttributions();
 
     return () => {
-      try { mo.disconnect(); } catch (_) {}
-      try { moState.disconnect(); } catch (_) {}
+      map.off('baselayerchange', syncAttributions);
+      map.off('overlayadd', syncAttributions);
+      map.off('overlayremove', syncAttributions);
+      map.off('layeradd', syncAttributions);
+      map.off('layerremove', syncAttributions);
+      if (typeof originalUpdate === 'function') ctrl._update = originalUpdate;
+      try {
+        if (hiddenEl) {
+          hiddenEl.classList.remove('leaflet-attribution-hidden');
+          hiddenEl.removeAttribute('aria-hidden');
+        }
+      } catch (_) {}
+      try {
+        customCtrl.remove();
+      } catch (_) {}
+      containerRef.current = null;
     };
-  }, [map]);
-  return null;
+  }, [map, position]);
+
+  if (!containerRef.current) return null;
+
+  return ReactDOM.createPortal(
+    <div className="map-attribution-shell">
+      <InfoTooltip
+        label="Attributions"
+        title="Attributions"
+        triggerClassName="map-attribution-trigger"
+        tooltipClassName="map-attribution-tooltip"
+        bodyClassName="map-attribution-body"
+        icon={<AttributionIcon className="map-attribution-icon" />}
+        onToggle={(isOpen) => {
+          try {
+            trackEvent('attribution_toggle', { state: isOpen ? 'open' : 'closed' });
+          } catch (_) {}
+        }}
+      >
+        <AttributionList entries={attributionEntries} />
+      </InfoTooltip>
+    </div>,
+    containerRef.current,
+  );
 }

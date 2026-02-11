@@ -136,42 +136,23 @@ html[data-theme='imagery'] .sidebarItem > div > .subDesc {
   opacity: 0.85;
 }
 
-.heartBeat {
-  animation: redBeat;
-  animation-duration: 1s;
-  animation-iteration-count: 2;
-  animation-timing-function: linear;
+.pickPulseNew {
+  animation: eventPickPulse 1.5s linear infinite;
 }
 
-@keyframes redBeat {
-  from {
-    background-color: #ffffff;
-  }
-  50% {
-    background-color: rgba(255, 0, 0, 0.15);
-  }
-  to {
-    background-color: #ffffff;
-  }
+.pickPulseUpdate {
+  animation: eventPickPulse 1.5s linear infinite;
 }
 
-.heartBeatReverse {
-  animation: redBeatReverse;
-  animation-direction: reverse;
-  animation-duration: 1s;
-  animation-iteration-count: 3;
-  animation-timing-function: linear;
-}
-
-@keyframes redBeatReverse {
-  from {
-    background-color: #ffffff;
+@keyframes eventPickPulse {
+  0% {
+    background-color: var(--event-pulse-strong, rgba(232, 106, 115, 0.16));
   }
-  50% {
-    background-color: rgba(255, 0, 0, 0.15);
+  60% {
+    background-color: var(--event-pulse-soft, rgba(232, 106, 115, 0.08));
   }
-  to {
-    background-color: #ffffff;
+  100% {
+    background-color: transparent;
   }
 }
 
@@ -198,5 +179,12 @@ html[data-theme='imagery'] .selected .magValue {
 @media (max-width: 768px) {
   .selected {
     border-left-width: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pickPulseNew,
+  .pickPulseUpdate {
+    animation: none;
   }
 }

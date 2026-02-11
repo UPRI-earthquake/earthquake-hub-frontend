@@ -65,9 +65,9 @@
 .leaflet-top.leaflet-right .leaflet-control-resetview { order: 1; }
 .leaflet-top.leaflet-right .leaflet-control-zoom { order: 2; }
 
-.leaflet-bottom.leaflet-right .custom-legend-control { order: 1; }
-.leaflet-bottom.leaflet-right .leaflet-control-scale { order: 2; }
-.leaflet-bottom.leaflet-right .leaflet-control-attribution { order: 3; }
+.leaflet-bottom.leaflet-right .custom-attribution-control { order: 1; }
+.leaflet-bottom.leaflet-right .custom-legend-control { order: 2; }
+.leaflet-bottom.leaflet-right .leaflet-control-scale { order: 3; }
 
 /* Ensure bottom controls remain visible even if the map container
    extends beyond the viewport (e.g., when the layout uses a fixed header).
@@ -76,126 +76,83 @@
   bottom: var(--leaflet-bottom-offset, 0px);
 }
 
-/* Modern Attribution control: theme-aware, compact, readable */
-.leaflet-container .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.5); /* very light translucency */
-  color: #374151; /* gray-700 */
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-  padding: 2px 8px;
-  font-size: 12px;
-  line-height: 1.4;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
-  backdrop-filter: saturate(140%) blur(2px);
+/* Hide Leaflet's default attribution footer; custom tooltip control replaces it. */
+.leaflet-container .leaflet-control-attribution,
+.leaflet-container .leaflet-control-attribution.leaflet-attribution-hidden {
+  display: none !important;
+}
+
+.map-attribution-shell {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  text-align: right; /* align text to the right per request */
-  transition: background-color 220ms ease, border-color 220ms ease,
-    box-shadow 220ms ease, padding 220ms ease;
-  max-width: min(75vw, 540px);
-}
-.leaflet-container .leaflet-control-attribution a {
-  color: #0284c7; /* primary accent */
-  text-decoration: none;
-}
-.leaflet-container .leaflet-control-attribution a:hover,
-.leaflet-container .leaflet-control-attribution a:focus-visible {
-  text-decoration: underline;
 }
 
-/* Tighten separators for long strings */
-.leaflet-container .leaflet-control-attribution {
-  --attr-sep: ' · ';
-}
-.leaflet-container .leaflet-control-attribution span.separator::before {
-  content: var(--attr-sep);
-}
-
-/* Dark/Imagery themes */
-.leaflet-container[data-basemap-theme='dark'] .leaflet-control-attribution,
-.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-attribution {
-  background: rgba(17, 24, 39, 0.25); /* subtle translucency */
-  color: #e5e7eb; /* gray-200 */
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-.leaflet-container[data-basemap-theme='dark'] .leaflet-control-attribution a,
-.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-attribution a {
-  color: #7dd3fc; /* light sky accent */
-}
-
-/* Collapsible behavior */
-.leaflet-container .leaflet-control-attribution .attr-text {
-  display: block; /* make it a proper flex item */
-  text-align: center;
-  white-space: pre-line; /* render \n from JS as real line breaks */
-}
-.leaflet-container .leaflet-control-attribution.is-collapsed {
-  background: none;
-  border-color: transparent;
-  box-shadow: none;
-  padding: 0 2px; /* keep a tiny padding so the toggle remains clickable */
-  backdrop-filter: none;
-  /* min-height: 28px;  */
-  /* match toggle height so collapsed size is compact */
-}
-.leaflet-container .leaflet-control-attribution .attr-toggle {
-  appearance: none;
-  -webkit-appearance: none;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+.map-attribution-trigger {
   width: 28px;
   height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.75);
-  color: #1f2937; /* gray-800 */
-  cursor: pointer;
-  transition: transform 200ms ease, background-color 120ms ease, border-color 120ms ease, margin 200ms ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  color: #1f2937;
 }
-.leaflet-container .leaflet-control-attribution .attr-toggle:hover { transform: scale(1.04); }
-.leaflet-container .leaflet-control-attribution .attr-toggle:active { transform: scale(0.98); }
-.leaflet-container .leaflet-control-attribution .attr-toggle:focus-visible {
+.map-attribution-trigger:hover {
+  background: rgba(255, 255, 255, 0.94);
+}
+.map-attribution-trigger:active {
+  transform: scale(0.98);
+}
+.map-attribution-trigger:focus-visible {
   outline: 2px solid #0ea5e9;
   outline-offset: 2px;
 }
-.leaflet-container[data-basemap-theme='dark'] .leaflet-control-attribution .attr-toggle,
-.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-attribution .attr-toggle {
-  background: rgba(17, 24, 39, 0.65);
-  color: #e5e7eb;
-  border-color: rgba(255, 255, 255, 0.25);
+.map-attribution-icon {
+  width: 14px;
+  height: 14px;
 }
 
-/* Slider effect for the attribution panel */
-.leaflet-container .leaflet-control-attribution {
-  position: relative;
-  flex-direction: row;
-  max-width: min(75vw, 540px);
+.leaflet-container[data-basemap-theme='dark'] .map-attribution-trigger,
+.leaflet-container[data-basemap-theme='imagery'] .map-attribution-trigger {
+  background-color: rgba(17, 24, 39, 0.74);
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.25);
 }
-.leaflet-container .leaflet-control-attribution .attr-text {
-  overflow: hidden;
-  max-width: 520px;
-  opacity: 1;
-  transition: max-width 260ms ease, max-height 260ms ease, opacity 200ms ease, margin 200ms ease, line-height 0s linear 260ms;
-  will-change: max-width, max-height, opacity;
+.leaflet-container[data-basemap-theme='dark'] .map-attribution-trigger:hover,
+.leaflet-container[data-basemap-theme='imagery'] .map-attribution-trigger:hover {
+  background: rgba(17, 24, 39, 0.92);
 }
-.leaflet-container .leaflet-control-attribution.is-collapsed .attr-text {
-  max-width: 0;      /* collapse horizontally */
-  max-height: 0;     /* and vertically to avoid extra height */
-  line-height: 0;    /* ensure no line box height contributes */
-  opacity: 0;
+
+.map-attribution-tooltip {
+  max-width: min(92vw, 420px);
+}
+.map-attribution-body {
   margin: 0;
-  padding: 0;
 }
-.leaflet-container .leaflet-control-attribution .attr-toggle {
-  transition: transform 260ms ease;
-  transform: translateX(0); /* visible by default when collapsed */
-  margin: 0 4px;
+.map-attribution-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
 }
-.leaflet-container .leaflet-control-attribution:not(.is-collapsed) .attr-toggle {
-  transform: translateX(-12px); /* nudge left when expanded */
+.map-attribution-list a {
+  color: #0284c7;
+}
+.map-attribution-list a:hover,
+.map-attribution-list a:focus-visible {
+  text-decoration: underline;
+}
+.map-attribution-empty {
+  color: var(--muted);
+}
+
+/* Ensure pulse/radiate effects are not clipped for custom marker icons only. */
+.leaflet-container .leaflet-div-icon.eq-marker,
+.leaflet-container .leaflet-marker-icon.eq-marker,
+.leaflet-container .leaflet-div-icon.station-marker,
+.leaflet-container .leaflet-marker-icon.station-marker {
+  overflow: visible !important;
 }
 /* Context-aware styling for Zoom buttons (matches Layers/Legend themes) */
 .leaflet-container .leaflet-control-zoom {

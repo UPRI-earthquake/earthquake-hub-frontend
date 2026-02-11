@@ -13,24 +13,20 @@ import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
 import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
-import {
-  computePopupAutoPanPadding,
-  POPUP_AUTOPAN_PADDING_BOTTOMRIGHT,
-  POPUP_AUTOPAN_PADDING_TOPLEFT,
-} from '../config/popupOptions';
+import { computeHeaderAwarePopupAutoPanPadding } from '../config/popupAutoPan';
 import { trackEvent } from '../analytics';
 import { buildTriangleSVG } from '../utils/triangleMarker';
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
 
+const STREAM_LINE_COLOR = '#0ea5e9';
+const STREAM_TITLE_COLOR = '#0ea5e9';
 
 const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
   const map = useMap();
-  const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } = useMemo(
-    () => computePopupAutoPanPadding(map),
-    [map],
-  );
+  const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
+    computeHeaderAwarePopupAutoPanPadding(map);
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
@@ -80,6 +76,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     cfg.doGain = true;
     cfg.isRelativeTime = true;
     cfg.xLabel = 'Time (seconds)';
+    cfg.lineColors = [STREAM_LINE_COLOR];
     durationRef.current = duration;
     graphDurationRef.current = graphDuration;
     timeWindowRef.current = timeWindow;
@@ -94,7 +91,6 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const theme = themeFromMapContainer(map?.getContainer?.());
       const dark = theme === 'dark' || theme === 'satellite';
       const axis = dark ? '#e5e7eb' : '#111827';
-      const label = axis;
       const sublbl = dark ? 'rgba(229,231,235,0.7)' : 'rgba(17,24,39,0.7)';
       const grid = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.25)';
       const css = `
@@ -106,12 +102,18 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         /* grid (if enabled by config) */
         svg.seismograph g.grid line { stroke: ${grid}; }
         /* main axis labels */
-        svg.seismograph g.xLabel text { fill: ${label}; color: ${label}; }
-        svg.seismograph g.yLabel.left text { fill: ${label}; color: ${label}; }
-        svg.seismograph g.yLabel.right text { fill: ${label}; color: ${label}; }
+        svg.seismograph g.xLabel text { fill: ${axis}; color: ${axis}; }
+        svg.seismograph g.yLabel.left text { fill: ${axis}; color: ${axis}; }
+        svg.seismograph g.yLabel.right text { fill: ${axis}; color: ${axis}; }
         /* sublabels/units */
         svg.seismograph g.xSublabel text { fill: ${sublbl}; color: ${sublbl}; }
         svg.seismograph g.ySublabel text { fill: ${sublbl}; color: ${sublbl}; }
+        /* keep stream title color consistent across light/dark */
+        svg.seismograph g.title text,
+        svg.seismograph text.title {
+          fill: ${STREAM_TITLE_COLOR};
+          color: ${STREAM_TITLE_COLOR};
+        }
       `;
       // Replace existing theme style to avoid duplicates
       try {
@@ -295,11 +297,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       sdd.alignmentTime = sp.luxon.DateTime.utc();
 
       try {
-        const theme = themeFromMapContainer(map?.getContainer?.());
-        const dark = theme === 'dark' || theme === 'satellite';
-        if (seisPlotConfigRef.current) {
-          seisPlotConfigRef.current.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
-        }
+        if (seisPlotConfigRef.current) seisPlotConfigRef.current.lineColors = [STREAM_LINE_COLOR];
       } catch (_) {}
       const plot = new sp.seismograph.Seismograph([sdd], seisPlotConfigRef.current);
       realtimeDivRef.current.appendChild(plot);
@@ -470,7 +468,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const baseHex = isInactive ? stationTokens.offlineFill : stationTokens.fill;
   const triangleMarkup = buildTriangleSVG(baseHex, gradientIdRef.current);
   const divTriangle = new DivIcon({
-    className: `${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
+    className: `station-marker ${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
       markerPulse ? styles[markerPulse] : ''
     }`,
     html: triangleMarkup,
@@ -700,9 +698,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       try {
         graphListRef.current.forEach((plot) => {
           try {
-            const dark = theme === 'dark' || theme === 'satellite';
             if (plot && plot.seismographConfig) {
-              plot.seismographConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
+              plot.seismographConfig.lineColors = [STREAM_LINE_COLOR];
             }
           } catch (_) {}
           const css = plot.seismographConfig.createCSSForLineColors();
@@ -769,8 +766,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       <Popup
         className={styles.popUp}
         autoPan
-        autoPanPaddingTopLeft={popupPaddingTopLeft || POPUP_AUTOPAN_PADDING_TOPLEFT}
-        autoPanPaddingBottomRight={popupPaddingBottomRight || POPUP_AUTOPAN_PADDING_BOTTOMRIGHT}
+        autoPanPaddingTopLeft={popupPaddingTopLeft}
+        autoPanPaddingBottomRight={popupPaddingBottomRight}
       >
         <div className={styles.popUpBody}>
           <div className={styles.popupHeader}>

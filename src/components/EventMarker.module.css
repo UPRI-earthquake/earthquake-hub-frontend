@@ -50,13 +50,6 @@
 
 /* Theme-aware ring provided by CSS variables applied on container */
 
-/* Reduce clutter at low zoom */
-.leaflet-container :global(.leaflet-marker-icon) {
-  will-change: transform;
-  overflow: visible;
-}
-/* Removed zoom-tier scale tweak; keep marker size constant */
-
 /* Apply zoom-based scale directly to marker container classes */
 .default,
 .radiate {

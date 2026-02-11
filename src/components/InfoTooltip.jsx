@@ -103,7 +103,22 @@ const InfoIcon = ({ className }) => (
   </svg>
 );
 
-const InfoTooltip = ({ label = 'More info', title, children, variant = 'default', className = '' }) => {
+const joinClasses = (...parts) => parts.filter(Boolean).join(' ');
+
+const InfoTooltip = ({
+  label = 'More info',
+  title,
+  children,
+  variant = 'default',
+  className = '',
+  triggerClassName = '',
+  iconClassName = '',
+  tooltipClassName = '',
+  bodyClassName = '',
+  titleClassName = '',
+  icon = null,
+  onToggle = null,
+}) => {
   const triggerRef = useRef(null);
   const tooltipRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -172,6 +187,9 @@ const InfoTooltip = ({ label = 'More info', title, children, variant = 'default'
     setOpen((prev) => {
       const next = !prev;
       if (next) document.dispatchEvent(new CustomEvent(TOOLTIP_EVENT, { detail: tooltipId }));
+      try {
+        if (typeof onToggle === 'function') onToggle(next);
+      } catch (_) {}
       return next;
     });
   };
@@ -185,26 +203,35 @@ const InfoTooltip = ({ label = 'More info', title, children, variant = 'default'
     }
   };
 
-  const triggerClasses = `${styles.trigger} ${variant === 'inline' ? styles.triggerInline : ''}`;
-  const iconClasses = `${styles.icon} ${variant === 'inline' ? styles.iconInline : ''}`;
+  const triggerClasses = joinClasses(
+    styles.trigger,
+    variant === 'inline' ? styles.triggerInline : '',
+    triggerClassName,
+  );
+  const iconClasses = joinClasses(
+    styles.icon,
+    variant === 'inline' ? styles.iconInline : '',
+    iconClassName,
+  );
+  const resolvedIcon = icon || <InfoIcon className={iconClasses} />;
 
   const tooltipContent = (
     <div
       ref={tooltipRef}
-      className={styles.tooltip}
+      className={joinClasses(styles.tooltip, tooltipClassName)}
       role="tooltip"
       id={tooltipId}
       data-placement={placement}
       data-info-tooltip="true"
       style={tooltipStyle}
     >
-      {title ? <p className={styles.title}>{title}</p> : null}
-      <p className={styles.body}>{children}</p>
+      {title ? <p className={joinClasses(styles.title, titleClassName)}>{title}</p> : null}
+      <div className={joinClasses(styles.body, bodyClassName)}>{children}</div>
     </div>
   );
 
   return (
-    <span className={`${styles.wrapper} ${className}`}>
+    <span className={joinClasses(styles.wrapper, className)}>
       <button
         type="button"
         ref={triggerRef}
@@ -216,7 +243,7 @@ const InfoTooltip = ({ label = 'More info', title, children, variant = 'default'
         onClick={toggle}
         onKeyDown={handleKeyDown}
       >
-        <InfoIcon className={iconClasses} />
+        {resolvedIcon}
       </button>
       {open ? ReactDOM.createPortal(tooltipContent, document.body) : null}
     </span>

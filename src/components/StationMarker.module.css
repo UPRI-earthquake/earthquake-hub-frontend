@@ -4,24 +4,40 @@
 
 .dynamic {
   opacity: 0.95;
-  animation-name: radiate;
-  animation-duration: 1.5s;
-  animation-iteration-count: infinite;
-  animation-timing-function: linear;
 }
 
-@keyframes radiate {
-  from {
-    stroke-width: 0;
-    stroke-opacity: 1;
-  }
-  50% {
-    stroke-opacity: 0.75;
-  }
+.dynamic::after,
+.pulse-online::after,
+.pulse-offline::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  transform: translate(-50%, -50%) scale(0.35);
+  opacity: 0;
+  pointer-events: none;
+}
 
-  to {
-    stroke-width: 300;
-    stroke-opacity: 0;
+.dynamic::after {
+  color: #ef4444;
+  animation: station-ring-outward 1.5s linear infinite;
+}
+
+@keyframes station-ring-outward {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35);
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.24;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.7);
+    opacity: 0;
   }
 }
 
@@ -178,13 +194,6 @@
   color: #e5e7eb;
 }
 
-/* Dark/Imagery themed variant (scoped to Leaflet container) */
-:global(.leaflet-container[data-basemap-theme='dark']) .realtimeGraphDiv:not(:empty),
-:global(.leaflet-container[data-basemap-theme='imagery']) .realtimeGraphDiv:not(:empty) {
-  background-color: #0b1220;
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
 @media (max-height: 540px), (max-width: 960px) and (orientation: landscape) {
   .popUp {
     width: min(86vw, 300px);
@@ -208,14 +217,19 @@
 /* Theme-aware fill/stroke handled by CSS variables from MapLayersControl */
 
 /* Lightly reduce visual weight at low zoom */
-.leaflet-container[data-zoom-lte4='1'] .static,
-.leaflet-container[data-zoom-lte4='1'] .dynamic {
+:global(.leaflet-container[data-zoom-lte4='1']) .static,
+:global(.leaflet-container[data-zoom-lte4='1']) .dynamic {
   opacity: 0.8;
 }
 
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .dynamic {
+    animation: none;
+  }
+  .dynamic::after,
+  .pulse-online::after,
+  .pulse-offline::after {
     animation: none;
   }
   .went-online,
@@ -236,18 +250,16 @@
 
 /* One-shot radiate pulses for status changes on the marker itself */
 .pulse-online {
-  stroke: var(--st-pulse-on, #22c55e);
-  stroke-width: var(--st-halo-w, 2px);
-  animation-name: radiate;
-  animation-duration: 1.5s;
-  animation-iteration-count: 3;
-  animation-timing-function: linear;
+  opacity: 0.95;
+}
+.pulse-online::after {
+  color: var(--st-pulse-on, #22c55e);
+  animation: station-ring-outward 1.5s linear 1;
 }
 .pulse-offline {
-  stroke: var(--st-pulse-off, #6b7280);
-  stroke-width: var(--st-halo-w, 2px);
-  animation-name: radiate;
-  animation-duration: 1.5s;
-  animation-iteration-count: 3;
-  animation-timing-function: linear;
+  opacity: 0.95;
+}
+.pulse-offline::after {
+  color: var(--st-pulse-off, #6b7280);
+  animation: station-ring-outward 1.5s linear 1;
 }
