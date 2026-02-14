@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import moment from '../utils/time';
 import './homePage.css';
 import Header from '../components/Header';
@@ -77,6 +78,8 @@ const BeaconIcon = ({ size = 18 }) => (
 );
 const HomePage = () => {
   const dispatch = useDispatch();
+  const selectedEvent = useSelector((state) => state);
+  const location = useLocation();
   const { resolvedTheme } = useTheme();
   const isCompactPanels = useMediaQuery('(max-width: 1100px)');
   const isMobileLandscape = useMediaQuery(
@@ -122,6 +125,7 @@ const HomePage = () => {
     maxDate: initialRange.endDate,
   });
   const [sort, setSort] = useState({ by: 'time', order: 'desc' });
+  const [pendingEventFromUrl, setPendingEventFromUrl] = useState(null);
 
   const allEqsCacheRef = useRef(null);
   const sseEnabledRef = useRef(true);
@@ -215,6 +219,27 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
+    const normalizeEventId = (raw) => {
+      if (typeof raw !== 'string') return null;
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed.length > 256) return null;
+      // Reject control characters from untrusted query params.
+      for (let i = 0; i < trimmed.length; i += 1) {
+        const code = trimmed.charCodeAt(i);
+        if (code <= 31 || code === 127) return null;
+      }
+      return trimmed;
+    };
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const eventId = normalizeEventId(params.get('event'));
+      setPendingEventFromUrl(eventId);
+    } catch (_) {
+      setPendingEventFromUrl(null);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
       const map = window.__leaflet_map__;
@@ -296,6 +321,28 @@ const HomePage = () => {
 
   const activeEvents = eventScope === 'all' ? allEvents : latestEvents;
   const holdEqMarkers = eventsLoading;
+
+  useEffect(() => {
+    if (!pendingEventFromUrl) return;
+    const existsInActiveScope = (activeEvents || []).some(
+      (eventItem) => String(eventItem && eventItem.publicID) === pendingEventFromUrl,
+    );
+    if (existsInActiveScope) {
+      if (selectedEvent !== pendingEventFromUrl) {
+        dispatch({ type: 'SELECT', payload: pendingEventFromUrl });
+        try {
+          const ev = new CustomEvent('selection:fromList', { detail: { id: pendingEventFromUrl } });
+          window.dispatchEvent(ev);
+        } catch (_) {}
+      }
+      setPendingEventFromUrl(null);
+      return;
+    }
+    // If current scope is fully loaded and the id is not present, stop retrying.
+    if (!eventsLoading && Array.isArray(activeEvents) && activeEvents.length > 0) {
+      setPendingEventFromUrl(null);
+    }
+  }, [pendingEventFromUrl, activeEvents, selectedEvent, dispatch, eventsLoading]);
 
   const stationCounts = useMemo(
     () => ({

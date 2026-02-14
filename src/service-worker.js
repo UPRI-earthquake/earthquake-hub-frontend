@@ -165,17 +165,53 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification?.data?.url || '/';
-  const absoluteUrl = new URL(targetUrl, self.location.origin).href;
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
-      const existing = (clientsArr || []).find(
-        (client) => client && typeof client.url === 'string' && client.url === absoluteUrl,
-      );
-      if (existing && typeof existing.focus === 'function') return existing.focus();
-      if (self.clients.openWindow) return self.clients.openWindow(absoluteUrl);
-      return undefined;
-    }),
-  );
+  const fallbackUrl = new URL('/', self.location.origin).href;
+  let absoluteUrl = fallbackUrl;
+  try {
+    const parsed = new URL(targetUrl, self.location.origin);
+    // Avoid turning push payload into an open-redirect vector.
+    absoluteUrl = parsed.origin === self.location.origin ? parsed.href : fallbackUrl;
+  } catch (_) {
+    absoluteUrl = fallbackUrl;
+  }
+
+  event.waitUntil((async () => {
+    const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const sameOriginClients = (clientsArr || []).filter((client) => {
+      try {
+        return client && typeof client.url === 'string' && new URL(client.url).origin === self.location.origin;
+      } catch (_) {
+        return false;
+      }
+    });
+
+    const exactMatch = sameOriginClients.find((client) => {
+      try {
+        return new URL(client.url).href === absoluteUrl;
+      } catch (_) {
+        return false;
+      }
+    });
+    const targetClient = exactMatch || sameOriginClients[0];
+
+    if (targetClient) {
+      try {
+        if (typeof targetClient.navigate === 'function') {
+          await targetClient.navigate(absoluteUrl);
+        }
+      } catch (_) {}
+      try {
+        if (typeof targetClient.focus === 'function') {
+          await targetClient.focus();
+        }
+      } catch (_) {}
+      return;
+    }
+
+    if (self.clients.openWindow) {
+      await self.clients.openWindow(absoluteUrl);
+    }
+  })());
 });
 
 // Any other custom service worker logic can go here.
