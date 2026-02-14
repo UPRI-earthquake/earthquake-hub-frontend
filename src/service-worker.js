@@ -167,8 +167,11 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = event.notification?.data?.url || '/';
   const absoluteUrl = new URL(targetUrl, self.location.origin).href;
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(() => {
-      // Always open the app route in a browser tab on notification click.
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
+      const existing = (clientsArr || []).find(
+        (client) => client && typeof client.url === 'string' && client.url === absoluteUrl,
+      );
+      if (existing && typeof existing.focus === 'function') return existing.focus();
       if (self.clients.openWindow) return self.clients.openWindow(absoluteUrl);
       return undefined;
     }),
