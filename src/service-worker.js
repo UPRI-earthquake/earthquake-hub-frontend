@@ -104,7 +104,8 @@ const formatEqNotification = async (payload) => {
   const eventType = String(data.eventType || data.type || '').toUpperCase();
   const isUpdate = eventType === 'UPDATE';
   const publicID = data.publicID || data.publicId || data.id;
-  const tag = publicID ? `eq:${publicID}` : undefined;
+  const explicitTag = (payload && payload.tag) || data.tag;
+  const tag = explicitTag || (publicID ? `eq:${publicID}` : undefined);
   let updateCount = 0;
   if (isUpdate && tag) {
     try {
@@ -127,23 +128,35 @@ const formatEqNotification = async (payload) => {
   const locationText = place || 'Unknown location';
   const updateLabel = isUpdate && updateCount ? `Update #${updateCount}` : '';
   const titleBase = isUpdate ? 'Earthquake Update' : 'New Earthquake Alert';
-  const title = isUpdate && updateCount ? `${titleBase} #${updateCount}` : titleBase;
+  const computedTitle = isUpdate && updateCount ? `${titleBase} #${updateCount}` : titleBase;
+  // Backward compatibility: allow explicit titles from payload/data.
+  const title = (payload && payload.title)
+    ? String(payload.title)
+    : (data.title ? String(data.title) : computedTitle);
   const defaultBody = isUpdate
     ? `${magText} updated near ${locationText}`
     : `${magText} detected near ${locationText}`;
-  const bodyBase = payload && payload.body ? String(payload.body) : defaultBody;
+  const bodyBase = (payload && payload.body)
+    ? String(payload.body)
+    : (data.body ? String(data.body) : defaultBody);
   const bodyPrefix = isUpdate ? 'Updated event' : 'New event';
   const body = isUpdate && updateLabel
     ? `${bodyPrefix} • ${updateLabel} • ${bodyBase}`
     : `${bodyPrefix} • ${bodyBase}`;
-  const url = data.url || (publicID ? `/?event=${encodeURIComponent(publicID)}` : '/');
+  const url = data.url || (payload && payload.url) || (publicID ? `/?event=${encodeURIComponent(publicID)}` : '/');
+  const renotify = typeof (payload && payload.renotify) === 'boolean'
+    ? payload.renotify
+    : (typeof data.renotify === 'boolean' ? data.renotify : isUpdate);
+  const badge = (payload && payload.badge) || data.badge || '/badge-92x92.png';
+  const icon = (payload && payload.icon) || data.icon || '/android-chrome-192x192.png';
   return {
     title,
     options: {
       body,
       tag,
-      renotify: isUpdate,
-      badge: '/logo192.png',
+      renotify,
+      badge,
+      icon,
       data: {
         url,
         publicID,
