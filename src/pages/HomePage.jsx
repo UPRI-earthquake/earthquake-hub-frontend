@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import moment from '../utils/time';
 import './homePage.css';
 import Header from '../components/Header';
@@ -80,6 +80,7 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const selectedEvent = useSelector((state) => state);
   const location = useLocation();
+  const navigate = useNavigate();
   const { resolvedTheme } = useTheme();
   const isCompactPanels = useMediaQuery('(max-width: 1100px)');
   const isMobileLandscape = useMediaQuery(
@@ -218,6 +219,23 @@ const HomePage = () => {
     sseEnabledRef.current = true;
   }, []);
 
+  const clearEventQueryParam = useCallback(() => {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      if (!params.has('event')) return;
+      params.delete('event');
+      const nextSearch = params.toString();
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+          hash: location.hash || '',
+        },
+        { replace: true },
+      );
+    } catch (_) {}
+  }, [location.search, location.pathname, location.hash, navigate]);
+
   useEffect(() => {
     const normalizeEventId = (raw) => {
       if (typeof raw !== 'string') return null;
@@ -232,12 +250,14 @@ const HomePage = () => {
     };
     try {
       const params = new URLSearchParams(location.search || '');
-      const eventId = normalizeEventId(params.get('event'));
+      const rawEventId = params.get('event');
+      const eventId = normalizeEventId(rawEventId);
       setPendingEventFromUrl(eventId);
+      if (rawEventId && !eventId) clearEventQueryParam();
     } catch (_) {
       setPendingEventFromUrl(null);
     }
-  }, [location.search]);
+  }, [location.search, clearEventQueryParam]);
 
   useEffect(() => {
     try {
@@ -335,14 +355,16 @@ const HomePage = () => {
           window.dispatchEvent(ev);
         } catch (_) {}
       }
+      clearEventQueryParam();
       setPendingEventFromUrl(null);
       return;
     }
     // If current scope is fully loaded and the id is not present, stop retrying.
     if (!eventsLoading && Array.isArray(activeEvents) && activeEvents.length > 0) {
+      clearEventQueryParam();
       setPendingEventFromUrl(null);
     }
-  }, [pendingEventFromUrl, activeEvents, selectedEvent, dispatch, eventsLoading]);
+  }, [pendingEventFromUrl, activeEvents, selectedEvent, dispatch, eventsLoading, clearEventQueryParam]);
 
   const stationCounts = useMemo(
     () => ({
