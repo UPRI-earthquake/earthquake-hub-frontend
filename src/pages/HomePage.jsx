@@ -127,6 +127,7 @@ const HomePage = () => {
   });
   const [sort, setSort] = useState({ by: 'time', order: 'desc' });
   const [pendingEventFromUrl, setPendingEventFromUrl] = useState(null);
+  const [pendingStationFromUrl, setPendingStationFromUrl] = useState(null);
 
   const allEqsCacheRef = useRef(null);
   const sseEnabledRef = useRef(true);
@@ -236,6 +237,46 @@ const HomePage = () => {
     } catch (_) {}
   }, [location.search, location.pathname, location.hash, navigate]);
 
+  const clearStationQueryParam = useCallback(() => {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      if (!params.has('station')) return;
+      params.delete('station');
+      const nextSearch = params.toString();
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+          hash: location.hash || '',
+        },
+        { replace: true },
+      );
+    } catch (_) {}
+  }, [location.search, location.pathname, location.hash, navigate]);
+
+  useEffect(() => {
+    const normalizeStationCode = (raw) => {
+      if (typeof raw !== 'string') return null;
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed.length > 64) return null;
+      // Reject control characters from untrusted query params.
+      for (let i = 0; i < trimmed.length; i += 1) {
+        const code = trimmed.charCodeAt(i);
+        if (code <= 31 || code === 127) return null;
+      }
+      return trimmed.toUpperCase();
+    };
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const rawStationCode = params.get('station');
+      const stationCode = normalizeStationCode(rawStationCode);
+      setPendingStationFromUrl(stationCode);
+      if (rawStationCode && !stationCode) clearStationQueryParam();
+    } catch (_) {
+      setPendingStationFromUrl(null);
+    }
+  }, [location.search, clearStationQueryParam]);
+
   useEffect(() => {
     const normalizeEventId = (raw) => {
       if (typeof raw !== 'string') return null;
@@ -341,6 +382,63 @@ const HomePage = () => {
 
   const activeEvents = eventScope === 'all' ? allEvents : latestEvents;
   const holdEqMarkers = eventsLoading;
+
+  useEffect(() => {
+    if (!pendingStationFromUrl) return;
+    const stationItem = (stations || []).find(
+      (station) => String(station?.code || '').toUpperCase() === pendingStationFromUrl,
+    );
+    if (stationItem) {
+      const activity = String(stationItem.activity || '').toLowerCase();
+      const stationIsActive = activity === 'active';
+      if (
+        (stationStatusFilter === 'active' && !stationIsActive) ||
+        (stationStatusFilter === 'inactive' && stationIsActive)
+      ) {
+        setStationStatusFilter(null);
+      }
+      if (stationSearch) setStationSearch('');
+      try {
+        const map = window.__leaflet_map__;
+        const lat = Number(stationItem.latitude);
+        const lng = Number(stationItem.longitude);
+        if (
+          map &&
+          typeof map.flyTo === 'function' &&
+          Number.isFinite(lat) &&
+          Number.isFinite(lng)
+        ) {
+          const z = Math.max(8, map.getZoom ? map.getZoom() : 8);
+          map.flyTo([lat, lng], z);
+        }
+      } catch (_) {}
+      const id = `station:${pendingStationFromUrl}`;
+      if (selectedEvent !== id) {
+        dispatch({ type: 'SELECT', payload: id });
+        try {
+          const ev = new CustomEvent('selection:fromList', { detail: { id } });
+          window.dispatchEvent(ev);
+        } catch (_) {}
+      }
+      clearStationQueryParam();
+      setPendingStationFromUrl(null);
+      return;
+    }
+    // If stations are loaded and the code is not present, stop retrying.
+    if (!loading && Array.isArray(stations)) {
+      clearStationQueryParam();
+      setPendingStationFromUrl(null);
+    }
+  }, [
+    pendingStationFromUrl,
+    stations,
+    stationStatusFilter,
+    stationSearch,
+    selectedEvent,
+    dispatch,
+    loading,
+    clearStationQueryParam,
+  ]);
 
   useEffect(() => {
     if (!pendingEventFromUrl) return;
