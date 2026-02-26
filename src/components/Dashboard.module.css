@@ -1093,6 +1093,73 @@ html[data-theme='dark'] .dangerCard {
   gap: 10px;
 }
 
+.alertPrefsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.alertPrefsToggleRow {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.alertPrefsCheckbox {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.alertPrefsCheckbox::after {
+  content: '';
+  width: 5px;
+  height: 10px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg) translate(-1px, -1px);
+  opacity: 0;
+}
+
+.alertPrefsCheckbox:checked {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  box-shadow: 0 8px 16px rgba(14, 165, 233, 0.25);
+}
+
+.alertPrefsCheckbox:checked::after {
+  opacity: 1;
+}
+
+.alertPrefsCheckbox:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.alertPrefsCheckbox:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.alertPrefsText {
+  color: var(--text);
+  line-height: 1.45;
+}
+
 .inlineForm {
   margin-top: 10px;
   padding: 12px;
@@ -1917,6 +1984,18 @@ html[data-theme='imagery'] .inputError {
 html[data-theme='dark'] .settingsHint,
 html[data-theme='imagery'] .settingsHint {
   color: #cbd5e1;
+}
+
+html[data-theme='dark'] .alertPrefsCheckbox,
+html[data-theme='imagery'] .alertPrefsCheckbox {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+html[data-theme='dark'] .alertPrefsCheckbox:checked,
+html[data-theme='imagery'] .alertPrefsCheckbox:checked {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--primary), var(--accent));
 }
 
 @media (max-width: 960px) and (orientation: landscape) {

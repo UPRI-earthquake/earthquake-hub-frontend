@@ -268,6 +268,7 @@ function Dashboard({
   loggedInUser,
   loggedInUserRole,
   accountEmail,
+  rshakeEmailEnabled,
   passwordStatus,
   passwordPolicyVersion,
   onProfileRefresh,
@@ -278,6 +279,8 @@ function Dashboard({
   const [devicesFetched, setDevicesFetched] = useState(false);
   const [brgyAccessToken, setBrgyAccessToken] = useState(); // hook for brgyAccessToken
   const [accessTokenExpiry, setAccessTokenExpiry] = useState(); // hook for brgy accessToken expiration
+  const [rshakeAlertEmailsEnabled, setRshakeAlertEmailsEnabled] = useState(Boolean(rshakeEmailEnabled));
+  const [isUpdatingRshakeAlerts, setIsUpdatingRshakeAlerts] = useState(false);
   const [activeSection, setActiveSection] = useState('devices'); // workspace tabs
   const [openSettingsSection, setOpenSettingsSection] = useState(null); // account settings collapsibles
   const [emailForm, setEmailForm] = useState({
@@ -603,6 +606,10 @@ function Dashboard({
   useEffect(() => {
     setEmailForm((prev) => ({ ...prev, email: accountEmail || '' }));
   }, [accountEmail]);
+
+  useEffect(() => {
+    setRshakeAlertEmailsEnabled(Boolean(rshakeEmailEnabled));
+  }, [rshakeEmailEnabled]);
 
   useEffect(() => {
     if (isCitizen || isBrgy) fetchDevices();
@@ -955,6 +962,47 @@ function Dashboard({
     }
 
     scheduleToastClear(5000);
+  }
+
+  async function handleRshakeAlertPreferenceToggle(nextPreference) {
+    if (isUpdatingRshakeAlerts) return;
+    const nextEnabled =
+      typeof nextPreference === 'boolean' ? nextPreference : !rshakeAlertEmailsEnabled;
+    setIsUpdatingRshakeAlerts(true);
+
+    try {
+      axios.defaults.withCredentials = true;
+      const backend_host = backendHost();
+      const response = await axios.patch(`${backend_host}/accounts/alert-preferences`, {
+        rshakeEmailEnabled: nextEnabled,
+      });
+
+      if (!isMountedRef.current) return;
+      const applied = Boolean(
+        response?.data?.payload?.alertPreferences?.rshakeEmailEnabled ?? nextEnabled,
+      );
+      setRshakeAlertEmailsEnabled(applied);
+      setToastMessage(
+        applied
+          ? 'RShake device email alerts enabled.'
+          : 'RShake device email alerts disabled.',
+      );
+      setToastType('success');
+      scheduleToastClear(6000);
+      if (typeof onProfileRefresh === 'function') onProfileRefresh();
+    } catch (error) {
+      if (!isMountedRef.current) return;
+      const message =
+        error?.response?.data?.message || 'Unable to update alert email preference.';
+      setToastMessage(message);
+      setToastType('error');
+      scheduleToastClear(6000);
+      deverror('Error updating RShake alert preference:', error?.response || error);
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdatingRshakeAlerts(false);
+      }
+    }
   }
 
   const textRef = useRef(null);
@@ -1590,18 +1638,70 @@ function Dashboard({
                         <p className={styles.panelKicker}>Tools</p>
                         <h3 className={styles.panelTitle}>Contributor tools</h3>
                         <p className={styles.panelSubtitle}>
-                          No tools available yet. Linking devices is handled by your sender software.
+                          Additional tools are coming soon. Device linking remains in sender software.
                         </p>
                       </div>
                     </div>
                     <div className={styles.tokenPlaceholder}>
-                      <p className={styles.emptyTitle}>No tools yet</p>
+                      <p className={styles.emptyTitle}>More tools soon</p>
                       <p className={styles.emptyBody}>
-                        This space will host contributor utilities when they launch.
+                        Use the alert email settings below to choose if your account should receive sender
+                        device alerts.
                       </p>
                     </div>
                   </section>
                 )}
+
+                <section className={styles.panelBody} aria-label="RShake alert email notifications">
+                  <div className={styles.panelHeaderRow}>
+                    <div>
+                      <p className={styles.panelKicker}>Notifications</p>
+                      <div className={styles.panelTitleRow}>
+                        <h3 className={styles.panelTitle}>RShake device email alerts</h3>
+                        <InfoTooltip label="RShake alert email details" title="How this works" variant="inline">
+                          This account receives sender alert emails only when enabled. It is disabled by
+                          default to avoid inbox noise.
+                          <br />
+                          <br />
+                          Turn this on only if you want sender-originated alert emails sent to your contact
+                          email.
+                        </InfoTooltip>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={styles.settingsCard}>
+                    <div className={styles.alertPrefsHeader}>
+                      <p className={styles.settingsSupport}>
+                        Contact email: {accountEmail || 'Not set'}
+                      </p>
+                      <span
+                        className={`${styles.statusPill} ${
+                          rshakeAlertEmailsEnabled ? styles.statusPillOk : styles.statusPillWarn
+                        }`}
+                        title={rshakeAlertEmailsEnabled ? 'Alert emails enabled' : 'Alert emails disabled'}
+                      >
+                        {rshakeAlertEmailsEnabled ? 'Enabled' : 'Disabled (default)'}
+                      </span>
+                    </div>
+                    <label className={styles.alertPrefsToggleRow}>
+                      <input
+                        type="checkbox"
+                        className={styles.alertPrefsCheckbox}
+                        checked={rshakeAlertEmailsEnabled}
+                        disabled={isUpdatingRshakeAlerts}
+                        onChange={(event) =>
+                          handleRshakeAlertPreferenceToggle(event.target.checked)
+                        }
+                      />
+                      <span className={styles.alertPrefsText}>
+                        Email me when my sender reports an alert or recovery.
+                      </span>
+                    </label>
+                    {isUpdatingRshakeAlerts && (
+                      <p className={styles.settingsSupport}>Saving preference...</p>
+                    )}
+                  </div>
+                </section>
               </div>
             )}
 

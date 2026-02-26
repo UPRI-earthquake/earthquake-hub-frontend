@@ -369,6 +369,7 @@ function SignInFields({ onSuccess, onForgotPassword }) {
         const authMeta = {
           passwordStatus: response.data.passwordStatus,
           passwordPolicyVersion: response.data.passwordPolicyVersion,
+          alertPreferences: response.data.alertPreferences,
         };
         const resolvedUsername = response.data.username || identifier;
         onSuccess(resolvedUsername, role, authMeta);

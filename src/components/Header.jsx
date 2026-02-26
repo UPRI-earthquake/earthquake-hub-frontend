@@ -50,6 +50,7 @@ const Header = ({
 
   const [loggedInUser, setLoggedInUser] = useState('');
   const [accountEmail, setAccountEmail] = useState('');
+  const [rshakeEmailEnabled, setRshakeEmailEnabled] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState();
   const [passwordPolicyVersion, setPasswordPolicyVersion] = useState();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -79,6 +80,7 @@ const Header = ({
     setLoggedInUser(username); // Pass the username of the logged in user
     setLoggedInUserRole(role); // This will be passed to the Dashboard Element
     setAccountEmail(authMeta.email || '');
+    setRshakeEmailEnabled(Boolean(authMeta?.alertPreferences?.rshakeEmailEnabled));
     setPasswordStatus(authMeta.passwordStatus);
     setPasswordPolicyVersion(authMeta.passwordPolicyVersion);
     setShowAuthModal(false);
@@ -93,6 +95,7 @@ const Header = ({
     setIsLoggedIn(false); // Don't automatically log the user
     setLoggedInUser('');
     setAccountEmail('');
+    setRshakeEmailEnabled(false);
     setPasswordStatus(undefined);
     setPasswordPolicyVersion(undefined);
     setLoggedInUserRole(undefined);
@@ -112,6 +115,7 @@ const Header = ({
     setIsLoggedIn(false);
     setLoggedInUser('');
     setAccountEmail('');
+    setRshakeEmailEnabled(false);
     setPasswordStatus(undefined);
     setPasswordPolicyVersion(undefined);
     setLoggedInUserRole(undefined);
@@ -125,6 +129,7 @@ const Header = ({
     const derivedRole = (payload.roles || []).includes('brgy') ? 'brgy' : 'citizen';
     setLoggedInUser(payload.username || '');
     setAccountEmail(payload.email || '');
+    setRshakeEmailEnabled(Boolean(payload.alertPreferences?.rshakeEmailEnabled));
     const nextPasswordStatus =
       payload.passwordStatus ||
       ((payload.passwordPolicyVersion || 0) >= 2 ? 'current' : undefined);
@@ -139,6 +144,7 @@ const Header = ({
     setIsLoggedIn(false);
     setLoggedInUser('');
     setAccountEmail('');
+    setRshakeEmailEnabled(false);
     setPasswordStatus(undefined);
     setPasswordPolicyVersion(undefined);
     setLoggedInUserRole(undefined);
@@ -329,6 +335,7 @@ const Header = ({
           loggedInUserRole={loggedInUserRole}
           loggedInUser={loggedInUser}
           accountEmail={accountEmail}
+          rshakeEmailEnabled={rshakeEmailEnabled}
           passwordStatus={passwordStatus}
           passwordPolicyVersion={passwordPolicyVersion}
           onProfileRefresh={fetchProfile}
