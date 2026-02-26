@@ -28,6 +28,10 @@ const META = {
     source: 'PB2002 (Bird, 2003) via tectonicplates',
     lastUpdateHintUrl: DATASETS.PLATES.sourceUrl,
   },
+  par: {
+    label: 'PAR Boundary',
+    source: 'PAGASA Philippine Area of Responsibility',
+  },
   // Population overlay removed
 };
 
@@ -107,6 +111,7 @@ function LegendContent({ active, tokens }) {
     () => ({
       faults: active.has('faults'),
       plates: active.has('plates'),
+      par: active.has('par'),
       // Population overlay removed
       stations: active.has('stations'),
       earthquakes: active.has('earthquakes'),
@@ -123,7 +128,7 @@ function LegendContent({ active, tokens }) {
 
   // Legend is display-only; no overlay toggling here for clarity
 
-  const anyShown = shown.faults || shown.plates || shown.stations || shown.earthquakes;
+  const anyShown = shown.faults || shown.plates || shown.par || shown.stations || shown.earthquakes;
   const renderLastUpdated = (meta) => {
     if (!meta) return 'Last updated: Unknown';
     const base = meta.displayDate ? `Last updated: ${meta.displayDate}` : 'Last updated: Unknown';
@@ -181,6 +186,33 @@ function LegendContent({ active, tokens }) {
                     tokens.plates.dashArray ? 'dashed' : 'solid'
                   } ${tokens.plates.color}`,
                   opacity: tokens.plates.opacity,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      {shown.par && (
+        <div className="legend-section" data-key="par">
+          <div className="legend-meta">
+            <div className="legend-label-row">
+              <div className="legend-label">{META.par.label}</div>
+              <InfoTooltip label={`${META.par.label} details`} title="Dataset details" variant="inline">
+                <>
+                  Source: {META.par.source}
+                  <br />
+                  Geometry follows official PAGASA PAR coordinates.
+                </>
+              </InfoTooltip>
+            </div>
+            <div className="legend-symbol-row">
+              <span
+                className="swatch-line"
+                style={{
+                  borderTop: `${Math.max(2, (tokens.par.weight || 1) * 2)}px ${
+                    tokens.par.dashArray ? 'dashed' : 'solid'
+                  } ${tokens.par.color}`,
+                  opacity: tokens.par.opacity,
                 }}
               />
             </div>

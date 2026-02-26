@@ -27,4 +27,12 @@ export const DATASETS = {
         ? `${BACKEND}/overlays/plates`
         : 'https://cdn.jsdelivr.net/gh/fraxen/tectonicplates@master/GeoJSON/PB2002_boundaries.json',
   },
+  PAR: {
+    key: 'par',
+    label: 'PAR Boundary',
+    // Official PAR definition source and coordinates by PAGASA.
+    sourceUrl: 'https://www.pagasa.dost.gov.ph/learning-tools/philippine-area-of-responsibility',
+    // Keep overlay delivery uniform with faults/plates via backend overlays API.
+    url: BACKEND && BACKEND.length > 0 ? `${BACKEND}/overlays/par` : '/overlays/par',
+  },
 };

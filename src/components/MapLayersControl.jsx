@@ -5,6 +5,7 @@ import { BASEMAPS } from '../config/mapLayers';
 import {
   buildThemeTokens,
   faultsStyle,
+  parStyle,
   platesStyle,
   themeFromMapContainer,
   zoomFromMap,
@@ -121,6 +122,7 @@ export default function MapLayersControl({ children, activeTheme }) {
   // Refs for registering overlays with the legend sync
   const faultsRef = useRef(null);
   const platesRef = useRef(null);
+  const parRef = useRef(null);
   const customLayersToggleRef = useRef(null);
   const cleanupRefs = useRef({});
   const emitPanelToggle = useCallback((isOpen, trigger = 'button') => {
@@ -176,6 +178,20 @@ export default function MapLayersControl({ children, activeTheme }) {
           layer.getAttribution = () => `<span class="attr-line attr-plates">${ATTRIBUTIONS.PB2002}</span>`;
         } catch (_) {}
         registerLayer('plates', layer);
+      }
+    },
+    [registerLayer],
+  );
+
+  const setParRef = useCallback(
+    (node) => {
+      const layer = node && (node.leafletElement || node);
+      parRef.current = layer;
+      if (layer) {
+        try {
+          layer.getAttribution = () => `<span class="attr-line attr-par">${ATTRIBUTIONS.PAR}</span>`;
+        } catch (_) {}
+        registerLayer('par', layer);
       }
     },
     [registerLayer],
@@ -461,11 +477,15 @@ export default function MapLayersControl({ children, activeTheme }) {
     const zoom = zoomFromMap(map);
     const f = faultsStyle({ theme, zoom, overlays: activeIds });
     const p = platesStyle({ theme, zoom });
+    const par = parStyle({ theme, zoom });
     try {
       faultsRef.current && faultsRef.current.setStyle && faultsRef.current.setStyle(f);
     } catch (_) {}
     try {
       platesRef.current && platesRef.current.setStyle && platesRef.current.setStyle(p);
+    } catch (_) {}
+    try {
+      parRef.current && parRef.current.setStyle && parRef.current.setStyle(par);
     } catch (_) {}
   }, [map, activeIds]);
 
@@ -550,6 +570,7 @@ export default function MapLayersControl({ children, activeTheme }) {
       el.setAttribute('data-ovl-earthquakes', activeIds.has('earthquakes') ? '1' : '0');
       el.setAttribute('data-ovl-faults', activeIds.has('faults') ? '1' : '0');
       el.setAttribute('data-ovl-plates', activeIds.has('plates') ? '1' : '0');
+      el.setAttribute('data-ovl-par', activeIds.has('par') ? '1' : '0');
       el.setAttribute('data-ovl-stations', activeIds.has('stations') ? '1' : '0');
     } catch (_) {}
     return undefined;
@@ -788,6 +809,7 @@ export default function MapLayersControl({ children, activeTheme }) {
       earthquakes: 'Earthquake markers',
       faults: 'Active fault lines',
       plates: 'Plate boundary lines',
+      par: 'Philippine Area of Responsibility boundary',
       stations: 'Station markers',
     };
     const applyOverlayHints = () => {
@@ -810,6 +832,7 @@ export default function MapLayersControl({ children, activeTheme }) {
         if (t === 'earthquakes') return 'earthquakes';
         if (t === 'fault lines') return 'faults';
         if (t === 'plate boundaries') return 'plates';
+        if (t === 'par boundary') return 'par';
         if (t === 'stations') return 'stations';
         return null;
       };
@@ -904,28 +927,29 @@ export default function MapLayersControl({ children, activeTheme }) {
     };
   }, [map, activeIds, restyleOverlays, activeTheme, activeBase]);
 
-  // Keep faults visually above plates when both are on (shared pane)
+  // Keep vector boundary overlay order stable: faults above plates above PAR.
   useEffect(() => {
     if (!map) return undefined;
-    const bumpFaults = () => {
+    const reorderBoundaries = () => {
       try {
-        if (
-          faultsRef.current &&
-          platesRef.current &&
-          map.hasLayer(faultsRef.current) &&
-          map.hasLayer(platesRef.current)
-        ) {
+        if (parRef.current && map.hasLayer(parRef.current)) {
+          parRef.current.bringToBack && parRef.current.bringToBack();
+        }
+        if (platesRef.current && map.hasLayer(platesRef.current)) {
+          platesRef.current.bringToFront && platesRef.current.bringToFront();
+        }
+        if (faultsRef.current && map.hasLayer(faultsRef.current)) {
           faultsRef.current.bringToFront && faultsRef.current.bringToFront();
         }
       } catch (_) {}
     };
-    const id = setTimeout(bumpFaults, 0);
-    map.on('overlayadd', bumpFaults);
-    map.on('overlayremove', bumpFaults);
+    const id = setTimeout(reorderBoundaries, 0);
+    map.on('overlayadd', reorderBoundaries);
+    map.on('overlayremove', reorderBoundaries);
     return () => {
       clearTimeout(id);
-      map.off('overlayadd', bumpFaults);
-      map.off('overlayremove', bumpFaults);
+      map.off('overlayadd', reorderBoundaries);
+      map.off('overlayremove', reorderBoundaries);
     };
   }, [map]);
 
@@ -1170,6 +1194,10 @@ export default function MapLayersControl({ children, activeTheme }) {
     () => platesStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom() }),
     [map],
   );
+  const parStyleFor = useCallback(
+    () => parStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom() }),
+    [map],
+  );
 
   return (
     <LayersControl position="topright" collapsed>
@@ -1182,8 +1210,10 @@ export default function MapLayersControl({ children, activeTheme }) {
       <OverlayLayers
         setFaultsRef={setFaultsRef}
         setPlatesRef={setPlatesRef}
+        setParRef={setParRef}
         faultsStyleFor={faultsStyleFor}
         platesStyleFor={platesStyleFor}
+        parStyleFor={parStyleFor}
         makeOnEachWith={makeOnEachWith}
       />
       {/* Inject external overlays from parent (e.g., Stations, Earthquakes) */}

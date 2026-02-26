@@ -38,6 +38,12 @@ const PALETTE = {
   },
   // Default plate stroke retained for light; per-theme overrides below
   plates: { stroke: '#D7A657' },
+  par: {
+    light: '#6B7280',
+    dark: '#94A3B8',
+    // Cooler tint for satellite/imagery so PAR remains visible over textured oceans.
+    satellite: '#7DD3FC',
+  },
 };
 
 // Theme-specific colors that are easy to extend when adding new basemaps
@@ -50,6 +56,11 @@ const PLATE_COLORS = {
   light: PALETTE.plates.stroke,
   dark: PALETTE.plates.stroke,
   satellite: PALETTE.plates.stroke,
+};
+const PAR_COLORS = {
+  light: PALETTE.par.light,
+  dark: PALETTE.par.dark,
+  satellite: PALETTE.par.satellite,
 };
 const STATION_FILL_LIGHT = '#22C55E';
 
@@ -159,6 +170,10 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   const plateDash = '6,6';
   const plateWeight = faultWeight + 0.2; // subtle emphasis over faults
 
+  // PAR boundary (official PAGASA polygon boundary)
+  const parDash = '5,9';
+  const parWeight = 1;
+
   // Stations
   // On satellite imagery, use a high-contrast fill and thicker white halo
   // so markers remain visible over greens (land) and dark blues (water).
@@ -207,6 +222,12 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
       opacity: 0.7,
       dashArray: plateDash,
     },
+    par: {
+      color: PAR_COLORS[t] || PAR_COLORS.light,
+      weight: parWeight,
+      opacity: t === 'satellite' ? 0.34 : t === 'dark' ? 0.32 : 0.3,
+      dashArray: parDash,
+    },
     stations: {
       fill: stFill,
       halo: stHalo,
@@ -217,6 +238,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
       pulseOff: stPulseOff,
     },
     zIndex: {
+      par: 400,
       plates: 405,
       faults: 410,
       stations: 600, // markerPane default
@@ -249,6 +271,19 @@ export function platesStyle({ theme, zoom }) {
     lineCap: 'round',
     lineJoin: 'round',
     smoothFactor: 1.5,
+  };
+}
+
+export function parStyle({ theme, zoom }) {
+  const t = buildThemeTokens({ theme, zoom, overlays: null }).par;
+  return {
+    color: t.color,
+    weight: t.weight,
+    opacity: t.opacity,
+    dashArray: t.dashArray,
+    lineCap: 'round',
+    lineJoin: 'round',
+    smoothFactor: 1.2,
   };
 }
 

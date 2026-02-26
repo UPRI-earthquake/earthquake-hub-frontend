@@ -13,15 +13,17 @@ import { DATASETS } from '../../config/datasets';
 const { Overlay } = LayersControl;
 
 /**
- * Overlay layers: faults and plates.
+ * Overlay layers: faults, plates, and PAR boundary.
  * Expects refs setters and helpers from the parent MapLayersControl to keep
  * style and legend state in sync.
  */
 export default function OverlayLayers({
   setFaultsRef,
   setPlatesRef,
+  setParRef,
   faultsStyleFor,
   platesStyleFor,
+  parStyleFor,
   makeOnEachWith,
 }) {
   // Use a single shared Canvas renderer with a higher click/hover tolerance
@@ -64,6 +66,17 @@ export default function OverlayLayers({
             null,
             { usePopup: true, nativeTitleFn: buildPlateTitle, disableHoverStyling: true }
           )}
+        />
+      </Overlay>
+
+      <Overlay name="PAR Boundary" checked>
+        <RemoteGeoJSONOverlay
+          ref={setParRef}
+          url={DATASETS.PAR.url}
+          style={parStyleFor}
+          renderer={vectorRenderer}
+          lineOnly={false}
+          interactive={false}
         />
       </Overlay>
 
