@@ -106,7 +106,7 @@ const HomePage = () => {
   const stationsRef = useRef([]);
   const [stations, setStations] = useState([]);
   const [stationSearch, setStationSearch] = useState('');
-  const [stationStatusFilter, setStationStatusFilter] = useState(null);
+  const [stationStatusFilter, setStationStatusFilter] = useState('active');
   const newStationToastRef = useRef(new Set());
 
   const [latestEvents, setLatestEvents] = useState([]);
