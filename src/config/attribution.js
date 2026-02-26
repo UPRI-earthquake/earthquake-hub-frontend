@@ -8,4 +8,8 @@ export const ATTRIBUTIONS = {
     'Fault lines: GEM Global Active Faults Database (CC BY-SA 4.0) — <a href="https://github.com/GEMScienceTools/gem-global-active-faults" rel="noopener" target="_blank">Styron & Pagani (2020)</a>',
   PB2002:
     'Plate boundaries: PB2002 — Bird (2003), processed by Nordpil (ODC-By 1.0) — <a href="https://github.com/fraxen/tectonicplates" rel="noopener" target="_blank">source</a>',
+  UPRIEarthquakes:
+    'Earthquake markers: UPRI Seismic Network',
+  UPRIStations:
+    'Station markers: UPRI Seismic Network',
 };

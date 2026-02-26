@@ -12,6 +12,7 @@ import { OverlayStateProvider } from './OverlayStateContext';
 import { trackEvent } from '../analytics';
 import { resetToPH } from '../utils/resetView';
 import FloatingButton from './FloatingButton';
+import { ATTRIBUTIONS } from '../config/attribution';
 
 // Keep markers lazy inside the map chunk to avoid blocking map shell render
 const StationMarkers = lazy(() => import('./StationMarkers'));
@@ -51,7 +52,11 @@ function MapView({
       <OverlayStateProvider>
         <MapLayersControl activeTheme={theme}>
           <LayersControl.Overlay checked name="Earthquakes">
-            <RegisterableLayerGroup overlayId="earthquakes" key={datasetKey}>
+            <RegisterableLayerGroup
+              overlayId="earthquakes"
+              key={datasetKey}
+              attribution={`<span class="attr-line attr-earthquakes">${ATTRIBUTIONS.UPRIEarthquakes}</span>`}
+            >
               {!holdEqMarkers && (
                 <Suspense fallback={null}>
                   <EventMarkers
@@ -65,7 +70,10 @@ function MapView({
             </RegisterableLayerGroup>
           </LayersControl.Overlay>
           <LayersControl.Overlay checked name="Stations">
-            <RegisterableLayerGroup overlayId="stations">
+            <RegisterableLayerGroup
+              overlayId="stations"
+              attribution={`<span class="attr-line attr-stations">${ATTRIBUTIONS.UPRIStations}</span>`}
+            >
               <Suspense fallback={null}>
                 <StationMarkers initStations={stations} filters={stationFilters} />
               </Suspense>

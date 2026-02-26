@@ -6,7 +6,7 @@ import { useOverlayState } from './OverlayStateContext';
  * LayerGroup that registers itself with the overlay legend sync under a given overlayId.
  */
 const RegisterableLayerGroup = forwardRef(function RegisterableLayerGroup(
-  { overlayId, children, clearOnRemove = false },
+  { overlayId, children, clearOnRemove = false, ...layerProps },
   ref,
 ) {
   const { registerLayer, unregisterLayer } = useOverlayState();
@@ -46,7 +46,11 @@ const RegisterableLayerGroup = forwardRef(function RegisterableLayerGroup(
     else ref.current = node; // eslint-disable-line no-param-reassign
   };
 
-  return <LayerGroup ref={setRef}>{children}</LayerGroup>;
+  return (
+    <LayerGroup ref={setRef} {...layerProps}>
+      {children}
+    </LayerGroup>
+  );
 });
 
 export default RegisterableLayerGroup;
