@@ -21,7 +21,7 @@
   border-radius: 16px;
   width: min(900px, 95vw);
   position: relative;
-  /* Fill all available space below the fixed header */
+  /* Fill available area below fixed header */
   height: calc(100dvh - var(--header-h, 72px) - 24px);
   display: flex;
   flex-direction: column;
@@ -36,7 +36,7 @@
 
 @media (max-width: 600px) {
   .modalOverlay {
-    padding: calc(var(--header-h, 72px) + 8px) 8px 8px 8px;
+    padding: 8px;
   }
   .dashboardModal {
     width: 100%;

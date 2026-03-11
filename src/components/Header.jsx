@@ -249,7 +249,11 @@ const Header = ({
   }, []);
 
   return (
-    <div className={`${styles.header} ${isSecureFlow ? styles.secure : ''}`}>
+    <div
+      className={`${styles.header} ${isSecureFlow ? styles.secure : ''} ${
+        showDashboard ? styles.dashboardOpen : ''
+      }`}
+    >
       {/* Skip to content (visible on keyboard focus) */}
       <a href="#main" className={styles.skipLink} aria-label="Skip to main content">
         Skip to content

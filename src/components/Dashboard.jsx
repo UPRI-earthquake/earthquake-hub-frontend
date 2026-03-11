@@ -44,7 +44,7 @@ const roleCopy = {
       title: 'No managed devices yet',
       body: 'Connect your barangay instruments and forward data with an active access token.',
       steps: [
-        'Generate a barangay access token in the Tools & tokens tab and add it to your ringserver configuration.',
+        'Generate a barangay access token in the Tools tab and add it to your ringserver configuration.',
         'Ensure each station is powered and forwarding to the UPRI endpoint.',
         'Return here to see status once devices begin streaming.',
       ],
@@ -462,16 +462,14 @@ function Dashboard({
       },
       {
         id: 'tools',
-        label: isBrgy ? 'Tools & tokens' : 'Tools',
+        label: 'Tools',
         icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
             <path d="M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5" />
           </svg>
         ),
-        description: isBrgy
-          ? 'Access tokens for barangay ringservers.'
-          : 'Contributor tools coming soon.',
-        badge: isBrgy ? null : 'beta',
+        description: 'Tools and new features will be placed here.',
+        badge: 'beta',
       },
       {
         id: 'account',
@@ -497,6 +495,10 @@ function Dashboard({
   );
 
   const activeSectionMeta = sections.find((section) => section.id === activeSection);
+  const showToolsAccessPanel = isBrgy;
+  const showToolsNotificationsPanel = true;
+  const showCitizenFuturePanel =
+    !isBrgy && !showToolsAccessPanel && !showToolsNotificationsPanel;
 
   const overviewDevices = useMemo(() => {
     const normalizeKey = (value) => String(value || '').trim().toUpperCase();
@@ -1563,7 +1565,7 @@ function Dashboard({
 
             {activeSection === 'tools' && (
               <div className={styles.sectionGridSingle}>
-                {isBrgy ? (
+                {showToolsAccessPanel && (
                   <section className={styles.panelBody} aria-label="Access tokens">
                     <div className={styles.panelHeaderRow}>
                     <div>
@@ -1631,7 +1633,9 @@ function Dashboard({
                     )}
                   </div>
                 </section>
-                ) : (
+                )}
+
+                {showCitizenFuturePanel && (
                   <section className={`${styles.panelBody} ${styles.futurePanel}`} aria-label="Contributor tools">
                     <div className={styles.panelHeaderRow}>
                       <div>
@@ -1652,56 +1656,59 @@ function Dashboard({
                   </section>
                 )}
 
-                <section className={styles.panelBody} aria-label="RShake alert email notifications">
-                  <div className={styles.panelHeaderRow}>
-                    <div>
-                      <p className={styles.panelKicker}>Notifications</p>
-                      <div className={styles.panelTitleRow}>
-                        <h3 className={styles.panelTitle}>RShake device email alerts</h3>
-                        <InfoTooltip label="RShake alert email details" title="How this works" variant="inline">
-                          This account receives sender alert emails only when enabled. It is disabled by
-                          default to avoid inbox noise.
-                          <br />
-                          <br />
-                          Turn this on only if you want sender-originated alert emails sent to your contact
-                          email.
-                        </InfoTooltip>
+                {showToolsNotificationsPanel && (
+                  <section className={styles.panelBody} aria-label="RShake alert email notifications">
+                    <div className={styles.panelHeaderRow}>
+                      <div>
+                        <p className={styles.panelKicker}>Notifications</p>
+                        <div className={styles.panelTitleRow}>
+                          <h3 className={styles.panelTitle}>RShake device email alerts</h3>
+                          <InfoTooltip label="RShake alert email details" title="How this works" variant="inline">
+                            This account receives sender status emails only when enabled. Alerts include
+                            streaming interruptions, not-streaming or sender error states, and recovery when
+                            streaming resumes.
+                            <br />
+                            <br />
+                            Turn this on only if you want sender-generated status emails sent to your contact
+                            email.
+                          </InfoTooltip>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className={styles.settingsCard}>
-                    <div className={styles.alertPrefsHeader}>
-                      <p className={styles.settingsSupport}>
-                        Contact email: {accountEmail || 'Not set'}
-                      </p>
-                      <span
-                        className={`${styles.statusPill} ${
-                          rshakeAlertEmailsEnabled ? styles.statusPillOk : styles.statusPillWarn
-                        }`}
-                        title={rshakeAlertEmailsEnabled ? 'Alert emails enabled' : 'Alert emails disabled'}
-                      >
-                        {rshakeAlertEmailsEnabled ? 'Enabled' : 'Disabled (default)'}
-                      </span>
+                    <div className={styles.settingsCard}>
+                      <div className={styles.alertPrefsHeader}>
+                        <p className={styles.settingsSupport}>
+                          Contact email: {accountEmail || 'Not set'}
+                        </p>
+                        <span
+                          className={`${styles.statusPill} ${
+                            rshakeAlertEmailsEnabled ? styles.statusPillOk : styles.statusPillWarn
+                          }`}
+                          title={rshakeAlertEmailsEnabled ? 'Alert emails enabled' : 'Alert emails disabled'}
+                        >
+                          {rshakeAlertEmailsEnabled ? 'Enabled' : 'Disabled (default)'}
+                        </span>
+                      </div>
+                      <label className={styles.alertPrefsToggleRow}>
+                        <input
+                          type="checkbox"
+                          className={styles.alertPrefsCheckbox}
+                          checked={rshakeAlertEmailsEnabled}
+                          disabled={isUpdatingRshakeAlerts}
+                          onChange={(event) =>
+                            handleRshakeAlertPreferenceToggle(event.target.checked)
+                          }
+                        />
+                        <span className={styles.alertPrefsText}>
+                          Email me when my device reports streaming interruptions, errors, or recovery.
+                        </span>
+                      </label>
+                      {isUpdatingRshakeAlerts && (
+                        <p className={styles.settingsSupport}>Saving preference...</p>
+                      )}
                     </div>
-                    <label className={styles.alertPrefsToggleRow}>
-                      <input
-                        type="checkbox"
-                        className={styles.alertPrefsCheckbox}
-                        checked={rshakeAlertEmailsEnabled}
-                        disabled={isUpdatingRshakeAlerts}
-                        onChange={(event) =>
-                          handleRshakeAlertPreferenceToggle(event.target.checked)
-                        }
-                      />
-                      <span className={styles.alertPrefsText}>
-                        Email me when my sender reports an alert or recovery.
-                      </span>
-                    </label>
-                    {isUpdatingRshakeAlerts && (
-                      <p className={styles.settingsSupport}>Saving preference...</p>
-                    )}
-                  </div>
-                </section>
+                  </section>
+                )}
               </div>
             )}
 

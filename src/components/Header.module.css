@@ -10,6 +10,25 @@
   background: transparent;
 }
 
+.dashboardOpen {
+  z-index: 100000;
+}
+
+.dashboardOpen .headerContent {
+  pointer-events: none;
+}
+
+.dashboardOpen .headerLeft,
+.dashboardOpen .headerRight {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+html:not([data-theme='dark']):not([data-theme='imagery']) .dashboardOpen .kicker {
+  color: #38bdf8;
+}
+
 .secure {
   --header-h: 64px;
 }
