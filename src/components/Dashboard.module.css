@@ -4,7 +4,7 @@
   width: 100vw;
   height: 100dvh;
   min-height: 100vh; /* fallback */
-  background-color: rgba(0, 0, 0, 0.45);
+  /* background-color: rgba(0, 0, 0, 0.45); */
   display: grid;
   align-items: start; /* keep panel below header */
   justify-items: end;
@@ -36,7 +36,7 @@
 
 @media (max-width: 600px) {
   .modalOverlay {
-    padding: 8px;
+    padding: calc(var(--header-h, 72px) + 8px) 8px 8px 8px;
   }
   .dashboardModal {
     width: 100%;
