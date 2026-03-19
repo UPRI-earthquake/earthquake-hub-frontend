@@ -646,9 +646,31 @@
 }
 
 .remoteServersPane {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.remoteServersAddOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(7, 11, 20, 0.46);
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 12px;
+  z-index: 5;
+}
+
+.remoteServersAddCard {
+  width: min(100%, 420px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 12px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.2);
 }
 
 .remoteServersAddButton {
@@ -1949,6 +1971,12 @@ html[data-theme='imagery'] .remoteServersAddButton:hover {
 
 html[data-theme='dark'] .remoteServersTableWrap,
 html[data-theme='imagery'] .remoteServersTableWrap {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+html[data-theme='dark'] .remoteServersAddCard,
+html[data-theme='imagery'] .remoteServersAddCard {
+  background: #111827;
   border-color: rgba(255, 255, 255, 0.16);
 }
 

@@ -626,9 +626,9 @@ function Dashboard({
         station,
         linked: false,
         statusLabel: 'Unlinked',
-        longitude: '',
-        latitude: '',
-        elevation: '',
+        longitude: resolveDeviceLocationField(entry, 'longitude'),
+        latitude: resolveDeviceLocationField(entry, 'latitude'),
+        elevation: resolveDeviceLocationField(entry, 'elevation'),
       });
     });
 
@@ -3136,56 +3136,6 @@ function Dashboard({
 
             {activeRemoteActionMeta.canExecute && remoteActionModalView === 'servers' && (
               <div className={styles.remoteServersPane}>
-                {showRemoteServerAddForm && (
-                  <form
-                    className={styles.remoteActionModalForm}
-                    onSubmit={async (event) => {
-                      event.preventDefault();
-                      const success = await handleRemoteAddServer(remoteActionModalDeviceId);
-                      if (success) {
-                        setShowRemoteServerAddForm(false);
-                        await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
-                      }
-                    }}
-                  >
-                    <label className={styles.settingsField}>
-                      Ringserver
-                      <select
-                        className={styles.settingsInput}
-                        value={activeRemoteActionForm.addServerKey || ''}
-                        disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
-                        onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
-                          addServerKey: event.target.value,
-                        })}
-                      >
-                        <option value="">Select ringserver</option>
-                        {ringserverOptions.map((option) => (
-                          <option key={option.key} value={option.key}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className={styles.confirmActions}>
-                      <button
-                        type="button"
-                        className={styles.secondaryButton}
-                        disabled={activeRemoteActionBusy}
-                        onClick={() => setShowRemoteServerAddForm(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className={styles.saveButton}
-                        disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
-                      >
-                        {activeRemoteActionBusy ? 'Running...' : 'Add'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
                 {activeRemoteServersLoading ? (
                   <p className={styles.confirmText}>Loading servers...</p>
                 ) : (
@@ -3201,7 +3151,7 @@ function Dashboard({
                               disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
                               title="Add server target"
                               aria-label="Add server target"
-                              onClick={() => setShowRemoteServerAddForm((prev) => !prev)}
+                              onClick={() => setShowRemoteServerAddForm(true)}
                             >
                               +
                             </button>
@@ -3256,6 +3206,67 @@ function Dashboard({
                         )}
                       </tbody>
                     </table>
+                  </div>
+                )}
+                {showRemoteServerAddForm && (
+                  <div className={styles.remoteServersAddOverlay}>
+                    <div
+                      className={styles.remoteServersAddCard}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Add remote server"
+                    >
+                      <form
+                        className={styles.remoteActionModalForm}
+                        onSubmit={async (event) => {
+                          event.preventDefault();
+                          try {
+                            const success = await handleRemoteAddServer(remoteActionModalDeviceId);
+                            if (success) {
+                              await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
+                            }
+                          } finally {
+                            setShowRemoteServerAddForm(false);
+                          }
+                        }}
+                      >
+                        <label className={styles.settingsField}>
+                          Ringserver
+                          <select
+                            className={styles.settingsInput}
+                            value={activeRemoteActionForm.addServerKey || ''}
+                            disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
+                            onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
+                              addServerKey: event.target.value,
+                            })}
+                          >
+                            <option value="">Select ringserver</option>
+                            {ringserverOptions.map((option) => (
+                              <option key={option.key} value={option.key}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className={styles.confirmActions}>
+                          <button
+                            type="button"
+                            className={styles.secondaryButton}
+                            disabled={activeRemoteActionBusy}
+                            onClick={() => setShowRemoteServerAddForm(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className={styles.saveButton}
+                            disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
+                          >
+                            {activeRemoteActionBusy ? 'Running...' : 'Add'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>
