@@ -51,6 +51,13 @@ const responseCodes = {
   SIGNOUT_SUCCESS: 50,
   SIGNOUT_ERROR: 150,
 
+  REMOTE_ACTION_CAPABILITIES_SUCCESS: 83,
+  REMOTE_ACTION_EXECUTE_SUCCESS: 84,
+  REMOTE_ACTION_SERVERS_SUCCESS: 85,
+  REMOTE_ACTION_CAPABILITIES_ERROR: 194,
+  REMOTE_ACTION_EXECUTE_ERROR: 195,
+  REMOTE_ACTION_SERVERS_ERROR: 196,
+
   PASSWORD_RESET_REQUESTED: 70,
   PASSWORD_RESET_SUCCESS: 71,
   PASSWORD_RESET_INVALID: 170,
@@ -87,6 +94,13 @@ const responseMessages = {
   VERIFICATION_INVALID_TOKEN: 'Verification error: Invalid token',
   VERIFICATION_INVALID_ROLE: 'Verification error: Invalid role in token',
   VERIFICATION_EXPIRED_TOKEN: 'Verification error: Expired token',
+
+  REMOTE_ACTION_CAPABILITIES_SUCCESS: 'Remote action capabilities success',
+  REMOTE_ACTION_EXECUTE_SUCCESS: 'Remote action execute success',
+  REMOTE_ACTION_SERVERS_SUCCESS: 'Remote action servers success',
+  REMOTE_ACTION_CAPABILITIES_ERROR: 'Remote action capabilities error',
+  REMOTE_ACTION_EXECUTE_ERROR: 'Remote action execute error',
+  REMOTE_ACTION_SERVERS_ERROR: 'Remote action servers error',
 
   PASSWORD_RESET_REQUESTED: 'Password reset requested',
   PASSWORD_RESET_SUCCESS: 'Password reset success',
