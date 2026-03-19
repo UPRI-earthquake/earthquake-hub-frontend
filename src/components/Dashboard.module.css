@@ -614,6 +614,7 @@
 }
 
 .remoteActionModalCard {
+  position: relative;
   width: min(92%, 540px);
   max-height: min(88dvh, 760px);
   overflow-y: auto;
@@ -646,7 +647,6 @@
 }
 
 .remoteServersPane {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -655,13 +655,13 @@
 .remoteServersAddOverlay {
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: inherit;
   background: rgba(7, 11, 20, 0.46);
   display: grid;
   align-items: center;
   justify-items: center;
-  padding: 12px;
-  z-index: 5;
+  padding: 16px;
+  z-index: 7;
 }
 
 .remoteServersAddCard {

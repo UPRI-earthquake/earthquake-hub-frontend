@@ -90,6 +90,11 @@ const normalizeServerUrl = (value) => (
   String(value || '').trim().replace(/\/+$/g, '').toLowerCase()
 );
 
+const isTruthyEnvFlag = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(normalized);
+};
+
 const pickFirstDefinedValue = (...values) => {
   for (const value of values) {
     if (value !== null && value !== undefined && String(value).trim() !== '') {
@@ -366,7 +371,7 @@ function Dashboard({
   const [remoteServersByDeviceId, setRemoteServersByDeviceId] = useState({});
   const [isLoadingRemoteServersByDeviceId, setIsLoadingRemoteServersByDeviceId] = useState({});
   const [remoteActionModalDeviceId, setRemoteActionModalDeviceId] = useState('');
-  const [remoteActionModalView, setRemoteActionModalView] = useState('menu');
+  const [remoteActionModalView, setRemoteActionModalView] = useState('');
   const [showRemoteServerAddForm, setShowRemoteServerAddForm] = useState(false);
   const [remoteActionFetchError, setRemoteActionFetchError] = useState('');
   const [activeSection, setActiveSection] = useState('devices'); // workspace tabs
@@ -588,6 +593,14 @@ function Dashboard({
   const showCitizenRemoteActionsPanel = isCitizen;
   const showCitizenFuturePanel =
     !isBrgy && !showToolsAccessPanel && !showToolsNotificationsPanel;
+  const requireTunnelForRemoteActions = useMemo(() => {
+    const runtimeEnv = window?.ENV || window?.['ENV'] || {};
+    const explicitValue = runtimeEnv.REACT_APP_REMOTE_ACTION_REQUIRE_TUNNEL;
+    if (explicitValue !== undefined && explicitValue !== null && String(explicitValue).trim() !== '') {
+      return isTruthyEnvFlag(explicitValue);
+    }
+    return process.env.NODE_ENV === 'production';
+  }, []);
 
   const remoteActionDevices = useMemo(() => {
     const devicesById = new Map();
@@ -690,20 +703,25 @@ function Dashboard({
     const normalizedDeviceId = String(deviceId || '').trim().toUpperCase();
     const capability = remoteCapabilitiesByDeviceId[normalizedDeviceId] || null;
     const checkingCapability = isLoadingRemoteCapabilities && !capability;
-    const canExecute = Boolean(capability?.canExecute);
-    const reason = canExecute
+    const tunnelReady = Boolean(capability?.canExecute);
+    const canExecute = requireTunnelForRemoteActions ? tunnelReady : true;
+    const reason = tunnelReady
       ? ''
       : (capability?.reason || (checkingCapability ? 'unknown' : 'offline'));
-    const hint = canExecute
+    const hint = tunnelReady
       ? 'Remote actions available.'
-      : (remoteActionDisabledReasonCopy[reason] || remoteActionDisabledReasonCopy.unknown);
+      : (requireTunnelForRemoteActions
+        ? (remoteActionDisabledReasonCopy[reason] || remoteActionDisabledReasonCopy.unknown)
+        : 'Tunnel checks are bypassed in local/dev mode for testing.');
     return {
       capability,
       canExecute,
+      tunnelReady,
+      restrictionBypassed: !requireTunnelForRemoteActions && !tunnelReady,
       reason,
       hint,
     };
-  }, [isLoadingRemoteCapabilities, remoteCapabilitiesByDeviceId]);
+  }, [isLoadingRemoteCapabilities, remoteCapabilitiesByDeviceId, requireTunnelForRemoteActions]);
 
   const overviewDevices = useMemo(() => {
     const normalizeKey = (value) => String(value || '').trim().toUpperCase();
@@ -1162,12 +1180,12 @@ function Dashboard({
         relink: { password: '' },
       });
     }
-    setRemoteActionModalView('menu');
+    setRemoteActionModalView('');
     setShowRemoteServerAddForm(false);
     setRemoteActionModalDeviceId('');
   }, [remoteActionModalDeviceId, updateRemoteActionForm]);
 
-  const openRemoteActionModal = useCallback((deviceId, view = 'menu') => {
+  const openRemoteActionModal = useCallback((deviceId, view) => {
     const normalizedDeviceId = String(deviceId || '').trim().toUpperCase();
     if (!normalizedDeviceId) return;
     const { canExecute, hint } = getRemoteCapabilityMeta(normalizedDeviceId);
@@ -1177,8 +1195,11 @@ function Dashboard({
       scheduleToastClear(5000);
       return;
     }
+    const normalizedView = ['unlink', 'relink', 'servers'].includes(String(view || '').toLowerCase())
+      ? String(view).toLowerCase()
+      : 'unlink';
     setRemoteActionModalDeviceId(normalizedDeviceId);
-    setRemoteActionModalView(view);
+    setRemoteActionModalView(normalizedView);
     setShowRemoteServerAddForm(false);
   }, [getRemoteCapabilityMeta, scheduleToastClear]);
 
@@ -1188,12 +1209,17 @@ function Dashboard({
   }, [activeSection, closeRemoteActionModal, remoteActionModalDeviceId]);
 
   const activeRemoteActionMeta = getRemoteCapabilityMeta(remoteActionModalDeviceId);
+  const activeRemoteActionModalTitle = useMemo(() => {
+    const deviceId = String(remoteActionModalDeviceId || '').trim();
+    if (!deviceId) return '';
+    if (remoteActionModalView === 'relink') return `Relinking ${deviceId}`;
+    if (remoteActionModalView === 'unlink') return `Unlinking ${deviceId}`;
+    if (remoteActionModalView === 'servers') return `${deviceId}'s Ringservers`;
+    return deviceId;
+  }, [remoteActionModalDeviceId, remoteActionModalView]);
   const activeRemoteActionBusy = Boolean(
     remoteActionModalDeviceId && remoteActionBusyByDeviceId[remoteActionModalDeviceId],
   );
-  const activeRemoteActionDevice = remoteActionDevices.find(
-    (device) => device.deviceId === remoteActionModalDeviceId,
-  ) || null;
   const activeRemoteActionForm = remoteActionModalDeviceId
     ? (remoteActionFormByDeviceId[remoteActionModalDeviceId] || { relink: {}, addServerKey: '' })
     : { relink: {}, addServerKey: '' };
@@ -2208,18 +2234,21 @@ function Dashboard({
                         {remoteActionDevices.map((device) => {
                           const capabilityMeta = getRemoteCapabilityMeta(device.deviceId);
                           const busy = Boolean(remoteActionBusyByDeviceId[device.deviceId]);
-                          const remoteTunnelEnabled = capabilityMeta.canExecute;
+                          const remoteTunnelEnabled = capabilityMeta.tunnelReady;
+                          const canRunRemoteActions = capabilityMeta.canExecute;
                           const tunnelTitle = remoteTunnelEnabled
                             ? 'Tunnel service enabled. Remote actions are available.'
-                            : `Tunnel service unavailable. ${capabilityMeta.hint}`;
+                            : (capabilityMeta.restrictionBypassed
+                              ? 'Tunnel service unavailable. Local/dev bypass allows remote action testing.'
+                              : `Tunnel service unavailable. ${capabilityMeta.hint}`);
                           const linkActionLabel = device.linked ? 'UNLINK' : 'RELINK';
-                          const canManageServers = remoteTunnelEnabled && device.linked;
+                          const canManageServers = canRunRemoteActions && device.linked;
 
                           return (
                             <div
                               key={device.deviceId}
                               className={`${styles.remoteActionCard} ${
-                                remoteTunnelEnabled ? '' : styles.remoteActionCardDisabled
+                                canRunRemoteActions ? '' : styles.remoteActionCardDisabled
                               }`}
                               title={tunnelTitle}
                             >
@@ -2246,12 +2275,12 @@ function Dashboard({
                                   <button
                                     type="button"
                                     className={`${styles.secondaryButton} ${styles.remoteActionActionButton}`}
-                                    disabled={!remoteTunnelEnabled || busy}
+                                    disabled={!canRunRemoteActions || busy}
                                     onClick={() => openRemoteActionModal(
                                       device.deviceId,
                                       device.linked ? 'unlink' : 'relink',
                                     )}
-                                    title={remoteTunnelEnabled
+                                    title={canRunRemoteActions
                                       ? `${linkActionLabel} ${device.deviceId}`
                                       : capabilityMeta.hint}
                                   >
@@ -2267,7 +2296,7 @@ function Dashboard({
                                     }}
                                     title={canManageServers
                                       ? `Manage servers for ${device.deviceId}`
-                                      : (remoteTunnelEnabled
+                                      : (canRunRemoteActions
                                         ? 'Relink device first.'
                                         : capabilityMeta.hint)}
                                   >
@@ -2983,7 +3012,7 @@ function Dashboard({
           >
             <div className={styles.remoteActionModalHeader}>
               <div>
-                <p className={styles.confirmTitle}>{remoteActionModalDeviceId}</p>
+                <p className={styles.confirmTitle}>{activeRemoteActionModalTitle}</p>
               </div>
               <button
                 type="button"
@@ -3000,43 +3029,6 @@ function Dashboard({
               <p className={styles.confirmText}>{activeRemoteActionMeta.hint}</p>
             )}
 
-            {activeRemoteActionMeta.canExecute && remoteActionModalView === 'menu' && (
-              <div className={styles.remoteActionModalMenu}>
-                {activeRemoteActionDevice?.linked ? (
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    disabled={activeRemoteActionBusy}
-                    onClick={() => setRemoteActionModalView('unlink')}
-                  >
-                    UNLINK
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.saveButton}
-                    disabled={activeRemoteActionBusy}
-                    onClick={() => setRemoteActionModalView('relink')}
-                  >
-                    RELINK
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={styles.saveButton}
-                  disabled={activeRemoteActionBusy || !activeRemoteActionDevice?.linked}
-                  title={activeRemoteActionDevice?.linked ? 'Manage ringserver targets' : 'Relink device first.'}
-                  onClick={async () => {
-                    setRemoteActionModalView('servers');
-                    setShowRemoteServerAddForm(false);
-                    await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
-                  }}
-                >
-                  Servers
-                </button>
-              </div>
-            )}
-
             {activeRemoteActionMeta.canExecute && remoteActionModalView === 'unlink' && (
               <>
                 <p className={styles.confirmText}>
@@ -3047,7 +3039,7 @@ function Dashboard({
                     type="button"
                     className={styles.secondaryButton}
                     disabled={activeRemoteActionBusy}
-                    onClick={() => setRemoteActionModalView('menu')}
+                    onClick={closeRemoteActionModal}
                   >
                     Cancel
                   </button>
@@ -3208,67 +3200,67 @@ function Dashboard({
                     </table>
                   </div>
                 )}
-                {showRemoteServerAddForm && (
-                  <div className={styles.remoteServersAddOverlay}>
-                    <div
-                      className={styles.remoteServersAddCard}
-                      role="dialog"
-                      aria-modal="true"
-                      aria-label="Add remote server"
-                    >
-                      <form
-                        className={styles.remoteActionModalForm}
-                        onSubmit={async (event) => {
-                          event.preventDefault();
-                          try {
-                            const success = await handleRemoteAddServer(remoteActionModalDeviceId);
-                            if (success) {
-                              await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
-                            }
-                          } finally {
-                            setShowRemoteServerAddForm(false);
-                          }
-                        }}
+              </div>
+            )}
+            {activeRemoteActionMeta.canExecute && remoteActionModalView === 'servers' && showRemoteServerAddForm && (
+              <div className={styles.remoteServersAddOverlay} role="presentation">
+                <div
+                  className={styles.remoteServersAddCard}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Add remote server"
+                >
+                  <form
+                    className={styles.remoteActionModalForm}
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      try {
+                        const success = await handleRemoteAddServer(remoteActionModalDeviceId);
+                        if (success) {
+                          await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
+                        }
+                      } finally {
+                        setShowRemoteServerAddForm(false);
+                      }
+                    }}
+                  >
+                    <label className={styles.settingsField}>
+                      Ringserver
+                      <select
+                        className={styles.settingsInput}
+                        value={activeRemoteActionForm.addServerKey || ''}
+                        disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
+                        onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
+                          addServerKey: event.target.value,
+                        })}
                       >
-                        <label className={styles.settingsField}>
-                          Ringserver
-                          <select
-                            className={styles.settingsInput}
-                            value={activeRemoteActionForm.addServerKey || ''}
-                            disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
-                            onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
-                              addServerKey: event.target.value,
-                            })}
-                          >
-                            <option value="">Select ringserver</option>
-                            {ringserverOptions.map((option) => (
-                              <option key={option.key} value={option.key}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <div className={styles.confirmActions}>
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            disabled={activeRemoteActionBusy}
-                            onClick={() => setShowRemoteServerAddForm(false)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className={styles.saveButton}
-                            disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
-                          >
-                            {activeRemoteActionBusy ? 'Running...' : 'Add'}
-                          </button>
-                        </div>
-                      </form>
+                        <option value="">Select ringserver</option>
+                        {ringserverOptions.map((option) => (
+                          <option key={option.key} value={option.key}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className={styles.confirmActions}>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        disabled={activeRemoteActionBusy}
+                        onClick={() => setShowRemoteServerAddForm(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className={styles.saveButton}
+                        disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
+                      >
+                        {activeRemoteActionBusy ? 'Running...' : 'Add'}
+                      </button>
                     </div>
-                  </div>
-                )}
+                  </form>
+                </div>
               </div>
             )}
           </div>
