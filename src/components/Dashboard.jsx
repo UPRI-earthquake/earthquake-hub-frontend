@@ -86,6 +86,31 @@ const formatStatusSince = (value) => {
   return `${m.fromNow()} · ${m.format('MMM D, YYYY')}`;
 };
 
+const normalizeServerUrl = (value) => (
+  String(value || '').trim().replace(/\/+$/g, '').toLowerCase()
+);
+
+const pickFirstDefinedValue = (...values) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined && String(value).trim() !== '') {
+      return value;
+    }
+  }
+  return '';
+};
+
+const resolveDeviceLocationField = (device, key) => (
+  pickFirstDefinedValue(
+    device?.[key],
+    device?.hostConfig?.[key],
+    device?.location?.[key],
+    device?.senderConfig?.[key],
+    device?.metadata?.[key],
+    device?.metadata?.location?.[key],
+    device?.lastKnownLocation?.[key],
+  )
+);
+
 const ACCOUNT_PASSWORD_MAX_LENGTH = 128;
 const discouragedPasswords = [
   'password',
@@ -201,6 +226,40 @@ const CloseIcon = ({ className }) => (
     <path d="M6 6 18 18" />
   </svg>
 );
+
+const TunnelEnabledIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.5 12.5 2.4 2.4 4.6-5.1" />
+  </svg>
+);
+
+const TunnelDisabledIcon = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.5 8.5 7 7" />
+    <path d="m15.5 8.5-7 7" />
+  </svg>
+);
+
 const BrokenChainIcon = ({ className }) => (
   <svg
     aria-hidden="true"
@@ -549,9 +608,9 @@ function Dashboard({
         station,
         linked,
         statusLabel,
-        longitude: device?.longitude ?? '',
-        latitude: device?.latitude ?? '',
-        elevation: device?.elevation ?? '',
+        longitude: resolveDeviceLocationField(device, 'longitude'),
+        latitude: resolveDeviceLocationField(device, 'latitude'),
+        elevation: resolveDeviceLocationField(device, 'elevation'),
       });
     });
 
@@ -604,6 +663,28 @@ function Dashboard({
     ).trim().toLowerCase(),
     [],
   );
+
+  const ringserverOptionsByNormalizedUrl = useMemo(() => {
+    const map = new Map();
+    ringserverOptions.forEach((option) => {
+      const normalizedUrl = normalizeServerUrl(option?.url);
+      if (normalizedUrl && !map.has(normalizedUrl)) {
+        map.set(normalizedUrl, option);
+      }
+    });
+    return map;
+  }, [ringserverOptions]);
+
+  const protectedRingserverUrls = useMemo(() => {
+    const urlSet = new Set();
+    ringserverOptions.forEach((option) => {
+      const name = String(option?.institutionName || '').trim().toLowerCase();
+      if (name !== protectedRingserverUsername) return;
+      const normalizedUrl = normalizeServerUrl(option?.url);
+      if (normalizedUrl) urlSet.add(normalizedUrl);
+    });
+    return urlSet;
+  }, [ringserverOptions, protectedRingserverUsername]);
 
   const getRemoteCapabilityMeta = useCallback((deviceId) => {
     const normalizedDeviceId = String(deviceId || '').trim().toUpperCase();
@@ -1065,9 +1146,15 @@ function Dashboard({
     });
   }, [executeRemoteAction, scheduleToastClear]);
 
-  const isUiProtectedRemoteServer = useCallback((server) => (
-    String(server?.institutionName || '').trim().toLowerCase() === protectedRingserverUsername
-  ), [protectedRingserverUsername]);
+  const isUiProtectedRemoteServer = useCallback((server) => {
+    if (!server) return false;
+    if (server.isProtectedDefault === true) return true;
+    const institutionMatch = String(server?.institutionName || '').trim().toLowerCase()
+      === protectedRingserverUsername;
+    if (institutionMatch) return true;
+    const normalizedUrl = normalizeServerUrl(server?.url);
+    return normalizedUrl ? protectedRingserverUrls.has(normalizedUrl) : false;
+  }, [protectedRingserverUrls, protectedRingserverUsername]);
 
   const closeRemoteActionModal = useCallback(() => {
     if (remoteActionModalDeviceId) {
@@ -1080,7 +1167,7 @@ function Dashboard({
     setRemoteActionModalDeviceId('');
   }, [remoteActionModalDeviceId, updateRemoteActionForm]);
 
-  const openRemoteActionModal = useCallback((deviceId) => {
+  const openRemoteActionModal = useCallback((deviceId, view = 'menu') => {
     const normalizedDeviceId = String(deviceId || '').trim().toUpperCase();
     if (!normalizedDeviceId) return;
     const { canExecute, hint } = getRemoteCapabilityMeta(normalizedDeviceId);
@@ -1091,7 +1178,7 @@ function Dashboard({
       return;
     }
     setRemoteActionModalDeviceId(normalizedDeviceId);
-    setRemoteActionModalView('menu');
+    setRemoteActionModalView(view);
     setShowRemoteServerAddForm(false);
   }, [getRemoteCapabilityMeta, scheduleToastClear]);
 
@@ -1111,9 +1198,64 @@ function Dashboard({
     ? (remoteActionFormByDeviceId[remoteActionModalDeviceId] || { relink: {}, addServerKey: '' })
     : { relink: {}, addServerKey: '' };
   const activeRemoteRelink = activeRemoteActionForm.relink || {};
-  const activeRemoteServers = remoteActionModalDeviceId
-    ? (remoteServersByDeviceId[remoteActionModalDeviceId] || [])
-    : [];
+  const activeRemoteServers = useMemo(() => (
+    remoteActionModalDeviceId
+      ? (remoteServersByDeviceId[remoteActionModalDeviceId] || [])
+      : []
+  ), [remoteActionModalDeviceId, remoteServersByDeviceId]);
+  const activeRemoteServerRows = useMemo(() => {
+    const byNormalizedUrl = new Map();
+
+    (activeRemoteServers || []).forEach((entry) => {
+      const rawUrl = String(entry?.url || '').trim();
+      const normalizedUrl = normalizeServerUrl(rawUrl);
+      if (!normalizedUrl) return;
+      const fallback = ringserverOptionsByNormalizedUrl.get(normalizedUrl);
+      const institutionName = String(
+        entry?.institutionName
+        || fallback?.institutionName
+        || rawUrl,
+      ).trim();
+      const status = String(entry?.status || '').trim();
+      byNormalizedUrl.set(normalizedUrl, {
+        institutionName,
+        url: rawUrl || fallback?.url || '',
+        status,
+        isProtectedDefault: false,
+      });
+    });
+
+    if (protectedRingserverUrls.size) {
+      const protectedOption = ringserverOptions.find((option) => (
+        String(option?.institutionName || '').trim().toLowerCase() === protectedRingserverUsername
+      )) || null;
+      if (protectedOption) {
+        const normalizedProtectedUrl = normalizeServerUrl(protectedOption.url);
+        if (normalizedProtectedUrl && !byNormalizedUrl.has(normalizedProtectedUrl)) {
+          byNormalizedUrl.set(normalizedProtectedUrl, {
+            institutionName: protectedOption.institutionName,
+            url: protectedOption.url,
+            status: '',
+            isProtectedDefault: true,
+          });
+        }
+      }
+    }
+
+    return Array.from(byNormalizedUrl.values())
+      .sort((a, b) => {
+        if (a.isProtectedDefault !== b.isProtectedDefault) {
+          return a.isProtectedDefault ? -1 : 1;
+        }
+        return String(a.institutionName || '').localeCompare(String(b.institutionName || ''));
+      });
+  }, [
+    activeRemoteServers,
+    protectedRingserverUsername,
+    protectedRingserverUrls,
+    ringserverOptions,
+    ringserverOptionsByNormalizedUrl,
+  ]);
   const activeRemoteServersLoading = Boolean(
     remoteActionModalDeviceId && isLoadingRemoteServersByDeviceId[remoteActionModalDeviceId],
   );
@@ -2042,7 +2184,14 @@ function Dashboard({
                   <section className={styles.panelBody} aria-label="Device remote actions">
                     <div className={styles.panelHeaderRow}>
                       <div>
-                        <h3 className={styles.panelTitle}>Device Remote Actions</h3>
+                        <p className={styles.panelKicker}>Remote control</p>
+                        <div className={styles.panelTitleRow}>
+                          <h3 className={styles.panelTitle}>Sender device remote actions</h3>
+                          <InfoTooltip label="Remote actions details" title="What this panel does" variant="inline">
+                            Run sender actions without opening the device shell. You can link or unlink a sender
+                            device and manage its ringserver targets when tunnel service is available.
+                          </InfoTooltip>
+                        </div>
                       </div>
                     </div>
 
@@ -2059,20 +2208,72 @@ function Dashboard({
                         {remoteActionDevices.map((device) => {
                           const capabilityMeta = getRemoteCapabilityMeta(device.deviceId);
                           const busy = Boolean(remoteActionBusyByDeviceId[device.deviceId]);
+                          const remoteTunnelEnabled = capabilityMeta.canExecute;
+                          const tunnelTitle = remoteTunnelEnabled
+                            ? 'Tunnel service enabled. Remote actions are available.'
+                            : `Tunnel service unavailable. ${capabilityMeta.hint}`;
+                          const linkActionLabel = device.linked ? 'UNLINK' : 'RELINK';
+                          const canManageServers = remoteTunnelEnabled && device.linked;
 
                           return (
-                            <div key={device.deviceId} className={styles.remoteActionCard}>
+                            <div
+                              key={device.deviceId}
+                              className={`${styles.remoteActionCard} ${
+                                remoteTunnelEnabled ? '' : styles.remoteActionCardDisabled
+                              }`}
+                              title={tunnelTitle}
+                            >
                               <div className={styles.remoteActionRow}>
-                                <p className={styles.remoteActionDeviceId}>{device.deviceId}</p>
-                                <button
-                                  type="button"
-                                  className={`${styles.toolBtn} ${styles.requestTokenBtn}`}
-                                  disabled={!capabilityMeta.canExecute || busy}
-                                  onClick={() => openRemoteActionModal(device.deviceId)}
-                                  title={capabilityMeta.canExecute ? 'Open remote actions' : capabilityMeta.hint}
-                                >
-                                  {busy ? 'Running…' : 'Connect'}
-                                </button>
+                                <div className={styles.remoteActionMeta}>
+                                  <p className={styles.remoteActionDeviceId}>{device.deviceId}</p>
+                                  <span
+                                    className={`${styles.remoteActionTunnelState} ${
+                                      remoteTunnelEnabled
+                                        ? styles.remoteActionTunnelStateEnabled
+                                        : styles.remoteActionTunnelStateDisabled
+                                    }`}
+                                    title={tunnelTitle}
+                                  >
+                                    {remoteTunnelEnabled ? (
+                                      <TunnelEnabledIcon className={styles.actionIcon} />
+                                    ) : (
+                                      <TunnelDisabledIcon className={styles.actionIcon} />
+                                    )}
+                                    {remoteTunnelEnabled ? 'Tunnel enabled' : 'Tunnel unavailable'}
+                                  </span>
+                                </div>
+                                <div className={styles.remoteActionButtons}>
+                                  <button
+                                    type="button"
+                                    className={`${styles.secondaryButton} ${styles.remoteActionActionButton}`}
+                                    disabled={!remoteTunnelEnabled || busy}
+                                    onClick={() => openRemoteActionModal(
+                                      device.deviceId,
+                                      device.linked ? 'unlink' : 'relink',
+                                    )}
+                                    title={remoteTunnelEnabled
+                                      ? `${linkActionLabel} ${device.deviceId}`
+                                      : capabilityMeta.hint}
+                                  >
+                                    {busy ? 'RUNNING…' : linkActionLabel}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${styles.saveButton} ${styles.remoteActionActionButton}`}
+                                    disabled={!canManageServers || busy}
+                                    onClick={async () => {
+                                      openRemoteActionModal(device.deviceId, 'servers');
+                                      await fetchRemoteDeviceServers(device.deviceId, { silent: true });
+                                    }}
+                                    title={canManageServers
+                                      ? `Manage servers for ${device.deviceId}`
+                                      : (remoteTunnelEnabled
+                                        ? 'Relink device first.'
+                                        : capabilityMeta.hint)}
+                                  >
+                                    SERVERS
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           );
@@ -2179,7 +2380,7 @@ function Dashboard({
                       <div>
                         <p className={styles.panelKicker}>Notifications</p>
                         <div className={styles.panelTitleRow}>
-                          <h3 className={styles.panelTitle}>RShake device email alerts</h3>
+                          <h3 className={styles.panelTitle}>Sender device alerts</h3>
                           <InfoTooltip label="RShake alert email details" title="How this works" variant="inline">
                             This account receives sender status emails only when enabled. Alerts include
                             streaming interruptions, not-streaming or sender error states, and recovery when
@@ -2782,8 +2983,7 @@ function Dashboard({
           >
             <div className={styles.remoteActionModalHeader}>
               <div>
-                <p className={styles.confirmTitle}>Remote Actions</p>
-                <p className={styles.remoteActionModalDeviceLabel}>{remoteActionModalDeviceId}</p>
+                <p className={styles.confirmTitle}>{remoteActionModalDeviceId}</p>
               </div>
               <button
                 type="button"
@@ -2805,11 +3005,11 @@ function Dashboard({
                 {activeRemoteActionDevice?.linked ? (
                   <button
                     type="button"
-                    className={styles.dangerButton}
+                    className={styles.secondaryButton}
                     disabled={activeRemoteActionBusy}
                     onClick={() => setRemoteActionModalView('unlink')}
                   >
-                    Unlink
+                    UNLINK
                   </button>
                 ) : (
                   <button
@@ -2818,12 +3018,12 @@ function Dashboard({
                     disabled={activeRemoteActionBusy}
                     onClick={() => setRemoteActionModalView('relink')}
                   >
-                    Relink
+                    RELINK
                   </button>
                 )}
                 <button
                   type="button"
-                  className={styles.secondaryButton}
+                  className={styles.saveButton}
                   disabled={activeRemoteActionBusy || !activeRemoteActionDevice?.linked}
                   title={activeRemoteActionDevice?.linked ? 'Manage ringserver targets' : 'Relink device first.'}
                   onClick={async () => {
@@ -2853,14 +3053,14 @@ function Dashboard({
                   </button>
                   <button
                     type="button"
-                    className={styles.dangerButton}
+                    className={styles.saveButton}
                     disabled={activeRemoteActionBusy}
                     onClick={async () => {
                       const success = await handleRemoteUnlink(remoteActionModalDeviceId);
                       if (success) closeRemoteActionModal();
                     }}
                   >
-                    {activeRemoteActionBusy ? 'Running...' : 'Confirm unlink'}
+                    {activeRemoteActionBusy ? 'Running...' : 'Unlink device'}
                   </button>
                 </div>
               </>
@@ -2889,17 +3089,6 @@ function Dashboard({
                 </label>
                 <div className={styles.settingsRow}>
                   <label className={styles.settingsField}>
-                    Longitude
-                    <input
-                      type="text"
-                      className={styles.settingsInput}
-                      value={activeRemoteRelink.longitude || ''}
-                      onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
-                        relink: { longitude: event.target.value },
-                      })}
-                    />
-                  </label>
-                  <label className={styles.settingsField}>
                     Latitude
                     <input
                       type="text"
@@ -2907,6 +3096,17 @@ function Dashboard({
                       value={activeRemoteRelink.latitude || ''}
                       onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
                         relink: { latitude: event.target.value },
+                      })}
+                    />
+                  </label>
+                  <label className={styles.settingsField}>
+                    Longitude
+                    <input
+                      type="text"
+                      className={styles.settingsInput}
+                      value={activeRemoteRelink.longitude || ''}
+                      onChange={(event) => updateRemoteActionForm(remoteActionModalDeviceId, {
+                        relink: { longitude: event.target.value },
                       })}
                     />
                   </label>
@@ -2924,19 +3124,11 @@ function Dashboard({
                 </label>
                 <div className={styles.confirmActions}>
                   <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    disabled={activeRemoteActionBusy}
-                    onClick={() => setRemoteActionModalView('menu')}
-                  >
-                    Back
-                  </button>
-                  <button
                     type="submit"
                     className={styles.saveButton}
                     disabled={activeRemoteActionBusy}
                   >
-                    {activeRemoteActionBusy ? 'Running...' : 'Run relink'}
+                    {activeRemoteActionBusy ? 'Running...' : 'Link device'}
                   </button>
                 </div>
               </form>
@@ -2944,30 +3136,6 @@ function Dashboard({
 
             {activeRemoteActionMeta.canExecute && remoteActionModalView === 'servers' && (
               <div className={styles.remoteServersPane}>
-                <div className={styles.remoteServersToolbar}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    disabled={activeRemoteActionBusy}
-                    onClick={() => {
-                      setRemoteActionModalView('menu');
-                      setShowRemoteServerAddForm(false);
-                    }}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.remoteServersAddButton}
-                    disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
-                    title="Add server target"
-                    aria-label="Add server target"
-                    onClick={() => setShowRemoteServerAddForm((prev) => !prev)}
-                  >
-                    +
-                  </button>
-                </div>
-
                 {showRemoteServerAddForm && (
                   <form
                     className={styles.remoteActionModalForm}
@@ -3026,19 +3194,39 @@ function Dashboard({
                       <thead>
                         <tr>
                           <th>Institution</th>
-                          <th aria-label="Remove server"> </th>
+                          <th className={styles.remoteServersAddHeading}>
+                            <button
+                              type="button"
+                              className={styles.remoteServersAddButton}
+                              disabled={activeRemoteActionBusy || isLoadingRingserverHosts}
+                              title="Add server target"
+                              aria-label="Add server target"
+                              onClick={() => setShowRemoteServerAddForm((prev) => !prev)}
+                            >
+                              +
+                            </button>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {activeRemoteServers.length ? (
-                          activeRemoteServers.map((server) => {
+                        {activeRemoteServerRows.length ? (
+                          activeRemoteServerRows.map((server) => {
                             const removeDisabled = activeRemoteActionBusy || isUiProtectedRemoteServer(server);
                             const removeHint = isUiProtectedRemoteServer(server)
-                              ? 'Default server removal is disabled in dashboard UI.'
+                              ? 'Default server removal is disabled.'
                               : 'Remove server';
                             return (
                               <tr key={`${server.url}-${server.institutionName}`}>
-                                <td>{server.institutionName || server.url}</td>
+                                <td>
+                                  <span className={styles.remoteServerInstitutionLabel}>
+                                    {server.institutionName || server.url}
+                                  </span>
+                                  {server.isProtectedDefault && (
+                                    <span className={styles.remoteServerInstitutionHint}>
+                                      Default target
+                                    </span>
+                                  )}
+                                </td>
                                 <td>
                                   <button
                                     type="button"

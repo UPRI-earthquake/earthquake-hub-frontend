@@ -547,11 +547,22 @@
   background: #f8fafc;
 }
 
+.remoteActionCardDisabled {
+  opacity: 0.78;
+}
+
 .remoteActionRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.remoteActionMeta {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .remoteActionDeviceId {
@@ -559,6 +570,47 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.01em;
+}
+
+.remoteActionTunnelState {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+}
+
+.remoteActionTunnelStateEnabled {
+  color: #0f766e;
+  border-color: rgba(20, 184, 166, 0.32);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.remoteActionTunnelStateDisabled {
+  color: #9a3412;
+  border-color: rgba(249, 115, 22, 0.32);
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.remoteActionButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.remoteActionActionButton {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .remoteActionModalCard {
@@ -597,13 +649,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.remoteServersToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 .remoteServersAddButton {
@@ -652,6 +697,11 @@
   border-bottom: 1px solid var(--border);
 }
 
+.remoteServersAddHeading {
+  width: 68px;
+  text-align: right !important;
+}
+
 .remoteServersTable tbody td {
   padding: 10px 12px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
@@ -665,6 +715,18 @@
 .remoteServersTable tbody td:last-child {
   width: 68px;
   text-align: right;
+}
+
+.remoteServerInstitutionLabel {
+  display: block;
+  font-weight: 600;
+}
+
+.remoteServerInstitutionHint {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .remoteServersRemoveButton {
@@ -1556,7 +1618,8 @@ html[data-theme='imagery'] .confirmBox {
   .closeBtn { width: 32px; height: 32px; }
   .sectionGrid { grid-template-columns: 1fr; }
   .remoteActionModalMenu { grid-template-columns: 1fr; }
-  .remoteServersToolbar { gap: 8px; }
+  .remoteActionButtons { width: 100%; justify-content: flex-start; }
+  .remoteActionActionButton { height: 32px; }
   .remoteServersAddButton { width: 34px; height: 34px; }
   .remoteActionModalCard { width: min(94%, 540px); }
   .deviceListTableContainer { max-height: 55dvh; }
@@ -1843,9 +1906,28 @@ html[data-theme='imagery'] .remoteActionCard {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
+html[data-theme='dark'] .remoteActionCardDisabled,
+html[data-theme='imagery'] .remoteActionCardDisabled {
+  opacity: 0.76;
+}
+
 html[data-theme='dark'] .remoteActionDeviceId,
 html[data-theme='imagery'] .remoteActionDeviceId {
   color: #f8fafc;
+}
+
+html[data-theme='dark'] .remoteActionTunnelStateEnabled,
+html[data-theme='imagery'] .remoteActionTunnelStateEnabled {
+  color: #5eead4;
+  border-color: rgba(45, 212, 191, 0.42);
+  background: rgba(45, 212, 191, 0.16);
+}
+
+html[data-theme='dark'] .remoteActionTunnelStateDisabled,
+html[data-theme='imagery'] .remoteActionTunnelStateDisabled {
+  color: #fdba74;
+  border-color: rgba(251, 146, 60, 0.42);
+  background: rgba(251, 146, 60, 0.16);
 }
 
 html[data-theme='dark'] .remoteActionModalDeviceLabel,
@@ -1880,6 +1962,11 @@ html[data-theme='dark'] .remoteServersTable tbody td,
 html[data-theme='imagery'] .remoteServersTable tbody td {
   border-bottom-color: rgba(148, 163, 184, 0.18);
   color: #e5e7eb;
+}
+
+html[data-theme='dark'] .remoteServerInstitutionHint,
+html[data-theme='imagery'] .remoteServerInstitutionHint {
+  color: #94a3b8;
 }
 
 html[data-theme='dark'] .topBar,
