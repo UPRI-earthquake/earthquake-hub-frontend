@@ -8,7 +8,7 @@ import styles from './EventMarker.module.css';
 import { ReactComponent as Circle } from '../assets/circle.svg';
 import { ReactComponent as CircleWithBorder } from '../assets/circleWithBorder.svg';
 import { eqSizePx, themeFromMapContainer, eqDepthColor } from '../config/mapStyles';
-import { computeHeaderAwarePopupAutoPanPadding } from '../config/popupAutoPan';
+import { DEFAULT_POPUP_AUTOPAN } from '../config/popupAutoPan';
 import { trackEvent } from '../analytics';
 
 function toRadius(magnitude) {
@@ -52,6 +52,7 @@ const EventMarker = ({
   location,
   enableAnimation = true,
   suppressInitialRadiate = false,
+  popupAutoPanPadding = DEFAULT_POPUP_AUTOPAN,
 }) => {
   // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
@@ -59,7 +60,7 @@ const EventMarker = ({
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
   const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
-    computeHeaderAwarePopupAutoPanPadding(map);
+    popupAutoPanPadding || DEFAULT_POPUP_AUTOPAN;
   const dispatch = useDispatch();
   const selectedEvent = useSelector((state) => state);
   const popupRef = useRef(null);

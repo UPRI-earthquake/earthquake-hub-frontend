@@ -11,9 +11,9 @@ function obscureLocation(lat, lon) {
 
 /**
  * Renders station markers with filters mirrored from the station list, plus slight location jittering.
- * @param {{initStations: Array<{network:string, code:string, latitude:number, longitude:number, description?:string}>, filters?: {searchText?: string, statusFilter?: string|null}}} props
+ * @param {{initStations: Array<{network:string, code:string, latitude:number, longitude:number, description?:string}>, filters?: {searchText?: string, statusFilter?: string|null}, popupAutoPanPadding?: {topLeft:number[], bottomRight:number[]}}} props
  */
-const StationMarkers = ({ initStations = [], filters = {} }) => {
+const StationMarkers = ({ initStations = [], filters = {}, popupAutoPanPadding }) => {
   // initialize station markers on map
   const [stations, setStations] = useState(initStations);
   const map = useMap();
@@ -84,6 +84,7 @@ const StationMarkers = ({ initStations = [], filters = {} }) => {
       latLng={station.latLng}
       description={station.description}
       activity={station.activity}
+      popupAutoPanPadding={popupAutoPanPadding}
     />
   ));
 };

@@ -5,7 +5,7 @@ import EventMarker from './EventMarker';
 
 /**
  * Renders earthquake markers filtered by magnitude/date.
- * @param {{initEvents: Array, selectedEvent?: any, filters?: Object, sseEnabled?: boolean, datasetKey?: string}} props
+ * @param {{initEvents: Array, selectedEvent?: any, filters?: Object, sseEnabled?: boolean, datasetKey?: string, popupAutoPanPadding?: {topLeft:number[], bottomRight:number[]}}} props
  */
 const EventMarkers = ({
   initEvents,
@@ -13,6 +13,7 @@ const EventMarkers = ({
   filters,
   sseEnabled: _sseEnabled = true,
   datasetKey,
+  popupAutoPanPadding,
 }) => {
   const map = useMap();
   const [events, setEvents] = useState(initEvents);
@@ -92,6 +93,7 @@ const EventMarkers = ({
         // Suppress only the initial mount/appear animation on All Stations
         enableAnimation={datasetKey !== 'all-stations'}
         suppressInitialRadiate={datasetKey === 'all-stations'}
+        popupAutoPanPadding={popupAutoPanPadding}
       />
     );
   });

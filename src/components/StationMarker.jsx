@@ -13,7 +13,7 @@ import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
 import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
-import { computeHeaderAwarePopupAutoPanPadding } from '../config/popupAutoPan';
+import { DEFAULT_POPUP_AUTOPAN } from '../config/popupAutoPan';
 import { trackEvent } from '../analytics';
 import { buildTriangleSVG } from '../utils/triangleMarker';
 /**
@@ -23,10 +23,17 @@ import { buildTriangleSVG } from '../utils/triangleMarker';
 const STREAM_LINE_COLOR = '#0ea5e9';
 const STREAM_TITLE_COLOR = '#0ea5e9';
 
-const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
+const StationMarker = ({
+  network,
+  code,
+  latLng,
+  description,
+  activity: initActivity,
+  popupAutoPanPadding = DEFAULT_POPUP_AUTOPAN,
+}) => {
   const map = useMap();
   const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
-    computeHeaderAwarePopupAutoPanPadding(map);
+    popupAutoPanPadding || DEFAULT_POPUP_AUTOPAN;
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);

@@ -1,4 +1,4 @@
-const DEFAULT_POPUP_AUTOPAN = {
+export const DEFAULT_POPUP_AUTOPAN = {
   topLeft: [16, 96],
   bottomRight: [16, 16],
 };
@@ -29,4 +29,3 @@ export function computeHeaderAwarePopupAutoPanPadding(map) {
     return DEFAULT_POPUP_AUTOPAN;
   }
 }
-
