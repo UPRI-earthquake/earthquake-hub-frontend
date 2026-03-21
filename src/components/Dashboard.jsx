@@ -360,6 +360,7 @@ function Dashboard({
   const [devicesFetched, setDevicesFetched] = useState(false);
   const [brgyAccessToken, setBrgyAccessToken] = useState(); // hook for brgyAccessToken
   const [accessTokenExpiry, setAccessTokenExpiry] = useState(); // hook for brgy accessToken expiration
+  const [showBrgyTokenCard, setShowBrgyTokenCard] = useState(false);
   const [rshakeAlertEmailsEnabled, setRshakeAlertEmailsEnabled] = useState(Boolean(rshakeEmailEnabled));
   const [isUpdatingRshakeAlerts, setIsUpdatingRshakeAlerts] = useState(false);
   const [ringserverHosts, setRingserverHosts] = useState([]);
@@ -1575,6 +1576,7 @@ function Dashboard({
 
   async function requestTokenSubmit(event) {
     event.preventDefault();
+    setShowBrgyTokenCard(true);
     // Read API host from runtime env (no defaults; .env expected to be configured)
     const backend_host = backendHost();
     try {
@@ -2335,48 +2337,50 @@ function Dashboard({
                       </div>
                     </div>
 
-                    <div className={styles.tokenCard}>
-                      {brgyAccessToken ? (
-                        <>
-                          <div className={styles.tokenRow}>
-                            <p className={styles.tokenLabel}>Barangay access token</p>
-                            <span className={styles.tokenExpiry}>
-                              Valid for {accessTokenExpiry ?? '—'}
-                            </span>
+                    {showBrgyTokenCard && (
+                      <div className={styles.tokenCard}>
+                        {brgyAccessToken ? (
+                          <>
+                            <div className={styles.tokenRow}>
+                              <p className={styles.tokenLabel}>Barangay access token</p>
+                              <span className={styles.tokenExpiry}>
+                                Valid for {accessTokenExpiry ?? '—'}
+                              </span>
+                            </div>
+                            <p className={styles.tokenValue} ref={textRef}>
+                              {brgyAccessToken}
+                            </p>
+                            <div className={styles.tokenActions}>
+                              <button
+                                type="button"
+                                className={`${styles.toolBtn} ${styles.copyTokenBtn}`}
+                                onClick={copyText}
+                                title="Copy token to clipboard"
+                                aria-label="Copy token to clipboard"
+                              >
+                                Copy token
+                              </button>
+                              <small className={styles.tokenNote}>
+                                Store this token securely. Rotate it before expiry and update your
+                                ringserver configuration to keep forwarding data.
+                              </small>
+                            </div>
+                          </>
+                        ) : (
+                          <div className={styles.tokenPlaceholder}>
+                            <div className={styles.emptyTitleRow}>
+                              <p className={`${styles.emptyTitle} ${styles.emptyTitleInline}`}>
+                                No token generated yet
+                              </p>
+                              <InfoTooltip label="Token placeholder details" title="How to generate a token" variant="inline">
+                                Use “Request token” to generate credentials for your barangay devices. The
+                                token will appear here once created.
+                              </InfoTooltip>
+                            </div>
                           </div>
-                          <p className={styles.tokenValue} ref={textRef}>
-                            {brgyAccessToken}
-                          </p>
-                          <div className={styles.tokenActions}>
-                            <button
-                              type="button"
-                              className={`${styles.toolBtn} ${styles.copyTokenBtn}`}
-                              onClick={copyText}
-                              title="Copy token to clipboard"
-                              aria-label="Copy token to clipboard"
-                            >
-                              Copy token
-                            </button>
-                            <small className={styles.tokenNote}>
-                              Store this token securely. Rotate it before expiry and update your
-                              ringserver configuration to keep forwarding data.
-                            </small>
-                          </div>
-                        </>
-                    ) : (
-                      <div className={styles.tokenPlaceholder}>
-                        <div className={styles.emptyTitleRow}>
-                          <p className={`${styles.emptyTitle} ${styles.emptyTitleInline}`}>
-                            No token generated yet
-                          </p>
-                          <InfoTooltip label="Token placeholder details" title="How to generate a token" variant="inline">
-                            Use “Request token” to generate credentials for your barangay devices. The
-                            token will appear here once created.
-                          </InfoTooltip>
-                        </div>
+                        )}
                       </div>
                     )}
-                  </div>
                 </section>
                 )}
 
