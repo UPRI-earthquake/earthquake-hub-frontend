@@ -1,14 +1,10 @@
 import { useCallback, useRef } from 'react';
 import axios from 'axios';
 import moment from '../utils/time';
+import { backendHost } from '../utils/env';
 import { emitToast } from '../utils/toast';
 // Performance: avoid shipping the EventSource polyfill to modern browsers.
 // We dynamically import it only if the native API is unavailable.
-function backendHost() {
-  return (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
-    ? window['ENV'].REACT_APP_BACKEND
-    : window['ENV'].REACT_APP_BACKEND_DEV;
-}
 
 // Choose the best doc among duplicates that represent the same event.
 // Preference: UPDATE > NEW, then by newest last_modification, then newest OT.

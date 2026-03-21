@@ -1,5 +1,6 @@
 import { devlog } from '../utils/devlog';
 import { emitToast } from '../utils/toast';
+import { backendHost } from '../utils/env';
 
 // Lightweight UI notification bridge: emit a global event that Header listens for
 function notifyUser(message, type = 'error') {
@@ -7,12 +8,6 @@ function notifyUser(message, type = 'error') {
 }
 
 const primarySwSuffix = '/service-worker.js';
-
-function backendHost() {
-  return process.env.NODE_ENV === 'production'
-    ? window['ENV'].REACT_APP_BACKEND
-    : window['ENV'].REACT_APP_BACKEND_DEV;
-}
 
 let convertedVapidKey;
 try {
