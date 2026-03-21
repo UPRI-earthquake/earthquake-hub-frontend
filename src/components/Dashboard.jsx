@@ -587,7 +587,6 @@ function Dashboard({
     [isBrgy, passwordStatus],
   );
 
-  const activeSectionMeta = sections.find((section) => section.id === activeSection);
   const showToolsAccessPanel = isBrgy;
   const showToolsNotificationsPanel = true;
   const showCitizenRemoteActionsPanel = isCitizen;
@@ -2093,10 +2092,6 @@ function Dashboard({
                   <span className={styles.actionLabel}>Open settings</span>
                 </button>
               </div>
-            )}
-
-            {activeSectionMeta?.description && activeSection !== 'tools' && (
-              <p className={styles.sectionDescription}>{activeSectionMeta.description}</p>
             )}
 
             {activeSection === 'devices' && (
