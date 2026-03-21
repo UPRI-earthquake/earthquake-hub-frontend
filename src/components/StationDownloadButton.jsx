@@ -4,40 +4,32 @@ import './StationDownloadButton.css';
 import Button from './Button';
 import { trackEvent } from '../analytics';
 import axios from 'axios';
+import moment from '../utils/time';
 
 /**
  * Download links for station metadata and waveform around event time.
  */
 const StationDownloadButtons = (stationInfo) => {
   const network = 'AM';
+  const parseEventTimeUtc = (value) => {
+    const parsed = moment(value || Date.now()).utc();
+    return parsed && typeof parsed.isValid === 'function' && parsed.isValid()
+      ? parsed
+      : moment().utc();
+  };
+
   function formatDateTime(dateString, secondsToAdd = 0) {
-    const date = new Date(dateString);
-    date.setUTCHours(date.getUTCHours() - 8); // -8hours since this is Ph Time (to make this UTC time)
-    date.setUTCSeconds(date.getUTCSeconds() + secondsToAdd); // Add or subtract the specified number of seconds
-
-    // Extract the updated year, month, day, hour, minute, second
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-based, so add 1
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-
-    // Format as yyyy-MM-ddTHH%3Amm%3Ass (with URL-encoded colons)
-    return `${year}-${month}-${day}T${hours}%3A${minutes}%3A${seconds}`;
+    return parseEventTimeUtc(dateString)
+      .add(secondsToAdd, 'second')
+      .format('YYYY-MM-DDTHH:mm:ss')
+      .replace(/:/g, '%3A');
   }
 
   const stationCode = stationInfo.stationCode;
   const stationCodeUpper = String(stationCode || '').toUpperCase();
   const startTime = formatDateTime(stationInfo.eventTime, -60);
   const endTime = formatDateTime(stationInfo.eventTime, 60 * 10); // seconds to minutes
-  const dateSuffix = (() => {
-    const d = new Date(stationInfo.eventTime || Date.now());
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const yy = String(d.getFullYear()).slice(-2);
-    return `${mm}${dd}${yy}`;
-  })();
+  const dateSuffix = parseEventTimeUtc(stationInfo.eventTime).format('MMDDYY');
   const metadataFilename = `${network}.${stationCodeUpper}.00.MULTI.xml`;
   const waveformFilename = `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.mseed`;
 
