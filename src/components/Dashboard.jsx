@@ -373,6 +373,7 @@ function Dashboard({
   const [remoteActionModalDeviceId, setRemoteActionModalDeviceId] = useState('');
   const [remoteActionModalView, setRemoteActionModalView] = useState('');
   const [showRemoteServerAddForm, setShowRemoteServerAddForm] = useState(false);
+  const [remoteServerPendingRemoval, setRemoteServerPendingRemoval] = useState(null);
   const [remoteActionFetchError, setRemoteActionFetchError] = useState('');
   const [activeSection, setActiveSection] = useState('devices'); // workspace tabs
   const [openSettingsSection, setOpenSettingsSection] = useState(null); // account settings collapsibles
@@ -1179,6 +1180,7 @@ function Dashboard({
         relink: { password: '' },
       });
     }
+    setRemoteServerPendingRemoval(null);
     setRemoteActionModalView('');
     setShowRemoteServerAddForm(false);
     setRemoteActionModalDeviceId('');
@@ -1197,6 +1199,7 @@ function Dashboard({
     const normalizedView = ['unlink', 'relink', 'servers'].includes(String(view || '').toLowerCase())
       ? String(view).toLowerCase()
       : 'unlink';
+    setRemoteServerPendingRemoval(null);
     setRemoteActionModalDeviceId(normalizedDeviceId);
     setRemoteActionModalView(normalizedView);
     setShowRemoteServerAddForm(false);
@@ -3170,14 +3173,12 @@ function Dashboard({
                                     className={styles.remoteServersRemoveButton}
                                     title={removeHint}
                                     disabled={removeDisabled}
-                                    onClick={async () => {
-                                      const success = await handleRemoteRemoveServer(
-                                        remoteActionModalDeviceId,
-                                        server.url,
-                                      );
-                                      if (success) {
-                                        await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
-                                      }
+                                    onClick={() => {
+                                      setShowRemoteServerAddForm(false);
+                                      setRemoteServerPendingRemoval({
+                                        institutionName: server.institutionName || server.url,
+                                        url: server.url,
+                                      });
                                     }}
                                   >
                                     -
@@ -3195,6 +3196,62 @@ function Dashboard({
                     </table>
                   </div>
                 )}
+              </div>
+            )}
+            {activeRemoteActionMeta.canExecute && remoteActionModalView === 'servers' && remoteServerPendingRemoval && (
+              <div
+                className={styles.remoteServersAddOverlay}
+                role="presentation"
+                onClick={() => {
+                  if (!activeRemoteActionBusy) {
+                    setRemoteServerPendingRemoval(null);
+                  }
+                }}
+              >
+                <div
+                  className={styles.remoteServersAddCard}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Remove remote server"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <p className={styles.confirmTitle}>Remove ringserver endpoint</p>
+                  <p className={styles.confirmText}>
+                    Are you sure you want to remove{' '}
+                    <strong>{remoteServerPendingRemoval.institutionName || remoteServerPendingRemoval.url}</strong>{' '}
+                    from this device?
+                  </p>
+                  <p className={styles.confirmText}>
+                    <code>{remoteServerPendingRemoval.url}</code>
+                  </p>
+                  <div className={styles.confirmActions}>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      disabled={activeRemoteActionBusy}
+                      onClick={() => setRemoteServerPendingRemoval(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.dangerButton}
+                      disabled={activeRemoteActionBusy}
+                      onClick={async () => {
+                        const success = await handleRemoteRemoveServer(
+                          remoteActionModalDeviceId,
+                          remoteServerPendingRemoval.url,
+                        );
+                        if (success) {
+                          setRemoteServerPendingRemoval(null);
+                          await fetchRemoteDeviceServers(remoteActionModalDeviceId, { silent: true });
+                        }
+                      }}
+                    >
+                      {activeRemoteActionBusy ? 'Running...' : 'Remove'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             {activeRemoteActionMeta.canExecute && remoteActionModalView === 'servers' && showRemoteServerAddForm && (
