@@ -178,7 +178,7 @@ export function unregister() {
       navigator.serviceWorker.getRegistrations()
         .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
         .catch((error) => {
-          console.error(error.message);
+          deverror('Error during service worker unregister:', error);
         });
       return;
     }
@@ -187,7 +187,7 @@ export function unregister() {
         registration.unregister();
       })
       .catch((error) => {
-        console.error(error.message);
+        deverror('Error during service worker unregister:', error);
       });
   }
 }
