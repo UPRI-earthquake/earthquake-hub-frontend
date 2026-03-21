@@ -2079,7 +2079,7 @@ function Dashboard({
                   <div className={styles.noticeTitleRow}>
                     <p className={`${styles.noticeTitle} ${styles.noticeTitleInline}`}>Password update recommended</p>
                     <InfoTooltip label="Password update details" title="Why update?" variant="inline">
-                      This account uses an older password. Update it in Account settings when convenient.
+                      This account uses a legacy password. Update it in Account settings when convenient.
                     </InfoTooltip>
                   </div>
                 </div>
@@ -2213,8 +2213,8 @@ function Dashboard({
                         <p className={styles.panelKicker}>Remote control</p>
                         <div className={styles.panelTitleRow}>
                           <h3 className={styles.panelTitle}>Sender device remote actions</h3>
-                          <InfoTooltip label="Remote actions details" title="What this panel does" variant="inline">
-                            Run sender actions without opening the device shell. You can link or unlink a sender
+                          <InfoTooltip label="Remote actions details" title="What you can do here" variant="inline">
+                            Run sender software (rs.local:3000) actions remotely. You can link or unlink a sender
                             device and manage its ringserver targets when tunnel service is available.
                           </InfoTooltip>
                         </div>
@@ -2900,7 +2900,7 @@ function Dashboard({
                           <div className={styles.cardTitleRow}>
                             <h4 className={styles.cardTitle}>Delete account</h4>
                             <InfoTooltip label="Account deletion details" title="Before deleting" variant="inline">
-                              All devices must be unlinked from this account via the sender software (rs.local:3000) before deleting this account.
+                              All devices must be unlinked from this account before deleting this account.
                             </InfoTooltip>
                           </div>
                           <p className={styles.settingsSummary}>
