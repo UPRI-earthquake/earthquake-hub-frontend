@@ -1,3 +1,5 @@
+import getBackendHost from './backendHost';
+
 // Helpers to safely read runtime env values from window.ENV (created by public/config.js)
 // NOTE: We assume .env and public/config.js are configured correctly in each environment.
 // Therefore we intentionally avoid providing hard-coded defaults here.
@@ -12,9 +14,7 @@ export function getEnv(key) {
 }
 
 export function backendHost() {
-  const isProd =
-    typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production';
-  return isProd ? getEnv('REACT_APP_BACKEND') : getEnv('REACT_APP_BACKEND_DEV');
+  return getBackendHost() || '';
 }
 
 export function ringserverWS() {

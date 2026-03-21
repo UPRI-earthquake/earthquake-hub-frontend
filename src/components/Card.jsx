@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import sanitizeHtml from '../utils/sanitizeHtml';
 import './Card.css';
-import bgImage from '../assets/UPRI_sultan_kudarat.png';
 
 /**
  * Card used in Significant Earthquakes list.
  */
-const Card = ({ title, magnitude, location, date, time, description, onClick }) => {
+const Card = ({ title, magnitude, location, dateLabel, depth, summary, onClick }) => {
+  const safeSummary = useMemo(() => sanitizeHtml(summary || ''), [summary]);
+
   return (
     <div
       className="card"
-      style={{ backgroundImage: `url(${bgImage})` }}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -21,15 +22,19 @@ const Card = ({ title, magnitude, location, date, time, description, onClick }) 
         }
       }}
     >
-      <div className="card-content">
-        <h4>{title}</h4>
-        <div className="hover-details">
-          <h4>Magnitude {magnitude}</h4>
-          <h5>{location}</h5>
-          <h5>
-            {date} - {time}
-          </h5>
-          <p dangerouslySetInnerHTML={{ __html: description }}></p>
+      <div className="card-surface">
+        <div className="card-top">
+          <span className="pill pill-strong">Magnitude {magnitude}</span>
+          {depth && <span className="pill pill-soft">{depth}</span>}
+        </div>
+        <h3 className="card-title">{title}</h3>
+        <p className="card-meta">{dateLabel}</p>
+        <p className="card-location">{location}</p>
+        {safeSummary && (
+          <div className="card-summary" dangerouslySetInnerHTML={{ __html: safeSummary }} />
+        )}
+        <div className="card-footer">
+          <span className="cta">View details →</span>
         </div>
       </div>
     </div>

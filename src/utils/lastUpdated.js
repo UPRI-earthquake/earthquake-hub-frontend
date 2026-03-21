@@ -19,7 +19,10 @@ function getSessionCache(key) {
     const raw = sessionStorage.getItem(`lastUpdated:${key}`);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (obj && obj.expiresAt && Date.now() < obj.expiresAt) return obj.value;
+    if (obj && obj.expiresAt && Date.now() < obj.expiresAt) {
+      if (obj.value && obj.value.source === 'unknown') return null;
+      return obj.value;
+    }
     return null;
   } catch (_) {
     return null;
@@ -79,6 +82,22 @@ function toLocalManila(date) {
       timeZone: 'Asia/Manila',
     });
     return fmt.format(d);
+  } catch (_) {
+    return null;
+  }
+}
+
+function toReadableDate(date) {
+  const manila = toLocalManila(date);
+  if (manila) return manila;
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (!d || Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+    });
   } catch (_) {
     return null;
   }
@@ -150,7 +169,7 @@ export async function getLastUpdated(meta, opts = {}) {
       const value = {
         source: 'github',
         isoDate: gh.isoDate,
-        displayDate: toLocalManila(gh.isoDate),
+        displayDate: toReadableDate(gh.isoDate),
         commitSha: String(gh.sha).slice(0, 7),
         commitUrl: gh.html_url,
         tooltip: 'Based on the last commit that changed this file in GitHub.',
@@ -173,7 +192,7 @@ export async function getLastUpdated(meta, opts = {}) {
     const value = {
       source: 'cdn',
       isoDate: cdn.isoDate,
-      displayDate: toLocalManila(cdn.isoDate),
+      displayDate: toReadableDate(cdn.isoDate),
       commitSha: null,
       commitUrl: null,
       tooltip: 'Fallback to CDN Last-Modified header; may not match repo history.',
@@ -191,8 +210,6 @@ export async function getLastUpdated(meta, opts = {}) {
       commitUrl: null,
       tooltip: 'Last updated is unknown; GitHub and CDN metadata unavailable.',
     };
-    MEMORY_CACHE.set(key, value);
-    setSessionCache(key, value, ttlMs);
     return value;
   }
 }
@@ -201,9 +218,6 @@ export async function getLastUpdated(meta, opts = {}) {
 export function formatLastUpdated(result) {
   if (!result) return 'Last updated: Unknown';
   const base = result.displayDate ? `Last updated: ${result.displayDate}` : 'Last updated: Unknown';
-  if (result.source === 'github' && result.commitSha) {
-    return `${base} (${result.commitSha})`;
-  }
   if (result.source === 'cdn') {
     return `${base} (from CDN header)`;
   }

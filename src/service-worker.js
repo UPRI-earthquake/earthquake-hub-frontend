@@ -25,6 +25,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 // are fulfilled with your index.html shell. Learn more at
 // https://developers.google.com/web/fundamentals/architecture/app-shell
 const fileExtensionRegexp = new RegExp('/[^/?]+\\.[^/]+$');
+const backendProxyPathRegexp = /^\/(?:api|fdsnws|ringserver)(?:\/|$)/;
 registerRoute(
   // Return false to exempt requests from being fulfilled by index.html.
   ({ request, url }) => {
@@ -38,6 +39,11 @@ registerRoute(
     } // If this looks like a URL for a resource, because it contains // a file extension, skip.
 
     if (url.pathname.match(fileExtensionRegexp)) {
+      return false;
+    }
+
+    // Let server-side proxy/back-end routes bypass SPA app-shell fallback.
+    if (backendProxyPathRegexp.test(url.pathname)) {
       return false;
     } // Return true to signal that we want to use the handler.
 
@@ -83,6 +89,148 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+const parsePushPayload = (event) => {
+  if (!event || !event.data) return {};
+  try {
+    return event.data.json();
+  } catch (_) {
+    try {
+      const text = event.data.text();
+      return text ? JSON.parse(text) : {};
+    } catch (err) {
+      return {};
+    }
+  }
+};
+
+const formatEqNotification = async (payload) => {
+  const data = (payload && payload.data) || payload || {};
+  const eventType = String(data.eventType || data.type || '').toUpperCase();
+  const isUpdate = eventType === 'UPDATE';
+  const publicID = data.publicID || data.publicId || data.id;
+  const explicitTag = (payload && payload.tag) || data.tag;
+  const tag = explicitTag || (publicID ? `eq:${publicID}` : undefined);
+  let updateCount = 0;
+  if (isUpdate && tag) {
+    try {
+      const existing = await self.registration.getNotifications({ tag });
+      if (existing && existing.length) {
+        const prev = existing[0]?.data?.updateCount;
+        updateCount = Number.isFinite(prev) ? prev + 1 : 2;
+      } else {
+        updateCount = 1;
+      }
+    } catch (_) {
+      updateCount = 1;
+    }
+  }
+  const magnitudeRaw = data.magnitude_value ?? data.magnitude ?? data.mag;
+  const magnitudeValue = Number(magnitudeRaw);
+  const magText = Number.isFinite(magnitudeValue) ? `M${magnitudeValue.toFixed(1)}` : 'Magnitude unknown';
+  const placeRaw = data.place || data.text || data.location || '';
+  const place = String(placeRaw || '').trim();
+  const locationText = place || 'Unknown location';
+  const updateLabel = isUpdate && updateCount ? `Update #${updateCount}` : '';
+  const titleBase = isUpdate ? 'Earthquake Update' : 'New Earthquake Alert';
+  const computedTitle = isUpdate && updateCount ? `${titleBase} #${updateCount}` : titleBase;
+  // Backward compatibility: allow explicit titles from payload/data.
+  const title = (payload && payload.title)
+    ? String(payload.title)
+    : (data.title ? String(data.title) : computedTitle);
+  const defaultBody = isUpdate
+    ? `${magText} updated near ${locationText}`
+    : `${magText} detected near ${locationText}`;
+  const bodyBase = (payload && payload.body)
+    ? String(payload.body)
+    : (data.body ? String(data.body) : defaultBody);
+  const bodyPrefix = isUpdate ? 'Updated event' : 'New event';
+  const body = isUpdate && updateLabel
+    ? `${bodyPrefix} • ${updateLabel} • ${bodyBase}`
+    : `${bodyPrefix} • ${bodyBase}`;
+  const url = data.url || (payload && payload.url) || (publicID ? `/?event=${encodeURIComponent(publicID)}` : '/');
+  const renotify = typeof (payload && payload.renotify) === 'boolean'
+    ? payload.renotify
+    : (typeof data.renotify === 'boolean' ? data.renotify : isUpdate);
+  const badge = (payload && payload.badge) || data.badge || '/badge-92x92.png';
+  const icon = (payload && payload.icon) || data.icon || '/android-chrome-192x192.png';
+  return {
+    title,
+    options: {
+      body,
+      tag,
+      renotify,
+      badge,
+      icon,
+      data: {
+        url,
+        publicID,
+        eventType,
+        updateCount,
+      },
+    },
+  };
+};
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    const payload = parsePushPayload(event);
+    const { title, options } = await formatEqNotification(payload);
+    await self.registration.showNotification(title, options);
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification?.data?.url || '/';
+  const fallbackUrl = new URL('/', self.location.origin).href;
+  let absoluteUrl = fallbackUrl;
+  try {
+    const parsed = new URL(targetUrl, self.location.origin);
+    // Avoid turning push payload into an open-redirect vector.
+    absoluteUrl = parsed.origin === self.location.origin ? parsed.href : fallbackUrl;
+  } catch (_) {
+    absoluteUrl = fallbackUrl;
+  }
+
+  event.waitUntil((async () => {
+    const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const sameOriginClients = (clientsArr || []).filter((client) => {
+      try {
+        return client && typeof client.url === 'string' && new URL(client.url).origin === self.location.origin;
+      } catch (_) {
+        return false;
+      }
+    });
+
+    const exactMatch = sameOriginClients.find((client) => {
+      try {
+        return new URL(client.url).href === absoluteUrl;
+      } catch (_) {
+        return false;
+      }
+    });
+    const targetClient = exactMatch || sameOriginClients[0];
+
+    if (targetClient) {
+      try {
+        if (typeof targetClient.navigate === 'function') {
+          await targetClient.navigate(absoluteUrl);
+        }
+      } catch (_) {}
+      try {
+        if (typeof targetClient.focus === 'function') {
+          await targetClient.focus();
+        }
+      } catch (_) {}
+      return;
+    }
+
+    if (self.clients.openWindow) {
+      await self.clients.openWindow(absoluteUrl);
+    }
+  })());
 });
 
 // Any other custom service worker logic can go here.

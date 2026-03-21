@@ -31,26 +31,46 @@ const PALETTE = {
     haloDark: '#1A1A1A',
   },
   faults: {
-    light: '#9C4231',
-    dark: '#FFA07A',
-    satellite: '#FFA07A',
-    secondary: '#B36B5E',
+    light: '#C48A2C',
+    dark: '#C48A2C',
+    satellite: '#C48A2C',
+    secondary: '#D7A657',
   },
   // Default plate stroke retained for light; per-theme overrides below
-  plates: { stroke: '#1C88B6' },
+  plates: { stroke: '#D7A657' },
+  par: {
+    light: '#6B7280',
+    dark: '#94A3B8',
+    // Cooler tint for satellite/imagery so PAR remains visible over textured oceans.
+    satellite: '#7DD3FC',
+  },
 };
 
 // Theme-specific colors that are easy to extend when adding new basemaps
-const FAULT_COLORS = { light: PALETTE.faults.light, dark: PALETTE.faults.dark, satellite: PALETTE.faults.dark };
-const PLATE_COLORS = { light: PALETTE.plates.stroke, dark: '#7DD3FC', satellite: '#22D3EE' };
+const FAULT_COLORS = {
+  light: PALETTE.faults.light,
+  dark: PALETTE.faults.light,
+  satellite: PALETTE.faults.light,
+};
+const PLATE_COLORS = {
+  light: PALETTE.plates.stroke,
+  dark: PALETTE.plates.stroke,
+  satellite: PALETTE.plates.stroke,
+};
+const PAR_COLORS = {
+  light: PALETTE.par.light,
+  dark: PALETTE.par.dark,
+  satellite: PALETTE.par.satellite,
+};
+const STATION_FILL_LIGHT = '#22C55E';
 
 // Depth ramp colors chosen to avoid conflict with station markers
 // and to maintain contrast on satellite imagery.
 // Order: [shallow (0–70), intermediate (70–300), deep (300+)]
 // Define core ramps and alias to all basemap variants for easy editing
-const DR_LIGHT = ['#CC3A3A','#FF6B6B', '#FF8A65'];
-const DR_DARK = ['#CC3A3A','#FF6B6B', '#FF8A65'];
-const DR_SAT = ['#CC3A3A','#FF6B6B', '#FF8A65'];
+const DR_LIGHT = ['#DC2626', '#F97316', '#FACC15'];
+const DR_DARK = ['#EF4444', '#FB923C', '#FDE047'];
+const DR_SAT = ['#EF4444', '#FB923C', '#FDE047'];
 export const DEPTH_RAMP = {
   // canonical keys
   light: DR_LIGHT,
@@ -135,27 +155,30 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
 
   // Faults
   const faultColor = FAULT_COLORS[t] || FAULT_COLORS.light;
-  const faultOpacityBase = 0.9;
+  const faultOpacityBase = 0.7;
   const faultOpacity =
     !hasEQ && hasFaults ? Math.min(1, faultOpacityBase + 0.05) : faultOpacityBase;
-  // Keep base stroke weights thin to match basemap scale; do not up-scale with zoom.
-  // Hover/selection will temporarily increase weight for readability/tooltips.
-  const faultWeightBase = ZOOM.country(z) ? 0.6 : ZOOM.regional(z) ? 0.8 : 1.0;
-  const faultWeight = faultWeightBase;
-  const faultDashed = ZOOM.country(z) && hasEQ && hasFaults;
+  // Keep stroke weights fixed across zoom to reduce visual jitter.
+  const faultWeight = t === 'satellite' ? 0.9 : t === 'dark' ? 0.85 : 0.8;
+  // Keep a solid stroke at all zoom levels to avoid dash artifacts
+  const faultDashed = false;
 
   // Plates
   // Make plate boundaries only slightly thicker than faults and
   // keep thickness stable across zooms (no scale multiplier).
   // This aligns with the visual goal: plates ≈ faults, just a touch heavier.
   const plateDash = '6,6';
-  let plateWeight = faultWeight + 0.3; // subtle emphasis over faults
-  if (t === 'satellite') plateWeight += 0.2; // minor boost for imagery contrast
+  const plateWeight = faultWeight + 0.2; // subtle emphasis over faults
+
+  // PAR boundary (official PAGASA polygon boundary)
+  const parDash = '5,9';
+  const parWeight = 1;
 
   // Stations
   // On satellite imagery, use a high-contrast fill and thicker white halo
   // so markers remain visible over greens (land) and dark blues (water).
-  const stFill = t === 'satellite' ? '#FFD54F' : PALETTE.stations.fill; // amber 300
+  const stFill =
+    t === 'satellite' ? '#FFD54F' : t === 'dark' ? PALETTE.stations.fill : STATION_FILL_LIGHT; // amber 300
   const stHalo =
     t === 'satellite'
       ? '#FFFFFF'
@@ -167,7 +190,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
   // Theme-aware offline marker fill: neutral slate/gray with sufficient contrast
   const stOfflineFill =
     t === 'satellite'
-      ? '#E5E7EB' // gray-200: brighter on imagery for contrast
+      ? '#FFFFFF' // white: matches satellite legend swatch
       : t === 'dark'
       ? '#CBD5E1' // slate-300: light neutral on dark basemap
       : '#4B5563'; // gray-600: stronger contrast on standard/light basemap
@@ -196,8 +219,14 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
     plates: {
       color: PLATE_COLORS[t] || PLATE_COLORS.light,
       weight: plateWeight,
-      opacity: 0.85,
+      opacity: 0.7,
       dashArray: plateDash,
+    },
+    par: {
+      color: PAR_COLORS[t] || PAR_COLORS.light,
+      weight: parWeight,
+      opacity: t === 'satellite' ? 0.34 : t === 'dark' ? 0.32 : 0.3,
+      dashArray: parDash,
     },
     stations: {
       fill: stFill,
@@ -209,6 +238,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
       pulseOff: stPulseOff,
     },
     zIndex: {
+      par: 400,
       plates: 405,
       faults: 410,
       stations: 600, // markerPane default
@@ -241,6 +271,19 @@ export function platesStyle({ theme, zoom }) {
     lineCap: 'round',
     lineJoin: 'round',
     smoothFactor: 1.5,
+  };
+}
+
+export function parStyle({ theme, zoom }) {
+  const t = buildThemeTokens({ theme, zoom, overlays: null }).par;
+  return {
+    color: t.color,
+    weight: t.weight,
+    opacity: t.opacity,
+    dashArray: t.dashArray,
+    lineCap: 'round',
+    lineJoin: 'round',
+    smoothFactor: 1.2,
   };
 }
 

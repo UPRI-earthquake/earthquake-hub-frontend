@@ -1,31 +1,63 @@
-import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
-import ReactDOMServer from 'react-dom/server';
-import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
+import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
+import { Marker, Popup, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
-import { ReactComponent as Logo } from '../assets/triangle.svg';
 import styles from './StationMarker.module.css';
+import InfoTooltip from './InfoTooltip';
 import SSEContext from '../SSEContext';
 import moment from '../utils/time';
 import axios from 'axios';
+import { normalizeDeviceActivity, toMarkerActivity } from '../utils/deviceStatus';
 // Defer loading of the heavy seisplotjs library until the popup/graph is used
 import { ringserverWS } from '../utils/env';
 import demoMseedUrl from '../assets/demo.mseed';
 import { devlog, deverror } from '../utils/devlog';
 import { useSelector, useDispatch } from 'react-redux';
-import { themeFromMapContainer } from '../config/mapStyles';
+import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../config/mapStyles';
+import { DEFAULT_POPUP_AUTOPAN } from '../config/popupAutoPan';
+import { trackEvent } from '../analytics';
+import { buildTriangleSVG } from '../utils/triangleMarker';
 /**
  * Single station marker with real-time miniseed plot via DataLink WebSocket.
  */
-const StationMarker = ({ network, code, latLng, description, activity: initActivity }) => {
+
+const STREAM_LINE_COLOR = '#0ea5e9';
+const STREAM_TITLE_COLOR = '#0ea5e9';
+
+const StationMarker = ({
+  network,
+  code,
+  latLng,
+  description,
+  activity: initActivity,
+  popupAutoPanPadding = DEFAULT_POPUP_AUTOPAN,
+}) => {
   const map = useMap();
+  const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
+    popupAutoPanPadding || DEFAULT_POPUP_AUTOPAN;
   const realtimeDivRef = useRef(null);
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
   const datalinkRef = useRef(null);
   const connected = useRef(false); // flag used in connectDataLinkWS(), ws is not connected by default
+  const [markerTheme, setMarkerTheme] = useState(() =>
+    themeFromMapContainer(map?.getContainer?.()),
+  );
   const demoTimerRef = useRef(null);
   const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
   const ringserver_ws = ringserverWS();
+  const logDownload = useCallback(
+    (payload) => {
+      try {
+        trackEvent('download_data', {
+          station_code: code,
+          network: String(network || 'AM').toUpperCase(),
+          source: 'station_popup',
+          ...payload,
+        });
+      } catch (_) {}
+    },
+    [code, network],
+  );
 
   // Lazy-loaded seisplotjs and derived config/state
   const spRef = useRef(null);
@@ -51,6 +83,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     cfg.doGain = true;
     cfg.isRelativeTime = true;
     cfg.xLabel = 'Time (seconds)';
+    cfg.lineColors = [STREAM_LINE_COLOR];
     durationRef.current = duration;
     graphDurationRef.current = graphDuration;
     timeWindowRef.current = timeWindow;
@@ -65,7 +98,6 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const theme = themeFromMapContainer(map?.getContainer?.());
       const dark = theme === 'dark' || theme === 'satellite';
       const axis = dark ? '#e5e7eb' : '#111827';
-      const label = axis;
       const sublbl = dark ? 'rgba(229,231,235,0.7)' : 'rgba(17,24,39,0.7)';
       const grid = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.25)';
       const css = `
@@ -77,12 +109,18 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         /* grid (if enabled by config) */
         svg.seismograph g.grid line { stroke: ${grid}; }
         /* main axis labels */
-        svg.seismograph g.xLabel text { fill: ${label}; color: ${label}; }
-        svg.seismograph g.yLabel.left text { fill: ${label}; color: ${label}; }
-        svg.seismograph g.yLabel.right text { fill: ${label}; color: ${label}; }
+        svg.seismograph g.xLabel text { fill: ${axis}; color: ${axis}; }
+        svg.seismograph g.yLabel.left text { fill: ${axis}; color: ${axis}; }
+        svg.seismograph g.yLabel.right text { fill: ${axis}; color: ${axis}; }
         /* sublabels/units */
         svg.seismograph g.xSublabel text { fill: ${sublbl}; color: ${sublbl}; }
         svg.seismograph g.ySublabel text { fill: ${sublbl}; color: ${sublbl}; }
+        /* keep stream title color consistent across light/dark */
+        svg.seismograph g.title text,
+        svg.seismograph text.title {
+          fill: ${STREAM_TITLE_COLOR};
+          color: ${STREAM_TITLE_COLOR};
+        }
       `;
       // Replace existing theme style to avoid duplicates
       try {
@@ -129,14 +167,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const errorFn = function (_error) {
     if (datalinkRef.current) {
       datalinkRef.current.close();
-    } // Close the websocket connection
+    } // Close the WebSocket connection
   };
 
   /***************************************************************************
    * new DataLinkConnection:
-   *     A websocket based Datalink connection
+   *     A WebSocket based Datalink connection
    * Parameters:
-   *     url            (string)                                    websocket url to the ringserver
+   *     url            (string)                                    WebSocket URL to the ringserver
    *     packetHandler  (function (packet: DataLinkPacket): void)   callback for packets as they arrive
    *     errorHandler   (function (error: Error): void)             callback for errors
    *
@@ -171,8 +209,8 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       try {
         const matchPattern = `${network}_${station}_([0-9]{2})?_.HZ/MSEED`;
 
-        devlog('Connecting to datalink via websocket');
-        await datalinkRef.current.connect(); // Create websocket connection and send the client ID
+        devlog('Connecting to datalink via WebSocket');
+        await datalinkRef.current.connect(); // Create WebSocket connection and send the client ID
         connected.current = true;
         const matchResponse = await datalinkRef.current.match(matchPattern); // Send match command
         if (matchResponse.isError()) {
@@ -188,7 +226,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         // NOTE: This part blocks while streaming,
         // until endStream() is called
       } catch (e) {
-        deverror('Error occurred while connecting to websocket');
+        deverror('Error occurred while connecting to WebSocket');
       }
     }
   };
@@ -197,14 +235,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     try {
       if (connected.current && datalinkRef.current) {
         // close connection
-        devlog('Disconnecting datalink websocket');
+        devlog('Disconnecting datalink WebSocket');
         await datalinkRef.current.endStream();
         await datalinkRef.current.close();
 
         connected.current = false;
       }
     } catch (e) {
-      deverror('Error occurred while closing websocket');
+      deverror('Error occurred while closing WebSocket');
     }
   };
 
@@ -266,11 +304,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       sdd.alignmentTime = sp.luxon.DateTime.utc();
 
       try {
-        const theme = themeFromMapContainer(map?.getContainer?.());
-        const dark = theme === 'dark' || theme === 'satellite';
-        if (seisPlotConfigRef.current) {
-          seisPlotConfigRef.current.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
-        }
+        if (seisPlotConfigRef.current) seisPlotConfigRef.current.lineColors = [STREAM_LINE_COLOR];
       } catch (_) {}
       const plot = new sp.seismograph.Seismograph([sdd], seisPlotConfigRef.current);
       realtimeDivRef.current.appendChild(plot);
@@ -325,22 +359,32 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const [pick, setPick] = useState(false);
   const timerId = useRef(null); // hold running timeout-id across renders
   const eventSource = useContext(SSEContext);
-  const [statusState, setStatusState] = useState({ status: null, statusSince: null });
+  const [statusState, setStatusState] = useState({ status: null, statusSince: null, activity: null });
   const prevStatusRef = useRef(null);
   const [statusChange, setStatusChange] = useState(null); // 'went-online' | 'went-offline' | null
   const statusAnimTimerRef = useRef(null);
   // One-shot pulse on marker when status changes (via SSE/API)
   const [markerPulse, setMarkerPulse] = useState(null); // same class names as CSS: 'went-online' | 'went-offline'
   const markerPulseTimerRef = useRef(null);
+  // Keep per-marker unique SVG ids so gradients don't collide across markers
+  const gradientIdRef = useRef(null);
+  if (!gradientIdRef.current) {
+    const safeNet = String(network || 'am').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const safeCode = String(code || 'station').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const salt = Math.random().toString(36).slice(2, 8);
+    gradientIdRef.current = `${safeNet || 'net'}-${safeCode || 'station'}-${salt}`;
+  }
   // Track current marker activity to tint marker (active vs inactive)
-  const [markerActivity, setMarkerActivity] = useState(() => {
-    const a = String(initActivity || '').toLowerCase();
-    return a === 'active' || a === 'inactive' ? a : null;
-  });
+  const [markerActivity, setMarkerActivity] = useState(null); // updated via SSE/API
   const backend_host =
     process.env.NODE_ENV === 'production'
       ? window['ENV'].REACT_APP_BACKEND
       : window['ENV'].REACT_APP_BACKEND_DEV;
+
+  // Derive display activity from live state, status, or initial prop
+  const displayActivity = normalizeDeviceActivity(
+    markerActivity || statusState.activity || initActivity,
+  );
 
   useEffect(() => {
     if (!eventSource || typeof eventSource.addEventListener !== 'function') {
@@ -375,10 +419,10 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
           raw.network || raw.networkCode || raw.network_code || raw.net || 'AM',
         ).toUpperCase();
         if (String(network || 'AM').toUpperCase() !== net) return;
-        const s = String(raw.status || raw.activity || '').toLowerCase();
         let next = null;
-        if (s === 'streaming' || s === 'active' || s === 'online') next = 'active';
-        else if (s === 'not streaming' || s === 'inactive' || s === 'offline') next = 'inactive';
+        const state = normalizeDeviceActivity(raw.activity || raw.status || '');
+        if (state === 'active') next = 'active';
+        else if (state === 'inactive' || state === 'unlinked') next = 'inactive';
         else if (typeof raw.isActive === 'boolean') next = raw.isActive ? 'active' : 'inactive';
         if (next) {
           setMarkerActivity((prev) => {
@@ -414,19 +458,31 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     };
   }, [code, network, eventSource]);
 
-  const isInactive = String(markerActivity || '').toLowerCase() === 'inactive';
+  const isInactive = displayActivity !== 'active';
   // Online markers should float above offline ones; add a small extra for pick highlight
   const zIndexOffset = (isInactive ? 0 : 200) + (pick ? 20 : 0);
+  const stationTokens = useMemo(() => {
+    try {
+      return buildThemeTokens({
+        theme: markerTheme,
+        zoom: zoomFromMap(map),
+        overlays: null,
+      }).stations;
+    } catch (_) {
+      return { fill: '#22c55e', offlineFill: '#9ca3af' };
+    }
+  }, [markerTheme, map]);
+  const baseHex = isInactive ? stationTokens.offlineFill : stationTokens.fill;
+  const triangleMarkup = buildTriangleSVG(baseHex, gradientIdRef.current);
   const divTriangle = new DivIcon({
-    className: `${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
+    className: `station-marker ${pick ? styles.dynamic : styles.static} ${isInactive ? styles.offline : ''} ${
       markerPulse ? styles[markerPulse] : ''
     }`,
-    html: ReactDOMServer.renderToString(<Logo />),
+    html: triangleMarkup,
     iconSize: [25, 25],
   });
 
   const handleStationClick = async () => {
-    try { setTooltipDisabled(true); } catch (_) {}
     try { const el = map && map.getContainer && map.getContainer(); el && el.classList.add('hide-marker-tooltips'); } catch (_) {}
     // Ensure map UI panels (Layers/Legend) collapse when a popup opens
     try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
@@ -440,11 +496,11 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       setStatusState({
         status: nextStatus,
         statusSince: payload.statusSince,
+        activity: payload.activity || null,
       });
       // Also update marker activity color based on current status
       try {
-        const s = String(nextStatus || '').toLowerCase();
-        const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
+        const next = toMarkerActivity(payload.activity || nextStatus);
         setMarkerActivity((prev) => {
           if (prev && prev !== next) {
             const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
@@ -487,7 +543,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
         'Error occurred while fetching device status or while starting datalink graph:',
         error,
       );
-      setStatusState({ status: null, statusSince: null });
+      setStatusState({ status: null, statusSince: null, activity: null });
       // In case backend is unavailable, still allow demo for styling verification (.env only)
       try {
         const demoFlag = window.ENV && window.ENV.REACT_APP_SEIS_DEMO === '1';
@@ -500,7 +556,6 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
     await disconnectDataLinkWS();
     stopDemoMseed();
     try { if (statusAnimTimerRef.current) clearTimeout(statusAnimTimerRef.current); } catch (_) {}
-    try { setTooltipDisabled(false); } catch (_) {}
     try { const el = map && map.getContainer && map.getContainer(); el && el.classList.remove('hide-marker-tooltips'); } catch (_) {}
     try {
       if (selectedId === `station:${code}`) {
@@ -547,6 +602,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       });
 
       if (resp.status !== 200) {
+        logDownload({ type: 'metadata', format: 'xml', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -555,6 +611,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const ct = (resp.headers && resp.headers['content-type']) || '';
       const looksXml = typeof ct === 'string' && ct.toLowerCase().includes('xml');
       if (!blob || blob.size === 0 || (!looksXml && blob.size < 64)) {
+        logDownload({ type: 'metadata', format: 'xml', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -568,7 +625,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       a.click();
       a.remove();
       window.URL.revokeObjectURL(objUrl);
+      logDownload({
+        type: 'metadata',
+        format: 'xml',
+        status: 'success',
+        size_bytes: blob.size || 0,
+      });
     } catch (_) {
+      logDownload({ type: 'metadata', format: 'xml', status: 'error' });
       try { window.open(metadata_download_URL, '_blank', 'noreferrer'); } catch (_) {}
     }
   };
@@ -588,6 +652,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       });
 
       if (resp.status !== 200) {
+        logDownload({ type: 'waveform', format: 'mseed', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -596,6 +661,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       const ct = (resp.headers && resp.headers['content-type']) || '';
       const looksMseed = typeof ct === 'string' && (ct.toLowerCase().includes('vnd.fdsn.mseed') || ct.toLowerCase().includes('application/octet-stream'));
       if (!blob || blob.size === 0 || (!looksMseed && blob.size < 64)) {
+        logDownload({ type: 'waveform', format: 'mseed', status: 'fallback' });
         try { window.open(url, '_blank', 'noreferrer'); } catch (_) {}
         return;
       }
@@ -610,7 +676,14 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       a.click();
       a.remove();
       window.URL.revokeObjectURL(objUrl);
+      logDownload({
+        type: 'waveform',
+        format: 'mseed',
+        status: 'success',
+        size_bytes: blob.size || 0,
+      });
     } catch (_) {
+      logDownload({ type: 'waveform', format: 'mseed', status: 'error' });
       try { window.open(data_download_URL, '_blank', 'noreferrer'); } catch (_) {}
     }
   };
@@ -618,86 +691,22 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
   const dispatch = useDispatch();
   const selectedId = useSelector((state) => state);
   const isSelected = selectedId === `station:${code}`;
-  const [tooltipDisabled, setTooltipDisabled] = useState(false);
-
-  /* Tooltip text mirrors Sidebar station list items */
-  const statusCacheRef = useRef(
-    (typeof window !== 'undefined' && (window.__stationStatusCache || (window.__stationStatusCache = new Map()))) ||
-      new Map(),
-  );
-  const [tooltipText, setTooltipText] = useState('Loading status…');
-  const computeTooltip = useCallback((status, statusSince) => {
-    const s = (status || '').toLowerCase();
-    const m = statusSince ? moment(statusSince) : null;
-    if (s === 'streaming') {
-      return m ? `Streaming since ${m.fromNow()}` : 'Streaming';
-    }
-    if (m && m.isAfter(moment().subtract(1, 'month'))) {
-      return `Not streaming since ${m.fromNow()}`;
-    }
-    return 'Device Offline';
-  }, []);
-  const refreshTooltipFromAPI = useCallback(async () => {
-    try {
-      const key = `${(network || 'AM').toUpperCase()}:${(code || '').toUpperCase()}`;
-      const cache = statusCacheRef.current;
-      const now = Date.now();
-      const cached = cache.get(key);
-      if (cached && now - cached.t < 60_000) {
-        setTooltipText(computeTooltip(cached.status, cached.statusSince));
-        // Update marker color from cache if status present
-        try {
-          const s = String(cached.status || '').toLowerCase();
-          const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
-          setMarkerActivity((prev) => {
-            if (prev && prev !== next) {
-              const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
-              setMarkerPulse(cls);
-              try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
-            }
-            return next;
-          });
-        } catch (_) {}
-        return;
-      }
-      const url = `${backend_host}/device/status?network=${(network || 'AM').toUpperCase()}&station=${(code || '').toUpperCase()}`;
-      const resp = await axios.get(url);
-      const payload = resp?.data?.payload || {};
-      cache.set(key, { t: now, status: payload.status, statusSince: payload.statusSince });
-      setTooltipText(computeTooltip(payload.status, payload.statusSince));
-      // Update marker activity based on fresh status
-      try {
-        const s = String(payload.status || '').toLowerCase();
-        const next = s === 'streaming' || s === 'active' || s === 'online' ? 'active' : 'inactive';
-        setMarkerActivity((prev) => {
-          if (prev && prev !== next) {
-            const cls = next === 'active' ? 'pulse-online' : 'pulse-offline';
-            setMarkerPulse(cls);
-            try { if (markerPulseTimerRef.current) clearTimeout(markerPulseTimerRef.current); } catch (_) {}
-              markerPulseTimerRef.current = setTimeout(() => setMarkerPulse(null), 4500);
-          }
-          return next;
-        });
-      } catch (_) {}
-    } catch (_) {
-      // Keep previous tooltip on failure
-    }
-  }, [network, code, backend_host, computeTooltip]);
-
-  // Tooltips stay mounted; on mobile they are visually hidden via CSS
+  const markerDesc = String(description || '').trim();
+  const markerTitle = markerDesc
+    ? `Station ${code} - ${markerDesc}`
+    : `Station ${code}`;
 
   // Re-apply seismograph theme on basemap theme changes while popup remains open
   useEffect(() => {
     if (!map) return undefined;
     const retheme = () => {
+      const theme = themeFromMapContainer(map?.getContainer?.());
+      setMarkerTheme(theme);
       try {
         graphListRef.current.forEach((plot) => {
           try {
-            const theme = themeFromMapContainer(map?.getContainer?.());
-            const dark = theme === 'dark' || theme === 'satellite';
             if (plot && plot.seismographConfig) {
-              plot.seismographConfig.lineColors = [dark ? '#7dd3fc' : '#0891b2'];
+              plot.seismographConfig.lineColors = [STREAM_LINE_COLOR];
             }
           } catch (_) {}
           const css = plot.seismographConfig.createCSSForLineColors();
@@ -737,6 +746,7 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
       icon={divTriangle}
       zIndexOffset={zIndexOffset}
       ref={markerRef}
+      title={markerTitle}
       eventHandlers={{
         click: () => {
           try {
@@ -746,70 +756,82 @@ const StationMarker = ({ network, code, latLng, description, activity: initActiv
               const ev = new CustomEvent('selection:fromMarker', { detail: { id } });
               window.dispatchEvent(ev);
             } catch (_) {}
+            trackEvent('station_select', {
+              station_code: code,
+              network: String(network || 'AM').toUpperCase(),
+              source: 'marker',
+              status: String(statusState.status || '').toLowerCase() || 'unknown',
+            });
           } catch (_) {}
         },
         // Fetch status and start graph whenever the popup actually opens
         // (works for both map-click and programmatic open from sidebar)
-        mouseover: refreshTooltipFromAPI,
-        tooltipopen: refreshTooltipFromAPI,
         popupopen: handleStationClick,
         popupclose: handlePopupClose,
       }}
     >
-      <Tooltip
-        direction="top"
-        offset={[0, -2]}
-        opacity={1}
-        sticky
-        className={`feature-tooltip marker-tooltip ${tooltipDisabled ? 'tt-hidden' : ''}`}
-      >
-        <div>
-          <div><strong>Station {code}</strong></div>
-          <div>{tooltipText}</div>
-        </div>
-      </Tooltip>
-      <Popup className={styles.popUp}
+      <Popup
+        className={styles.popUp}
         autoPan
-        >
+        autoPanPaddingTopLeft={popupPaddingTopLeft}
+        autoPanPaddingBottomRight={popupPaddingBottomRight}
+      >
         <div className={styles.popUpBody}>
-          <div>
-            <b>Station {code} </b>
-            <i>{description}</i>
+          <div className={styles.popupHeader}>
+            <div className={styles.popupTitleRow}>
+              <div className={styles.popupTitle}>Station {code}</div>
+              <InfoTooltip label="Station location info" title="Approximate location" variant="inline">
+                Location is intentionally offset to protect device privacy.
+              </InfoTooltip>
+            </div>
+            {markerDesc ? <div className={styles.popupSubtitle}>{markerDesc}</div> : null}
           </div>
-          <hr />
-          <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
-          <p>
-            <span
-              className={
-                `
-                ${styles.statusIndicator}
-                ${statusState.status === 'Streaming' ? styles['streaming'] : styles['not-streaming']}
-                ${statusChange ? styles[statusChange] : ''}
-              `
-              }
-            ></span>
-            {statusState.statusSince
-              ? statusState.status === 'Streaming' ||
-                moment(statusState.statusSince) > moment().subtract(1, 'month')
-                ? // If streaming or time of last status toggle is within one month, follow: "<status> since <time> ago"
-                  // else (meaning Not streaming for more than 1 month): "Offline"
-                  `${statusState.status} since ${moment(statusState.statusSince).fromNow()}`
-                : 'Device Offline'
-              : statusState.status}
-          </p>
-          <a href={data_download_URL} target="_blank" rel="noreferrer" onClick={handleDownloadData}>
-            Get past 24hrs data
-          </a>
-          <br />
-          <a
-            href={metadata_download_URL}
-            target="_blank"
-            rel="noreferrer"
-            onClick={handleDownloadMetadata}
-          >
-            Get station metadata
-          </a>
-          <br />
+          <div className={styles.popupSection}>
+            <div ref={realtimeDivRef} className={styles.realtimeGraphDiv}></div>
+          </div>
+          <div className={styles.popupSection}>
+            <div className={styles.statusRow}>
+              <span
+                className={`
+                  ${styles.statusIndicator}
+                  ${normalizeDeviceActivity(statusState.activity || statusState.status) === 'active' ? styles['streaming'] : styles['not-streaming']}
+                  ${statusChange ? styles[statusChange] : ''}
+                `}
+              ></span>
+              <span className={styles.statusText}>
+                {(() => {
+                  const state = normalizeDeviceActivity(statusState.activity || statusState.status);
+                  if (state === 'unlinked') return 'Device Offline';
+                  const label = statusState.status || (state === 'active' ? 'Streaming' : 'Inactive');
+                  if (!statusState.statusSince) return label;
+                  if (state === 'active' || moment(statusState.statusSince) > moment().subtract(1, 'month')) {
+                    return `${label} since ${moment(statusState.statusSince).fromNow()}`;
+                  }
+                  return 'Device Offline';
+                })()}
+              </span>
+            </div>
+          </div>
+          <div className={`${styles.popupSection} ${styles.popupActions}`}>
+            <a
+              href={data_download_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleDownloadData}
+              className={styles.actionLink}
+            >
+              Get past 24hrs data
+            </a>
+            <a
+              href={metadata_download_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleDownloadMetadata}
+              className={styles.actionLink}
+            >
+              Get station metadata
+            </a>
+          </div>
         </div>
       </Popup>
     </Marker>

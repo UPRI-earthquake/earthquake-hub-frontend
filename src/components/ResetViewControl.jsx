@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { useMap } from 'react-leaflet';
 import { useDispatch } from 'react-redux';
 import { resetToPH } from '../utils/resetView';
+import { trackEvent } from '../analytics';
 
 // Simple Leaflet control that resets the view to the Philippines
 // BBOX (lon/lat): 116..127E, 4.5..21.5N; default center/zoom used by app
@@ -41,7 +42,12 @@ export default function ResetViewControl({ position = 'topleft', padding = [20, 
           </svg>
         </span>`;
 
-      const doReset = () => resetToPH({ map, dispatch, animate: true });
+      const doReset = () => {
+        try {
+          trackEvent('reset_view', { trigger: 'control_button' });
+        } catch (_) {}
+        resetToPH({ map, dispatch, animate: true, padding });
+      };
 
       // Mouse and keyboard activation
       L.DomEvent.on(btn, 'click', (e) => {

@@ -1,25 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 :root {
-  --font-primary: Inter, Roboto, 'Noto Sans', system-ui, -apple-system, Segoe UI, Helvetica, Arial,
-    sans-serif;
-  --text-light: #1f2937; /* gray-800 */
-  --text-dark: #f3f4f6; /* gray-100 */
-  /* Shared header height for layout and spacing */
-  --header-h: 56px;
+  --font-primary: 'Space Grotesk', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --text-primary: #0f172a;
+  --muted: #4b5563;
+  --surface: #ffffff;
+  --bg-gradient: radial-gradient(circle at 20% 20%, #e0f2fe 0, transparent 25%),
+    radial-gradient(circle at 80% 0%, #ecfdf3 0, transparent 22%),
+    #f6f7fb;
+  --panel-hero-bg: linear-gradient(145deg, rgba(14, 165, 233, 0.14), rgba(16, 185, 129, 0.12)), #e8f4ff;
+  --panel-hero-text: #ffffff;
+  --hero-overlay: linear-gradient(135deg, rgba(7, 11, 20, 0.72), rgba(14, 165, 233, 0.24));
+  --hero-card-glass: rgba(7, 11, 20, 0.38);
+  --hero-card-border: rgba(255, 255, 255, 0.18);
+  --hero-card-text: #e5e7eb;
+  --panel-surface: #ffffff;
+  --panel-subtle: #f8fafc;
+  --primary: #0ea5e9;
+  --primary-strong: #0284c7;
+  --accent: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #e5e7eb;
+  --shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --pill-strong-bg: rgba(14, 165, 233, 0.14);
+  --pill-strong-border: rgba(14, 165, 233, 0.3);
+  --pill-strong-text: #0b4f6c;
+  --pill-soft-bg: rgba(15, 23, 42, 0.06);
+  --pill-soft-border: rgba(15, 23, 42, 0.08);
+  --pill-soft-text: #0f172a;
+  --metric-card-bg: #f8fafc;
+  --metric-card-border: #e2e8f0;
+  --metric-card-label: #475569;
+  --metric-card-value: #0f172a;
+  --article-bg: rgba(255, 255, 255, 0.96);
+  --article-text: #0f172a;
+  --article-muted: #475569;
+  --article-tag-bg: linear-gradient(120deg, #0ea5e9, #10b981);
+  --article-shadow: 0 18px 32px rgba(15, 23, 42, 0.16);
+
+  /* Spacing system: base unit + layout anchors */
+  --space-1: 8px;
+  --space-1-5: calc(var(--space-1) * 1.5); /* 12px */
+  --space-2: calc(var(--space-1) * 2); /* 16px */
+  --space-2-5: calc(var(--space-1) * 2.5); /* 20px */
+  --space-3: calc(var(--space-1) * 3); /* 24px */
+
+  --header-h: 72px; /* desktop header height */
+  --layout-top-offset: var(--space-3); /* header → content clearance */
+  --layout-side-offset: var(--space-2); /* left/right gutters for panels/controls */
+  --layout-control-gap: var(--space-1-5);
+  --layout-bottom-offset: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --header-h: 68px; /* tablet header height */
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --header-h: 60px; /* mobile header height */
+  }
+}
+
+@media (max-width: 960px) and (orientation: landscape) {
+  :root {
+    --header-h: 56px; /* compact header height for landscape viewports */
+  }
+}
+
+:root[data-theme='dark'] {
+  --text-primary: #e5e7eb;
+  --muted: #94a3b8;
+  --surface: #0f172a;
+  --bg-gradient: radial-gradient(circle at 18% 20%, rgba(56, 189, 248, 0.12) 0, transparent 26%),
+    radial-gradient(circle at 82% 8%, rgba(34, 197, 94, 0.12) 0, transparent 22%),
+    #0b1220;
+  --panel-hero-bg: linear-gradient(145deg, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.92)), #0b1220;
+  --panel-hero-text: #e2e8f0;
+  --hero-overlay: linear-gradient(135deg, rgba(7, 11, 20, 0.75), rgba(14, 165, 233, 0.2));
+  --hero-card-glass: rgba(15, 23, 42, 0.6);
+  --hero-card-border: rgba(255, 255, 255, 0.12);
+  --hero-card-text: #e5e7eb;
+  --panel-surface: #0f172a;
+  --panel-subtle: #0f172a;
+  --primary: #38bdf8;
+  --primary-strong: #0ea5e9;
+  --accent: #22c55e;
+  --warning: #f59e0b;
+  --danger: #f87171;
+  --border: #1f2937;
+  --shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+  --pill-strong-bg: rgba(56, 189, 248, 0.16);
+  --pill-strong-border: rgba(56, 189, 248, 0.35);
+  --pill-strong-text: #e0f2fe;
+  --pill-soft-bg: rgba(255, 255, 255, 0.06);
+  --pill-soft-border: rgba(255, 255, 255, 0.14);
+  --pill-soft-text: #e5e7eb;
+  --metric-card-bg: rgba(255, 255, 255, 0.06);
+  --metric-card-border: rgba(255, 255, 255, 0.14);
+  --metric-card-label: #cbd5e1;
+  --metric-card-value: #f8fafc;
+  --article-bg: rgba(15, 23, 42, 0.8);
+  --article-text: #e5e7eb;
+  --article-muted: #cbd5e1;
+  --article-tag-bg: linear-gradient(120deg, #38bdf8, #22c55e);
+  --article-shadow: 0 18px 30px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='imagery'] {
+  --text-primary: #e9eef7;
+  --muted: #cbd5e1;
+  --surface: #0b1220;
+  --bg-gradient: radial-gradient(circle at 20% 18%, rgba(125, 211, 252, 0.14) 0, transparent 26%),
+    radial-gradient(circle at 78% 6%, rgba(52, 211, 153, 0.12) 0, transparent 22%),
+    #070b14;
+  --panel-hero-bg: linear-gradient(150deg, rgba(56, 189, 248, 0.2), rgba(7, 11, 20, 0.94));
+  --panel-hero-text: #e2e8f0;
+  --hero-overlay: linear-gradient(140deg, rgba(7, 11, 20, 0.75), rgba(125, 211, 252, 0.22));
+  --hero-card-glass: rgba(7, 11, 20, 0.65);
+  --hero-card-border: rgba(255, 255, 255, 0.16);
+  --hero-card-text: #e5e7eb;
+  --panel-surface: #0b1220;
+  --panel-subtle: #0b1220;
+  --primary: #7dd3fc;
+  --primary-strong: #38bdf8;
+  --accent: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --border: #111827;
+  --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  --pill-strong-bg: rgba(125, 211, 252, 0.18);
+  --pill-strong-border: rgba(125, 211, 252, 0.35);
+  --pill-strong-text: #e0f2fe;
+  --pill-soft-bg: rgba(255, 255, 255, 0.08);
+  --pill-soft-border: rgba(255, 255, 255, 0.16);
+  --pill-soft-text: #e5e7eb;
+  --metric-card-bg: rgba(255, 255, 255, 0.06);
+  --metric-card-border: rgba(255, 255, 255, 0.16);
+  --metric-card-label: #cbd5e1;
+  --metric-card-value: #f8fafc;
+  --article-bg: rgba(7, 11, 20, 0.82);
+  --article-text: #e5e7eb;
+  --article-muted: #cbd5e1;
+  --article-tag-bg: linear-gradient(120deg, #7dd3fc, #34d399);
+  --article-shadow: 0 20px 36px rgba(0, 0, 0, 0.5);
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
   font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--text-light);
+  background: var(--bg-gradient);
+  color: var(--text-primary);
 }
 
 /* Global, theme-aware scrollbar styling */
 /*
   We style scrollbars across the app and react to the
   same theme attribute already used elsewhere:
-  html[data-basemap-theme='light' | 'dark' | 'imagery']
+  html[data-theme='light' | 'dark']
 
   - WebKit/Blink: ::-webkit-scrollbar* selectors
   - Firefox: scrollbar-color + scrollbar-width
@@ -33,8 +178,8 @@ html {
   --sb-thumb-hover: #6b7280; /* gray-500 */
   color-scheme: light;
 }
-html[data-basemap-theme='dark'],
-html[data-basemap-theme='imagery'] {
+html[data-theme='dark'],
+html[data-theme='imagery'] {
   /* Subtle, higher-contrast look for dark/imagery */
   --sb-track: #0b1220; /* slate-950 approximation used elsewhere */
   --sb-thumb: #64748b; /* slate-500 */

@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import styles from './SidebarItem.module.css';
 import { useSelector, useDispatch } from 'react-redux';
 import { devlog } from '../utils/devlog';
+import { trackEvent } from '../analytics';
 
 /**
  * Single earthquake item entry used in the sidebar list.
@@ -19,6 +20,14 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
         const ev = new CustomEvent('selection:fromList', { detail: { id: publicID } });
         window.dispatchEvent(ev);
       } catch (_) {}
+      try {
+        const magValue = Number(title);
+        trackEvent('event_select', {
+          event_id: publicID,
+          source: 'sidebar',
+          magnitude: Number.isFinite(magValue) ? magValue : undefined,
+        });
+      } catch (_) {}
     } else {
       devlog('dispatch deselect');
       dispatch({ type: 'DESELECT' });
@@ -27,36 +36,46 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
 
   // Animation
   const output = useRef(null); // hold output div
-  const reversed = useRef(false); // to alternate between two "identical" animations
+  const pulseTimerRef = useRef(null);
+  const [pulseType, setPulseType] = useState(null); // 'new' | 'update' | null
+  const pulseStyle = useMemo(() => {
+    const magNum = Number(title);
+    const magNorm = Number.isFinite(magNum) ? Math.max(0, Math.min(1, magNum / 8)) : 0;
+    const strongAlpha = (0.16 + magNorm * 0.12).toFixed(3);
+    const softAlpha = (0.08 + magNorm * 0.08).toFixed(3);
+    return {
+      '--event-pulse-strong': `rgba(232, 106, 115, ${strongAlpha})`,
+      '--event-pulse-soft': `rgba(232, 106, 115, ${softAlpha})`,
+    };
+  }, [title]);
   useEffect(() => {
-    if (status === 'NEW' || status === 'UPDATE') {
-      // add animation, but alternate between
-      // the heartbeat animation and its reversed-reversed copy
-      if (reversed.current) {
-        output.current.classList.add(styles.heartBeat);
-        reversed.current = false;
-      } else {
-        output.current.classList.add(styles.heartBeatReverse);
-        reversed.current = true;
-      }
+    const st = String(status || '').toUpperCase();
+    const isNew = st === 'NEW';
+    const isUpdate = st === 'UPDATE';
+    if (isNew || isUpdate) {
+      setPulseType(isNew ? 'new' : 'update');
+      try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch (_) {}
+      pulseTimerRef.current = setTimeout(
+        () => {
+          setPulseType(null);
+          pulseTimerRef.current = null;
+        },
+        isNew ? 12000 : 3000,
+      );
     }
 
-    // cleanup, remove the previously added class before updating
-    const outputComponent = output.current;
     return () => {
-      reversed.current
-        ? outputComponent.classList.remove(styles.heartBeatReverse)
-        : outputComponent.classList.remove(styles.heartBeat);
+      try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch (_) {}
     };
-
-    // run effect when a modification is made
   }, [status, last_modification]);
 
   // Auto-scroll is handled globally from Sidebar when selecting a marker.
 
   return (
     <div
-      className={`${styles.sidebarItem} ${isSelected ? styles.selected : ''}`}
+      className={`${styles.sidebarItem} ${isSelected ? styles.selected : ''} ${
+        pulseType === 'new' ? styles.pickPulseNew : pulseType === 'update' ? styles.pickPulseUpdate : ''
+      }`}
       onClick={handleClick}
       role="button"
       /* a11y: make selectable item keyboard operable */
@@ -68,10 +87,11 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
         }
       }}
       ref={output}
+      style={pulseStyle}
       data-publicid={publicID}
       data-selectid={publicID}
-      title={isSelected ? 'Deselect earthquake' : 'Fly to earthquake'}
-      aria-label={isSelected ? 'Deselect earthquake' : 'Fly to earthquake'}
+      title={isSelected ? 'Deselect earthquake' : 'Go to earthquake'}
+      aria-label={isSelected ? 'Deselect earthquake' : 'Go to earthquake'}
     >
       <div className={styles.magWrap}>
         <div className={styles.magText} title={`Magnitude ${title}`} aria-label={`Magnitude ${title}`}>
@@ -104,6 +124,8 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
 export default React.memo(SidebarItem, (prevProps, nextProps) => {
   // render if next status is NEW or was modified
   return !(
-    nextProps.status === 'NEW' || nextProps.last_modification !== prevProps.last_modification
+    nextProps.status === 'NEW' ||
+    nextProps.status === 'UPDATE' ||
+    nextProps.last_modification !== prevProps.last_modification
   );
 });

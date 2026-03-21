@@ -1,13 +1,10 @@
 import { useCallback, useRef } from 'react';
 import axios from 'axios';
 import moment from '../utils/time';
+import { backendHost } from '../utils/env';
+import { emitToast } from '../utils/toast';
 // Performance: avoid shipping the EventSource polyfill to modern browsers.
 // We dynamically import it only if the native API is unavailable.
-function backendHost() {
-  return (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
-    ? window['ENV'].REACT_APP_BACKEND
-    : window['ENV'].REACT_APP_BACKEND_DEV;
-}
 
 // Choose the best doc among duplicates that represent the same event.
 // Preference: UPDATE > NEW, then by newest last_modification, then newest OT.
@@ -59,9 +56,46 @@ const dedupeInitial = (input) => {
  */
 export function useEventsFeed({ sseEnabledRef, setEvents }) {
   const eventSourceRef = useRef(null);
+  const toastCacheRef = useRef(new Map());
+
+  const maybeToastEvent = useCallback((data, kind = 'new') => {
+    try {
+      const id = data && (data.publicID || data.publicId || data.id);
+      if (!id) return;
+      const t = String(kind || 'new').toLowerCase();
+      const cache = toastCacheRef.current;
+      const now = Date.now();
+      const key = `${t}:${id}`;
+      const last = cache.get(key);
+      if (last && now - last < 3 * 60 * 1000) return;
+      cache.set(key, now);
+      if (cache.size > 120) {
+        const entries = Array.from(cache.entries()).sort((a, b) => a[1] - b[1]);
+        entries.slice(0, 40).forEach(([key]) => cache.delete(key));
+      }
+      const magValue = Number(data.magnitude_value ?? data.magnitude ?? data.mag);
+      const magText = Number.isFinite(magValue) ? `M${magValue.toFixed(1)}` : 'M?';
+      const isUnavailable = (value) => {
+        if (!value) return true;
+        const v = String(value).trim().toLowerCase();
+        return (
+          !v ||
+          v === 'unavailable' ||
+          v === 'unable to geocode' ||
+          v === 'nominatim unavailable'
+        );
+      };
+      const place = !isUnavailable(data.place) ? String(data.place).trim() : '';
+      const text = !isUnavailable(data.text) ? String(data.text).trim() : '';
+      const location = place || text || '';
+      const suffix = location ? ` • ${location}` : '';
+      if (t === 'update') emitToast(`Earthquake updated: ${magText}${suffix}`, 'warning');
+      else emitToast(`New earthquake: ${magText}${suffix}`, 'error');
+    } catch (_) {}
+  }, []);
 
   const fetchEventsForRange = useCallback(
-    async (startDateISO, endDateISO) => {
+    async (startDateISO, endDateISO, { setState = true } = {}) => {
       const startTs = moment(startDateISO).startOf('day').format('YYYY-MM-DD HH:mm:ss');
       const endTs = moment(endDateISO).endOf('day').format('YYYY-MM-DD HH:mm:ss');
       try {
@@ -72,7 +106,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
       });
       const arr = (res.data?.payload || []).slice();
       const deduped = dedupeInitial(arr);
-      setEvents(deduped);
+      if (setState) setEvents(deduped);
       return deduped;
     },
     [setEvents],
@@ -102,7 +136,9 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
         const data = JSON.parse(event.data);
         const depthVal =
           data.depth_km ?? data.depthKm ?? data.depth_value ?? data.depthValue ?? data.depth;
-        if (data.eventType === 'NEW') {
+        const eventType = String(data.eventType || '').toUpperCase();
+        if (eventType === 'NEW') {
+          maybeToastEvent(data, 'new');
           setEvents((prev) => {
             const idx = prev.findIndex((e) => e.publicID === data.publicID);
             const nextEvent = {
@@ -136,7 +172,8 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
             } catch (_) {}
             return [nextEvent, ...prev];
           });
-        } else if (data.eventType === 'UPDATE') {
+        } else if (eventType === 'UPDATE') {
+          maybeToastEvent(data, 'update');
           setEvents((prev) => {
             const idx = prev.findIndex((e) => e.publicID === data.publicID);
             if (idx !== -1) {
@@ -205,7 +242,7 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
     } catch (_) {}
 
     return ret;
-  }, [setEvents, sseEnabledRef]);
+  }, [maybeToastEvent, setEvents, sseEnabledRef]);
 
   const closeSSE = useCallback(() => {
     if (eventSourceRef.current) {

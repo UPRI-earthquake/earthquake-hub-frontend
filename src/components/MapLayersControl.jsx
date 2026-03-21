@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
 import { LayersControl, useMap } from 'react-leaflet';
 import { BASEMAPS } from '../config/mapLayers';
 import {
   buildThemeTokens,
   faultsStyle,
+  parStyle,
   platesStyle,
   themeFromMapContainer,
   zoomFromMap,
@@ -14,6 +15,8 @@ import { useOverlayState } from './OverlayStateContext';
 import BasemapLayers from './layers/BasemapLayers';
 import OverlayLayers from './layers/OverlayLayers';
 import { ATTRIBUTIONS } from '../config/attribution';
+import { trackEvent } from '../analytics';
+import { useTheme } from '../theme/ThemeProvider';
 // Removed metadata injection in Layers panel; keep lastUpdated utils for Legend only
 
 /**
@@ -22,27 +25,134 @@ import { ATTRIBUTIONS } from '../config/attribution';
  */
 //
 
-export default function MapLayersControl({ children }) {
+// Stable Layers icon (outline only) - keep tool icon constant; do not swap to chevrons or close symbols.
+const LAYERS_ICON_SVG = [
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">',
+  '<path d="M12 2l10 6-10 6L2 8l10-6z"></path>',
+  '<path d="M2 12l10 6 10-6"></path>',
+  '<path d="M2 17l10 6 10-6"></path>',
+  '</svg>',
+].join('');
+
+export default function MapLayersControl({ children, activeTheme }) {
   const map = useMap();
   const { registerLayer, activeIds } = useOverlayState();
+  const baseLayerRefs = useRef({});
+  const basemapThemeRef = useRef(null);
+  const prevBaseRef = useRef('default');
+  const defaultThemeRef = useRef(null);
+  const [activeBase, setActiveBase] = useState('default');
+  const { theme, setTheme, setThemeToggleDisabled } = useTheme();
   // Memoize basemap provider props so layers are not recreated
   const bases = useMemo(
     () => ({
-      osm: BASEMAPS.OSM_Standard(),
-      positron: BASEMAPS.Carto_Positron(),
-      dark: BASEMAPS.Carto_DarkMatter(),
-      esri: BASEMAPS.Esri_WorldImagery(),
+      defaultLight: BASEMAPS.Carto_Positron(),
+      defaultDark: BASEMAPS.Carto_DarkMatter(),
+      terrain: BASEMAPS.Esri_WorldTopoMap(),
+      satellite: BASEMAPS.Esri_WorldImagery(),
     }),
     [],
   );
+
+  const registerBaseLayer = useCallback(
+    (key, layer) => {
+      if (!layer) return;
+      baseLayerRefs.current[key] = layer?.leafletElement || layer;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!map) return undefined;
+    const normalizeBase = (name) => {
+      const n = String(name || '').toLowerCase();
+      if (n.includes('satellite')) return 'satellite';
+      if (n.includes('terrain') || n.includes('topo')) return 'terrain';
+      return 'default';
+    };
+    const onBaseLayerChange = (e) => {
+      const next = normalizeBase(e && e.name);
+      setActiveBase(next);
+    };
+    map.on('baselayerchange', onBaseLayerChange);
+    return () => {
+      map.off('baselayerchange', onBaseLayerChange);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    const prevBase = prevBaseRef.current;
+    const isDefault = activeBase === 'default';
+    const wasDefault = prevBase === 'default';
+
+    if (setThemeToggleDisabled) {
+      const lockThemeToggle = activeBase === 'terrain' || activeBase === 'satellite';
+      setThemeToggleDisabled(lockThemeToggle);
+    }
+
+    if (isDefault) {
+      if (!wasDefault) {
+        const desired = defaultThemeRef.current;
+        if (setTheme) {
+          if (desired == null) setTheme(null);
+          else setTheme(desired);
+        }
+      } else {
+        defaultThemeRef.current = theme;
+      }
+    } else {
+      if (wasDefault) defaultThemeRef.current = theme;
+      if (setTheme) {
+        if (activeBase === 'satellite') setTheme('dark');
+        else if (activeBase === 'terrain') setTheme('light');
+      }
+    }
+
+    prevBaseRef.current = activeBase;
+  }, [activeBase, theme, setTheme, setThemeToggleDisabled]);
+
+  useEffect(() => {
+    return () => {
+      if (setThemeToggleDisabled) setThemeToggleDisabled(false);
+    };
+  }, [setThemeToggleDisabled]);
 
   // overlays are handled by OverlayLayers subcomponent
 
   // Refs for registering overlays with the legend sync
   const faultsRef = useRef(null);
   const platesRef = useRef(null);
+  const parRef = useRef(null);
   const customLayersToggleRef = useRef(null);
   const cleanupRefs = useRef({});
+  const emitPanelToggle = useCallback((isOpen, trigger = 'button') => {
+    try {
+      trackEvent('layers_toggle', {
+        action: 'panel',
+        state: isOpen ? 'open' : 'closed',
+        trigger,
+      });
+    } catch (_) {}
+  }, []);
+  const [isLayersOpen, setIsLayersOpen] = useState(false);
+  const applyLayersButtonState = useCallback((open) => {
+    const btn = customLayersToggleRef.current;
+    if (!btn) return;
+    btn.classList.toggle('is-active', !!open);
+    btn.setAttribute('data-active', open ? '1' : '0');
+  }, []);
+  const setLayersOpenState = useCallback(
+    (next, trigger = 'button') => {
+      setIsLayersOpen(next);
+      applyLayersButtonState(next);
+      emitPanelToggle(next, trigger);
+      try {
+        const el = map?.getContainer?.();
+        if (el) el.setAttribute('data-layers-expanded', next ? '1' : '0');
+      } catch (_) {}
+    },
+    [applyLayersButtonState, emitPanelToggle, map],
+  );
 
   const setFaultsRef = useCallback(
     (node) => {
@@ -68,6 +178,20 @@ export default function MapLayersControl({ children }) {
           layer.getAttribution = () => `<span class="attr-line attr-plates">${ATTRIBUTIONS.PB2002}</span>`;
         } catch (_) {}
         registerLayer('plates', layer);
+      }
+    },
+    [registerLayer],
+  );
+
+  const setParRef = useCallback(
+    (node) => {
+      const layer = node && (node.leafletElement || node);
+      parRef.current = layer;
+      if (layer) {
+        try {
+          layer.getAttribution = () => `<span class="attr-line attr-par">${ATTRIBUTIONS.PAR}</span>`;
+        } catch (_) {}
+        registerLayer('par', layer);
       }
     },
     [registerLayer],
@@ -109,22 +233,15 @@ export default function MapLayersControl({ children }) {
               a.setAttribute('title', 'Layers (L)');
               a.setAttribute('aria-controls', 'layers-panel');
               a.setAttribute('aria-expanded', 'false');
-              a.innerHTML = `
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden>
-                  <path d="M12 2l10 6-10 6L2 8l10-6z"></path>
-                  <path d="M2 12l10 6 10-6"></path>
-                  <path d="M2 17l10 6 10-6"></path>
-                </svg>`;
+              a.innerHTML = LAYERS_ICON_SVG;
+              applyLayersButtonState(false);
               const togglePanel = () => {
                 const expanded = ctrl.classList.contains('leaflet-control-layers-expanded');
+                const nextState = !expanded;
                 if (expanded) ctrl.classList.remove('leaflet-control-layers-expanded');
                 else ctrl.classList.add('leaflet-control-layers-expanded');
                 a.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-                try {
-                  const el = map.getContainer();
-                  el.setAttribute('data-layers-expanded', expanded ? '0' : '1');
-                } catch (_) {}
-                // When opening Layers, ensure Legend is closed and popups hidden
+                setLayersOpenState(nextState, 'button');
                 if (!expanded) {
                   try {
                     map.closePopup();
@@ -213,10 +330,7 @@ export default function MapLayersControl({ children }) {
           if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
           if (customLayersToggleRef.current)
             customLayersToggleRef.current.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-          try {
-            const el = map.getContainer();
-            el.setAttribute('data-layers-expanded', expanded ? '1' : '0');
-          } catch (_) {}
+          setLayersOpenState(expanded, 'sync');
           // Reflect open state to others (Legend) and manage focus trap
           if (expanded) {
             if (!trapCleanup) trapCleanup = installFocusTrap();
@@ -248,7 +362,7 @@ export default function MapLayersControl({ children }) {
         } catch (_) {}
       } catch (_) {}
     };
-  }, [map]);
+  }, [map, emitPanelToggle, setLayersOpenState, applyLayersButtonState]);
 
   // Keyboard shortcuts: L toggles Layers; Esc collapses only if focus is inside
   useEffect(() => {
@@ -270,6 +384,7 @@ export default function MapLayersControl({ children }) {
         if (next) ctrl.classList.add('leaflet-control-layers-expanded');
         else ctrl.classList.remove('leaflet-control-layers-expanded');
         btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+        setLayersOpenState(next, 'keyboard');
       };
 
       const focusCloseButton = () => {
@@ -284,7 +399,8 @@ export default function MapLayersControl({ children }) {
       if (e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         const wasExpanded = isExpanded();
-        setExpanded(!wasExpanded);
+        const nextState = !wasExpanded;
+        setExpanded(nextState);
         if (!wasExpanded) {
           // Just opened → move initial focus to the Close (×) button
           setTimeout(focusCloseButton, 0); // allow DOM to paint first
@@ -311,7 +427,7 @@ export default function MapLayersControl({ children }) {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [map]);
+  }, [map, emitPanelToggle, setLayersOpenState]);
 
   // Listen for Legend open or Popup open to collapse Layers
   useEffect(() => {
@@ -319,92 +435,115 @@ export default function MapLayersControl({ children }) {
     const container = map.getContainer ? map.getContainer() : document;
     const ctrl = container && container.querySelector('.leaflet-control-layers');
     if (!ctrl) return undefined;
-    const collapse = () => {
-      try {
-        ctrl.classList.remove('leaflet-control-layers-expanded');
-        const btn = customLayersToggleRef.current ||
-          (container && container.querySelector('.leaflet-control-layers-toggle'));
-        if (btn) btn.setAttribute('aria-expanded', 'false');
-        const el = map.getContainer();
-        el.setAttribute('data-layers-expanded', '0');
-      } catch (_) {}
-    };
-    const onLegendOpen = () => collapse();
-    const onPopupOpen = () => collapse();
+        const collapse = (trigger = 'legend') => {
+          try {
+            ctrl.classList.remove('leaflet-control-layers-expanded');
+            const btn = customLayersToggleRef.current ||
+              (container && container.querySelector('.leaflet-control-layers-toggle'));
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+            setLayersOpenState(false, trigger);
+          } catch (_) {}
+        };
+        const onLegendOpen = () => collapse('legend');
+        const onPopupOpen = () => collapse('popup');
     window.addEventListener('ui:legend:open', onLegendOpen);
     window.addEventListener('ui:popup:open', onPopupOpen);
     return () => {
       window.removeEventListener('ui:legend:open', onLegendOpen);
       window.removeEventListener('ui:popup:open', onPopupOpen);
     };
-  }, [map]);
+  }, [map, setLayersOpenState]);
+
+  // Close when clicking outside the button/panel
+  useEffect(() => {
+    if (!map) return undefined;
+    const container = map.getContainer ? map.getContainer() : document;
+    const onPointerDown = (e) => {
+      if (!isLayersOpen) return;
+      const panel = container && container.querySelector('.leaflet-control-layers');
+      const btn = customLayersToggleRef.current;
+      if ((panel && panel.contains(e.target)) || (btn && btn.contains(e.target))) return;
+      if (panel) panel.classList.remove('leaflet-control-layers-expanded');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      setLayersOpenState(false, 'outside');
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, [map, isLayersOpen, setLayersOpenState]);
+
+  const restyleOverlays = useCallback(() => {
+    if (!map) return;
+    const theme = basemapThemeRef.current || themeFromMapContainer(map.getContainer());
+    const zoom = zoomFromMap(map);
+    const f = faultsStyle({ theme, zoom, overlays: activeIds });
+    const p = platesStyle({ theme, zoom });
+    const par = parStyle({ theme, zoom });
+    try {
+      faultsRef.current && faultsRef.current.setStyle && faultsRef.current.setStyle(f);
+    } catch (_) {}
+    try {
+      platesRef.current && platesRef.current.setStyle && platesRef.current.setStyle(p);
+    } catch (_) {}
+    try {
+      parRef.current && parRef.current.setStyle && parRef.current.setStyle(par);
+    } catch (_) {}
+  }, [map, activeIds]);
 
   // Track basemap theme (light | dark | imagery) and set on map container for CSS
   useEffect(() => {
     if (!map) return undefined;
     const el = map.getContainer();
-    // Heuristic detection by layer URL/name/attribution to avoid provider-specific misses
-    const themeForLayer = (layer, nameHint = '') => {
-      const url = (layer && (layer._url || (layer.options && layer.options.url))) || '';
-      const attr =
-        (layer && typeof layer.getAttribution === 'function' && layer.getAttribution()) ||
-        (layer && layer.options && layer.options.attribution) ||
-        '';
-      const lc = String(url).toLowerCase();
-      const la = String(attr).toLowerCase();
-      const ln = String(nameHint).toLowerCase();
-
-      // Imagery (Esri Satellite and similar)
-      if (
-        /worldimagery|world_imagery|arcgisonline|esri|satellite|imagery/.test(lc) ||
-        /esri|imagery|satellite/.test(la) ||
-        /satellite|imagery/.test(ln)
-      ) {
-        return 'imagery';
-      }
-
-      // Dark themes (Carto DarkMatter, variants, or other providers)
-      const darkByUrlPair = /cartocdn|cartodb|carto/.test(lc) && /dark/.test(lc);
-      const darkByToken = /darkmatter|dark_all|dark-matter/.test(lc);
-      const darkByName = /dark/.test(ln);
-      const darkByAttrib = /carto/.test(la) && /dark/.test(la);
-      if (darkByUrlPair || darkByToken || darkByName || darkByAttrib) {
-        return 'dark';
-      }
-
-      // Default to light
+    const resolveThemeForBase = (base) => {
+      if (base === 'satellite') return 'imagery';
+      if (base === 'default') return activeTheme === 'dark' ? 'dark' : 'light';
       return 'light';
     };
-    const setThemeFromActiveBase = () => {
+    const normalizeBase = (name) => {
+      const n = String(name || '').toLowerCase();
+      if (n.includes('satellite')) return 'satellite';
+      if (n.includes('terrain') || n.includes('topo')) return 'terrain';
+      return 'default';
+    };
+    const applyBasemapTheme = (baseOverride = null) => {
+      const theme = resolveThemeForBase(baseOverride || activeBase);
+      if (!theme) return;
       try {
-        let theme = 'light';
-        const layers = map._layers || {};
-        for (const k in layers) {
-          const l = layers[k];
-          // heuristic: TileLayer instances used as base will be at zIndex < 250 or have attribution
-          if (l && l._url && typeof l.getAttribution === 'function') {
-            theme = themeForLayer(l);
-          }
-        }
         el.setAttribute('data-basemap-theme', theme);
-        try {
-          document.documentElement.setAttribute('data-basemap-theme', theme);
-        } catch (_) {}
+        basemapThemeRef.current = theme;
       } catch (_) {}
     };
-    setThemeFromActiveBase();
+    applyBasemapTheme();
+    restyleOverlays();
     const onBase = (e) => {
-      const t = themeForLayer(e.layer, e && e.name);
-      el.setAttribute('data-basemap-theme', t);
-      try {
-        document.documentElement.setAttribute('data-basemap-theme', t);
-      } catch (_) {}
+      const nextBase = normalizeBase(e && e.name);
+      applyBasemapTheme(nextBase);
+      restyleOverlays();
     };
     map.on('baselayerchange', onBase);
     return () => {
       map.off('baselayerchange', onBase);
     };
-  }, [map]);
+  }, [map, activeTheme, activeBase, restyleOverlays]);
+
+  // When Default is active, swap the provider URL to match the theme
+  // and emit a synthetic baselayerchange so dependent styling re-syncs.
+  useEffect(() => {
+    if (!map || activeBase !== 'default') return undefined;
+    const layer = baseLayerRefs.current.default;
+    const desiredTheme = activeTheme === 'dark' ? 'dark' : 'light';
+    const desiredUrl =
+      desiredTheme === 'dark' ? bases.defaultDark.url : bases.defaultLight.url;
+    const maybeSwapUrl = () => {
+      try {
+        if (layer && typeof layer.setUrl === 'function' && layer._url !== desiredUrl) {
+          layer.setUrl(desiredUrl);
+          map.fire('baselayerchange', { layer, name: 'Default', _autoTheme: true });
+        }
+      } catch (_) {}
+    };
+    maybeSwapUrl();
+    return undefined;
+  }, [map, activeBase, activeTheme, bases]);
 
   // Keep a data-zoom attribute on the map container for CSS-based zoom tweaks
   useEffect(() => {
@@ -431,10 +570,11 @@ export default function MapLayersControl({ children }) {
       el.setAttribute('data-ovl-earthquakes', activeIds.has('earthquakes') ? '1' : '0');
       el.setAttribute('data-ovl-faults', activeIds.has('faults') ? '1' : '0');
       el.setAttribute('data-ovl-plates', activeIds.has('plates') ? '1' : '0');
+      el.setAttribute('data-ovl-par', activeIds.has('par') ? '1' : '0');
       el.setAttribute('data-ovl-stations', activeIds.has('stations') ? '1' : '0');
     } catch (_) {}
     return undefined;
-  }, [map, activeIds]);
+  }, [map, activeIds, activeTheme]);
 
   // Theme tokens → CSS variables on map container (used by marker CSS)
   useEffect(() => {
@@ -510,7 +650,7 @@ export default function MapLayersControl({ children }) {
       map.off('overlayadd', apply);
       map.off('overlayremove', apply);
     };
-  }, [map, activeIds]);
+  }, [map, activeIds, activeTheme]);
 
   // Removed continuous EQ marker scale updates to avoid zoom jitter
 
@@ -525,42 +665,6 @@ export default function MapLayersControl({ children }) {
     const overlays = ctrl.querySelector('.leaflet-control-layers-overlays');
     if (!list || !base || !overlays) return undefined;
 
-    // Inject header bar once
-    if (!list.querySelector('.layers-header')) {
-      const header = document.createElement('div');
-      header.className = 'layers-header';
-      const title = document.createElement('div');
-      title.className = 'layers-title';
-      title.textContent = '';
-      const tools = document.createElement('div');
-      tools.className = 'layers-tools';
-      const closeBtn = document.createElement('button');
-      closeBtn.type = 'button';
-      closeBtn.className = 'layers-close';
-      closeBtn.setAttribute('aria-label', 'Close layers panel');
-      closeBtn.setAttribute('data-close', 'layers');
-      closeBtn.textContent = '×';
-      tools.appendChild(closeBtn);
-      header.appendChild(title);
-      header.appendChild(tools);
-      list.insertBefore(header, list.firstChild);
-
-      // Close collapses the control
-      closeBtn.addEventListener(
-        'click',
-        (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          ctrl.classList.remove('leaflet-control-layers-expanded');
-          const btn2 = ctrl.querySelector('.leaflet-control-layers-toggle');
-          if (btn2) btn2.setAttribute('aria-expanded', 'false');
-        },
-        { passive: false },
-      );
-
-      // No focusable title; keep only the close button visible
-    }
-
     // Wrap base+overlays inside a dedicated scroll body so header never scrolls
     if (!list.querySelector('.layers-body')) {
       const body = document.createElement('div');
@@ -570,6 +674,56 @@ export default function MapLayersControl({ children }) {
       body.appendChild(overlays);
       list.appendChild(body);
     }
+
+    // Replace label content with div-based rows to control sizing
+    const ensureLayerRows = (section) => {
+      if (!section) return;
+      section.querySelectorAll('label').forEach((lab) => {
+        if (lab.getAttribute('data-layer-row') === '1') return;
+        const existing = lab.querySelector('.layer-row');
+        const existingText = existing && existing.querySelector('.layer-text');
+        if (existing && (existingText?.textContent || '').trim()) {
+          lab.setAttribute('data-layer-row', '1');
+          return;
+        }
+        const textValue = (lab.innerText || lab.textContent || '').replace(/\s+/g, ' ').trim();
+        const input = lab.querySelector('input');
+        if (!input) return;
+        const text = textValue || input.getAttribute('aria-label') || input.getAttribute('name') || '';
+        const row = document.createElement('div');
+        row.className = 'layer-row';
+        const control = document.createElement('div');
+        control.className = 'layer-control';
+        control.appendChild(input);
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'layer-text';
+        labelDiv.textContent = text;
+        row.appendChild(control);
+        row.appendChild(labelDiv);
+        lab.innerHTML = '';
+        lab.appendChild(row);
+        lab.setAttribute('data-layer-row', '1');
+      });
+    };
+
+    const updatePanelWidth = () => {
+      if (!ctrl) return;
+      const rows = ctrl.querySelectorAll('.layer-row');
+      if (!rows || rows.length === 0) return;
+      let max = 0;
+      rows.forEach((row) => {
+        const w = row.scrollWidth || row.offsetWidth || 0;
+        if (w > max) max = w;
+      });
+      const padding = 16; // breathing room after text
+      const desired = Math.ceil(max + padding);
+      const capPx = Math.min(window.innerWidth * 0.92, 32 * 16, window.innerWidth - 48);
+      const finalW = Math.max(0, Math.min(desired, capPx));
+      ctrl.style.setProperty('--layers-auto-width', `${finalW}px`);
+      ctrl.style.minWidth = `${finalW}px`;
+    };
+    ensureLayerRows(base);
+    ensureLayerRows(overlays);
 
     // Annotate base labels and set thumbnail background via CSS var
     const baseThumb = (name, urlTemplate) => {
@@ -582,10 +736,15 @@ export default function MapLayersControl({ children }) {
       return `url("${url}")`;
     };
     const baseMap = {
-      'Standard Map': { key: 'osm', url: bases.osm.url },
-      'Light Map': { key: 'positron', url: bases.positron.url },
-      'Dark Map': { key: 'dark', url: bases.dark.url },
-      'Satellite View': { key: 'esri', url: bases.esri.url },
+      Default: {
+        key: 'default',
+        url:
+          String(activeTheme || '').toLowerCase() === 'dark'
+            ? bases.defaultDark.url
+            : bases.defaultLight.url,
+      },
+      Terrain: { key: 'terrain', url: bases.terrain.url },
+      Satellite: { key: 'satellite', url: bases.satellite.url },
     };
     base.querySelectorAll('label').forEach((lab) => {
       const text = (lab.textContent || '').trim();
@@ -621,6 +780,16 @@ export default function MapLayersControl({ children }) {
         });
       }
     });
+    // Enforce order: Default, Terrain, Satellite
+    const enforceBaseOrder = () => {
+      const order = ['Default', 'Terrain', 'Satellite'];
+      const labels = Array.from(base.querySelectorAll('label'));
+      order.forEach((name) => {
+        const node = labels.find((lab) => (lab.textContent || '').trim() === name);
+        if (node) base.appendChild(node);
+      });
+    };
+    enforceBaseOrder();
 
     // Basic a11y labels on overlay rows, no symbology or metadata in this panel
     overlays.querySelectorAll('label').forEach((lab) => {
@@ -640,6 +809,7 @@ export default function MapLayersControl({ children }) {
       earthquakes: 'Earthquake markers',
       faults: 'Active fault lines',
       plates: 'Plate boundary lines',
+      par: 'Philippine Area of Responsibility boundary',
       stations: 'Station markers',
     };
     const applyOverlayHints = () => {
@@ -649,8 +819,9 @@ export default function MapLayersControl({ children }) {
         if (!id) return;
         const hint = overlayHints[id];
         if (hint) {
+          const text = row.querySelector('.layer-text');
           row.setAttribute('title', hint);
-          row.setAttribute('aria-label', `${row.textContent || id} – ${hint}`);
+          row.setAttribute('aria-label', `${text?.textContent || id} – ${hint}`);
         }
       });
     };
@@ -661,6 +832,7 @@ export default function MapLayersControl({ children }) {
         if (t === 'earthquakes') return 'earthquakes';
         if (t === 'fault lines') return 'faults';
         if (t === 'plate boundaries') return 'plates';
+        if (t === 'par boundary') return 'par';
         if (t === 'stations') return 'stations';
         return null;
       };
@@ -680,83 +852,104 @@ export default function MapLayersControl({ children }) {
       }
     };
 
-    // Initial annotate+order, then enhance with hints
+    // Initial annotate+order, then enhance with hints and ensure row wrappers
+    ensureLayerRows(base);
+    ensureLayerRows(overlays);
+    updatePanelWidth();
     annotateOverlayRows();
     enforceOverlayOrder();
     applyOverlayHints();
 
     // Observe overlay list for changes (e.g., preset switch re-renders children)
-    const mo = new MutationObserver(() => {
+    const overlaysObserver = new MutationObserver(() => {
+      overlaysObserver.disconnect();
+      ensureLayerRows(overlays);
       annotateOverlayRows();
       enforceOverlayOrder();
       applyOverlayHints();
+      updatePanelWidth();
+      overlaysObserver.observe(overlays, { childList: true, subtree: false });
     });
-    mo.observe(overlays, { childList: true, subtree: false });
+    overlaysObserver.observe(overlays, { childList: true, subtree: false });
+
+    // Also observe basemap list for delayed mount or theme-driven rebuilds
+    const baseObserver = new MutationObserver(() => {
+      baseObserver.disconnect();
+      ensureLayerRows(base);
+      enforceBaseOrder();
+      updatePanelWidth();
+      baseObserver.observe(base, { childList: true, subtree: false });
+    });
+    baseObserver.observe(base, { childList: true, subtree: false });
+
+    const onResize = () => {
+      updatePanelWidth();
+    };
+    window.addEventListener('resize', onResize);
 
     return () => {
       try {
-        mo.disconnect();
+        overlaysObserver.disconnect();
+      } catch (_) {}
+      try {
+        baseObserver.disconnect();
+      } catch (_) {}
+      try {
+        window.removeEventListener('resize', onResize);
       } catch (_) {}
     };
-  }, [map, bases]);
+  }, [map, bases, activeTheme]);
 
   // ---- Tooltip builders moved to OverlayLayers; keep keyboard/ARIA helpers here ----
 
   // Keep line styles in sync with theme/zoom/overlay state
   useEffect(() => {
     if (!map) return undefined;
-    const restyle = () => {
-      const theme = themeFromMapContainer(map.getContainer());
-      const zoom = zoomFromMap(map);
-      const f = faultsStyle({ theme, zoom, overlays: activeIds });
-      const p = platesStyle({ theme, zoom });
-      try {
-        faultsRef.current && faultsRef.current.setStyle && faultsRef.current.setStyle(f);
-      } catch (_) {}
-      try {
-        platesRef.current && platesRef.current.setStyle && platesRef.current.setStyle(p);
-      } catch (_) {}
-    };
     let id = null;
     const schedule = () => {
       cancelAnimationFrame(id);
-      id = requestAnimationFrame(restyle);
+      id = requestAnimationFrame(restyleOverlays);
     };
     schedule();
     // Update styles continuously during zoom/fly animations for smoother transitions
     map.on('zoom', schedule);
     map.on('zoomend', schedule);
     map.on('baselayerchange', schedule);
+    map.on('overlayadd', schedule);
+    map.on('overlayremove', schedule);
     return () => {
       cancelAnimationFrame(id);
       map.off('zoom', schedule);
       map.off('zoomend', schedule);
       map.off('baselayerchange', schedule);
+      map.off('overlayadd', schedule);
+      map.off('overlayremove', schedule);
     };
-  }, [map, activeIds]);
+  }, [map, activeIds, restyleOverlays, activeTheme, activeBase]);
 
-  // Keep faults visually above plates when both are on (shared pane)
+  // Keep vector boundary overlay order stable: faults above plates above PAR.
   useEffect(() => {
     if (!map) return undefined;
-    const bumpFaults = () => {
+    const reorderBoundaries = () => {
       try {
-        if (
-          faultsRef.current &&
-          platesRef.current &&
-          map.hasLayer(faultsRef.current) &&
-          map.hasLayer(platesRef.current)
-        ) {
+        if (parRef.current && map.hasLayer(parRef.current)) {
+          parRef.current.bringToBack && parRef.current.bringToBack();
+        }
+        if (platesRef.current && map.hasLayer(platesRef.current)) {
+          platesRef.current.bringToFront && platesRef.current.bringToFront();
+        }
+        if (faultsRef.current && map.hasLayer(faultsRef.current)) {
           faultsRef.current.bringToFront && faultsRef.current.bringToFront();
         }
       } catch (_) {}
     };
-    const id = setTimeout(bumpFaults, 0);
-    map.on('overlayadd', bumpFaults);
-    map.on('overlayremove', bumpFaults);
+    const id = setTimeout(reorderBoundaries, 0);
+    map.on('overlayadd', reorderBoundaries);
+    map.on('overlayremove', reorderBoundaries);
     return () => {
       clearTimeout(id);
-      map.off('overlayadd', bumpFaults);
-      map.off('overlayremove', bumpFaults);
+      map.off('overlayadd', reorderBoundaries);
+      map.off('overlayremove', reorderBoundaries);
     };
   }, [map]);
 
@@ -778,8 +971,42 @@ export default function MapLayersControl({ children }) {
       };
       return (feature, layer) => {
         try {
-          const html = buildTooltipFn(feature && feature.properties);
+          const props = feature && feature.properties;
+          const html = buildTooltipFn ? buildTooltipFn(props) : '';
           const usePopup = Boolean(options && options.usePopup);
+          const nativeTitleFn = options && options.nativeTitleFn;
+          const nativeTitle = nativeTitleFn ? String(nativeTitleFn(props) || '') : '';
+          const disableHover = Boolean(options && options.disableHover);
+          const disableHoverStyling = Boolean(options && options.disableHoverStyling);
+          const applyDomTitle = () => {
+            if (!nativeTitle) return false;
+            const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+            if (!pathEl) return false;
+            try {
+              pathEl.setAttribute('title', nativeTitle);
+              pathEl.setAttribute('aria-label', nativeTitle);
+              return true;
+            } catch (_) {
+              return false;
+            }
+          };
+          const setContainerTitle = (value) => {
+            const container = map?.getContainer?.();
+            if (!container) return;
+            if (value) {
+              if (!Object.prototype.hasOwnProperty.call(container, '__prevTitle')) {
+                container.__prevTitle = container.getAttribute('title');
+              }
+              container.setAttribute('title', value);
+              container.__nativeTitleOwner = layer;
+            } else if (container.__nativeTitleOwner === layer) {
+              const prev = container.__prevTitle;
+              if (prev) container.setAttribute('title', prev);
+              else container.removeAttribute('title');
+              delete container.__prevTitle;
+              delete container.__nativeTitleOwner;
+            }
+          };
           if (html) {
             if (usePopup) {
               layer.bindPopup(html, {
@@ -788,6 +1015,12 @@ export default function MapLayersControl({ children }) {
                 closeButton: true,
                 maxWidth: 280,
               });
+              try {
+                if (layer._openPopup) {
+                  layer.off('click', layer._openPopup, layer);
+                  layer.off('keypress', layer._openPopup, layer);
+                }
+              } catch (_) {}
             } else {
               layer.bindTooltip(html, {
                 sticky: true,
@@ -796,34 +1029,44 @@ export default function MapLayersControl({ children }) {
               });
             }
           }
+          applyDomTitle();
+          layer.on('add', applyDomTitle);
           const hoverWeightFor = (baseW) =>
             usePopup ? Math.max(baseW + 1.25, baseW * 1.75) : Math.max(baseW + 2.5, baseW * 2.5);
 
-          layer.on('mouseover', () => {
-            try {
-              const el = map?.getContainer?.();
-              if (el && hoverClassName) el.classList.add(hoverClassName);
-              const baseNow = getBase();
-              const baseW = baseNow.weight || 2;
-              // Slight bump on hover for readability; keep same scale for selected
-              const hoverW = hoverWeightFor(baseW);
-              layer.setStyle({ ...baseNow, weight: hoverW, opacity: 1 });
-              if (layer.bringToFront) layer.bringToFront();
-              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-              if (pathEl) {
-                try {
-                  pathEl.classList.add('hover-glow');
-                } catch (_) {}
-              }
-              // keep the pane just below tooltip pane (650)
-              const paneName = layer?.options?.pane;
-              const paneEl = paneName && map?.getPane?.(paneName);
-              if (paneEl) {
-                if (paneEl._prevZ == null) paneEl._prevZ = paneEl.style.zIndex;
-                paneEl.style.zIndex = '645';
-              }
-            } catch (_) {}
-          });
+          if (!disableHover) {
+            layer.on('mouseover', () => {
+              try {
+                const el = map?.getContainer?.();
+                if (el && hoverClassName) el.classList.add(hoverClassName);
+                if (nativeTitle) {
+                  applyDomTitle();
+                  setContainerTitle(nativeTitle);
+                }
+                if (!disableHoverStyling) {
+                  const baseNow = getBase();
+                  const baseW = baseNow.weight || 2;
+                  // Slight bump on hover for readability; keep same scale for selected
+                  const hoverW = hoverWeightFor(baseW);
+                  layer.setStyle({ ...baseNow, weight: hoverW, opacity: 1 });
+                  if (layer.bringToFront) layer.bringToFront();
+                  const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                  if (pathEl) {
+                    try {
+                      pathEl.classList.add('hover-glow');
+                    } catch (_) {}
+                  }
+                  // keep the pane just below tooltip pane (650)
+                  const paneName = layer?.options?.pane;
+                  const paneEl = paneName && map?.getPane?.(paneName);
+                  if (paneEl) {
+                    if (paneEl._prevZ == null) paneEl._prevZ = paneEl.style.zIndex;
+                    paneEl.style.zIndex = '645';
+                  }
+                }
+              } catch (_) {}
+            });
+          }
           const reset = () => {
             // If tooltip is open (selected), keep selected styling
             const tip = !usePopup && typeof layer.getTooltip === 'function' ? layer.getTooltip() : null;
@@ -831,38 +1074,45 @@ export default function MapLayersControl({ children }) {
             const isTipOpen = !!(tip && typeof tip.isOpen === 'function' && tip.isOpen());
             const isPopOpen = !!(pop && typeof pop.isOpen === 'function' && pop.isOpen());
             const open = usePopup ? isPopOpen : isTipOpen;
-            if (!open) {
-              try {
-                layer.setStyle(getBase());
-              } catch (_) {}
-            } else {
-              const baseNow = getBase();
-              const baseW = baseNow.weight || 2;
-              // Keep a highlight when info is pinned open, same scale as hover
-              const selectedW = hoverWeightFor(baseW);
-              try {
-                layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
-              } catch (_) {}
+            if (!disableHoverStyling) {
+              if (!open) {
+                try {
+                  layer.setStyle(getBase());
+                } catch (_) {}
+              } else {
+                const baseNow = getBase();
+                const baseW = baseNow.weight || 2;
+                // Keep a highlight when info is pinned open, same scale as hover
+                const selectedW = hoverWeightFor(baseW);
+                try {
+                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                } catch (_) {}
+              }
             }
             const el = map?.getContainer?.();
             if (el && hoverClassName) el.classList.remove(hoverClassName);
+            if (nativeTitle) setContainerTitle('');
             const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-            if (pathEl) {
-              try {
-                if (!open) pathEl.classList.remove('hover-glow');
-              } catch (_) {}
-            }
-            const paneName = layer?.options?.pane;
-            const paneEl = paneName && map?.getPane?.(paneName);
-            if (paneEl && paneEl._prevZ != null) {
-              paneEl.style.zIndex = paneEl._prevZ;
-              paneEl._prevZ = null;
+            if (!disableHoverStyling) {
+              if (pathEl) {
+                try {
+                  if (!open) pathEl.classList.remove('hover-glow');
+                } catch (_) {}
+              }
+              const paneName = layer?.options?.pane;
+              const paneEl = paneName && map?.getPane?.(paneName);
+              if (paneEl && paneEl._prevZ != null) {
+                paneEl.style.zIndex = paneEl._prevZ;
+                paneEl._prevZ = null;
+              }
             }
           };
-          layer.on('mouseout', reset);
+          if (!disableHover) {
+            layer.on('mouseout', reset);
+          }
           if (usePopup) {
             layer.on('popupclose', reset);
-          } else {
+          } else if (!disableHover) {
             layer.on('tooltipclose', reset);
           }
           layer.on('remove', reset);
@@ -874,13 +1124,15 @@ export default function MapLayersControl({ children }) {
                 if (isOpen) {
                   layer.closePopup();
                 } else {
-                  const baseNow = getBase();
-                  const baseW = baseNow.weight || 2;
-                  const selectedW = hoverWeightFor(baseW);
-                  layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                  if (!disableHoverStyling) {
+                    const baseNow = getBase();
+                    const baseW = baseNow.weight || 2;
+                    const selectedW = hoverWeightFor(baseW);
+                    layer.setStyle({ ...baseNow, weight: selectedW, opacity: 1 });
+                  }
                   if (layer.bringToFront) layer.bringToFront();
                   const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-                  if (pathEl) {
+                  if (pathEl && !disableHoverStyling) {
                     try { pathEl.classList.add('selected-glow'); } catch (_) {}
                   }
                   if (e && e.latlng && typeof layer.openPopup === 'function') layer.openPopup(e.latlng);
@@ -888,7 +1140,6 @@ export default function MapLayersControl({ children }) {
                 }
               } catch (_) {}
             };
-            layer.on('click', clickToggle);
             let __lastTapTs = 0;
             layer.on('tap', (ev) => {
               __lastTapTs = Date.now();
@@ -901,23 +1152,27 @@ export default function MapLayersControl({ children }) {
           }
           if (!usePopup) {
             layer.on('tooltipclose', () => {
-              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-              if (pathEl) {
+              if (!disableHoverStyling) {
+                const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                if (pathEl) {
+                  try {
+                    pathEl.classList.remove('selected-glow');
+                  } catch (_) {}
+                }
                 try {
-                  pathEl.classList.remove('selected-glow');
+                  layer.setStyle(getBase());
                 } catch (_) {}
               }
-              try {
-                layer.setStyle(getBase());
-              } catch (_) {}
             });
           } else {
             layer.on('popupclose', () => {
-              const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
-              if (pathEl) {
-                try { pathEl.classList.remove('selected-glow'); } catch (_) {}
+              if (!disableHoverStyling) {
+                const pathEl = layer.getElement ? layer.getElement() : layer._path || null;
+                if (pathEl) {
+                  try { pathEl.classList.remove('selected-glow'); } catch (_) {}
+                }
+                try { layer.setStyle(getBase()); } catch (_) {}
               }
-              try { layer.setStyle(getBase()); } catch (_) {}
             });
           }
         } catch (_) {}
@@ -939,15 +1194,26 @@ export default function MapLayersControl({ children }) {
     () => platesStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom() }),
     [map],
   );
+  const parStyleFor = useCallback(
+    () => parStyle({ theme: themeFromMapContainer(map.getContainer()), zoom: map.getZoom() }),
+    [map],
+  );
 
   return (
     <LayersControl position="topright" collapsed>
-      <BasemapLayers bases={bases} />
+      <BasemapLayers
+        bases={bases}
+        registerBaseLayer={registerBaseLayer}
+        activeTheme={activeTheme}
+        activeBase={activeBase}
+      />
       <OverlayLayers
         setFaultsRef={setFaultsRef}
         setPlatesRef={setPlatesRef}
+        setParRef={setParRef}
         faultsStyleFor={faultsStyleFor}
         platesStyleFor={platesStyleFor}
+        parStyleFor={parStyleFor}
         makeOnEachWith={makeOnEachWith}
       />
       {/* Inject external overlays from parent (e.g., Stations, Earthquakes) */}

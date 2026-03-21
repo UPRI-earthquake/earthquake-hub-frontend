@@ -1,18 +1,5 @@
-/* src/DownloadButtons.css */
-.station-download-links {
-  padding: 5px 5px;
-  cursor: pointer;
-  flex: 1;
-  text-wrap: nowrap;
-  max-width: max-content;
-  font-size: 14px;
-}
-
-.download-button:hover {
-  background-color: #bbb;
-}
-
-a:hover {
-  text-decoration: none;
-  color: red;
+.download-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

@@ -5,6 +5,7 @@ import App from './App';
 // Defer non-critical modules to reduce main bundle size
 // - service worker registration already waits for 'load' internally
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
@@ -21,10 +22,16 @@ const selectedEventReducer = (state = null, action) => {
 };
 const store = createStore(selectedEventReducer);
 
+// Note: GA Measurement Protocol headers are intentionally disabled for now.
+// When backend request telemetry returns, reintroduce the axios interceptor
+// here so every API request carries the GA client_id for correlation.
+
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </Provider>
   </React.StrictMode>,
   document.getElementById('root'),

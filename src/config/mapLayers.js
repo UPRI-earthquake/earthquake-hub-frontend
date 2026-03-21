@@ -13,9 +13,9 @@ const providerProps = (name) => {
 
 // Basemaps via leaflet-providers
 export const BASEMAPS = {
-  OSM_Standard: () => providerProps('OpenStreetMap.Mapnik'),
   Carto_Positron: () => providerProps('CartoDB.Positron'),
   Carto_DarkMatter: () => providerProps('CartoDB.DarkMatter'),
+  Esri_WorldTopoMap: () => providerProps('Esri.WorldTopoMap'),
   Esri_WorldImagery: () => providerProps('Esri.WorldImagery'),
 };
 

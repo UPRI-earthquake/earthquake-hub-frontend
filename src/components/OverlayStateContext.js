@@ -8,6 +8,7 @@ import React, {
   useCallback,
 } from 'react';
 import { useMap } from 'react-leaflet';
+import { trackEvent } from '../analytics';
 
 // Context that tracks registered overlay layers (Leaflet layer instance → id)
 // and which ones are currently active on the map.
@@ -22,6 +23,14 @@ export function OverlayStateProvider({ children }) {
   const registryRef = useRef(new WeakMap()); // LeafletLayer -> id
   const idToLayerRef = useRef(new Map()); // id -> LeafletLayer
   const [activeIds, setActiveIds] = useState(() => new Set());
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      readyRef.current = true;
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
 
   // Helper: resolve id for a given Leaflet layer using the registry
   const idForLayer = (layer) => registryRef.current.get(layer);
@@ -70,6 +79,11 @@ export function OverlayStateProvider({ children }) {
         next.add(id);
         return next;
       });
+      if (readyRef.current) {
+        try {
+          trackEvent('layers_toggle', { action: 'overlay_toggle', overlay_id: id, visible: true });
+        } catch (_) {}
+      }
     };
     const onRemove = (e) => {
       const id = idForLayer(e.layer);
@@ -80,6 +94,11 @@ export function OverlayStateProvider({ children }) {
         next.delete(id);
         return next;
       });
+       if (readyRef.current) {
+         try {
+           trackEvent('layers_toggle', { action: 'overlay_toggle', overlay_id: id, visible: false });
+         } catch (_) {}
+       }
     };
 
     map.on('overlayadd', onAdd);

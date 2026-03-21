@@ -50,19 +50,6 @@
 
 /* Theme-aware ring provided by CSS variables applied on container */
 
-/* Reduce clutter at low zoom */
-.leaflet-container :global(.leaflet-marker-icon) {
-  will-change: transform;
-  overflow: visible;
-}
-/* Removed zoom-tier scale tweak; keep marker size constant */
-
-/* While hovering a fault, dim EQ points for context */
-:global(.leaflet-container.fault-hovering) .default,
-:global(.leaflet-container.fault-hovering) .radiate {
-  opacity: 0.5;
-}
-
 /* Apply zoom-based scale directly to marker container classes */
 .default,
 .radiate {
@@ -89,4 +76,50 @@
 :global(.leaflet-container.leaflet-zoom-anim) .leaflet-div-icon.eq-marker,
 :global(.leaflet-container.leaflet-zoom-anim) .leaflet-marker-icon.eq-marker {
   transition: none !important;
+}
+
+.popupCard {
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.popupGroup {
+  display: grid;
+  gap: 6px;
+}
+.popupRow {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+.popupKey {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.popupValue {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.popupGroupPrimary .popupValue {
+  font-size: 15px;
+  font-weight: 600;
+}
+.popupGroupPrimary .popupKey {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.popupGroupSecondary .popupValue {
+  font-size: 12px;
+}
+.popupGroupTertiary {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+.popupGroupTertiary .popupValue {
+  font-size: 11px;
 }

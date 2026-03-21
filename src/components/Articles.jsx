@@ -1,84 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import './Article.css';
 import defaultThumbnail from '../assets/thumbnail.jpg';
 
 /**
- * Component to display article information with hover effects.
- * @param {object} url - The URL object for the article.
- * @returns {JSX.Element} The rendered article component.
+ * Modern article card with source tag and CTA.
  */
 const Articles = ({ url }) => {
-  const [author, setAuthor] = useState('Loading...');
-  const [img] = useState(defaultThumbnail);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      switch (true) {
-        case url.includes('mb.com'):
-          setAuthor('Manila Bulletin');
-          break;
-
-        case url.includes('phivolcs'):
-          setAuthor('PHIVOLCS');
-          break;
-
-        case url.includes('sunstar'):
-          setAuthor('Sunstar');
-          break;
-
-        case url.includes('inquirer'):
-          setAuthor('Inquirer.net');
-          break;
-
-        case url.includes('abs-cbn'):
-          setAuthor('ABSCBN News');
-          break;
-
-        case url.includes('gma'):
-          setAuthor('GMA News');
-          break;
-
-        case url.includes('philstar'):
-          setAuthor('Philstar');
-          break;
-
-        case url.includes('rappler'):
-          setAuthor('Rappler');
-          break;
-
-        case url.includes('ndrrmc'):
-          setAuthor('NDRRMC');
-          break;
-
-        case url.includes('pna'):
-          setAuthor('Philippine News Agency');
-          break;
-
-        default:
-          setAuthor('Unknown Source');
-          break;
+  const safeHref = useMemo(() => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.toString();
       }
-    };
-
-    fetchData();
+    } catch (_) {}
+    return '';
   }, [url]);
 
+  const source = useMemo(() => {
+    if (!url) return 'Unknown source';
+    const lower = url.toLowerCase();
+    if (lower.includes('mb.com')) return 'Manila Bulletin';
+    if (lower.includes('phivolcs')) return 'PHIVOLCS';
+    if (lower.includes('sunstar')) return 'Sunstar';
+    if (lower.includes('inquirer')) return 'Inquirer.net';
+    if (lower.includes('abs-cbn')) return 'ABS-CBN News';
+    if (lower.includes('gma')) return 'GMA News';
+    if (lower.includes('philstar')) return 'Philstar';
+    if (lower.includes('rappler')) return 'Rappler';
+    if (lower.includes('ndrrmc')) return 'NDRRMC';
+    if (lower.includes('pna')) return 'Philippine News Agency';
+    return 'Trusted source';
+  }, [url]);
+
+  const hostname = useMemo(() => {
+    try {
+      return safeHref ? new URL(safeHref).hostname.replace('www.', '') : '';
+    } catch (_) {
+      return '';
+    }
+  }, [safeHref]);
+
+  const CardTag = safeHref ? 'a' : 'div';
+  const cardProps = safeHref
+    ? { href: safeHref, target: '_blank', rel: 'noreferrer noopener' }
+    : { 'aria-disabled': 'true' };
+
   return (
-    <div className="article-container" style={{ backgroundImage: `url(${img})` }}>
-      <a href={url} target="_blank" rel="noreferrer noopener">
-        <div className="article-content">
-          <div className="article-category">News</div>
-          <h3>{author}</h3>
-          <div className="article-hover-details">
-            <hr></hr>
-            <p>Earthquake report from {author}</p>
-            <br></br>
-            <br></br>
-            <i>Click to redirect to the article</i>
-          </div>
+    <CardTag className="article-card" {...cardProps}>
+      <div className="article-media" style={{ backgroundImage: `url(${defaultThumbnail})` }}>
+        <span className="article-tag">News</span>
+      </div>
+      <div className="article-body">
+        <p className="article-kicker">{hostname || 'External link'}</p>
+        <h3 className="article-title">{source}</h3>
+        <div className="article-meta">
+          <span>{safeHref ? 'Open article' : 'Link unavailable'}</span>
+          <span aria-hidden="true">↗</span>
         </div>
-      </a>
-    </div>
+      </div>
+    </CardTag>
   );
 };
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMap } from 'react-leaflet';
+import { filterStations } from '../utils/stationFilters';
 import StationMarker from './StationMarker';
 
 function obscureLocation(lat, lon) {
@@ -9,12 +10,12 @@ function obscureLocation(lat, lon) {
 }
 
 /**
- * Renders station markers from an initial list, with slight location jittering.
- * @param {{initStations: Array<{network:string, code:string, latitude:number, longitude:number, description?:string}>}} props
+ * Renders station markers with filters mirrored from the station list, plus slight location jittering.
+ * @param {{initStations: Array<{network:string, code:string, latitude:number, longitude:number, description?:string}>, filters?: {searchText?: string, statusFilter?: string|null}, popupAutoPanPadding?: {topLeft:number[], bottomRight:number[]}}} props
  */
-const StationMarkers = ({ initStations }) => {
+const StationMarkers = ({ initStations = [], filters = {}, popupAutoPanPadding }) => {
   // initialize station markers on map
-  const [stations] = useState(initStations);
+  const [stations, setStations] = useState(initStations);
   const map = useMap();
   const [centerLng, setCenterLng] = useState(() => {
     try {
@@ -23,6 +24,12 @@ const StationMarkers = ({ initStations }) => {
       return 0;
     }
   });
+  const jitterRef = useRef(new Map());
+
+  // Keep stations in sync when upstream changes (e.g., SSE/status update)
+  useEffect(() => {
+    setStations(initStations || []);
+  }, [initStations]);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -43,20 +50,43 @@ const StationMarkers = ({ initStations }) => {
     return x;
   };
 
-  return stations.map((station) => {
-    const [lat, lon] = obscureLocation(station.latitude, station.longitude);
-    const displayLng = normalizeLngNear(lon, centerLng);
-    return (
-      <StationMarker
-        network={station.network}
-        key={station.code}
-        code={station.code}
-        latLng={[lat, displayLng]}
-        description={station.description}
-        activity={station.activity}
-      />
-    );
-  });
+  const visibleStations = useMemo(() => {
+    const filtered = filterStations(stations || [], filters || {});
+    return filtered
+      .map((station) => {
+        const net = String(station.network || 'AM').toUpperCase();
+        const code = String(station.code || '').toUpperCase();
+        const key = `${net}:${code}`;
+        const latNum = Number(station.latitude);
+        const lonNum = Number(station.longitude);
+        if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return null;
+        const jittered = jitterRef.current.get(key) || obscureLocation(latNum, lonNum);
+        if (!jitterRef.current.has(key)) jitterRef.current.set(key, jittered);
+        const [lat, lon] = jittered;
+        const displayLng = normalizeLngNear(lon, centerLng);
+        return {
+          key,
+          net,
+          code,
+          latLng: [lat, displayLng],
+          description: station.description,
+          activity: station.activity,
+        };
+      })
+      .filter(Boolean);
+  }, [stations, filters, centerLng]);
+
+  return visibleStations.map((station) => (
+    <StationMarker
+      network={station.net}
+      key={station.key}
+      code={station.code}
+      latLng={station.latLng}
+      description={station.description}
+      activity={station.activity}
+      popupAutoPanPadding={popupAutoPanPadding}
+    />
+  ));
 };
 
 export default StationMarkers;
