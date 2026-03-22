@@ -22,7 +22,7 @@ function App() {
       <Router>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
-            <Route path="/" exact element={<HomePage />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/significant-eqs" element={<SignificantEQsPage />} />
             <Route path="/significant-eq-info" element={<EQInfoPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />

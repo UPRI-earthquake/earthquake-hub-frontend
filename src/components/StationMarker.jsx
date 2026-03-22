@@ -689,7 +689,7 @@ const StationMarker = ({
   };
   const markerRef = useRef(null);
   const dispatch = useDispatch();
-  const selectedId = useSelector((state) => state);
+  const selectedId = useSelector((state) => state, { noopCheck: 'never' });
   const isSelected = selectedId === `station:${code}`;
   const markerDesc = String(description || '').trim();
   const markerTitle = markerDesc

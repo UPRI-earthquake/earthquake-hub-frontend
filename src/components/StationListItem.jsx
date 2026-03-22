@@ -19,7 +19,7 @@ export default function StationListItem({ station }) {
   const tooltipText = String(name || '').trim() || 'Unnamed station';
 
   const dispatch = useDispatch();
-  const selectedId = useSelector((state) => state);
+  const selectedId = useSelector((state) => state, { noopCheck: 'never' });
   const isSelected = selectedId === `station:${code}`;
   const rowRef = useRef(null);
   const prevActiveRef = useRef(isActive);

@@ -62,7 +62,7 @@ const EventMarker = ({
   const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
     popupAutoPanPadding || DEFAULT_POPUP_AUTOPAN;
   const dispatch = useDispatch();
-  const selectedEvent = useSelector((state) => state);
+  const selectedEvent = useSelector((state) => state, { noopCheck: 'never' });
   const popupRef = useRef(null);
   const markerRef = useRef(null);
   const prevSelectedRef = useRef(null);

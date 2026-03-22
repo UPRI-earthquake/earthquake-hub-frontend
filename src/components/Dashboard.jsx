@@ -8,7 +8,7 @@ import formStyles from './Form.module.css';
 import Toast from './Toast';
 import InfoTooltip from './InfoTooltip';
 import { responseCodes } from '../utils/responseCodes';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import moment from '../utils/time';
 import { normalizeDeviceActivity, toDashboardStatusLabel } from '../utils/deviceStatus';
 

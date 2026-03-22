@@ -10,7 +10,7 @@ import { trackEvent } from '../analytics';
 function SidebarItem({ publicID, title, description, subDescription, status, last_modification, depthKm }) {
   // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
-  const selectedEvent = useSelector((state) => state);
+  const selectedEvent = useSelector((state) => state, { noopCheck: 'never' });
   const isSelected = selectedEvent === publicID;
   function handleClick() {
     if (selectedEvent !== publicID) {

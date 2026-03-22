@@ -78,7 +78,7 @@ const BeaconIcon = ({ size = 18 }) => (
 );
 const HomePage = () => {
   const dispatch = useDispatch();
-  const selectedEvent = useSelector((state) => state);
+  const selectedEvent = useSelector((state) => state, { noopCheck: 'never' });
   const location = useLocation();
   const navigate = useNavigate();
   const { resolvedTheme } = useTheme();

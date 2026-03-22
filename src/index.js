@@ -28,7 +28,7 @@ const store = createStore(selectedEventReducer);
 
 ReactDOM.render(
   <React.StrictMode>
-    <Provider store={store}>
+    <Provider store={store} noopCheck="never">
       <ThemeProvider>
         <App />
       </ThemeProvider>
