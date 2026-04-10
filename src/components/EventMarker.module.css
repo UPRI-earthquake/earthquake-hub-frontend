@@ -123,3 +123,25 @@
 .popupGroupTertiary .popupValue {
   font-size: 11px;
 }
+.eventInfoButton {
+  padding: 8px 12px;
+  margin-top: 6px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+.eventInfoButton:hover {
+  background-color: #1565c0;
+}
+.eventInfoButton:active {
+  background-color: #0d47a1;
+}
+.eventInfoButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

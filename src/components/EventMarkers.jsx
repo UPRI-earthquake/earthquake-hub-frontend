@@ -90,6 +90,8 @@ const EventMarkers = ({
         status={event.eventType ? event.eventType : null}
         last_modification={event.last_modification}
         location={locationText}
+        // Pass full event object for detail page navigation
+        eventData={event}
         // Suppress only the initial mount/appear animation on All Stations
         enableAnimation={datasetKey !== 'all-stations'}
         suppressInitialRadiate={datasetKey === 'all-stations'}
