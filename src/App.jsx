@@ -7,6 +7,7 @@ import ConsentBanner from './components/ConsentBanner';
 // Lazy-load heavy routes to improve initial load
 const SignificantEQsPage = lazy(() => import('./pages/SignificantEQsPage'));
 const EQInfoPage = lazy(() => import('./pages/EQInfoPage'));
+const EarthquakeDetailPage = lazy(() => import('./pages/EarthquakeDetailPage'));//Earthquake detail page route
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
@@ -25,6 +26,7 @@ function App() {
             <Route path="/" exact element={<HomePage />} />
             <Route path="/significant-eqs" element={<SignificantEQsPage />} />
             <Route path="/significant-eq-info" element={<EQInfoPage />} />
+            <Route path="/earthquake-detail" element={<EarthquakeDetailPage />} />{/* Earthquake detail page route */}
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
