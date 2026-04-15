@@ -5,6 +5,7 @@ import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles';
 import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
+import { generateEventSummary } from '../utils/generateEventSummary';
 import InfoTooltip from '../components/InfoTooltip';
 import './EQInfoPage.css';
 
@@ -40,7 +41,7 @@ function EarthquakeDetailPage() {
   }, []);
 
   const summaryMarkup = useMemo(
-    () => sanitizeHtml(earthquakeInfo?.eventSummary || ''),
+    () => sanitizeHtml(earthquakeInfo?.eventSummary || generateEventSummary(earthquakeInfo)), //using generated summary as fallback if eventSummary is not provided
     [earthquakeInfo],
   );
   const instrumentRecordings = useMemo(
