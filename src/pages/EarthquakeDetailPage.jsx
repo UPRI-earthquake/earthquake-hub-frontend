@@ -8,6 +8,7 @@ import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
 import InfoTooltip from '../components/InfoTooltip';
 import './EQInfoPage.css';
+import AdditionalSources from './AdditionalSources.jsx';
 
 // Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
 function normalizeList(value) {
@@ -33,7 +34,7 @@ function normalizeList(value) {
 function EarthquakeDetailPage() {
   const location = useLocation();
   const earthquakeInfo = location.state?.earthquake;
-
+  console.log(earthquakeInfo)
   const formatEventTime = useCallback((eventTime) => {
     const parsed = moment(eventTime);
     if (!parsed || !parsed.isValid()) return 'Date unavailable';
@@ -150,7 +151,7 @@ function EarthquakeDetailPage() {
               </div>
             </section>
           )}
-
+          <AdditionalSources additionalInformation={earthquakeInfo?.additionalInformation} />
           {instrumentRecordings.length > 0 && (
             <section className="eqinfo-panel scrollable">
               <div className="panel-header">

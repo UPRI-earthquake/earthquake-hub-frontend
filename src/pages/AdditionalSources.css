@@ -1,0 +1,98 @@
+.source-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-1, 12px);
+  margin-top: 12px;
+}
+
+.source-card {
+  background: var(--panel-subtle, rgba(248, 250, 252, 0.6));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header row: badge + source name */
+.source-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.source-mag-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+}
+
+.source-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+
+/* Depth / Lat / Lng row */
+.source-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.source-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.source-metric-icon {
+  font-size: 1.05rem;
+  color: var(--muted, #64748b);
+  margin-bottom: 2px;
+}
+
+.source-metric-label {
+  font-size: 0.75rem;
+  color: var(--muted, #64748b);
+}
+
+.source-metric-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Time row */
+.source-time {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted, #64748b);
+  font-size: 0.82rem;
+}
+
+.source-time-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--muted, #64748b);
+}
+
+/* Optional link */
+.source-link {
+  font-size: 0.8rem;
+  color: var(--accent, #3b82f6);
+  text-decoration: none;
+  margin-top: auto;
+}
+.source-link:hover {
+  text-decoration: underline;
+}
