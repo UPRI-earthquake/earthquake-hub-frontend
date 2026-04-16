@@ -7,8 +7,9 @@ import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
 import InfoTooltip from '../components/InfoTooltip';
+import EarthquakeSourceComparison from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
-import AdditionalSources from '../components/AdditionalSources.jsx';
+
 
 // Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
 function normalizeList(value) {
@@ -151,7 +152,8 @@ function EarthquakeDetailPage() {
               </div>
             </section>
           )}
-          <AdditionalSources additionalInformation={earthquakeInfo?.additionalInformation} />
+          <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
+
           {instrumentRecordings.length > 0 && (
             <section className="eqinfo-panel scrollable">
               <div className="panel-header">
