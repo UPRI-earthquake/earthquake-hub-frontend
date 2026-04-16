@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles';
+import NearbyEvents from '../components/NearbyEvents';
 import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
@@ -132,6 +133,12 @@ function EarthquakeDetailPage() {
         </section>
 
         <div className="eqinfo-grid">
+          <NearbyEvents
+            earthquakeInfo={earthquakeInfo}
+            nearbyEventCount={5}
+            distanceThresholdKm={200}
+          />
+
           {summaryMarkup && (
             <section className="eqinfo-panel scrollable">
               <div className="panel-header">
