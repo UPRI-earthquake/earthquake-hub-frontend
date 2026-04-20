@@ -132,8 +132,6 @@ function EarthquakeDetailPage() {
             </div>
           </div>
         </section>
-
-        <div className="eqinfo-grid">
           {summaryMarkup && (
             <section className="eqinfo-panel scrollable">
               <div className="panel-header">
@@ -152,6 +150,8 @@ function EarthquakeDetailPage() {
               </div>
             </section>
           )}
+        <div className="eqinfo-grid">
+
           <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
 
           {instrumentRecordings.length > 0 && (
