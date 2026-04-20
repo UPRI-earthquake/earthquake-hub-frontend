@@ -79,15 +79,12 @@ function buildOverview(mainSource, comparisonSources) {
   const externalMagnitudeRange = magnitudes.length > 0
     ? `${formatMagnitude(Math.min(...magnitudes))} to ${formatMagnitude(Math.max(...magnitudes))}`
     : null;
-  const strongestMatch = scores.length > 0 ? `${Math.max(...scores).toFixed(1)} score` : null;
   const closestTimeMatch = timeDiffs.length > 0 ? `${Math.min(...timeDiffs).toFixed(1)} min delta` : null;
 
   return [
-    { label: 'Hub solution', value: hubMagnitude || 'Unavailable' },
     { label: 'External sources', value: `${comparisonSources.length}` },
     ...(externalMagnitudeRange ? [{ label: 'External magnitude range', value: externalMagnitudeRange }] : []),
-    ...(closestTimeMatch ? [{ label: 'Closest time match', value: closestTimeMatch }] : []),
-    ...(strongestMatch ? [{ label: 'Strongest catalog match', value: strongestMatch }] : []),
+    ...(closestTimeMatch ? [{ label: 'Closest time match', value: closestTimeMatch }] : [])
   ];
 }
 
@@ -139,12 +136,12 @@ function ComparisonCard({ source, isPrimary = false }) {
       {source.location ? <p className="source-compare-location">{source.location}</p> : null}
 
       <div className="source-compare-metrics">
-        {magnitudeValue ? (
+        {/* {magnitudeValue ? (
           <div className="source-compare-metric source-compare-metric-magnitude">
             <span>Magnitude</span>
             <strong>{magnitudeValue}</strong>
           </div>
-        ) : null}
+        ) : null} */}
         {metrics.map((metric) => (
           <div key={`${label}-${metric.label}`} className="source-compare-metric">
             <MetricIcon type={metric.icon} />
@@ -211,7 +208,7 @@ export default function EarthquakeSourceComparison({ earthquakeInfo }) {
       </div>
 
       <div className="source-compare-grid">
-        <ComparisonCard source={mainSource} isPrimary />
+        {/* <ComparisonCard source={mainSource} isPrimary /> */}
         {comparisonSources.map((source) => (
           <ComparisonCard key={source.source ?? source.id ?? source.url} source={source} />
         ))}

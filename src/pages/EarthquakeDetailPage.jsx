@@ -14,7 +14,7 @@ import './EQInfoPage.css';
 // Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
 function normalizeList(value) {
   if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
+  if (typeof value === 'string') { 
     const trimmed = value.trim();
     const stripped = trimmed.startsWith('[') && trimmed.endsWith(']')
       ? trimmed.slice(1, -1)
