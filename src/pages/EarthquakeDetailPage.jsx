@@ -56,7 +56,7 @@ function EarthquakeDetailPage() {
       ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
       : earthquakeInfo?.magnitude;
 
-  const depthValue = Number(earthquakeInfo?.depth || earthquakeInfo?.depth_value);
+  const depthValue = Number(earthquakeInfo?.depth ?? earthquakeInfo?.depth_value);
   const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
 
   const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
