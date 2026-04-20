@@ -193,3 +193,55 @@
     grid-template-columns: 1fr;
   }
 }
+
+html[data-theme='dark'] .source-compare-overview-card {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+}
+
+html[data-theme='dark'] .source-compare-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .source-compare-card-primary {
+  background:
+    linear-gradient(135deg, rgba(14, 116, 144, 0.2), rgba(34, 197, 94, 0.1)),
+    rgba(15, 23, 42, 0.6);
+  border-color: rgba(14, 116, 144, 0.35);
+}
+
+html[data-theme='dark'] .source-compare-metric {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .source-compare-metric-magnitude {
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(251, 191, 36, 0.14)),
+    rgba(255, 255, 255, 0.05);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+html[data-theme='dark'] .source-compare-metric-magnitude span {
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .source-compare-metric-magnitude strong {
+  color: #fecaca;
+}
+
+html[data-theme='dark'] .source-compare-mag-badge {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .source-compare-chip {
+  background: rgba(14, 116, 144, 0.15);
+  border-color: rgba(14, 116, 144, 0.3);
+  color: #7dd3fc;
+}
+
+html[data-theme='dark'] .source-compare-link {
+  color: #38bdf8;
+}
