@@ -429,6 +429,7 @@ const EventMarker = ({
               onClick={handleEventInfoClick}
               type="button"
               aria-label="View event details"
+              disabled={!publicID || !eventData}
             >
               Event Info &gt;
             </button>
