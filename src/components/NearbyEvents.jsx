@@ -4,7 +4,7 @@ import moment from '../utils/time';
 import { calculateDistance } from '../utils/distanceCalculator';
 import axios from 'axios';
 import { backendHost } from '../utils/env';
-import '../pages/EQInfoPage.css';
+import styles from './NearbyEvents.module.css';
 
 /**
  * NearbyEvents component displays earthquakes nearby to the current earthquake.
@@ -133,36 +133,37 @@ function NearbyEvents({
   if (!currentPublicID) return null;
 
   return (
-    <section className="eqinfo-panel scrollable">
-      <div className="panel-header">
-        <div className="panel-title">
+    <section className={styles.nearbyEventsPanel}>
+      <div className={styles.panelHeader}>
+        <div className={styles.panelTitle}>
           <h3>Nearby events</h3>
           {nearbyEvents.length > 0 && (
-            <span style={{ fontSize: '0.85rem', color: 'var(--muted)', marginLeft: '12px' }}>
+            <span className={styles.eventCount}>
               within {distanceThresholdKm} km
             </span>
           )}
         </div>
       </div>
 
-      <div className="panel-body">
+      <div className={styles.panelBody}>
         {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px 16px', color: 'var(--muted)' }} role="status" aria-live="polite">
-            <div style={{ width: '16px', height: '16px', border: '2px solid rgba(75, 85, 99, 0.2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} aria-hidden />
+          <div className={styles.loader} role="status" aria-live="polite">
+            <div className={styles.spinner} aria-hidden />
             <span>Loading nearby events…</span>
           </div>
         ) : nearbyEvents.length === 0 ? (
-          <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--muted)', backgroundColor: 'var(--panel-subtle)', borderRadius: 'var(--radius-md)' }}>
+          <div className={styles.empty}>
             No events found within {distanceThresholdKm} km in the last 30 days.
           </div>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <ul className={styles.eventList}>
             {nearbyEvents.map((event) => (
               <li
                 key={event.publicID}
                 onClick={() => handleEventClick(event)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
+                    e.preventDefault();
                     handleEventClick(event);
                   } else if (e.key === ' ') {
                     e.preventDefault();
@@ -172,68 +173,27 @@ function NearbyEvents({
                 role="button"
                 tabIndex="0"
                 aria-label={`Magnitude ${formatMagnitude(event)} - ${formatLocation(event)}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  padding: '12px',
-                  backgroundColor: 'var(--panel-subtle)',
-                  border: '1px solid rgba(229, 231, 235, 0.6)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f1f5f9';
-                  e.currentTarget.style.borderColor = 'var(--primary)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--panel-subtle)';
-                  e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.6)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
+                className={styles.eventItem}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    width: '48px',
-                    height: '48px',
-                    background: 'linear-gradient(135deg, #E53935 0%, #D32F2F 100%)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: '0 2px 8px rgba(229, 57, 53, 0.2)',
-                  }}>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)' }}>
+                <div className={styles.eventMainContent}>
+                  <div className={styles.magnitudeSection}>
+                    <span className={styles.magnitude}>
                       M{formatMagnitude(event)}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                  <div className={styles.eventDetails}>
+                    <div className={styles.location}>
                       {formatLocation(event)}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                      <span>{formatTime(event.OT || event.eventTime)}</span>
-                      <span style={{ opacity: 0.5 }}>•</span>
-                      <span>{formatDepth(event)}</span>
+                    <div className={styles.eventMeta}>
+                      <span className={styles.time}>{formatTime(event.OT || event.eventTime)}</span>
+                      <span className={styles.separator}>•</span>
+                      <span className={styles.depth}>{formatDepth(event)}</span>
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0, paddingLeft: '8px' }}>
-                  <span style={{
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    color: '#475569',
-                    whiteSpace: 'nowrap',
-                    padding: '4px 8px',
-                    background: '#f1f5f9',
-                    borderRadius: '6px',
-                    minWidth: '60px',
-                    textAlign: 'right',
-                  }}>
+                <div className={styles.distanceSection}>
+                  <span className={styles.distance}>
                     {formatDistance(event.distance)}
                   </span>
                 </div>
@@ -242,11 +202,6 @@ function NearbyEvents({
           </ul>
         )}
       </div>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </section>
   );
 }
