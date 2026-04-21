@@ -162,7 +162,10 @@ function NearbyEvents({
                 key={event.publicID}
                 onClick={() => handleEventClick(event)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === 'Enter') {
+                    handleEventClick(event);
+                  } else if (e.key === ' ') {
+                    e.preventDefault();
                     handleEventClick(event);
                   }
                 }}
