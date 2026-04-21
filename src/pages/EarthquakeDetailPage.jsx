@@ -7,24 +7,9 @@ import NearbyEvents from '../components/NearbyEvents';
 import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
+import { normalizeList } from '../utils/normalizeList';
 import InfoTooltip from '../components/InfoTooltip';
 import './EQInfoPage.css';
-
-// Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
-function normalizeList(value) {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    const stripped = trimmed.startsWith('[') && trimmed.endsWith(']')
-      ? trimmed.slice(1, -1)
-      : trimmed;
-    return stripped
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
 
 /**
  * Earthquake detail page for network-detected earthquakes. Displays event information
