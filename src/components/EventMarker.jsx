@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import moment from '../utils/time';
 import { Marker, useMap, Popup } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
@@ -50,12 +51,14 @@ const EventMarker = ({
   status,
   last_modification,
   location,
+  eventData,
   enableAnimation = true,
   suppressInitialRadiate = false,
   popupAutoPanPadding = DEFAULT_POPUP_AUTOPAN,
 }) => {
   // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
+  const navigate = useNavigate();
 
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
@@ -301,6 +304,12 @@ const EventMarker = ({
   const locationText = locationLabel || `${latText}, ${lngText}`;
   const showCoordRows = Boolean(locationLabel);
 
+  // Handle navigation to earthquake detail page
+  const handleEventInfoClick = useCallback(() => {
+    if (!publicID || !eventData) return;
+    navigate(`/earthquake-detail?id=${publicID}`, { state: { earthquake: eventData } });
+  }, [navigate, publicID, eventData]);
+
   // If bad coords slipped through, skip rendering after hooks have been called
   if (!hasValidCoords) {
     if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
@@ -414,6 +423,17 @@ const EventMarker = ({
               <span className={styles.popupValue}>{updatedText}</span>
             </div>
           </div>
+          <div className={styles.popupGroup}>
+            <button
+              className={styles.eventInfoButton}
+              onClick={handleEventInfoClick}
+              type="button"
+              aria-label="View event details"
+              disabled={!publicID || !eventData}
+            >
+              Event Info &gt;
+            </button>
+          </div>
         </div>
       </Popup>
     </Marker>
@@ -434,6 +454,7 @@ export default React.memo(EventMarker, (prev, next) => {
     prev.depthKm === next.depthKm &&
     prev.status === next.status &&
     prev.last_modification === next.last_modification &&
-    prev.location === next.location
+    prev.location === next.location &&
+    prev.eventData === next.eventData
   );
 });

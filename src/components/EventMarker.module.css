@@ -123,3 +123,26 @@
 .popupGroupTertiary .popupValue {
   font-size: 11px;
 }
+.eventInfoButton {
+  padding: 8px 12px;
+  margin-top: 6px;
+  background-color: var(--button-primary-bg, #1976d2);
+  color: var(--button-primary-fg, #ffffff);
+  border: none;
+  border-radius: var(--button-radius, 4px);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+.eventInfoButton:hover {
+  background-color: var(--button-primary-bg-hover, #1565c0);
+}
+.eventInfoButton:active {
+  background-color: var(--button-primary-bg-active, #0d47a1);
+}
+.eventInfoButton:disabled {
+  background-color: var(--button-disabled-bg, #ccc);
+  color: var(--button-disabled-fg, #ffffff);
+  cursor: not-allowed;
+}
