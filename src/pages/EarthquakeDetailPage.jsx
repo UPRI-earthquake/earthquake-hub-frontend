@@ -59,19 +59,21 @@ function EarthquakeDetailPage() {
       ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
       : earthquakeInfo?.magnitude;
 
-  const depthValue = Number(earthquakeInfo?.depth || earthquakeInfo?.depth_value);
+  const depthValue = Number(
+    earthquakeInfo?.depth_km ?? earthquakeInfo?.depth ?? earthquakeInfo?.depth_value,
+  );
   const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
 
   const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
   const formattedEventTime = eventTime ? formatEventTime(eventTime) : null;
 
-  const place_description = earthquakeInfo?.place || '';
-  const generic_location = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
-  
+  const placeDescription = earthquakeInfo?.place || '';
+  const genericLocation = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
+
   // Use place description for location if available, otherwise use generic location
-  const location_display = place_description && place_description !== 'Unavailable' 
-    ? place_description 
-    : generic_location;
+  const locationDisplay = placeDescription && placeDescription !== 'Unavailable'
+    ? placeDescription
+    : genericLocation;
 
   // Generate dynamic title: "M6.8 Earthquake 067 km N 87° E of Cagwait (Surigao Del Sur)"
   const pageTitle = useMemo(() => {
@@ -79,14 +81,14 @@ function EarthquakeDetailPage() {
     
     const magText = magnitude ? `M${magnitude} Earthquake` : 'Earthquake';
     
-    if (place_description && place_description !== 'Unavailable') {
-      return `${magText} ${place_description}`;
-    } else if (generic_location) {
-      return `${magText} ${generic_location}`;
+    if (placeDescription && placeDescription !== 'Unavailable') {
+      return `${magText} ${placeDescription}`;
+    } else if (genericLocation) {
+      return `${magText} ${genericLocation}`;
     }
     
     return magText;
-  }, [magnitude, place_description, generic_location, earthquakeInfo?.title]);
+  }, [magnitude, placeDescription, genericLocation, earthquakeInfo?.title]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -122,9 +124,9 @@ function EarthquakeDetailPage() {
               <span>Depth</span>
               <strong>{depth || '—'}</strong>
             </div>
-            <div className="metric-card" role="group" aria-label={`Location ${location_display || 'not available'}`} title={`Location ${location_display || 'Not available'}`}>
+            <div className="metric-card" role="group" aria-label={`Location ${locationDisplay || 'not available'}`} title={`Location ${locationDisplay || 'Not available'}`}>
               <span>Location</span>
-              <strong>{location_display || '—'}</strong>
+              <strong>{locationDisplay || '—'}</strong>
             </div>
             <div className="metric-card" role="group" aria-label={`Local time ${formattedEventTime || 'not available'}`} title={`Local time ${formattedEventTime || 'Not available'}`}>
               <span>Local time</span>
