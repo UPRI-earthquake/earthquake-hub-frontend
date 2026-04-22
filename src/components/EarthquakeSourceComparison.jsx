@@ -67,15 +67,10 @@ function buildOverview(mainSource, comparisonSources) {
     .map((source) => toFiniteNumber(source?.magnitude))
     .filter((value) => value != null);
 
-  const scores = comparisonSources
-    .map((source) => toFiniteNumber(source?.score))
-    .filter((value) => value != null);
-
   const timeDiffs = comparisonSources
     .map((source) => toFiniteNumber(source?.timeDifferenceMinutes))
     .filter((value) => value != null);
 
-  const hubMagnitude = formatMagnitude(mainSource?.magnitude);
   const externalMagnitudeRange = magnitudes.length > 0
     ? `${formatMagnitude(Math.min(...magnitudes))} to ${formatMagnitude(Math.max(...magnitudes))}`
     : null;
