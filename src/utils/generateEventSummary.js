@@ -65,11 +65,16 @@ export function generateEventSummary(earthquakeInfo) {
 
   let proximityPhrase;
   if (isPlaceValid) {
-    const { distance, direction, locality } = parseProximity(rawPlace);
-    proximityPhrase =
-      distance && direction
-        ? `${distance} ${direction} of ${locality}`
-        : locality || rawPlace;
+    const proximity = parseProximity(rawPlace);
+    if (proximity) {
+      const { distance, direction, locality } = proximity;
+      proximityPhrase =
+        distance && direction
+          ? `${distance} ${direction} of ${locality}`
+          : locality || rawPlace;
+    } else {
+      proximityPhrase = rawPlace;
+    }
   } else if (genericLocation) {
     proximityPhrase = genericLocation;
   } else {

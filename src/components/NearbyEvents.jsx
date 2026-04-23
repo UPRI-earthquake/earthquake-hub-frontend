@@ -20,8 +20,8 @@ function NearbyEvents({
   const [loading, setLoading] = useState(false);
   const isMountedRef = useRef(true);
 
-  const currentLat = earthquakeInfo?.latitude_value;
-  const currentLon = earthquakeInfo?.longitude_value;
+  const currentLat = Number(earthquakeInfo?.latitude_value);
+  const currentLon = Number(earthquakeInfo?.longitude_value);
   const currentTime = earthquakeInfo?.OT || earthquakeInfo?.eventTime;
   const currentPublicID = earthquakeInfo?.publicID;
 
@@ -29,7 +29,7 @@ function NearbyEvents({
   useEffect(() => {
     isMountedRef.current = true;
     
-    if (!currentLat || !currentLon || !currentTime || !currentPublicID) {
+    if (!Number.isFinite(currentLat) || !Number.isFinite(currentLon) || !currentTime || !currentPublicID) {
       return;
     }
 
