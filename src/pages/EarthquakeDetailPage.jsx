@@ -5,13 +5,16 @@ import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles';
 import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
+import { generateEventSummary } from '../utils/generateEventSummary';
 import InfoTooltip from '../components/InfoTooltip';
+import EarthquakeSourceComparison from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
+
 
 // Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
 function normalizeList(value) {
   if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
+  if (typeof value === 'string') { 
     const trimmed = value.trim();
     const stripped = trimmed.startsWith('[') && trimmed.endsWith(']')
       ? trimmed.slice(1, -1)
@@ -32,7 +35,7 @@ function normalizeList(value) {
 function EarthquakeDetailPage() {
   const location = useLocation();
   const earthquakeInfo = location.state?.earthquake;
-
+  
   const formatEventTime = useCallback((eventTime) => {
     const parsed = moment(eventTime);
     if (!parsed || !parsed.isValid()) return 'Date unavailable';
@@ -40,7 +43,7 @@ function EarthquakeDetailPage() {
   }, []);
 
   const summaryMarkup = useMemo(
-    () => sanitizeHtml(earthquakeInfo?.eventSummary || ''),
+    () => sanitizeHtml(earthquakeInfo?.eventSummary || generateEventSummary(earthquakeInfo)), //using generated summary as fallback if eventSummary is not provided
     [earthquakeInfo],
   );
   const instrumentRecordings = useMemo(
@@ -56,7 +59,9 @@ function EarthquakeDetailPage() {
       ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
       : earthquakeInfo?.magnitude;
 
-  const depthValue = Number(earthquakeInfo?.depth ?? earthquakeInfo?.depth_value);
+  const depthValue = Number(
+    earthquakeInfo?.depth_km ?? earthquakeInfo?.depth ?? earthquakeInfo?.depth_value,
+  );
   const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
 
   const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
@@ -129,8 +134,6 @@ function EarthquakeDetailPage() {
             </div>
           </div>
         </section>
-
-        <div className="eqinfo-grid">
           {summaryMarkup && (
             <section className="eqinfo-panel scrollable">
               <div className="panel-header">
@@ -149,6 +152,9 @@ function EarthquakeDetailPage() {
               </div>
             </section>
           )}
+        <div className="eqinfo-grid">
+
+          <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
 
           {instrumentRecordings.length > 0 && (
             <section className="eqinfo-panel scrollable">
