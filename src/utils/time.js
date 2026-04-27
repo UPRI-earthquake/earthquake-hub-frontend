@@ -22,5 +22,11 @@ function m(input, format, strict) {
 // Attach duration constructor to mirror moment.duration()
 m.duration = dayjs.duration;
 
+// Attach utc constructor to mirror moment.utc()
+m.utc = function(input, format, strict) {
+  if (format) return dayjs.utc(input, format, strict);
+  return dayjs.utc(input);
+};
+
 export default m;
 

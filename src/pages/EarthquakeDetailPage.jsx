@@ -1,12 +1,17 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import Header from '../components/Header';
 import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles';
 import NearbyEvents from '../components/NearbyEvents';
+import SeismicWaveforms from '../components/SeismicWaveforms';
+import LoadingScreen from '../components/LoadingScreen';
+import ErrorScreen from '../components/ErrorScreen';
 import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
+import { backendHost } from '../utils/env';
 import InfoTooltip from '../components/InfoTooltip';
 import './EQInfoPage.css';
 
@@ -29,11 +34,83 @@ function normalizeList(value) {
 /**
  * Earthquake detail page for network-detected earthquakes. Displays event information
  * passed via navigation state from the earthquakes list page.
+ * If location.state?.earthquake is missing (e.g., on refresh/direct navigation),
+ * reads the id from URL query params and fetches the earthquake data.
  * @returns {JSX.Element}
  */
 function EarthquakeDetailPage() {
   const location = useLocation();
-  const earthquakeInfo = location.state?.earthquake;
+  const [searchParams] = useSearchParams();
+  const [fetchedEarthquake, setFetchedEarthquake] = useState(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
+
+  // Get earthquake from either location.state or fetched data
+  const earthquakeInfo = location.state?.earthquake || fetchedEarthquake;
+  const idFromUrl = searchParams.get('id');
+
+  // Fetch earthquake data if not available via location.state but ID is in URL
+  useEffect(() => {
+    if (earthquakeInfo) {
+      // Already have data, no need to fetch
+      return;
+    }
+
+    if (!idFromUrl) {
+      // No ID in URL, can't fetch anything
+      return;
+    }
+
+    let isMounted = true;
+    const fetchEarthquake = async () => {
+      setIsFetching(true);
+      setFetchError(null);
+      try {
+        // Fetch events from a 90-day range to find the one with matching ID
+        // This covers most earthquake queries; adjust if needed
+        const endDate = moment().format('YYYY-MM-DD HH:mm:ss');
+        const startDate = moment().subtract(90, 'days').format('YYYY-MM-DD HH:mm:ss');
+
+        const res = await axios.get(`${backendHost()}/eq-events`, {
+          params: { startTime: startDate, endTime: endDate },
+          withCredentials: true,
+        });
+
+        const events = res.data?.payload || [];
+        const found = events.find((ev) => ev.publicID === idFromUrl);
+
+        if (!isMounted) return;
+
+        if (found) {
+          setFetchedEarthquake(found);
+          setFetchError(null);
+        } else {
+          setFetchError(
+            `Earthquake with ID "${idFromUrl}" not found in recent events. It may have been archived.`
+          );
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.error('Error fetching earthquake:', error);
+        }
+        setFetchError(
+          error?.message || 'Failed to load earthquake data. Please try again or select from the events list.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsFetching(false);
+        }
+      }
+    };
+
+    fetchEarthquake();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [idFromUrl, earthquakeInfo]);
 
   const formatEventTime = useCallback((eventTime) => {
     const parsed = moment(eventTime);
@@ -49,7 +126,38 @@ function EarthquakeDetailPage() {
     () => normalizeList(earthquakeInfo?.instrumentRecordings),
     [earthquakeInfo?.instrumentRecordings],
   );
+  const onlineStations = useMemo(
+    () => normalizeList(earthquakeInfo?.onlineStations),
+    [earthquakeInfo?.onlineStations],
+  );
   const references = useMemo(() => normalizeList(earthquakeInfo?.references), [earthquakeInfo?.references]);
+
+  // For development/demo purposes, use mock stations if none exist
+  const stationsForDisplay = useMemo(() => {
+    const hasStations = onlineStations.length > 0 || instrumentRecordings.length > 0;
+    if (hasStations) {
+      return onlineStations.length > 0 ? onlineStations : instrumentRecordings;
+    }
+    // Development fallback: show demo stations
+    if (process.env.NODE_ENV === 'development') {
+      return ['R1382', 'R8095', 'RBD68'];
+    }
+    return [];
+  }, [onlineStations, instrumentRecordings]);
+
+  // Debug: Check earthquake object structure
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    window._earthquakeDebug = {
+      hasEarthquakeInfo: !!earthquakeInfo,
+      earthquakeKeys: earthquakeInfo ? Object.keys(earthquakeInfo) : [],
+      onlineStations: onlineStations,
+      instrumentRecordings: instrumentRecordings,
+      stationsForDisplay: stationsForDisplay,
+      onlineStationsLength: onlineStations.length,
+      instrumentRecordingsLength: instrumentRecordings.length,
+      stationsForDisplayLength: stationsForDisplay.length,
+    };
+  }
 
   const magnitude =
     typeof earthquakeInfo?.magnitude === 'number'
@@ -72,7 +180,7 @@ function EarthquakeDetailPage() {
     ? place_description 
     : generic_location;
 
-  // Generate dynamic title: "M6.8 Earthquake 067 km N 87° E of Cagwait (Surigao Del Sur)"
+  // Generate dynamic event title
   const pageTitle = useMemo(() => {
     if (earthquakeInfo?.title) return earthquakeInfo.title;
     
@@ -91,6 +199,28 @@ function EarthquakeDetailPage() {
     if (typeof document === 'undefined') return;
     document.title = `${pageTitle} | Earthquake Hub`;
   }, [pageTitle]);
+
+  // Show loading screen while fetching
+  if (isFetching) {
+    return <LoadingScreen />;
+  }
+
+  // Show error screen if fetch failed
+  if (fetchError) {
+    return (
+      <>
+        <Header />
+        <div className="eqinfo-shell">
+          <ErrorScreen
+            title="Unable to Load Earthquake"
+            message={fetchError}
+            actionLabel="Back to Events"
+            onAction={() => window.history.back()}
+          />
+        </div>
+      </>
+    );
+  }
 
   // If no earthquake data show error
   if (!earthquakeInfo) {
@@ -131,6 +261,11 @@ function EarthquakeDetailPage() {
             </div>
           </div>
         </section>
+
+        <SeismicWaveforms 
+          earthquakeInfo={earthquakeInfo} 
+          stations={stationsForDisplay}
+        />
 
         <div className="eqinfo-grid">
           <NearbyEvents
