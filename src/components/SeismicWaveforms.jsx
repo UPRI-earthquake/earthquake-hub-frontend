@@ -16,6 +16,8 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
   const [loadingStations, setLoadingStations] = useState(new Set());
   const containerRef = useRef(null);
   const seisplotjsRef = useRef(null);
+  const isDevelopment =
+    typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
 
   // Lazy load seisplotjs
   const ensureSeisplotjs = useCallback(async () => {
@@ -43,7 +45,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         setLoadingStations((prev) => new Set([...prev, stationCode]));
         
         // Initialize debug object safely
-        if (typeof window !== 'undefined') {
+        if (isDevelopment && typeof window !== 'undefined') {
           if (!window._waveformDebug) window._waveformDebug = {};
           window._waveformDebug[stationCode] = {
             attempt: 'started',
@@ -70,7 +72,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         
         // Query FDSNWS for MSEED data with fallback strategy
         const tryFdsnwsProvider = async (baseUrl, providerName) => {
-          if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+          if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
             window._waveformDebug[stationCode][`${providerName}_attempt`] = 'started';
           }
 
@@ -78,7 +80,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
             // FDSNWS Data Select query
             const fdsnwsUrl = `${baseUrl}/dataselect/1/query?starttime=${startTime}Z&endtime=${endTime}Z&network=AM&station=${stationCodeUpper}&location=00&channel=E*&nodata=404`;
 
-            if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
               window._waveformDebug[stationCode][`${providerName}_url`] = fdsnwsUrl;
             }
 
@@ -89,7 +91,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
               validateStatus: () => true,
             });
 
-            if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
               window._waveformDebug[stationCode][`${providerName}_status`] = response.status;
               window._waveformDebug[stationCode][`${providerName}_size`] = response.data.byteLength;
             }
@@ -112,7 +114,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
             }
             return null;
           } catch (error) {
-            if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
               window._waveformDebug[stationCode][`${providerName}_error`] = error?.message || 'Request failed';
             }
             return null;
@@ -172,19 +174,19 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
               source: sourceProvider,
             });
 
-            if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
               window._waveformDebug[stationCode].result = `success_from_${waveformData.provider}`;
             }
             return;
           } catch (renderError) {
-            if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
               window._waveformDebug[stationCode].renderError = renderError?.message || 'Render failed';
             }
           }
         }
 
         // Fallback to demo waveform for testing/development
-        if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+        if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
           window._waveformDebug[stationCode].demoAttempt = 'started';
         }
         try {
@@ -193,7 +195,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
             timeout: 5000,
           });
 
-          if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+          if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
             window._waveformDebug[stationCode].demoAttempt = 'got_response';
             window._waveformDebug[stationCode].demoSize = demoResponse.data.byteLength;
           }
@@ -235,21 +237,21 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
                 },
               }));
 
-              if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+              if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
                 window._waveformDebug[stationCode].result = 'success_from_demo';
               }
             }
           }
         } catch (demoError) {
           // Demo also failed
-          if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+          if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
             window._waveformDebug[stationCode].demoError = demoError?.message || 'Demo fallback also failed';
             window._waveformDebug[stationCode].result = 'all_sources_failed';
           }
         }
       } catch (error) {
         // Outer error handling
-        if (typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+        if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
           window._waveformDebug[stationCode].outerError = error?.message || 'Unknown outer error';
         }
       } finally {
@@ -260,12 +262,12 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         });
       }
     },
-    [earthquakeInfo, formatDateTime, ensureSeisplotjs]
+    [earthquakeInfo, formatDateTime, ensureSeisplotjs, isDevelopment]
   );
 
   // Load waveforms when component mounts or stations change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isDevelopment && typeof window !== 'undefined') {
       window._effectDebug = {
         stationsArray: stations,
         stationsLength: stations?.length || 0,
@@ -277,7 +279,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
     
     if (stations && stations.length > 0) {
       stations.forEach((stationCode) => {
-        if (typeof window !== 'undefined') {
+        if (isDevelopment && typeof window !== 'undefined') {
           window._effectDebug[stationCode] = {
             exists: !!stationCode,
             alreadyLoaded: !!waveforms[stationCode],
@@ -286,17 +288,17 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         }
         
         if (stationCode && !waveforms[stationCode]) {
-          if (typeof window !== 'undefined') {
+          if (isDevelopment && typeof window !== 'undefined') {
             window._effectDebug[stationCode].loadingNow = true;
           }
           loadWaveform(stationCode);
         }
       });
     }
-  }, [stations, loadWaveform, waveforms]);
+  }, [stations, loadWaveform, waveforms, isDevelopment]);
 
   // Debug: Always track what's passed to this component
-  if (typeof window !== 'undefined') {
+  if (isDevelopment && typeof window !== 'undefined') {
     window._seismicWaveformsDebug = {
       hasEarthquakeInfo: !!earthquakeInfo,
       earthquakeEventTime: earthquakeInfo?.eventTime,

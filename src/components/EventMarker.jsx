@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import moment from '../utils/time';
 import { Marker, useMap, Popup } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
@@ -27,7 +26,7 @@ const formatCoord = (value, positiveLabel, negativeLabel) => {
 
 const formatDateTime = (value) => {
   if (!value) return 'Unknown';
-  const parsed = moment(value).utc();
+  const parsed = moment(value);
   if (!parsed || typeof parsed.isValid !== 'function' || !parsed.isValid()) return 'Unknown';
   return parsed.format('YYYY-MM-DD HH:mm:ss [UTC]Z');
 };
@@ -58,7 +57,6 @@ const EventMarker = ({
 }) => {
   // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
-  const navigate = useNavigate();
 
   // AutoPopup OnClick of SidebarItem (with same publicID, see redux)
   const map = useMap();
@@ -307,8 +305,16 @@ const EventMarker = ({
   // Handle navigation to earthquake detail page
   const handleEventInfoClick = useCallback(() => {
     if (!publicID || !eventData) return;
-    navigate(`/earthquake-detail?id=${publicID}`, { state: { earthquake: eventData } });
-  }, [navigate, publicID, eventData]);
+    try {
+      window.localStorage.setItem(`earthquake-detail:${publicID}`, JSON.stringify(eventData));
+    } catch (_) {}
+    const url = `/earthquake-detail?id=${encodeURIComponent(publicID)}`;
+    try {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (_) {
+      window.location.assign(url);
+    }
+  }, [publicID, eventData]);
 
   // If bad coords slipped through, skip rendering after hooks have been called
   if (!hasValidCoords) {
@@ -429,6 +435,7 @@ const EventMarker = ({
               onClick={handleEventInfoClick}
               type="button"
               aria-label="View event details"
+              disabled={!publicID || !eventData}
             >
               Event Info &gt;
             </button>

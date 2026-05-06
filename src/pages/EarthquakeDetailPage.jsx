@@ -12,24 +12,10 @@ import moment from '../utils/time';
 import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
 import { backendHost } from '../utils/env';
+import { normalizeList } from '../utils/normalizeList';
 import InfoTooltip from '../components/InfoTooltip';
+import EarthquakeSourceComparison from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
-
-// Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
-function normalizeList(value) {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    const stripped = trimmed.startsWith('[') && trimmed.endsWith(']')
-      ? trimmed.slice(1, -1)
-      : trimmed;
-    return stripped
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
 
 /**
  * Earthquake detail page for network-detected earthquakes. Displays event information
@@ -44,19 +30,29 @@ function EarthquakeDetailPage() {
   const [fetchedEarthquake, setFetchedEarthquake] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState(null);
+  const eventId = searchParams.get('id');
 
-  // Get earthquake from either location.state or fetched data
-  const earthquakeInfo = location.state?.earthquake || fetchedEarthquake;
-  const idFromUrl = searchParams.get('id');
+  const cachedEarthquake = useMemo(() => {
+    if (!eventId || typeof window === 'undefined') return null;
+    try {
+      const cached = window.localStorage.getItem(`earthquake-detail:${eventId}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (_) {
+      return null;
+    }
+  }, [eventId]);
+
+  // Get earthquake from navigation state, cached detail data, or a direct URL fetch.
+  const earthquakeInfo = location.state?.earthquake || cachedEarthquake || fetchedEarthquake;
 
   // Fetch earthquake data if not available via location.state but ID is in URL
   useEffect(() => {
-    if (earthquakeInfo) {
+    if (location.state?.earthquake || cachedEarthquake || fetchedEarthquake) {
       // Already have data, no need to fetch
       return;
     }
 
-    if (!idFromUrl) {
+    if (!eventId) {
       // No ID in URL, can't fetch anything
       return;
     }
@@ -77,16 +73,23 @@ function EarthquakeDetailPage() {
         });
 
         const events = res.data?.payload || [];
-        const found = events.find((ev) => ev.publicID === idFromUrl);
+        const found = events.find((ev) => ev.publicID === eventId);
 
         if (!isMounted) return;
 
         if (found) {
           setFetchedEarthquake(found);
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.setItem(`earthquake-detail:${eventId}`, JSON.stringify(found));
+            } catch (_) {
+              // Ignore localStorage failures; fetched data is still usable for this render.
+            }
+          }
           setFetchError(null);
         } else {
           setFetchError(
-            `Earthquake with ID "${idFromUrl}" not found in recent events. It may have been archived.`
+            `Earthquake with ID "${eventId}" not found in recent events. It may have been archived.`
           );
         }
       } catch (error) {
@@ -110,7 +113,7 @@ function EarthquakeDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [idFromUrl, earthquakeInfo]);
+  }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
 
   const formatEventTime = useCallback((eventTime) => {
     const parsed = moment(eventTime);
@@ -166,19 +169,21 @@ function EarthquakeDetailPage() {
       ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
       : earthquakeInfo?.magnitude;
 
-  const depthValue = Number(earthquakeInfo?.depth || earthquakeInfo?.depth_value);
+  const depthValue = Number(
+    earthquakeInfo?.depth_km ?? earthquakeInfo?.depth ?? earthquakeInfo?.depth_value,
+  );
   const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
 
   const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
   const formattedEventTime = eventTime ? formatEventTime(eventTime) : null;
 
-  const place_description = earthquakeInfo?.place || '';
-  const generic_location = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
-  
+  const placeDescription = earthquakeInfo?.place || '';
+  const genericLocation = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
+
   // Use place description for location if available, otherwise use generic location
-  const location_display = place_description && place_description !== 'Unavailable' 
-    ? place_description 
-    : generic_location;
+  const locationDisplay = placeDescription && placeDescription !== 'Unavailable'
+    ? placeDescription
+    : genericLocation;
 
   // Generate dynamic event title
   const pageTitle = useMemo(() => {
@@ -186,14 +191,14 @@ function EarthquakeDetailPage() {
     
     const magText = magnitude ? `M${magnitude} Earthquake` : 'Earthquake';
     
-    if (place_description && place_description !== 'Unavailable') {
-      return `${magText} ${place_description}`;
-    } else if (generic_location) {
-      return `${magText} ${generic_location}`;
+    if (placeDescription && placeDescription !== 'Unavailable') {
+      return `${magText} ${placeDescription}`;
+    } else if (genericLocation) {
+      return `${magText} ${genericLocation}`;
     }
     
     return magText;
-  }, [magnitude, place_description, generic_location, earthquakeInfo?.title]);
+  }, [magnitude, placeDescription, genericLocation, earthquakeInfo?.title]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -251,9 +256,9 @@ function EarthquakeDetailPage() {
               <span>Depth</span>
               <strong>{depth || '—'}</strong>
             </div>
-            <div className="metric-card" role="group" aria-label={`Location ${location_display || 'not available'}`} title={`Location ${location_display || 'Not available'}`}>
+            <div className="metric-card" role="group" aria-label={`Location ${locationDisplay || 'not available'}`} title={`Location ${locationDisplay || 'Not available'}`}>
               <span>Location</span>
-              <strong>{location_display || '—'}</strong>
+              <strong>{locationDisplay || '—'}</strong>
             </div>
             <div className="metric-card" role="group" aria-label={`Local time ${formattedEventTime || 'not available'}`} title={`Local time ${formattedEventTime || 'Not available'}`}>
               <span>Local time</span>
@@ -292,6 +297,8 @@ function EarthquakeDetailPage() {
               </div>
             </section>
           )}
+
+          <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
 
           {instrumentRecordings.length > 0 && (
             <section className="eqinfo-panel scrollable">
