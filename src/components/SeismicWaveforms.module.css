@@ -89,17 +89,30 @@
 }
 
 .plot {
+  position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
+  display: block;
 }
 
 .plot > * {
+  display: block;
   width: 100% !important;
   height: 100% !important;
-  flex: 1;
+}
+
+.renderOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--panel-surface) 82%, transparent);
 }
 
 .loadingPlaceholder,
