@@ -12,23 +12,6 @@ import InfoTooltip from '../components/InfoTooltip';
 import EarthquakeSourceComparison from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
 
-
-// Normalize backend list fields that may arrive as an Array or a bracketed CSV string.
-function normalizeList(value) {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') { 
-    const trimmed = value.trim();
-    const stripped = trimmed.startsWith('[') && trimmed.endsWith(']')
-      ? trimmed.slice(1, -1)
-      : trimmed;
-    return stripped
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
 /**
  * Earthquake detail page for network-detected earthquakes. Displays event information
  * passed via navigation state from the earthquakes list page.
@@ -162,7 +145,6 @@ function EarthquakeDetailPage() {
               </div>
             </section>
           )}
-        <div className="eqinfo-grid">
 
           <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
 

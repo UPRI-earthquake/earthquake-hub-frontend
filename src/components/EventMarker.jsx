@@ -27,7 +27,7 @@ const formatCoord = (value, positiveLabel, negativeLabel) => {
 
 const formatDateTime = (value) => {
   if (!value) return 'Unknown';
-  const parsed = moment(value).utc();
+  const parsed = moment(value);
   if (!parsed || typeof parsed.isValid !== 'function' || !parsed.isValid()) return 'Unknown';
   return parsed.format('YYYY-MM-DD HH:mm:ss [UTC]Z');
 };
