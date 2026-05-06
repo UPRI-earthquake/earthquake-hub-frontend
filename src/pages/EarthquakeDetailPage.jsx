@@ -19,7 +19,23 @@ import './EQInfoPage.css';
  */
 function EarthquakeDetailPage() {
   const location = useLocation();
-  const earthquakeInfo = location.state?.earthquake;
+  const eventId = useMemo(() => {
+    try {
+      return new URLSearchParams(location.search || '').get('id');
+    } catch (_) {
+      return null;
+    }
+  }, [location.search]);
+  const earthquakeInfo = useMemo(() => {
+    if (location.state?.earthquake) return location.state.earthquake;
+    if (!eventId || typeof window === 'undefined') return null;
+    try {
+      const cached = window.localStorage.getItem(`earthquake-detail:${eventId}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (_) {
+      return null;
+    }
+  }, [location.state, eventId]);
   
   const formatEventTime = useCallback((eventTime) => {
     const parsed = moment(eventTime);
