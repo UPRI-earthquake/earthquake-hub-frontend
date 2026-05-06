@@ -26,7 +26,7 @@ export function useAppData({
     const start_time =
       (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
         ? moment().subtract(1, 'months')
-        : moment('2021-09-09 14:30:00.0');
+        : moment('2026-02-01 14:30:00.0');
 
     const waitingPromise = new Promise((resolve) => setTimeout(resolve, 3000));
     let unbind = null;

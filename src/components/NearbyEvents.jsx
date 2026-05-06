@@ -123,7 +123,12 @@ function NearbyEvents({
 
   const handleEventClick = useCallback(
     (event) => {
-      navigate('/earthquake-detail', {
+      const eventId = event?.publicID;
+      const detailUrl = eventId
+        ? `/earthquake-detail?id=${encodeURIComponent(eventId)}`
+        : '/earthquake-detail';
+
+      navigate(detailUrl, {
         state: { earthquake: event },
       });
     },
