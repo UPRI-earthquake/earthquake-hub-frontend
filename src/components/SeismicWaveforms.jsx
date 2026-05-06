@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import styles from './SeismicWaveforms.module.css';
 import { trackEvent } from '../analytics';
 import InfoTooltip from './InfoTooltip';
@@ -16,8 +16,16 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
   const [loadingStations, setLoadingStations] = useState(new Set());
   const containerRef = useRef(null);
   const seisplotjsRef = useRef(null);
+  const nodeEnv =
+    typeof process !== 'undefined' && process.env ? process.env.NODE_ENV : '';
   const isDevelopment =
-    typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
+    nodeEnv === 'development';
+  const runtimeEnv = useMemo(
+    () => (typeof window !== 'undefined' && window.ENV ? window.ENV : {}),
+    [],
+  );
+  const canUseDemoWaveform =
+    isDevelopment || nodeEnv === 'test' || runtimeEnv.REACT_APP_SEIS_DEMO === '1';
 
   // Lazy load seisplotjs
   const ensureSeisplotjs = useCallback(async () => {
@@ -122,8 +130,8 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         };
 
         // Try multiple FDSNWS providers in order
-        const FDSNWS_PRIMARY = window['ENV']?.REACT_APP_FDSNWS;
-        const FDSNWS_BACKUP = window['ENV']?.REACT_APP_RS_FDSNWS;
+        const FDSNWS_PRIMARY = runtimeEnv.REACT_APP_FDSNWS;
+        const FDSNWS_BACKUP = runtimeEnv.REACT_APP_RS_FDSNWS;
 
         let waveformData = null;
         let sourceProvider = null;
@@ -185,68 +193,70 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
           }
         }
 
-        // Fallback to demo waveform for testing/development
-        if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
-          window._waveformDebug[stationCode].demoAttempt = 'started';
-        }
-        try {
-          const demoResponse = await axios.get('/demo.mseed', {
-            responseType: 'arraybuffer',
-            timeout: 5000,
-          });
-
+        // Fallback to demo waveform only for non-production diagnostics or explicit opt-in.
+        if (canUseDemoWaveform) {
           if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
-            window._waveformDebug[stationCode].demoAttempt = 'got_response';
-            window._waveformDebug[stationCode].demoSize = demoResponse.data.byteLength;
+            window._waveformDebug[stationCode].demoAttempt = 'started';
           }
+          try {
+            const demoResponse = await axios.get('/demo.mseed', {
+              responseType: 'arraybuffer',
+              timeout: 5000,
+            });
 
-          if (demoResponse.data.byteLength > 0) {
-            // Parse MiniSEED data using correct seisplotjs API
-            const ms = sp.miniseed || {};
-            let records = [];
-            try {
-              if (typeof ms.parseDataRecords === 'function') records = ms.parseDataRecords(demoResponse.data);
-              else if (typeof ms.parseMiniseed === 'function') records = ms.parseMiniseed(demoResponse.data);
-              else if (typeof ms.parse === 'function') records = ms.parse(demoResponse.data);
-            } catch (_) {
-              records = [];
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+              window._waveformDebug[stationCode].demoAttempt = 'got_response';
+              window._waveformDebug[stationCode].demoSize = demoResponse.data.byteLength;
             }
 
-            if (Array.isArray(records) && records.length > 0) {
-              // Create seismogram segment from records
-              const seg = sp.miniseed.createSeismogramSegment(records);
-              const seis = new sp.seismogram.Seismogram([seg]);
-              const seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seis);
-              seisData.alignmentTime = sp.luxon.DateTime.utc();
+            if (demoResponse.data.byteLength > 0) {
+              // Parse MiniSEED data using correct seisplotjs API
+              const ms = sp.miniseed || {};
+              let records = [];
+              try {
+                if (typeof ms.parseDataRecords === 'function') records = ms.parseDataRecords(demoResponse.data);
+                else if (typeof ms.parseMiniseed === 'function') records = ms.parseMiniseed(demoResponse.data);
+                else if (typeof ms.parse === 'function') records = ms.parse(demoResponse.data);
+              } catch (_) {
+                records = [];
+              }
 
-              const config = new sp.seismographconfig.SeismographConfig();
-              config.wheelZoom = false;
-              config.doGain = true;
-              config.isRelativeTime = true;
-              config.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();
-              config.lineColors = ['#0ea5e9'];
+              if (Array.isArray(records) && records.length > 0) {
+                // Create seismogram segment from records
+                const seg = sp.miniseed.createSeismogramSegment(records);
+                const seis = new sp.seismogram.Seismogram([seg]);
+                const seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seis);
+                seisData.alignmentTime = sp.luxon.DateTime.utc();
 
-              setWaveforms((prev) => ({
-                ...prev,
-                [stationCode]: {
-                  data: seisData,
-                  config,
-                  timestamp: new Date().toISOString(),
-                  isDemoData: true,
-                  source: 'demo.mseed',
-                },
-              }));
+                const config = new sp.seismographconfig.SeismographConfig();
+                config.wheelZoom = false;
+                config.doGain = true;
+                config.isRelativeTime = true;
+                config.linkedAmplitudeScale = new sp.scale.IndividualAmplitudeScale();
+                config.lineColors = ['#0ea5e9'];
 
-              if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
-                window._waveformDebug[stationCode].result = 'success_from_demo';
+                setWaveforms((prev) => ({
+                  ...prev,
+                  [stationCode]: {
+                    data: seisData,
+                    config,
+                    timestamp: new Date().toISOString(),
+                    isDemoData: true,
+                    source: 'demo.mseed',
+                  },
+                }));
+
+                if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+                  window._waveformDebug[stationCode].result = 'success_from_demo';
+                }
               }
             }
-          }
-        } catch (demoError) {
-          // Demo also failed
-          if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
-            window._waveformDebug[stationCode].demoError = demoError?.message || 'Demo fallback also failed';
-            window._waveformDebug[stationCode].result = 'all_sources_failed';
+          } catch (demoError) {
+            // Demo also failed
+            if (isDevelopment && typeof window !== 'undefined' && window._waveformDebug && window._waveformDebug[stationCode]) {
+              window._waveformDebug[stationCode].demoError = demoError?.message || 'Demo fallback also failed';
+              window._waveformDebug[stationCode].result = 'all_sources_failed';
+            }
           }
         }
       } catch (error) {
@@ -262,7 +272,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         });
       }
     },
-    [earthquakeInfo, formatDateTime, ensureSeisplotjs, isDevelopment]
+    [earthquakeInfo, formatDateTime, ensureSeisplotjs, isDevelopment, canUseDemoWaveform, runtimeEnv]
   );
 
   // Load waveforms when component mounts or stations change
@@ -502,6 +512,13 @@ function DownloadButton({ stationCode, earthquakeInfo }) {
 
       const waveformUrl = `/data/waveform?network=${network}&station=${stationCodeUpper}&start=${startTime}&end=${endTime}`;
       const waveformFilename = `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.mseed`;
+      const openWaveformUrl = () => {
+        try {
+          window.open(waveformUrl, '_blank', 'noreferrer');
+        } catch (_) {
+          // Ignore popup failures; the user can retry the download action.
+        }
+      };
 
       trackEvent('download_data', {
         type: 'waveform',
@@ -512,10 +529,22 @@ function DownloadButton({ stationCode, earthquakeInfo }) {
       const response = await axios.get(waveformUrl, {
         responseType: 'blob',
         timeout: 15000,
+        validateStatus: () => true,
       });
 
+      if (response.status !== 200) {
+        openWaveformUrl();
+        return;
+      }
+
       // Create download link
-      const blob = new Blob([response.data], { type: 'application/octet-stream' });
+      const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: 'application/octet-stream' });
+      if (!blob || blob.size === 0) {
+        openWaveformUrl();
+        return;
+      }
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -524,8 +553,20 @@ function DownloadButton({ stationCode, earthquakeInfo }) {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      // Download error - silently fail
+    } catch (_) {
+      try {
+        const network = 'AM';
+        const stationCodeUpper = String(stationCode || '').toUpperCase();
+        const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
+        const parsed = moment(eventTime || Date.now()).utc();
+        const safeEventTime = parsed && parsed.isValid() ? parsed : moment().utc();
+        const startTime = safeEventTime.clone().add(-60, 'second').format('YYYY-MM-DDTHH:mm:ss').replace(/:/g, '%3A');
+        const endTime = safeEventTime.clone().add(60 * 10, 'second').format('YYYY-MM-DDTHH:mm:ss').replace(/:/g, '%3A');
+        const waveformUrl = `/data/waveform?network=${network}&station=${stationCodeUpper}&start=${startTime}&end=${endTime}`;
+        window.open(waveformUrl, '_blank', 'noreferrer');
+      } catch (_) {
+        // Download fallback failed.
+      }
     } finally {
       setDownloading(false);
     }

@@ -31,6 +31,8 @@ function EarthquakeDetailPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const eventId = searchParams.get('id');
+  const isDevelopment =
+    typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
 
   const cachedEarthquake = useMemo(() => {
     if (!eventId || typeof window === 'undefined') return null;
@@ -142,14 +144,14 @@ function EarthquakeDetailPage() {
       return onlineStations.length > 0 ? onlineStations : instrumentRecordings;
     }
     // Development fallback: show demo stations
-    if (process.env.NODE_ENV === 'development') {
+    if (isDevelopment) {
       return ['R1382', 'R8095', 'RBD68'];
     }
     return [];
-  }, [onlineStations, instrumentRecordings]);
+  }, [onlineStations, instrumentRecordings, isDevelopment]);
 
   // Debug: Check earthquake object structure
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  if (isDevelopment && typeof window !== 'undefined') {
     window._earthquakeDebug = {
       hasEarthquakeInfo: !!earthquakeInfo,
       earthquakeKeys: earthquakeInfo ? Object.keys(earthquakeInfo) : [],
