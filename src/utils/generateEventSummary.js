@@ -65,11 +65,16 @@ export function generateEventSummary(earthquakeInfo) {
 
   let proximityPhrase;
   if (isPlaceValid) {
-    const { distance, direction, locality } = parseProximity(rawPlace);
-    proximityPhrase =
-      distance && direction
-        ? `${distance} ${direction} of ${locality}`
-        : locality || rawPlace;
+    const proximity = parseProximity(rawPlace);
+    if (proximity) {
+      const { distance, direction, locality } = proximity;
+      proximityPhrase =
+        distance && direction
+          ? `${distance} ${direction} of ${locality}`
+          : locality || rawPlace;
+    } else {
+      proximityPhrase = rawPlace;
+    }
   } else if (genericLocation) {
     proximityPhrase = genericLocation;
   } else {
@@ -85,8 +90,16 @@ export function generateEventSummary(earthquakeInfo) {
   const depth = formatDepth(earthquakeInfo.depth ?? earthquakeInfo.depth_value);
 
   // — Coordinates —
-  const lat = formatCoordinate(earthquakeInfo.lat, 'N', 'S');
-  const lon = formatCoordinate(earthquakeInfo.lon, 'E', 'W');
+  const lat = formatCoordinate(
+    earthquakeInfo.lat ?? earthquakeInfo.latitude_value,
+    'N',
+    'S'
+  );
+  const lon = formatCoordinate(
+    earthquakeInfo.lon ?? earthquakeInfo.longitude_value,
+    'E',
+    'W'
+  );
 
   // — Assemble sentence 1 —
   const struckPhrase = proximityPhrase
