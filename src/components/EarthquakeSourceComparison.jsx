@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { FaExternalLinkAlt, FaRegClock, FaRegCompass, FaTimes } from 'react-icons/fa';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { FaExternalLinkAlt, FaInfoCircle, FaRegClock, FaRegCompass, FaTimes } from 'react-icons/fa';
 import { TbRulerMeasure2 } from 'react-icons/tb';
 import moment from '../utils/time';
 import './EarthquakeSourceComparison.css';
@@ -62,8 +63,8 @@ function formatCoordinate(value, positiveLabel, negativeLabel) {
 
 function formatEventTime(value) {
   if (!value) return null;
-  const parsed = moment(value);
-  return parsed.isValid() ? parsed.format('MMMM D, YYYY h:mm:ss A') : value;
+  const parsed = moment.utc(value);
+  return parsed.isValid() ? parsed.add(8, 'hour').format('YYYY-MM-DD HH:mm:ss [UTC+08:00]') : value;
 }
 
 function formatDelta(value, suffix, digits = 1) {
@@ -162,7 +163,7 @@ function MetricIcon({ type }) {
   return null;
 }
 
-function getSourceDetails(source, isPrimary = false) {
+function getSourceDetails(source) {
   const descriptor = source.location || source.place || stripMagnitudePrefix(source.title);
   const metrics = [
     { label: 'Origin time', value: formatEventTime(source.time), icon: 'time' },
@@ -178,9 +179,9 @@ function getSourceDetails(source, isPrimary = false) {
   ].filter((item) => item.value);
 
   const comparisonChips = [
-    !isPrimary && formatDelta(source.timeDifferenceMinutes, 'min origin time offset'),
-    !isPrimary && formatDelta(source.magnitudeDifference, 'magnitude offset', 2),
-    !isPrimary && formatDelta(source.distanceKm, 'km epicenter offset', 1),
+    formatDelta(source.timeDifferenceMinutes, 'min origin time offset'),
+    formatDelta(source.magnitudeDifference, 'magnitude offset', 2),
+    formatDelta(source.distanceKm, 'km epicenter offset', 1),
   ].filter(Boolean);
 
   return { descriptor, metrics, comparisonChips };
@@ -198,15 +199,51 @@ function MagnitudeBadge({ source, label }) {
 }
 
 function CatalogDetailsModal({ source, onClose }) {
+  const modalRef = useRef(null);
+  const closeButtonRef = useRef(null);
+
   useEffect(() => {
     if (!source) return undefined;
 
+    const previousActiveElement = document.activeElement;
+
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !modalRef.current) return;
+
+      const focusableElements = modalRef.current.querySelectorAll(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (!firstElement || !lastElement) {
+        event.preventDefault();
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      previousActiveElement?.focus?.();
+    };
   }, [onClose, source]);
 
   if (!source) return null;
@@ -215,9 +252,10 @@ function CatalogDetailsModal({ source, onClose }) {
   const catalogUrl = source.url ?? source.detailUrl;
   const { descriptor, metrics, comparisonChips } = getSourceDetails(source);
 
-  return (
+  const modal = (
     <div className="source-details-backdrop" role="presentation" onMouseDown={onClose}>
       <section
+        ref={modalRef}
         className="source-details-modal"
         role="dialog"
         aria-modal="true"
@@ -235,6 +273,7 @@ function CatalogDetailsModal({ source, onClose }) {
           <div className="source-details-heading-actions">
             <MagnitudeBadge source={source} label={display.label} />
             <button
+              ref={closeButtonRef}
               type="button"
               className="source-details-close"
               aria-label="Close catalog details"
@@ -283,6 +322,8 @@ function CatalogDetailsModal({ source, onClose }) {
       </section>
     </div>
   );
+
+  return typeof document === 'undefined' ? modal : createPortal(modal, document.body);
 }
 
 export function SourceComparisonCompact({ earthquakeInfo }) {
@@ -314,6 +355,9 @@ export function SourceComparisonCompact({ earthquakeInfo }) {
               <span className="source-compact-mag">{row.magnitude ?? '—'}</span>
               <span className={`source-compact-status source-compact-status-${row.statusTone}`}>
                 {row.status}
+              </span>
+              <span className="source-compact-affordance" aria-hidden="true">
+                {row.details ? <FaInfoCircle /> : null}
               </span>
             </>
           );

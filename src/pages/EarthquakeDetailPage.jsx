@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Header from '../components/Header';
 import NearbyEvents from '../components/NearbyEvents';
-import SeismicWaveforms from '../components/SeismicWaveforms';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
 import moment from '../utils/time';
@@ -13,6 +12,8 @@ import { backendHost } from '../utils/env';
 import { normalizeList } from '../utils/normalizeList';
 import { SourceComparisonCompact } from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
+
+const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
 
 /**
  * Earthquake detail page for network-detected earthquakes. Displays event information
@@ -294,10 +295,12 @@ function EarthquakeDetailPage() {
           </section>
         )}
 
-        <SeismicWaveforms 
-          earthquakeInfo={earthquakeInfo} 
-          stations={stationsForDisplay}
-        />
+        <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
+          <SeismicWaveforms
+            earthquakeInfo={earthquakeInfo}
+            stations={stationsForDisplay}
+          />
+        </Suspense>
 
         <div className="eqinfo-grid">
           <div className="eqinfo-related-source-row">
