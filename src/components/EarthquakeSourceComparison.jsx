@@ -83,6 +83,44 @@ function buildOverview(mainSource, comparisonSources) {
   ];
 }
 
+function formatSignedMagnitudeDelta(value) {
+  const num = toFiniteNumber(value);
+  if (num == null) return null;
+  if (Math.abs(num) < 0.05) return 'Match';
+  return `${num > 0 ? '+' : ''}${num.toFixed(1)}`;
+}
+
+function buildCompactRows(mainSource, comparisonSources) {
+  const mainMagnitude = toFiniteNumber(mainSource?.magnitude);
+  const primaryRow = {
+    key: 'primary',
+    source: mainSource?.source,
+    label: SOURCE_LABELS[mainSource?.source] ?? 'Earthquake Hub',
+    role: 'Primary',
+    magnitude: formatMagnitude(mainMagnitude),
+    status: 'Reference',
+    statusTone: 'match',
+  };
+
+  const sourceRows = comparisonSources.map((source) => {
+    const magnitude = toFiniteNumber(source?.magnitude);
+    const signedDelta = mainMagnitude == null || magnitude == null ? null : magnitude - mainMagnitude;
+    const status = formatSignedMagnitudeDelta(signedDelta);
+
+    return {
+      key: source.source ?? source.id ?? source.url,
+      source: source.source,
+      label: SOURCE_LABELS[source.source?.toLowerCase()] ?? source.source?.toUpperCase() ?? 'Source',
+      role: '',
+      magnitude: formatMagnitude(magnitude),
+      status: status ?? '—',
+      statusTone: status === 'Match' ? 'match' : 'delta',
+    };
+  });
+
+  return [primaryRow, ...sourceRows];
+}
+
 function MetricIcon({ type }) {
   if (type === 'time') return <FaRegClock className="source-compare-metric-icon" aria-hidden="true" />;
   if (type === 'depth') return <TbRulerMeasure2 className="source-compare-metric-icon" aria-hidden="true" />;
@@ -170,6 +208,45 @@ function ComparisonCard({ source, isPrimary = false }) {
   );
 }
 
+export function SourceComparisonCompact({ earthquakeInfo }) {
+  const comparisonSources = useMemo(
+    () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(Boolean),
+    [earthquakeInfo?.additionalInformation],
+  );
+  const mainSource = useMemo(() => buildHubSource(earthquakeInfo), [earthquakeInfo]);
+  const rows = useMemo(
+    () => buildCompactRows(mainSource, comparisonSources),
+    [comparisonSources, mainSource],
+  );
+
+  if (comparisonSources.length === 0) return null;
+
+  return (
+    <section className="eqinfo-panel source-compact-panel">
+      <div className="panel-header source-compact-heading">
+        <h3>Source comparison</h3>
+      </div>
+
+      <div className="source-compact-list">
+        {rows.map((row) => (
+          <div key={row.key} className="source-compact-row">
+            <span
+              className={`source-compact-dot source-compact-dot-${String(row.source || 'default').toLowerCase()}`}
+              aria-hidden="true"
+            />
+            <strong className="source-compact-name">{row.label}</strong>
+            <span className="source-compact-role">{row.role}</span>
+            <span className="source-compact-mag">{row.magnitude ?? '—'}</span>
+            <span className={`source-compact-status source-compact-status-${row.statusTone}`}>
+              {row.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function EarthquakeSourceComparison({ earthquakeInfo }) {
   const comparisonSources = useMemo(
     () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(Boolean),
@@ -188,7 +265,8 @@ export default function EarthquakeSourceComparison({ earthquakeInfo }) {
         <div className="panel-title">
           <h3>Earthquake source comparison</h3>
           <InfoTooltip title="Earthquake source comparison" label="About this section" variant="inline">
-            Cross-checks the Earthquake Hub event against linked catalog solutions from external agencies.
+            External matches are the lowest-scoring PHIVOLCS and USGS candidates for this event. Scores combine origin-time
+            difference, epicentral distance, and magnitude difference; lower scores are closer matches.
           </InfoTooltip>
         </div>
       </div>

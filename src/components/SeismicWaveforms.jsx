@@ -1,22 +1,28 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import styles from './SeismicWaveforms.module.css';
 import { trackEvent } from '../analytics';
-import InfoTooltip from './InfoTooltip';
 import Button from './Button';
+import InfoTooltip from './InfoTooltip';
 import axios from 'axios';
 import moment from '../utils/time';
+import { useStations } from '../hooks/useStations';
+import { calculateDistance } from '../utils/distanceCalculator';
+import { FiChevronDown, FiDownload } from 'react-icons/fi';
 
 /**
  * SeismicWaveforms component displays recorded seismic waveforms for multiple stations
- * during an earthquake event. Each station shows a waveform visualization with options to
- * download the raw data or view metadata.
+ * during an earthquake event. Each station shows a compact waveform visualization with
+ * access to station metadata.
  */
 function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
   const [waveforms, setWaveforms] = useState({});
   const [loadingStations, setLoadingStations] = useState(new Set());
+  const [showAllStations, setShowAllStations] = useState(false);
+  const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const containerRef = useRef(null);
   const seisplotjsRef = useRef(null);
   const requestedWaveformsRef = useRef(new Set());
+  const { fetchStations } = useStations();
   const nodeEnv =
     typeof process !== 'undefined' && process.env ? process.env.NODE_ENV : '';
   const isDevelopment =
@@ -28,6 +34,37 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
   const canUseDemoWaveform =
     isDevelopment || nodeEnv === 'test' || runtimeEnv.REACT_APP_SEIS_DEMO === '1';
   const eventTimeKey = earthquakeInfo?.eventTime || earthquakeInfo?.OT || '';
+  const stationList = useMemo(
+    () => (Array.isArray(stations) ? stations : []),
+    [stations]
+  );
+  const hasStations = stationList.length > 0;
+  const visibleStations = useMemo(
+    () => (showAllStations ? stationList : stationList.slice(0, 5)),
+    [showAllStations, stationList]
+  );
+  const canToggleStations = stationList.length > 5;
+  const eventCoordinates = useMemo(
+    () => getEventCoordinates(earthquakeInfo),
+    [earthquakeInfo]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchStations()
+      .then((backendStations) => {
+        if (!isMounted) return;
+        setStationLocationsByCode(buildStationLocationLookup(backendStations));
+      })
+      .catch(() => {
+        if (isMounted) setStationLocationsByCode({});
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchStations]);
 
   // Lazy load seisplotjs
   const ensureSeisplotjs = useCallback(async () => {
@@ -154,6 +191,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
                 isDemoData: false,
                 source: sourceProvider,
                 channels: preparedWaveform.channels,
+                channelSamples: preparedWaveform.channelSamples,
               },
             }));
 
@@ -205,6 +243,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
                     isDemoData: true,
                     source: 'demo.mseed',
                     channels: preparedWaveform.channels,
+                    channelSamples: preparedWaveform.channelSamples,
                   },
                 }));
 
@@ -242,21 +281,22 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
     requestedWaveformsRef.current = new Set();
     setWaveforms({});
     setLoadingStations(new Set());
+    setShowAllStations(false);
   }, [eventTimeKey]);
 
-  // Load waveforms when the event or station list changes.
+  // Load waveforms when the event or visible station list changes.
   useEffect(() => {
     if (isDevelopment && typeof window !== 'undefined') {
       window._effectDebug = {
-        stationsArray: stations,
-        stationsLength: stations?.length || 0,
+        stationsArray: stationList,
+        stationsLength: stationList.length,
         requestedWaveforms: Array.from(requestedWaveformsRef.current),
-        willLoop: stations && stations.length > 0
+        willLoop: stationList.length > 0
       };
     }
     
-    if (eventTimeKey && stations && stations.length > 0) {
-      stations.forEach((stationCode) => {
+    if (eventTimeKey && visibleStations.length > 0) {
+      visibleStations.forEach((stationCode) => {
         const normalizedStationCode = String(stationCode || '').toUpperCase();
         const requestKey = `${eventTimeKey}|${normalizedStationCode}`;
         const alreadyRequested = requestedWaveformsRef.current.has(requestKey);
@@ -279,7 +319,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         }
       });
     }
-  }, [stations, loadWaveform, isDevelopment, eventTimeKey]);
+  }, [visibleStations, loadWaveform, isDevelopment, eventTimeKey, stationList]);
 
   // Debug: Always track what's passed to this component
   if (isDevelopment && typeof window !== 'undefined') {
@@ -296,7 +336,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
     };
   }
 
-  if (!earthquakeInfo || !stations || stations.length === 0) {
+  if (!earthquakeInfo) {
     return null;
   }
 
@@ -304,24 +344,45 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
     <section className={styles.waveformContainer} ref={containerRef}>
       <div className={styles.panelHeader}>
         <div className={styles.panelTitle}>
-          <h3>Recorded Seismic Waveforms</h3>
-          <InfoTooltip title="Recorded Seismic Waveforms" label="About this section" variant="inline">
-            Waveforms recorded at nearby seismic stations during the event.
+          <h3>Station Recordings</h3>
+          <InfoTooltip title="Station recordings" label="About station recordings" variant="inline">
+            Only stations with data and online during the event are included. Recordings are sorted by distance, with the nearest station to the epicenter shown first.
           </InfoTooltip>
         </div>
       </div>
 
-      <div className={styles.waveformList}>
-        {stations.map((stationCode) => (
-          <WaveformRow
-            key={stationCode}
-            stationCode={stationCode}
-            waveformData={waveforms[stationCode]}
-            isLoading={loadingStations.has(stationCode)}
-            earthquakeInfo={earthquakeInfo}
-          />
-        ))}
-      </div>
+      {hasStations ? (
+        <>
+          <div className={styles.waveformList}>
+            {visibleStations.map((stationCode, index) => (
+              <WaveformRow
+                key={stationCode}
+                stationCode={stationCode}
+                stationIndex={index}
+                waveformData={waveforms[stationCode]}
+                isLoading={loadingStations.has(stationCode)}
+                earthquakeInfo={earthquakeInfo}
+                distanceLabel={getStationDistanceLabel(stationCode, eventCoordinates, stationLocationsByCode)}
+              />
+            ))}
+          </div>
+          {canToggleStations && !showAllStations ? (
+            <div className={styles.toggleRow}>
+              <Button
+                type="button"
+                variant="secondary"
+                className={styles.toggleButton}
+                onClick={() => setShowAllStations((prev) => !prev)}
+              >
+                Show all stations
+                <FiChevronDown className={styles.toggleIcon} aria-hidden="true" focusable="false" />
+              </Button>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className={styles.emptyState}>No station recordings</div>
+      )}
     </section>
   );
 }
@@ -389,7 +450,34 @@ function createWaveformDisplay(sp, records) {
     dataList,
     config,
     channels: selectedSeismograms.map((seis) => seis.codes()),
+    channelSamples: selectedSeismograms
+      .map((seis, index) => ({
+        code: seis.codes(),
+        samples: extractSeismogramSamples(seis),
+        color: WAVEFORM_CHANNEL_COLORS[index % WAVEFORM_CHANNEL_COLORS.length],
+      }))
+      .filter((channel) => channel.samples.length > 0),
   };
+}
+
+function extractSeismogramSamples(seismogram) {
+  const segments = Array.isArray(seismogram?.segments) ? seismogram.segments : [];
+  const samples = [];
+
+  segments.forEach((segment) => {
+    try {
+      const yValues = segment?.y;
+      if (yValues && typeof yValues.length === 'number') {
+        samples.push(...Array.from(yValues));
+      }
+    } catch (_) {
+      // Skip a segment if seisplotjs cannot decode it.
+    }
+  });
+
+  return samples
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value));
 }
 
 const WAVEFORM_CHANNEL_COLORS = [
@@ -403,260 +491,361 @@ const WAVEFORM_CHANNEL_COLORS = [
   '#be185d',
 ];
 
+const DEFAULT_WAVEFORM_CHANNELS = ['EHZ', 'ENZ', 'ENN', 'ENE'];
+
 /**
  * Individual waveform row component
  */
-function WaveformRow({ stationCode, waveformData, isLoading, earthquakeInfo }) {
-  const waveformCanvasRef = useRef(null);
-  const plotRef = useRef(null);
-  const seisplotjsRef = useRef(null);
-  const [renderError, setRenderError] = useState(null);
+function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earthquakeInfo, distanceLabel }) {
+  const channels = useMemo(
+    () => (Array.isArray(waveformData?.channelSamples) ? waveformData.channelSamples : []),
+    [waveformData]
+  );
+  const preferredChannel = useMemo(() => getPreferredChannelCode(channels), [channels]);
+  const [selectedChannel, setSelectedChannel] = useState(DEFAULT_WAVEFORM_CHANNELS[0]);
+  const activeChannel = selectedChannel || preferredChannel || DEFAULT_WAVEFORM_CHANNELS[0];
+  const displayedChannels = activeChannel
+    ? channels.filter((channel) => channel.code === activeChannel)
+    : channels;
 
-  // Render seisplotjs plot when waveform data is available
   useEffect(() => {
-    if (isLoading || !waveformCanvasRef.current || !waveformData) {
-      return;
-    }
-
-    const canvasElement = waveformCanvasRef.current;
-    const timeoutIds = [];
-    const animationFrameIds = [];
-    let resizeObserver = null;
-    let cancelled = false;
-    setRenderError(null);
-
-    const getDrawableRect = () => {
-      const rect = canvasElement.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0 ? rect : null;
-    };
-
-    const waitForDrawableRect = () => new Promise((resolve) => {
-      const immediateRect = getDrawableRect();
-      if (immediateRect) {
-        resolve(immediateRect);
-        return;
-      }
-
-      let settled = false;
-      const finish = (rect) => {
-        if (settled) return;
-        settled = true;
-        resolve(rect);
-      };
-
-      if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(() => {
-          const rect = getDrawableRect();
-          if (rect) finish(rect);
-        });
-        resizeObserver.observe(canvasElement);
-      }
-
-      const poll = () => {
-        if (cancelled || settled) return;
-        const rect = getDrawableRect();
-        if (rect) {
-          finish(rect);
-          return;
-        }
-        const timeoutId = setTimeout(poll, 50);
-        timeoutIds.push(timeoutId);
-      };
-      poll();
-
-      const timeoutId = setTimeout(() => finish(null), 2500);
-      timeoutIds.push(timeoutId);
-    });
-
-    const renderWaveform = async () => {
-      try {
-        if (!seisplotjsRef.current) {
-          seisplotjsRef.current = await import('seisplotjs');
-        }
-        if (cancelled) return;
-        const sp = seisplotjsRef.current;
-        const { config } = waveformData;
-        const dataList = Array.isArray(waveformData.dataList)
-          ? waveformData.dataList
-          : [waveformData.data].filter(Boolean);
-
-        if (dataList.length === 0) {
-          throw new Error('No displayable waveform channels');
-        }
-
-        const drawableRect = await waitForDrawableRect();
-        if (cancelled) return;
-        if (!drawableRect) {
-          throw new Error('Waveform plot did not receive a drawable size');
-        }
-
-        // Clear previous plot
-        while (canvasElement.firstChild) {
-          canvasElement.removeChild(canvasElement.firstChild);
-        }
-
-        // Create and render the seismograph
-        const seismograph = new sp.seismograph.Seismograph(dataList, config);
-        plotRef.current = seismograph;
-
-        // Ensure proper sizing and display
-        seismograph.style.width = '100%';
-        seismograph.style.height = '100%';
-        seismograph.style.display = 'block';
-        seismograph.style.position = 'relative';
-        seismograph.style.minWidth = `${Math.floor(drawableRect.width)}px`;
-        seismograph.style.minHeight = `${Math.floor(drawableRect.height)}px`;
-
-        // Append to DOM
-        canvasElement.appendChild(seismograph);
-
-        const drawSeismograph = (isFinalAttempt = false) => {
-          if (cancelled || !seismograph.isConnected) return;
-          try {
-            const containerRect = canvasElement.getBoundingClientRect();
-            if (containerRect.width === 0 || containerRect.height === 0) {
-              if (isFinalAttempt) {
-                setRenderError('Waveform plot did not receive a drawable size');
-              }
-              return;
-            }
-            if (typeof seismograph.calcTimeScaleDomain === 'function') {
-              seismograph.calcTimeScaleDomain();
-            }
-            if (typeof seismograph.recheckAmpScaleDomain === 'function') {
-              seismograph.recheckAmpScaleDomain();
-            }
-            if (typeof seismograph.draw === 'function') {
-              seismograph.draw();
-            }
-            if (isFinalAttempt) {
-              const svg = seismograph.shadowRoot && seismograph.shadowRoot.querySelector('svg');
-              const rect = svg && typeof svg.getBoundingClientRect === 'function'
-                ? svg.getBoundingClientRect()
-                : null;
-              if (!rect || rect.width === 0 || rect.height === 0) {
-                setRenderError('Waveform plot did not receive a drawable size');
-              }
-            }
-          } catch (e) {
-            if (isFinalAttempt) {
-              setRenderError(e?.message || 'Waveform render failed');
-            }
-          }
-        };
-
-        const drawOnNextFrame = (isFinalAttempt = false) => {
-          if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-            const frameId = window.requestAnimationFrame(() => drawSeismograph(isFinalAttempt));
-            animationFrameIds.push(frameId);
-            return;
-          }
-          drawSeismograph(isFinalAttempt);
-        };
-
-        const scheduleDraw = (delay, isFinalAttempt = false) => {
-          if (delay === 'frame' && typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-            drawOnNextFrame(isFinalAttempt);
-            return;
-          }
-          const timeoutId = setTimeout(() => drawSeismograph(isFinalAttempt), delay);
-          timeoutIds.push(timeoutId);
-        };
-
-        if (resizeObserver) {
-          try {
-            resizeObserver.disconnect();
-          } catch (_) {
-            // Resize observer reset failed.
-          }
-        }
-
-        if (typeof ResizeObserver !== 'undefined') {
-          resizeObserver = new ResizeObserver((entries) => {
-            const entry = entries && entries[0];
-            const width = entry?.contentRect?.width || 0;
-            const height = entry?.contentRect?.height || 0;
-            if (width > 0 && height > 0) {
-              drawOnNextFrame();
-            }
-          });
-          resizeObserver.observe(canvasElement);
-        }
-
-        // seisplotjs skips draw when layout reports 0x0; retry across layout ticks.
-        scheduleDraw('frame');
-        scheduleDraw(80);
-        scheduleDraw(250);
-        scheduleDraw(700);
-        scheduleDraw(1500, true);
-
-        // Apply theme styling
-        applyPlotTheme(seismograph);
-      } catch (error) {
-        console.error('Waveform render error:', error);
-        setRenderError(error?.message || 'Waveform render failed');
-      }
-    };
-
-    renderWaveform();
-
-    return () => {
-      cancelled = true;
-      if (resizeObserver) {
-        try {
-          resizeObserver.disconnect();
-        } catch (_) {
-          // Resize observer cleanup failed.
-        }
-      }
-      timeoutIds.forEach((timeoutId) => clearTimeout(timeoutId));
-      if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
-        animationFrameIds.forEach((frameId) => window.cancelAnimationFrame(frameId));
-      }
-      if (canvasElement) {
-        try {
-          while (canvasElement.firstChild) {
-            canvasElement.removeChild(canvasElement.firstChild);
-          }
-        } catch (_) {
-          // Cleanup error
-        }
-      }
-    };
-  }, [waveformData, stationCode, isLoading]);
+    if (channels.length === 0) return;
+    setSelectedChannel((current) => (
+      channels.some((channel) => channel.code === current)
+        ? current
+        : preferredChannel
+    ));
+  }, [channels, preferredChannel]);
 
   return (
     <div className={styles.waveformRow}>
-      <div className={styles.stationLabel}>{stationCode.toUpperCase()}</div>
-
-      <div className={styles.waveformCanvas}>
-        {isLoading ? (
-          <div className={styles.loadingPlaceholder}>
-            <div className={styles.spinner} />
-            <span>Loading waveform...</span>
-          </div>
-        ) : !waveformData ? (
-          <div className={styles.emptyPlaceholder}>
-            <span>No waveform data available</span>
-          </div>
-        ) : (
-          <>
-            <div ref={waveformCanvasRef} className={styles.plot} />
-            {renderError && (
-              <div className={styles.renderOverlay}>
-                <span>Unable to render waveform</span>
-              </div>
-            )}
-          </>
-        )}
+      <div className={styles.stationCodeCell}>
+        <StationChannelControl
+          stationCode={stationCode}
+          channels={channels}
+          selectedChannel={activeChannel}
+          onChange={setSelectedChannel}
+          distanceLabel={distanceLabel}
+        />
       </div>
 
-      <div className={styles.actionButtons}>
+      <div className={styles.waveformCanvas}>
+        <CompactWaveform
+          stationCode={stationCode}
+          stationIndex={stationIndex}
+          channels={displayedChannels}
+          isLoading={isLoading}
+          eventTime={earthquakeInfo?.eventTime || earthquakeInfo?.OT}
+        />
+      </div>
+
+      <div className={styles.rowActions}>
+        <MetadataButton stationCode={stationCode} earthquakeInfo={earthquakeInfo} />
         <DownloadButton stationCode={stationCode} earthquakeInfo={earthquakeInfo} />
-        <MetadataButton stationCode={stationCode} />
       </div>
     </div>
   );
+}
+
+function StationChannelControl({ stationCode, channels, selectedChannel, onChange, distanceLabel }) {
+  const channelOptions = channels.length > 0
+    ? channels.map((channel) => channel.code)
+    : DEFAULT_WAVEFORM_CHANNELS;
+
+  return (
+    <div className={styles.stationControlGroup}>
+      <div className={styles.stationControl}>
+        <div className={styles.stationLabel}>{stationCode.toUpperCase()}</div>
+        <select
+          className={styles.channelSelect}
+          aria-label={`Waveform channel for ${stationCode}`}
+          value={selectedChannel}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {channelOptions.map((channelCode) => (
+            <option
+              key={channelCode}
+              value={channelCode}
+              title={channelCode}
+            >
+              {formatChannelLabel(channelCode)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {distanceLabel ? (
+        <div className={styles.stationDistance}>{distanceLabel}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function getEventCoordinates(earthquakeInfo) {
+  const latitude = toFiniteNumber(
+    earthquakeInfo?.latitude_value ?? earthquakeInfo?.latitude ?? earthquakeInfo?.lat
+  );
+  const longitude = toFiniteNumber(
+    earthquakeInfo?.longitude_value ?? earthquakeInfo?.longitude ?? earthquakeInfo?.lng
+  );
+
+  if (latitude == null || longitude == null) return null;
+  return { latitude, longitude };
+}
+
+function buildStationLocationLookup(backendStations) {
+  if (!Array.isArray(backendStations)) return {};
+
+  return backendStations.reduce((acc, station) => {
+    const code = String(station?.code || station?.station || '').toUpperCase();
+    const latitude = toFiniteNumber(station?.latitude);
+    const longitude = toFiniteNumber(station?.longitude);
+
+    if (code && latitude != null && longitude != null) {
+      acc[code] = { latitude, longitude };
+    }
+
+    return acc;
+  }, {});
+}
+
+function getStationDistanceLabel(stationCode, eventCoordinates, stationLocationsByCode) {
+  if (!eventCoordinates) return '';
+
+  const stationLocation = stationLocationsByCode[String(stationCode || '').toUpperCase()];
+  const stationLatitude = toFiniteNumber(stationLocation?.latitude);
+  const stationLongitude = toFiniteNumber(stationLocation?.longitude);
+
+  if (stationLatitude == null || stationLongitude == null) return '';
+
+  const distanceKm = calculateDistance(
+    eventCoordinates.latitude,
+    eventCoordinates.longitude,
+    stationLatitude,
+    stationLongitude
+  );
+
+  if (!Number.isFinite(distanceKm)) return '';
+  return `${formatApproxDistance(distanceKm)} from epicenter`;
+}
+
+function formatApproxDistance(distanceKm) {
+  if (distanceKm < 1) return '<1 km';
+  return `~${Math.round(distanceKm).toLocaleString()} km`;
+}
+
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatChannelLabel(code) {
+  const parts = String(code || '').split('.');
+  return parts[parts.length - 1] || String(code || 'Channel');
+}
+
+function getPreferredChannelCode(channels) {
+  if (!Array.isArray(channels) || channels.length === 0) return '';
+  const preferred = channels.find((channel) => formatChannelLabel(channel.code).toUpperCase() === 'EHZ');
+  return (preferred || channels[0]).code;
+}
+
+function CompactWaveform({ stationCode, stationIndex, channels, isLoading, eventTime }) {
+  const color = getStationTraceColor(stationIndex);
+  const paths = useMemo(
+    () => buildWaveformPaths(channels),
+    [channels]
+  );
+  const eventMarkerX = useMemo(
+    () => getEventMarkerX(eventTime),
+    [eventTime]
+  );
+
+  if (isLoading) {
+    return (
+      <div className={styles.compactPlaceholder}>
+        <div className={styles.spinner} />
+      </div>
+    );
+  }
+
+  if (paths.length === 0) {
+    return (
+      <div className={styles.compactEmpty}>
+        <span>No waveform data available</span>
+      </div>
+    );
+  }
+
+  return (
+    <svg
+      className={styles.compactWaveform}
+      viewBox="0 0 820 78"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`Recorded waveform for ${stationCode}`}
+    >
+      <rect
+        className={styles.waveformTrackBackground}
+        x="0"
+        y="0"
+        width="820"
+        height="78"
+      />
+      {paths.map((path, index) => (
+        <path
+          key={path.code || index}
+          d={path.points}
+          fill="none"
+          stroke={path.color || color}
+          strokeWidth={index === 0 ? '2.8' : '2'}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={index === 0 ? '0.95' : '0.68'}
+        />
+      ))}
+      {eventMarkerX != null && (
+        <g className={styles.eventTimeMarkerLayer}>
+          <title>{`Arrival time: ${moment.utc(eventTime).format('YYYY-MM-DD HH:mm:ss')} UTC`}</title>
+          <line
+            className={styles.eventTimeMarkerHalo}
+            x1={eventMarkerX}
+            y1="5"
+            x2={eventMarkerX}
+            y2="73"
+            vectorEffect="non-scaling-stroke"
+          />
+          <line
+            className={styles.eventTimeMarker}
+            x1={eventMarkerX}
+            y1="5"
+            x2={eventMarkerX}
+            y2="73"
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function getEventMarkerX(eventTime) {
+  const eventMoment = moment.utc(eventTime);
+
+  if (!eventMoment.isValid()) {
+    return null;
+  }
+
+  const start = eventMoment.clone().add(-60, 'second');
+  const end = eventMoment.clone().add(600, 'second');
+  const totalMs = end.diff(start);
+  const elapsedMs = eventMoment.diff(start);
+
+  if (totalMs <= 0 || elapsedMs < 0 || elapsedMs > totalMs) {
+    return null;
+  }
+
+  return (elapsedMs / totalMs) * 820;
+}
+
+function getStationTraceColor(stationIndex) {
+  const colors = ['#45b58f', '#5aa3e8', '#e37357'];
+  return colors[stationIndex % colors.length];
+}
+
+function buildWaveformPaths(channels) {
+  const preparedChannels = channels
+    .map((channel) => ({
+      code: channel.code,
+      color: channel.color,
+      values: prepareWaveformValues(channel.samples),
+    }))
+    .filter((channel) => channel.values.length >= 2);
+  const sharedMax = preparedChannels.reduce(
+    (largest, channel) => Math.max(largest, getMaxAbs(channel.values)),
+    0
+  );
+
+  if (!sharedMax) {
+    return [];
+  }
+
+  return preparedChannels
+    .map((channel) => ({
+      code: channel.code,
+      color: channel.color,
+      points: buildWaveformPath(channel.values, sharedMax),
+    }))
+    .filter((channel) => channel.points);
+}
+
+function prepareWaveformValues(samples) {
+  if (!Array.isArray(samples) || samples.length < 2) {
+    return [];
+  }
+
+  const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+  const centeredSamples = samples.map((value) => value - mean);
+  return minMaxDownsample(centeredSamples, 420);
+}
+
+function buildWaveformPath(values, sharedMax) {
+  if (!Array.isArray(values) || values.length < 2 || !sharedMax) {
+    return '';
+  }
+
+  return values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * 820;
+      const y = 39 - (value / sharedMax) * 31;
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(' ');
+}
+
+function getMaxAbs(values) {
+  return values.reduce((largest, value) => Math.max(largest, Math.abs(value)), 0);
+}
+
+function minMaxDownsample(samples, bucketCount) {
+  if (samples.length <= bucketCount * 2) {
+    return samples;
+  }
+
+  const result = [];
+  const bucketSize = samples.length / bucketCount;
+
+  for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
+    const start = Math.floor(bucketIndex * bucketSize);
+    const end = Math.min(samples.length, Math.floor((bucketIndex + 1) * bucketSize));
+    if (end <= start) continue;
+
+    let min = samples[start];
+    let max = samples[start];
+    let minIndex = start;
+    let maxIndex = start;
+
+    for (let index = start + 1; index < end; index += 1) {
+      const value = samples[index];
+      if (value < min) {
+        min = value;
+        minIndex = index;
+      }
+      if (value > max) {
+        max = value;
+        maxIndex = index;
+      }
+    }
+
+    if (minIndex < maxIndex) {
+      result.push(min, max);
+    } else if (maxIndex < minIndex) {
+      result.push(max, min);
+    } else {
+      result.push(samples[start]);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -668,85 +857,15 @@ function DownloadButton({ stationCode, earthquakeInfo }) {
   const handleDownload = useCallback(async () => {
     try {
       setDownloading(true);
-      const network = 'AM';
-      const stationCodeUpper = String(stationCode || '').toUpperCase();
-
-      const parseEventTimeUtc = (value) => {
-        const parsed = moment(value || Date.now()).utc();
-        return parsed && typeof parsed.isValid === 'function' && parsed.isValid()
-          ? parsed
-          : moment().utc();
-      };
-
-      const formatDateTime = (dateString, secondsToAdd = 0) => {
-        return parseEventTimeUtc(dateString)
-          .add(secondsToAdd, 'second')
-          .format('YYYY-MM-DDTHH:mm:ss')
-          .replace(/:/g, '%3A');
-      };
-
-      const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
-      const startTime = formatDateTime(eventTime, -60);
-      const endTime = formatDateTime(eventTime, 60 * 10);
-      const dateSuffix = parseEventTimeUtc(eventTime).format('MMDDYY');
-
-      const waveformUrl = `/data/waveform?network=${network}&station=${stationCodeUpper}&start=${startTime}&end=${endTime}`;
-      const waveformFilename = `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.mseed`;
-      const openWaveformUrl = () => {
-        try {
-          window.open(waveformUrl, '_blank', 'noreferrer');
-        } catch (_) {
-          // Ignore popup failures; the user can retry the download action.
-        }
-      };
-
-      trackEvent('download_data', {
-        type: 'waveform',
-        source: 'waveform_visualization',
-        station_code: stationCode,
-      });
-
-      const response = await axios.get(waveformUrl, {
-        responseType: 'blob',
-        timeout: 15000,
-        validateStatus: () => true,
-      });
-
-      if (response.status !== 200) {
-        openWaveformUrl();
-        return;
-      }
-
-      // Create download link
-      const blob = response.data instanceof Blob
-        ? response.data
-        : new Blob([response.data], { type: 'application/octet-stream' });
-      if (!blob || blob.size === 0) {
-        openWaveformUrl();
-        return;
-      }
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = waveformFilename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const { waveformUrl, waveformFilename } = buildStationFdsnDownloads(stationCode, earthquakeInfo);
+      await fetchAndDownload(
+        waveformUrl,
+        waveformFilename,
+        'waveform',
+        'application/vnd.fdsn.mseed, application/octet-stream, */*;q=0.1'
+      );
     } catch (_) {
-      try {
-        const network = 'AM';
-        const stationCodeUpper = String(stationCode || '').toUpperCase();
-        const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
-        const parsed = moment(eventTime || Date.now()).utc();
-        const safeEventTime = parsed && parsed.isValid() ? parsed : moment().utc();
-        const startTime = safeEventTime.clone().add(-60, 'second').format('YYYY-MM-DDTHH:mm:ss').replace(/:/g, '%3A');
-        const endTime = safeEventTime.clone().add(60 * 10, 'second').format('YYYY-MM-DDTHH:mm:ss').replace(/:/g, '%3A');
-        const waveformUrl = `/data/waveform?network=${network}&station=${stationCodeUpper}&start=${startTime}&end=${endTime}`;
-        window.open(waveformUrl, '_blank', 'noreferrer');
-      } catch (_) {
-        // Download fallback failed.
-      }
+      // Download fallback is handled inside fetchAndDownload.
     } finally {
       setDownloading(false);
     }
@@ -760,7 +879,8 @@ function DownloadButton({ stationCode, earthquakeInfo }) {
       title={`Download waveform data for ${stationCode}`}
       className={styles.downloadBtn}
     >
-      {downloading ? 'Downloading...' : 'DOWNLOAD'}
+      <FiDownload className={styles.actionIcon} aria-hidden="true" focusable="false" />
+      {downloading ? 'Downloading...' : 'Waveform'}
     </Button>
   );
 }
@@ -768,63 +888,119 @@ function DownloadButton({ stationCode, earthquakeInfo }) {
 /**
  * Metadata button component
  */
-function MetadataButton({ stationCode }) {
-  const handleMetadata = useCallback(() => {
-    trackEvent('view_metadata', {
-      station_code: stationCode,
-      source: 'waveform_visualization',
-    });
-    // TODO: Implement metadata view modal or panel
-  }, [stationCode]);
+function MetadataButton({ stationCode, earthquakeInfo }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleMetadata = useCallback(async () => {
+    try {
+      setDownloading(true);
+      const { metadataUrl, metadataFilename } = buildStationFdsnDownloads(stationCode, earthquakeInfo);
+      await fetchAndDownload(
+        metadataUrl,
+        metadataFilename,
+        'metadata',
+        'application/xml, text/xml; q=0.9, */*; q=0.1'
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }, [stationCode, earthquakeInfo]);
 
   return (
     <Button
       onClick={handleMetadata}
+      disabled={downloading}
       variant="secondary"
-      aria-label={`View metadata for ${stationCode}`}
-      title={`View station metadata for ${stationCode}`}
+      aria-label={`Download station metadata for ${stationCode}`}
+      title={`Download station metadata for ${stationCode}`}
       className={styles.metadataBtn}
     >
-      METADATA
+      <FiDownload className={styles.actionIcon} aria-hidden="true" focusable="false" />
+      {downloading ? 'Loading...' : 'Metadata'}
     </Button>
   );
 }
 
-/**
- * Apply theme styling to seisplotjs plot
- */
-function applyPlotTheme(plot) {
+function buildStationFdsnDownloads(stationCode, earthquakeInfo) {
+  const network = 'AM';
+  const baseUrl = getFdsnwsBaseUrl();
+  const stationCodeUpper = String(stationCode || '').toUpperCase();
+  const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
+  const startTime = formatFdsnDateTime(eventTime, -60);
+  const endTime = formatFdsnDateTime(eventTime, 60 * 10);
+  const dateSuffix = parseEventTimeUtc(eventTime).format('MMDDYY');
+  const startSuffix = parseEventTimeUtc(eventTime).add(-60, 'second').format('YYYYMMDDTHHmmss') + 'Z';
+  const endSuffix = parseEventTimeUtc(eventTime).add(60 * 10, 'second').format('YYYYMMDDTHHmmss') + 'Z';
+  const common = `starttime=${startTime}&endtime=${endTime}&network=${network}&station=${stationCodeUpper}&location=00`;
+
+  return {
+    metadataUrl: `${baseUrl}/station/1/query?level=response&${common}&formatted=true&nodata=404`,
+    waveformUrl: `${baseUrl}/dataselect/1/query?${common}&channel=*&nodata=404`,
+    metadataFilename: `${network}.${stationCodeUpper}.00.MULTI.xml`,
+    waveformFilename: `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.${startSuffix}-${endSuffix}.mseed`,
+  };
+}
+
+function getFdsnwsBaseUrl() {
+  const env = typeof window !== 'undefined' && window.ENV ? window.ENV : {};
+  return String(env.REACT_APP_FDSNWS || 'https://earthquake.science.upd.edu.ph/fdsnws').replace(/\/$/, '');
+}
+
+function parseEventTimeUtc(value) {
+  const parsed = moment(value || Date.now()).utc();
+  return parsed && typeof parsed.isValid === 'function' && parsed.isValid()
+    ? parsed
+    : moment().utc();
+}
+
+function formatFdsnDateTime(dateString, secondsToAdd = 0) {
+  return parseEventTimeUtc(dateString)
+    .add(secondsToAdd, 'second')
+    .format('YYYY-MM-DDTHH:mm:ss')
+    .replace(/:/g, '%3A');
+}
+
+async function fetchAndDownload(url, filename, kind, acceptHeader) {
   try {
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const axis = isDark ? '#e5e7eb' : '#111827';
-    const sublbl = isDark ? 'rgba(229,231,235,0.7)' : 'rgba(17,24,39,0.7)';
-    const grid = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.25)';
+    trackEvent('download_data', {
+      type: kind,
+      source: 'waveform_visualization',
+      station_code: filename.split('.')[1],
+    });
+  } catch (_) {}
 
-    const css = `
-      svg.seismograph g.axis text { fill: ${axis}; color: ${axis}; }
-      svg.seismograph g.axis path.domain { stroke: ${axis}; }
-      svg.seismograph g.axis line { stroke: ${axis}; }
-      svg.seismograph g.grid line { stroke: ${grid}; }
-      svg.seismograph g.xLabel text { fill: ${axis}; color: ${axis}; }
-      svg.seismograph g.yLabel.left text { fill: ${axis}; color: ${axis}; }
-      svg.seismograph g.yLabel.right text { fill: ${axis}; color: ${axis}; }
-      svg.seismograph g.xSublabel text { fill: ${sublbl}; color: ${sublbl}; }
-      svg.seismograph g.ySublabel text { fill: ${sublbl}; color: ${sublbl}; }
-      svg.seismograph g.title text,
-      svg.seismograph text.title { fill: #0ea5e9; color: #0ea5e9; }
-    `;
+  try {
+    const response = await axios.get(url, {
+      responseType: 'blob',
+      withCredentials: false,
+      validateStatus: () => true,
+      headers: acceptHeader ? { Accept: acceptHeader } : undefined,
+      timeout: 15000,
+    });
 
-    if (plot.addStyle) {
-      try {
-        const existing = plot.shadowRoot && plot.shadowRoot.getElementById('waveform-theme');
-        if (existing) existing.remove();
-      } catch (_) {
-        // Theme update error
-      }
-      plot.addStyle(css, 'waveform-theme');
+    if (response.status !== 200) {
+      window.open(url, '_blank', 'noreferrer');
+      return;
     }
+
+    const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+    if (!blob || blob.size === 0) {
+      window.open(url, '_blank', 'noreferrer');
+      return;
+    }
+
+    const objUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objUrl);
   } catch (_) {
-    // Theme application error
+    try {
+      window.open(url, '_blank', 'noreferrer');
+    } catch (_) {}
   }
 }
 

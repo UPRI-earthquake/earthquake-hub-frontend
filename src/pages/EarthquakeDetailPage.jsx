@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Header from '../components/Header';
-import StationDownloadButtons from '../components/StationDownloadButton';
-import Articles from '../components/Articles';
 import NearbyEvents from '../components/NearbyEvents';
 import SeismicWaveforms from '../components/SeismicWaveforms';
 import LoadingScreen from '../components/LoadingScreen';
@@ -13,8 +11,7 @@ import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
 import { backendHost } from '../utils/env';
 import { normalizeList } from '../utils/normalizeList';
-import InfoTooltip from '../components/InfoTooltip';
-import EarthquakeSourceComparison from '../components/EarthquakeSourceComparison';
+import EarthquakeSourceComparison, { SourceComparisonCompact } from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
 
 /**
@@ -117,38 +114,38 @@ function EarthquakeDetailPage() {
     };
   }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
 
-  const formatEventTime = useCallback((eventTime) => {
-    const parsed = moment(eventTime);
+  const formatEventTimePh = useCallback((eventTime) => {
+    const parsed = moment.utc(eventTime);
     if (!parsed || !parsed.isValid()) return 'Date unavailable';
-    return parsed.format('MMMM D, YYYY h:mm A');
+    return parsed.add(8, 'hour').format('YYYY-MM-DD HH:mm:ss');
+  }, []);
+
+  const formatEventTimeUtc = useCallback((eventTime) => {
+    const parsed = moment.utc(eventTime);
+    if (!parsed || !parsed.isValid()) return 'Date unavailable';
+    return parsed.format('YYYY-MM-DD HH:mm:ss');
+  }, []);
+
+  const formatCoord = useCallback((value, positiveLabel, negativeLabel) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return null;
+    const hemi = num >= 0 ? positiveLabel : negativeLabel;
+    return `${Math.abs(num).toFixed(3)}°${hemi}`;
   }, []);
 
   const summaryMarkup = useMemo(
     () => sanitizeHtml(earthquakeInfo?.eventSummary || generateEventSummary(earthquakeInfo)), //using generated summary as fallback if eventSummary is not provided
     [earthquakeInfo],
   );
-  const instrumentRecordings = useMemo(
-    () => normalizeList(earthquakeInfo?.instrumentRecordings),
-    [earthquakeInfo?.instrumentRecordings],
-  );
   const onlineStations = useMemo(
     () => normalizeList(earthquakeInfo?.onlineStations),
     [earthquakeInfo?.onlineStations],
   );
-  const references = useMemo(() => normalizeList(earthquakeInfo?.references), [earthquakeInfo?.references]);
 
-  // For development/demo purposes, use mock stations if none exist
+  // Network event detail uses online stations for waveform display.
   const stationsForDisplay = useMemo(() => {
-    const hasStations = onlineStations.length > 0 || instrumentRecordings.length > 0;
-    if (hasStations) {
-      return onlineStations.length > 0 ? onlineStations : instrumentRecordings;
-    }
-    // Development fallback: show demo stations
-    if (isDevelopment) {
-      return ['R1382', 'R8095', 'RBD68'];
-    }
-    return [];
-  }, [onlineStations, instrumentRecordings, isDevelopment]);
+    return onlineStations;
+  }, [onlineStations]);
 
   // Debug: Check earthquake object structure
   if (isDevelopment && typeof window !== 'undefined') {
@@ -156,10 +153,8 @@ function EarthquakeDetailPage() {
       hasEarthquakeInfo: !!earthquakeInfo,
       earthquakeKeys: earthquakeInfo ? Object.keys(earthquakeInfo) : [],
       onlineStations: onlineStations,
-      instrumentRecordings: instrumentRecordings,
       stationsForDisplay: stationsForDisplay,
       onlineStationsLength: onlineStations.length,
-      instrumentRecordingsLength: instrumentRecordings.length,
       stationsForDisplayLength: stationsForDisplay.length,
     };
   }
@@ -177,16 +172,28 @@ function EarthquakeDetailPage() {
   const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
 
   const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
-  const formattedEventTime = eventTime ? formatEventTime(eventTime) : null;
+  const formattedEventTimePh = eventTime ? formatEventTimePh(eventTime) : null;
+  const formattedEventTimeUtc = eventTime ? formatEventTimeUtc(eventTime) : null;
+  const lastUpdatedTime =
+    earthquakeInfo?.last_modification || earthquakeInfo?.updated || earthquakeInfo?.modified || eventTime;
+  const formattedUpdatedTime = lastUpdatedTime ? formatEventTimePh(lastUpdatedTime) : null;
+  const formattedUpdatedTimeUtc = lastUpdatedTime ? formatEventTimeUtc(lastUpdatedTime) : null;
+
+  const latValue =
+    earthquakeInfo?.latitude_value ?? earthquakeInfo?.latitude ?? earthquakeInfo?.lat;
+  const lngValue =
+    earthquakeInfo?.longitude_value ?? earthquakeInfo?.longitude ?? earthquakeInfo?.lng;
+  const coordText = useMemo(() => {
+    const latText = formatCoord(latValue, 'N', 'S');
+    const lngText = formatCoord(lngValue, 'E', 'W');
+    if (!latText || !lngText) return null;
+    return `${latText}, ${lngText}`;
+  }, [formatCoord, latValue, lngValue]);
 
   const placeDescription = earthquakeInfo?.place || '';
   const genericLocation = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
 
   // Use place description for location if available, otherwise use generic location
-  const locationDisplay = placeDescription && placeDescription !== 'Unavailable'
-    ? placeDescription
-    : genericLocation;
-
   // Generate dynamic event title
   const pageTitle = useMemo(() => {
     if (earthquakeInfo?.title) return earthquakeInfo.title;
@@ -250,24 +257,42 @@ function EarthquakeDetailPage() {
         <section className="eqinfo-hero">
           <h1>{pageTitle}</h1>
           <div className="eqinfo-meta-grid">
-            <div className="metric-card" role="group" aria-label={`Magnitude ${magnitude || 'not available'}`} title={`Magnitude ${magnitude || 'Not available'}`}>
-              <span>Magnitude</span>
-              <strong>{magnitude || '—'}</strong>
-            </div>
             <div className="metric-card" role="group" aria-label={`Depth ${depth || 'not available'}`} title={`Depth ${depth || 'Not available'}`}>
               <span>Depth</span>
               <strong>{depth || '—'}</strong>
             </div>
-            <div className="metric-card" role="group" aria-label={`Location ${locationDisplay || 'not available'}`} title={`Location ${locationDisplay || 'Not available'}`}>
-              <span>Location</span>
-              <strong>{locationDisplay || '—'}</strong>
+            <div className="metric-card" role="group" aria-label={`Epicenter ${coordText || 'not available'}`} title={`Epicenter ${coordText || 'Not available'}`}>
+              <span>Epicenter</span>
+              <strong>{coordText || '—'}</strong>
             </div>
-            <div className="metric-card" role="group" aria-label={`Local time ${formattedEventTime || 'not available'}`} title={`Local time ${formattedEventTime || 'Not available'}`}>
-              <span>Local time</span>
-              <strong>{formattedEventTime ? `${formattedEventTime} (Local)` : '—'}</strong>
+            <div className="metric-card" role="group" aria-label={`Event time ${formattedEventTimePh || 'not available'}`} title={`Event time ${formattedEventTimePh || 'Not available'}`}>
+              <span>Event time</span>
+              <strong>{formattedEventTimePh ? `${formattedEventTimePh} UTC+08:00` : '—'}</strong>
+              <em className="metric-sub">{formattedEventTimeUtc ? `${formattedEventTimeUtc} UTC` : 'UTC —'}</em>
+            </div>
+            <div className="metric-card" role="group" aria-label={`Last updated ${formattedUpdatedTime || 'not available'}`} title={`Last updated ${formattedUpdatedTime || 'Not available'}`}>
+              <span>Last updated</span>
+              <strong>{formattedUpdatedTime ? `${formattedUpdatedTime} UTC+08:00` : '—'}</strong>
+              <em className="metric-sub">{formattedUpdatedTimeUtc ? `${formattedUpdatedTimeUtc} UTC` : 'UTC —'}</em>
             </div>
           </div>
         </section>
+
+        {summaryMarkup && (
+          <section className="eqinfo-panel scrollable eqinfo-summary-panel">
+            <div className="panel-header">
+              <div className="panel-title">
+                <h3>Event summary</h3>
+              </div>
+            </div>
+            <div className="panel-body">
+              <div
+                className="eqinfo-copy"
+                dangerouslySetInnerHTML={{ __html: summaryMarkup }}
+              />
+            </div>
+          </section>
+        )}
 
         <SeismicWaveforms 
           earthquakeInfo={earthquakeInfo} 
@@ -275,92 +300,17 @@ function EarthquakeDetailPage() {
         />
 
         <div className="eqinfo-grid">
-          <NearbyEvents
-            earthquakeInfo={earthquakeInfo}
-            nearbyEventCount={5}
-            distanceThresholdKm={200}
-          />
+          <div className="eqinfo-related-source-row">
+            <NearbyEvents
+              earthquakeInfo={earthquakeInfo}
+              nearbyEventCount={5}
+              distanceThresholdKm={200}
+            />
 
-          {summaryMarkup && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Event summary</h3>
-                  <InfoTooltip title="Event summary" label="About this section" variant="inline">
-                    Vetted narrative from authoritative sources.
-                  </InfoTooltip>
-                </div>
-              </div>
-              <div className="panel-body">
-                <div
-                  className="eqinfo-copy"
-                  dangerouslySetInnerHTML={{ __html: summaryMarkup }}
-                />
-              </div>
-            </section>
-          )}
+            <SourceComparisonCompact earthquakeInfo={earthquakeInfo} />
+          </div>
 
           <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
-
-          {instrumentRecordings.length > 0 && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Instrument recordings</h3>
-                  <InfoTooltip title="Instrument recordings" label="About this section" variant="inline">
-                    Download station traces around the event origin time.
-                  </InfoTooltip>
-                </div>
-              </div>
-              <div className="panel-body">
-                <ul className="station-list">
-                  {instrumentRecordings.map((station, idx) => (
-                    <li key={`${station}-${idx}`} aria-label={`Station ${station}`}>
-                      <div className="list-items">
-                        <div className="station-label">{station}</div>
-                        <StationDownloadButtons stationCode={station} eventTime={eventTime} />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          )}
-
-          {references.length > 0 && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Reports & references</h3>
-                  <InfoTooltip title="Reports & references" label="About this section" variant="inline">
-                    Open source links in a new tab.
-                  </InfoTooltip>
-                </div>
-              </div>
-              <div className="panel-body">
-                <div className="reference-grid">
-                  {references.map((reference, index) => (
-                    <Articles key={`ref-${index}`} url={reference} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {!summaryMarkup && instrumentRecordings.length === 0 && references.length === 0 && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Event details</h3>
-                </div>
-              </div>
-              <div className="panel-body">
-                <p className="muted">
-                  This earthquake was detected by the network. Additional analysis and authoritative reports may be available from official sources.
-                </p>
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </>

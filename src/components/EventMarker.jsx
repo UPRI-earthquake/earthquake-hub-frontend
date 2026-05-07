@@ -28,7 +28,7 @@ const formatDateTime = (value) => {
   if (!value) return 'Unknown';
   const parsed = moment(value);
   if (!parsed || typeof parsed.isValid !== 'function' || !parsed.isValid()) return 'Unknown';
-  return parsed.format('YYYY-MM-DD HH:mm:ss [UTC]Z');
+  return parsed.format('D MMMM YYYY h:mm A');
 };
 
 const normalizeLocation = (value) => {
@@ -295,10 +295,6 @@ const EventMarker = ({
   const latText = useMemo(() => formatCoord(lat, 'N', 'S'), [lat]);
   const lngText = useMemo(() => formatCoord(lng, 'E', 'W'), [lng]);
   const timestampText = useMemo(() => formatDateTime(time), [time]);
-  const updatedText = useMemo(
-    () => formatDateTime(last_modification || time),
-    [last_modification, time],
-  );
   const locationText = locationLabel || `${latText}, ${lngText}`;
   const showCoordRows = Boolean(locationLabel);
 
@@ -422,12 +418,6 @@ const EventMarker = ({
                 </div>
               </>
             ) : null}
-          </div>
-          <div className={`${styles.popupGroup} ${styles.popupGroupTertiary}`}>
-            <div className={styles.popupRow}>
-              <span className={styles.popupKey}>Updated</span>
-              <span className={styles.popupValue}>{updatedText}</span>
-            </div>
           </div>
           <div className={styles.popupGroup}>
             <button

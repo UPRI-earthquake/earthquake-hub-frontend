@@ -7,13 +7,14 @@ import { backendHost } from '../utils/env';
 import styles from './NearbyEvents.module.css';
 
 /**
- * NearbyEvents component displays earthquakes nearby to the current earthquake.
- * Shows magnitude, location, time, depth, and distance from the current event.
+ * NearbyEvents component displays earthquakes within the configured time and distance window.
+ * Shows magnitude, location, event-relative time, and distance from the current event.
  */
 function NearbyEvents({
   earthquakeInfo,
   nearbyEventCount = 5,
   distanceThresholdKm = 200,
+  timeWindowDays = 30,
 }) {
   const navigate = useNavigate();
   const [nearbyEvents, setNearbyEvents] = useState([]);
@@ -36,8 +37,8 @@ function NearbyEvents({
     const fetchNearby = async () => {
       try {
         setLoading(true);
-        const endDate = moment(currentTime);
-        const startDate = moment(currentTime).subtract(30, 'days');
+        const startDate = moment(currentTime).subtract(timeWindowDays, 'days');
+        const endDate = moment(currentTime).add(timeWindowDays, 'days');
 
         try {
           axios.defaults.withCredentials = true;
@@ -51,6 +52,7 @@ function NearbyEvents({
         });
 
         const events = response.data?.payload || [];
+        const currentMoment = moment.utc(currentTime);
 
         const nearby = events
           .filter((event) => {
@@ -58,6 +60,8 @@ function NearbyEvents({
             const lat = event.latitude_value;
             const lon = event.longitude_value;
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+            const eventMoment = moment.utc(event.OT || event.eventTime);
+            if (!eventMoment.isValid() || !currentMoment.isValid()) return false;
             const distance = calculateDistance(currentLat, currentLon, lat, lon);
             return distance <= distanceThresholdKm;
           })
@@ -65,10 +69,25 @@ function NearbyEvents({
             const lat = event.latitude_value;
             const lon = event.longitude_value;
             const distance = calculateDistance(currentLat, currentLon, lat, lon);
-            return { ...event, distance };
+            const eventMoment = moment.utc(event.OT || event.eventTime);
+            const timeDeltaMinutes = Math.abs(currentMoment.diff(eventMoment, 'minute'));
+            return { ...event, distance, timeDeltaMinutes };
           })
-          .sort((a, b) => a.distance - b.distance)
-          .slice(0, nearbyEventCount);
+          .sort((a, b) => {
+            if (a.timeDeltaMinutes !== b.timeDeltaMinutes) {
+              return a.timeDeltaMinutes - b.timeDeltaMinutes;
+            }
+            return a.distance - b.distance;
+          })
+          .slice(0, nearbyEventCount)
+          .sort((a, b) => {
+            const aTime = moment.utc(a.OT || a.eventTime).valueOf();
+            const bTime = moment.utc(b.OT || b.eventTime).valueOf();
+            if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+              return aTime - bTime;
+            }
+            return a.distance - b.distance;
+          });
 
         if (isMountedRef.current) {
           setNearbyEvents(nearby);
@@ -92,16 +111,11 @@ function NearbyEvents({
     return () => {
       isMountedRef.current = false;
     };
-  }, [currentLat, currentLon, currentTime, currentPublicID, nearbyEventCount, distanceThresholdKm]);
+  }, [currentLat, currentLon, currentTime, currentPublicID, nearbyEventCount, distanceThresholdKm, timeWindowDays]);
 
   const formatMagnitude = (event) => {
     const val = Number(event?.magnitude_value ?? event?.magnitude ?? event?.mag);
     return Number.isFinite(val) ? val.toFixed(1) : '—';
-  };
-
-  const formatDepth = (event) => {
-    const depth = Number(event?.depth_km ?? event?.depthKm ?? event?.depth_value ?? event?.depthValue ?? event?.depth);
-    return Number.isFinite(depth) ? `${depth.toFixed(0)} km` : '—';
   };
 
   const formatLocation = (event) => {
@@ -115,7 +129,24 @@ function NearbyEvents({
     return event?.location || 'Unknown location';
   };
 
-  const formatTime = (eventTime) => moment(eventTime).fromNow();
+  const formatTimeFromCurrentEvent = (eventTime) => {
+    const eventMoment = moment.utc(eventTime);
+    const currentMoment = moment.utc(currentTime);
+    if (!eventMoment.isValid() || !currentMoment.isValid()) return null;
+
+    const diffMinutes = currentMoment.diff(eventMoment, 'minute');
+    const absMinutes = Math.abs(diffMinutes);
+    if (absMinutes < 1) return 'same time';
+
+    const value = absMinutes >= 1440
+      ? Math.round(absMinutes / 1440)
+      : absMinutes >= 60
+        ? Math.round(absMinutes / 60)
+        : absMinutes;
+    const unit = absMinutes >= 1440 ? 'd' : absMinutes >= 60 ? 'h' : 'm';
+    const suffix = diffMinutes >= 0 ? 'before' : 'after';
+    return `${value}${unit} ${suffix}`;
+  };
 
   const formatDistance = (distance) => {
     return distance < 1 ? '<1 km' : `~${Math.round(distance)} km`;
@@ -141,10 +172,10 @@ function NearbyEvents({
     <section className={styles.nearbyEventsPanel}>
       <div className={styles.panelHeader}>
         <div className={styles.panelTitle}>
-          <h3>Nearby events</h3>
+          <h3>Related events</h3>
           {nearbyEvents.length > 0 && (
             <span className={styles.eventCount}>
-              within {distanceThresholdKm} km
+              within {distanceThresholdKm} km ±{timeWindowDays} days
             </span>
           )}
         </div>
@@ -158,52 +189,59 @@ function NearbyEvents({
           </div>
         ) : nearbyEvents.length === 0 ? (
           <div className={styles.empty}>
-            No events found within {distanceThresholdKm} km in the last 30 days.
+            No events found within {distanceThresholdKm} km from {timeWindowDays} days before to {timeWindowDays} days after this event.
           </div>
         ) : (
           <ul className={styles.eventList}>
-            {nearbyEvents.map((event) => (
-              <li
-                key={event.publicID}
-                onClick={() => handleEventClick(event)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleEventClick(event);
-                  } else if (e.key === ' ') {
-                    e.preventDefault();
-                    handleEventClick(event);
-                  }
-                }}
-                role="button"
-                tabIndex="0"
-                aria-label={`Magnitude ${formatMagnitude(event)} - ${formatLocation(event)}`}
-                className={styles.eventItem}
-              >
-                <div className={styles.eventMainContent}>
-                  <div className={styles.magnitudeSection}>
-                    <span className={styles.magnitude}>
-                      M{formatMagnitude(event)}
+            {nearbyEvents.map((event) => {
+              const eventTime = event.OT || event.eventTime;
+              const timeOffset = formatTimeFromCurrentEvent(eventTime);
+
+              return (
+                <li
+                  key={event.publicID}
+                  onClick={() => handleEventClick(event)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleEventClick(event);
+                    } else if (e.key === ' ') {
+                      e.preventDefault();
+                      handleEventClick(event);
+                    }
+                  }}
+                  role="button"
+                  tabIndex="0"
+                  aria-label={`Magnitude ${formatMagnitude(event)} - ${formatLocation(event)}`}
+                  className={styles.eventItem}
+                >
+                  <div className={styles.eventMainContent}>
+                    <div className={styles.magnitudeSection}>
+                      <span className={styles.magnitude}>
+                        M{formatMagnitude(event)}
+                      </span>
+                    </div>
+                    <div className={styles.eventDetails}>
+                      <div className={styles.location}>
+                        {formatLocation(event)}
+                      </div>
+                      {timeOffset && (
+                        <div className={styles.eventMeta}>
+                          <span className={styles.timeOffset}>
+                            {timeOffset}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.distanceSection}>
+                    <span className={styles.distance}>
+                      {formatDistance(event.distance)}
                     </span>
                   </div>
-                  <div className={styles.eventDetails}>
-                    <div className={styles.location}>
-                      {formatLocation(event)}
-                    </div>
-                    <div className={styles.eventMeta}>
-                      <span className={styles.time}>{formatTime(event.OT || event.eventTime)}</span>
-                      <span className={styles.separator}>•</span>
-                      <span className={styles.depth}>{formatDepth(event)}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.distanceSection}>
-                  <span className={styles.distance}>
-                    {formatDistance(event.distance)}
-                  </span>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
