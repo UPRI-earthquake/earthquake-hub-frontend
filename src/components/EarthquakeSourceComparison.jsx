@@ -1,15 +1,43 @@
-import React, { useMemo } from 'react';
-import { FaRegClock, FaRegCompass } from 'react-icons/fa';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FaExternalLinkAlt, FaRegClock, FaRegCompass, FaTimes } from 'react-icons/fa';
 import { TbRulerMeasure2 } from 'react-icons/tb';
-import InfoTooltip from './InfoTooltip';
 import moment from '../utils/time';
 import './EarthquakeSourceComparison.css';
 
-const SOURCE_LABELS = {
-  'earthquake-hub': 'Earthquake Hub',
-  phivolcs: 'PHIVOLCS',
-  usgs: 'USGS',
+const UPRI_FAVICON_URL = '/favicon-32x32.png';
+
+const SOURCE_DISPLAY = {
+  'earthquake-hub': {
+    label: 'UPRI',
+    abbreviation: 'UP',
+    iconUrl: UPRI_FAVICON_URL,
+  },
+  phivolcs: {
+    label: 'PHIVOLCS',
+    abbreviation: 'PH',
+    iconUrl: 'https://earthquake.phivolcs.dost.gov.ph/favicon.ico',
+  },
+  usgs: {
+    label: 'USGS',
+    abbreviation: 'US',
+    iconUrl: 'https://earthquake.usgs.gov/favicon.ico',
+  },
 };
+
+function getSourceDisplay(source) {
+  const key = source?.source?.toLowerCase();
+  const fallback = SOURCE_DISPLAY[key] ?? {
+    label: source?.source?.toUpperCase() ?? 'Source',
+    abbreviation: source?.source?.slice(0, 2).toUpperCase() ?? 'SO',
+    iconUrl: null,
+  };
+
+  return {
+    ...fallback,
+    label: source?.sourceLabel ?? fallback.label,
+    iconUrl: source?.sourceIconUrl ?? fallback.iconUrl,
+  };
+}
 
 function toFiniteNumber(value) {
   const num = Number(value);
@@ -43,6 +71,11 @@ function formatDelta(value, suffix, digits = 1) {
   return num == null ? null : `${num.toFixed(digits).replace(/\.0$/, '')} ${suffix}`;
 }
 
+function stripMagnitudePrefix(value) {
+  if (!value) return null;
+  return String(value).replace(/^M\s*[\d.]+\s*-\s*/i, '').trim();
+}
+
 function getPrimaryLocation(event) {
   const place = event?.place;
   if (place && place !== 'Unavailable') return place;
@@ -52,7 +85,9 @@ function getPrimaryLocation(event) {
 function buildHubSource(event) {
   return {
     source: 'earthquake-hub',
-    title: 'Earthquake Hub solution',
+    sourceLabel: 'UPRI',
+    sourceIconUrl: UPRI_FAVICON_URL,
+    title: 'UPRI solution',
     time: event?.OT || event?.eventTime,
     magnitude: event?.magnitude ?? event?.magnitude_value,
     depth: event?.depth ?? event?.depth_value,
@@ -60,27 +95,6 @@ function buildHubSource(event) {
     longitude: event?.longitude ?? event?.longitude_value,
     location: getPrimaryLocation(event),
   };
-}
-
-function buildOverview(mainSource, comparisonSources) {
-  const magnitudes = comparisonSources
-    .map((source) => toFiniteNumber(source?.magnitude))
-    .filter((value) => value != null);
-
-  const timeDiffs = comparisonSources
-    .map((source) => toFiniteNumber(source?.timeDifferenceMinutes))
-    .filter((value) => value != null);
-
-  const externalMagnitudeRange = magnitudes.length > 0
-    ? `${formatMagnitude(Math.min(...magnitudes))} to ${formatMagnitude(Math.max(...magnitudes))}`
-    : null;
-  const closestTimeMatch = timeDiffs.length > 0 ? `${Math.min(...timeDiffs).toFixed(1)} min delta` : null;
-
-  return [
-    { label: 'External sources', value: `${comparisonSources.length}` },
-    ...(externalMagnitudeRange ? [{ label: 'External magnitude range', value: externalMagnitudeRange }] : []),
-    ...(closestTimeMatch ? [{ label: 'Closest time match', value: closestTimeMatch }] : [])
-  ];
 }
 
 function formatSignedMagnitudeDelta(value) {
@@ -92,11 +106,14 @@ function formatSignedMagnitudeDelta(value) {
 
 function buildCompactRows(mainSource, comparisonSources) {
   const mainMagnitude = toFiniteNumber(mainSource?.magnitude);
+  const primaryDisplay = getSourceDisplay(mainSource);
   const primaryRow = {
     key: 'primary',
     source: mainSource?.source,
-    label: SOURCE_LABELS[mainSource?.source] ?? 'Earthquake Hub',
-    role: 'Primary',
+    details: null,
+    label: primaryDisplay.label,
+    iconUrl: primaryDisplay.iconUrl,
+    abbreviation: primaryDisplay.abbreviation,
     magnitude: formatMagnitude(mainMagnitude),
     status: 'Reference',
     statusTone: 'match',
@@ -106,12 +123,15 @@ function buildCompactRows(mainSource, comparisonSources) {
     const magnitude = toFiniteNumber(source?.magnitude);
     const signedDelta = mainMagnitude == null || magnitude == null ? null : magnitude - mainMagnitude;
     const status = formatSignedMagnitudeDelta(signedDelta);
+    const display = getSourceDisplay(source);
 
     return {
       key: source.source ?? source.id ?? source.url,
       source: source.source,
-      label: SOURCE_LABELS[source.source?.toLowerCase()] ?? source.source?.toUpperCase() ?? 'Source',
-      role: '',
+      details: source,
+      label: display.label,
+      iconUrl: display.iconUrl,
+      abbreviation: display.abbreviation,
       magnitude: formatMagnitude(magnitude),
       status: status ?? '—',
       statusTone: status === 'Match' ? 'match' : 'delta',
@@ -121,6 +141,20 @@ function buildCompactRows(mainSource, comparisonSources) {
   return [primaryRow, ...sourceRows];
 }
 
+function SourceIcon({ src, abbreviation }) {
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <span className="source-compact-icon" aria-hidden="true">
+      {src && !hasError ? (
+        <img src={src} alt="" loading="lazy" onError={() => setHasError(true)} />
+      ) : (
+        <span className="source-compact-icon-fallback">{abbreviation}</span>
+      )}
+    </span>
+  );
+}
+
 function MetricIcon({ type }) {
   if (type === 'time') return <FaRegClock className="source-compare-metric-icon" aria-hidden="true" />;
   if (type === 'depth') return <TbRulerMeasure2 className="source-compare-metric-icon" aria-hidden="true" />;
@@ -128,9 +162,8 @@ function MetricIcon({ type }) {
   return null;
 }
 
-function ComparisonCard({ source, isPrimary = false }) {
-  const label = SOURCE_LABELS[source.source?.toLowerCase()] ?? source.source?.toUpperCase() ?? 'Source';
-  const magnitudeValue = formatMagnitude(source.magnitude);
+function getSourceDetails(source, isPrimary = false) {
+  const descriptor = source.location || source.place || stripMagnitudePrefix(source.title);
   const metrics = [
     { label: 'Origin time', value: formatEventTime(source.time), icon: 'time' },
     { label: 'Depth', value: formatDepth(source.depth ?? source.depthKm), icon: 'depth' },
@@ -145,70 +178,115 @@ function ComparisonCard({ source, isPrimary = false }) {
   ].filter((item) => item.value);
 
   const comparisonChips = [
-    !isPrimary && formatDelta(source.timeDifferenceMinutes, 'min time delta'),
-    !isPrimary && formatDelta(source.magnitudeDifference, 'mag delta', 2),
-    !isPrimary && formatDelta(source.distanceKm, 'km from hub', 1),
-    !isPrimary && formatDelta(source.score, 'match score', 1),
+    !isPrimary && formatDelta(source.timeDifferenceMinutes, 'min origin time offset'),
+    !isPrimary && formatDelta(source.magnitudeDifference, 'magnitude offset', 2),
+    !isPrimary && formatDelta(source.distanceKm, 'km epicenter offset', 1),
   ].filter(Boolean);
 
+  return { descriptor, metrics, comparisonChips };
+}
+
+function MagnitudeBadge({ source, label }) {
+  const magnitudeValue = formatMagnitude(source.magnitude);
+  if (!magnitudeValue) return null;
+
   return (
-    <article className={`source-compare-card${isPrimary ? ' source-compare-card-primary' : ''}`}>
-      <div className="source-compare-header">
-        <div>
-          <p className="source-compare-eyebrow">{isPrimary ? 'Baseline' : 'Reference catalog'}</p>
-          <h4>{label}</h4>
+    <span className="source-compare-mag-badge" aria-label={`${label} magnitude ${magnitudeValue}`}>
+      {source.source?.toLowerCase() === 'phivolcs' ? 'Mw' : 'M'} {magnitudeValue.replace(/^M/, '')}
+    </span>
+  );
+}
+
+function CatalogDetailsModal({ source, onClose }) {
+  useEffect(() => {
+    if (!source) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, source]);
+
+  if (!source) return null;
+
+  const display = getSourceDisplay(source);
+  const catalogUrl = source.url ?? source.detailUrl;
+  const { descriptor, metrics, comparisonChips } = getSourceDetails(source);
+
+  return (
+    <div className="source-details-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        className="source-details-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="source-details-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="source-details-heading">
+          <div className="source-details-title-group">
+            <SourceIcon src={display.iconUrl} abbreviation={display.abbreviation} />
+            <div>
+              <p className="source-compare-eyebrow">Matched catalog record</p>
+              <h3 id="source-details-title">{display.label}</h3>
+            </div>
+          </div>
+          <div className="source-details-heading-actions">
+            <MagnitudeBadge source={source} label={display.label} />
+            <button
+              type="button"
+              className="source-details-close"
+              aria-label="Close catalog details"
+              onClick={onClose}
+            >
+              <FaTimes aria-hidden="true" />
+            </button>
+          </div>
         </div>
-        {magnitudeValue ? (
-          <span className="source-compare-mag-badge" aria-label={`${label} magnitude ${magnitudeValue}`}>
-            {source.source?.toLowerCase() === 'phivolcs' ? 'Mw' : 'M'} {magnitudeValue.replace(/^M/, '')}
-          </span>
+
+        <section className="source-details-record" aria-label={`${display.label} catalog details`}>
+          {descriptor ? <p className="source-compare-location">{descriptor}</p> : null}
+
+          <div className="source-compare-metrics">
+            {metrics.map((metric) => (
+              <div key={`${display.label}-${metric.label}`} className="source-compare-metric">
+                <MetricIcon type={metric.icon} />
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+              </div>
+            ))}
+          </div>
+
+          {comparisonChips.length > 0 ? (
+            <div className="source-compare-chips" aria-label={`${display.label} comparison highlights`}>
+              {comparisonChips.map((chip) => (
+                <span key={`${display.label}-${chip}`} className="source-compare-chip">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        {catalogUrl ? (
+          <a
+            className="source-details-link"
+            href={catalogUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open catalog entry
+            <FaExternalLinkAlt aria-hidden="true" />
+          </a>
         ) : null}
-        {source.title ? <p className="source-compare-title">{source.title}</p> : null}
-      </div>
-
-      {source.location ? <p className="source-compare-location">{source.location}</p> : null}
-
-      <div className="source-compare-metrics">
-        {/* {magnitudeValue ? (
-          <div className="source-compare-metric source-compare-metric-magnitude">
-            <span>Magnitude</span>
-            <strong>{magnitudeValue}</strong>
-          </div>
-        ) : null} */}
-        {metrics.map((metric) => (
-          <div key={`${label}-${metric.label}`} className="source-compare-metric">
-            <MetricIcon type={metric.icon} />
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-          </div>
-        ))}
-      </div>
-
-      {comparisonChips.length > 0 ? (
-        <div className="source-compare-chips" aria-label={`${label} comparison highlights`}>
-          {comparisonChips.map((chip) => (
-            <span key={`${label}-${chip}`} className="source-compare-chip">
-              {chip}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {source.url || source.detailUrl ? (
-        <a
-          className="source-compare-link"
-          href={source.url ?? source.detailUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          View catalog entry
-        </a>
-      ) : null}
-    </article>
+      </section>
+    </div>
   );
 }
 
 export function SourceComparisonCompact({ earthquakeInfo }) {
+  const [selectedSource, setSelectedSource] = useState(null);
   const comparisonSources = useMemo(
     () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(Boolean),
     [earthquakeInfo?.additionalInformation],
@@ -224,68 +302,45 @@ export function SourceComparisonCompact({ earthquakeInfo }) {
   return (
     <section className="eqinfo-panel source-compact-panel">
       <div className="panel-header source-compact-heading">
-        <h3>Source comparison</h3>
+        <h3>Other catalog records</h3>
       </div>
 
       <div className="source-compact-list">
-        {rows.map((row) => (
-          <div key={row.key} className="source-compact-row">
-            <span
-              className={`source-compact-dot source-compact-dot-${String(row.source || 'default').toLowerCase()}`}
-              aria-hidden="true"
-            />
-            <strong className="source-compact-name">{row.label}</strong>
-            <span className="source-compact-role">{row.role}</span>
-            <span className="source-compact-mag">{row.magnitude ?? '—'}</span>
-            <span className={`source-compact-status source-compact-status-${row.statusTone}`}>
-              {row.status}
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+        {rows.map((row) => {
+          const content = (
+            <>
+              <SourceIcon src={row.iconUrl} abbreviation={row.abbreviation} />
+              <strong className="source-compact-name">{row.label}</strong>
+              <span className="source-compact-mag">{row.magnitude ?? '—'}</span>
+              <span className={`source-compact-status source-compact-status-${row.statusTone}`}>
+                {row.status}
+              </span>
+            </>
+          );
 
-export default function EarthquakeSourceComparison({ earthquakeInfo }) {
-  const comparisonSources = useMemo(
-    () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(Boolean),
-    [earthquakeInfo?.additionalInformation],
-  );
+          if (!row.details) {
+            return (
+              <div key={row.key} className="source-compact-row">
+                {content}
+              </div>
+            );
+          }
 
-  const mainSource = useMemo(() => buildHubSource(earthquakeInfo), [earthquakeInfo]);
-
-  if (comparisonSources.length === 0) return null;
-
-  const overviewItems = buildOverview(mainSource, comparisonSources);
-
-  return (
-    <section className="eqinfo-panel source-comparison-panel">
-      <div className="panel-header source-comparison-heading">
-        <div className="panel-title">
-          <h3>Earthquake source comparison</h3>
-          <InfoTooltip title="Earthquake source comparison" label="About this section" variant="inline">
-            External matches are the lowest-scoring PHIVOLCS and USGS candidates for this event. Scores combine origin-time
-            difference, epicentral distance, and magnitude difference; lower scores are closer matches.
-          </InfoTooltip>
-        </div>
+          return (
+            <button
+              key={row.key}
+              type="button"
+              className="source-compact-row source-compact-row-action"
+              onClick={() => setSelectedSource(row.details)}
+              aria-label={`View ${row.label} catalog match details`}
+            >
+              {content}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="source-compare-overview">
-        {overviewItems.map((item) => (
-          <div key={item.label} className="source-compare-overview-card">
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-          </div>
-        ))}
-      </div>
-
-      <div className="source-compare-grid">
-        {/* <ComparisonCard source={mainSource} isPrimary /> */}
-        {comparisonSources.map((source) => (
-          <ComparisonCard key={source.source ?? source.id ?? source.url} source={source} />
-        ))}
-      </div>
+      <CatalogDetailsModal source={selectedSource} onClose={() => setSelectedSource(null)} />
     </section>
   );
 }

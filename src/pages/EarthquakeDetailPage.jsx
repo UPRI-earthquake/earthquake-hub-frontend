@@ -11,7 +11,7 @@ import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
 import { backendHost } from '../utils/env';
 import { normalizeList } from '../utils/normalizeList';
-import EarthquakeSourceComparison, { SourceComparisonCompact } from '../components/EarthquakeSourceComparison';
+import { SourceComparisonCompact } from '../components/EarthquakeSourceComparison';
 import './EQInfoPage.css';
 
 /**
@@ -309,8 +309,6 @@ function EarthquakeDetailPage() {
 
             <SourceComparisonCompact earthquakeInfo={earthquakeInfo} />
           </div>
-
-          <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
         </div>
       </div>
     </>

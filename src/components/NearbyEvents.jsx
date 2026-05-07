@@ -144,7 +144,7 @@ function NearbyEvents({
         ? Math.round(absMinutes / 60)
         : absMinutes;
     const unit = absMinutes >= 1440 ? 'd' : absMinutes >= 60 ? 'h' : 'm';
-    const suffix = diffMinutes >= 0 ? 'before' : 'after';
+    const suffix = diffMinutes >= 0 ? 'before this event' : 'after this event';
     return `${value}${unit} ${suffix}`;
   };
 

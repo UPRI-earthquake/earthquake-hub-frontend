@@ -278,7 +278,7 @@
 }
 
 html[data-theme='dark'] .eventItem {
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(148, 163, 184, 0.12);
 }
 
 html[data-theme='dark'] .eventItem:hover {
@@ -307,14 +307,14 @@ html[data-theme='dark'] .eventItem:focus-visible .timeOffset {
 
 html[data-theme='dark'] .distance {
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.08);
   color: #dbeafe;
 }
 
 html[data-theme='dark'] .eventItem:hover .distance,
 html[data-theme='dark'] .eventItem:focus-visible .distance {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(125, 211, 252, 0.18);
+  border-color: rgba(125, 211, 252, 0.12);
   color: #eff6ff;
 }
 
