@@ -7,6 +7,7 @@ import axios from 'axios';
 import moment from '../utils/time';
 import { useStations } from '../hooks/useStations';
 import { calculateDistance } from '../utils/distanceCalculator';
+import { toFiniteNumber } from '../utils/earthquakeFormat';
 import { FiChevronDown, FiDownload } from 'react-icons/fi';
 
 /**
@@ -40,10 +41,10 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
   );
   const hasStations = stationList.length > 0;
   const visibleStations = useMemo(
-    () => (showAllStations ? stationList : stationList.slice(0, 5)),
+    () => (showAllStations ? stationList : stationList.slice(0, DEFAULT_VISIBLE_STATION_COUNT)),
     [showAllStations, stationList]
   );
-  const canToggleStations = stationList.length > 5;
+  const canToggleStations = stationList.length > DEFAULT_VISIBLE_STATION_COUNT;
   const eventCoordinates = useMemo(
     () => getEventCoordinates(earthquakeInfo),
     [earthquakeInfo]
@@ -366,15 +367,18 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
               />
             ))}
           </div>
-          {canToggleStations && !showAllStations ? (
+          {canToggleStations ? (
             <div className={styles.toggleRow}>
               <Button
                 type="button"
                 variant="secondary"
                 className={styles.toggleButton}
+                aria-expanded={showAllStations}
                 onClick={() => setShowAllStations((prev) => !prev)}
               >
-                Show all stations
+                {showAllStations
+                  ? 'Show fewer stations'
+                  : `Show all ${stationList.length} stations`}
                 <FiChevronDown className={styles.toggleIcon} aria-hidden="true" focusable="false" />
               </Button>
             </div>
@@ -492,6 +496,7 @@ const WAVEFORM_CHANNEL_COLORS = [
 ];
 
 const DEFAULT_WAVEFORM_CHANNELS = ['EHZ', 'ENZ', 'ENN', 'ENE'];
+const DEFAULT_VISIBLE_STATION_COUNT = 3;
 
 /**
  * Individual waveform row component
@@ -631,11 +636,6 @@ function getStationDistanceLabel(stationCode, eventCoordinates, stationLocations
 function formatApproxDistance(distanceKm) {
   if (distanceKm < 1) return '<1 km';
   return `~${Math.round(distanceKm).toLocaleString()} km`;
-}
-
-function toFiniteNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
 }
 
 function formatChannelLabel(code) {

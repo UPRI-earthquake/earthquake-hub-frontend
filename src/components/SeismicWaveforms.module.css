@@ -50,6 +50,10 @@
   transform: translateY(1px);
 }
 
+.toggleButton[aria-expanded='true'] .toggleIcon {
+  transform: rotate(180deg) translateY(-1px);
+}
+
 .waveformRow {
   display: grid;
   grid-template-columns: 174px minmax(0, 1fr) 96px;

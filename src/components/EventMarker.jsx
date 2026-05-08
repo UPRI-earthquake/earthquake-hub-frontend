@@ -302,7 +302,14 @@ const EventMarker = ({
   const handleEventInfoClick = useCallback(() => {
     if (!publicID || !eventData) return;
     try {
-      window.localStorage.setItem(`earthquake-detail:${publicID}`, JSON.stringify(eventData));
+      window.localStorage.setItem(
+        `earthquake-detail:${publicID}`,
+        JSON.stringify({
+          cachedAt: Date.now(),
+          payload: eventData,
+          version: 1,
+        }),
+      );
     } catch (_) {}
     const url = `/earthquake-detail?id=${encodeURIComponent(publicID)}`;
     try {
