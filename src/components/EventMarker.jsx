@@ -404,7 +404,7 @@ const EventMarker = ({
               <span className={styles.popupValue}>{locationText}</span>
             </div>
             <div className={styles.popupRow}>
-              <span className={styles.popupKey}>Time</span>
+              <span className={styles.popupKey}>PH Time</span>
               <span className={styles.popupValue}>{timestampText}</span>
             </div>
           </div>

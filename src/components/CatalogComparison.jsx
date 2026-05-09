@@ -300,11 +300,13 @@ function CatalogDetailsModal({ source, onClose }) {
             <div>
               <div className="source-details-eyebrow-row">
                 <p className="source-compare-eyebrow">Matched catalog record</p>
+              </div>
+              <div className="source-details-label-row">
+                <h3 id="source-details-title">{display.label}</h3>
                 {matchQualityLabel ? (
                   <span className="source-match-quality-pill">{matchQualityLabel}</span>
                 ) : null}
               </div>
-              <h3 id="source-details-title">{display.label}</h3>
             </div>
           </div>
           <div className="source-details-heading-actions">
@@ -384,6 +386,11 @@ export default function CatalogComparison({ earthquakeInfo }) {
       </div>
 
       <div className="source-compact-list">
+        <div className="source-compact-row source-compact-header" aria-hidden="true">
+          <span className="source-compact-header-source">Source</span>
+          <span className="source-compact-header-mag">Magnitude recording</span>
+          <span className="source-compact-header-offset">Offset</span>
+        </div>
         {rows.map((row) => {
           const content = (
             <>

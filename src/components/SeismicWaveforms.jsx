@@ -643,6 +643,13 @@ function formatChannelLabel(code) {
   return parts[parts.length - 1] || String(code || 'Channel');
 }
 
+const WAVEFORM_VIEW_WIDTH = 820;
+const WAVEFORM_VIEW_HEIGHT = 92;
+const WAVEFORM_BASELINE_Y = 42;
+const WAVEFORM_AMPLITUDE_Y = 27;
+const WAVEFORM_MARKER_TOP_Y = 12;
+const WAVEFORM_MARKER_BOTTOM_Y = 74;
+
 function getPreferredChannelCode(channels) {
   if (!Array.isArray(channels) || channels.length === 0) return '';
   const preferred = channels.find((channel) => formatChannelLabel(channel.code).toUpperCase() === 'EHZ');
@@ -651,14 +658,21 @@ function getPreferredChannelCode(channels) {
 
 function CompactWaveform({ stationCode, stationIndex, channels, isLoading, eventTime }) {
   const color = getStationTraceColor(stationIndex);
-  const paths = useMemo(
+  const waveformDisplay = useMemo(
     () => buildWaveformPaths(channels),
     [channels]
   );
+  const paths = waveformDisplay.paths;
   const eventMarkerX = useMemo(
     () => getEventMarkerX(eventTime),
     [eventTime]
   );
+  const maxAmplitudeLabel = formatAmplitudeLabel(waveformDisplay.maxAmplitude);
+  const minAmplitudeLabel = formatAmplitudeLabel(-waveformDisplay.maxAmplitude);
+  const eventTimeLabel = formatWaveformEventLabel(eventTime);
+  const eventMarkerPercent = eventMarkerX == null
+    ? null
+    : `${((eventMarkerX / WAVEFORM_VIEW_WIDTH) * 100).toFixed(3)}%`;
 
   if (isLoading) {
     return (
@@ -677,54 +691,69 @@ function CompactWaveform({ stationCode, stationIndex, channels, isLoading, event
   }
 
   return (
-    <svg
-      className={styles.compactWaveform}
-      viewBox="0 0 820 78"
-      preserveAspectRatio="none"
-      role="img"
-      aria-label={`Recorded waveform for ${stationCode}`}
+    <div
+      className={styles.waveformPlot}
+      style={eventMarkerPercent ? { '--event-marker-left': eventMarkerPercent } : undefined}
     >
-      <rect
-        className={styles.waveformTrackBackground}
-        x="0"
-        y="0"
-        width="820"
-        height="78"
-      />
-      {paths.map((path, index) => (
-        <path
-          key={path.code || index}
-          d={path.points}
-          fill="none"
-          stroke={path.color || color}
-          strokeWidth={index === 0 ? '2.8' : '2'}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={index === 0 ? '0.95' : '0.68'}
+      <svg
+        className={styles.compactWaveform}
+        viewBox={`0 0 ${WAVEFORM_VIEW_WIDTH} ${WAVEFORM_VIEW_HEIGHT}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Recorded waveform for ${stationCode}`}
+      >
+        <rect
+          className={styles.waveformTrackBackground}
+          x="0"
+          y="0"
+          width={WAVEFORM_VIEW_WIDTH}
+          height={WAVEFORM_VIEW_HEIGHT}
         />
-      ))}
-      {eventMarkerX != null && (
-        <g className={styles.eventTimeMarkerLayer}>
-          <title>{`Arrival time: ${moment.utc(eventTime).format('YYYY-MM-DD HH:mm:ss')} UTC`}</title>
-          <line
-            className={styles.eventTimeMarkerHalo}
-            x1={eventMarkerX}
-            y1="5"
-            x2={eventMarkerX}
-            y2="73"
-            vectorEffect="non-scaling-stroke"
+        {paths.map((path, index) => (
+          <path
+            key={path.code || index}
+            d={path.points}
+            fill="none"
+            stroke={path.color || color}
+            strokeWidth={index === 0 ? '2.8' : '2'}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={index === 0 ? '0.95' : '0.68'}
           />
-          <line
-            className={styles.eventTimeMarker}
-            x1={eventMarkerX}
-            y1="5"
-            x2={eventMarkerX}
-            y2="73"
-            vectorEffect="non-scaling-stroke"
-          />
-        </g>
-      )}
-    </svg>
+        ))}
+        {eventMarkerX != null && (
+          <g className={styles.eventTimeMarkerLayer}>
+            <title>{`Arrival time: ${moment.utc(eventTime).format('YYYY-MM-DD HH:mm:ss')} UTC`}</title>
+            <line
+              className={styles.eventTimeMarkerHalo}
+              x1={eventMarkerX}
+              y1={WAVEFORM_MARKER_TOP_Y}
+              x2={eventMarkerX}
+              y2={WAVEFORM_MARKER_BOTTOM_Y}
+              vectorEffect="non-scaling-stroke"
+            />
+            <line
+              className={styles.eventTimeMarker}
+              x1={eventMarkerX}
+              y1={WAVEFORM_MARKER_TOP_Y}
+              x2={eventMarkerX}
+              y2={WAVEFORM_MARKER_BOTTOM_Y}
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+        )}
+      </svg>
+      <div className={styles.waveformAxisLabels} aria-hidden="true">
+        <span className={`${styles.waveformLabel} ${styles.waveformLabelMax}`}>{maxAmplitudeLabel}</span>
+        <span className={`${styles.waveformLabel} ${styles.waveformLabelMin}`}>{minAmplitudeLabel}</span>
+        <span className={`${styles.waveformLabel} ${styles.waveformLabelEnd}`}>+10 min</span>
+        {eventTimeLabel && eventMarkerPercent ? (
+          <span className={`${styles.waveformLabel} ${styles.waveformEventTimeLabel}`}>
+            {eventTimeLabel}
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -744,7 +773,7 @@ function getEventMarkerX(eventTime) {
     return null;
   }
 
-  return (elapsedMs / totalMs) * 820;
+  return (elapsedMs / totalMs) * WAVEFORM_VIEW_WIDTH;
 }
 
 function getStationTraceColor(stationIndex) {
@@ -766,16 +795,19 @@ function buildWaveformPaths(channels) {
   );
 
   if (!sharedMax) {
-    return [];
+    return { paths: [], maxAmplitude: 0 };
   }
 
-  return preparedChannels
-    .map((channel) => ({
-      code: channel.code,
-      color: channel.color,
-      points: buildWaveformPath(channel.values, sharedMax),
-    }))
-    .filter((channel) => channel.points);
+  return {
+    maxAmplitude: sharedMax,
+    paths: preparedChannels
+      .map((channel) => ({
+        code: channel.code,
+        color: channel.color,
+        points: buildWaveformPath(channel.values, sharedMax),
+      }))
+      .filter((channel) => channel.points),
+  };
 }
 
 function prepareWaveformValues(samples) {
@@ -795,11 +827,32 @@ function buildWaveformPath(values, sharedMax) {
 
   return values
     .map((value, index) => {
-      const x = (index / (values.length - 1)) * 820;
-      const y = 39 - (value / sharedMax) * 31;
+      const x = (index / (values.length - 1)) * WAVEFORM_VIEW_WIDTH;
+      const y = WAVEFORM_BASELINE_Y - (value / sharedMax) * WAVEFORM_AMPLITUDE_Y;
       return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(' ');
+}
+
+function formatAmplitudeLabel(value) {
+  if (!Number.isFinite(value)) return '';
+  const absValue = Math.abs(value);
+  if (absValue >= 1000) {
+    return value.toExponential(1);
+  }
+  if (absValue >= 100) {
+    return Math.round(value).toLocaleString();
+  }
+  if (absValue >= 10) {
+    return value.toFixed(1);
+  }
+  return value.toFixed(2);
+}
+
+function formatWaveformEventLabel(eventTime) {
+  const eventMoment = moment.utc(eventTime);
+  if (!eventMoment.isValid()) return '';
+  return eventMoment.format('HH:mm:ss[ UTC]');
 }
 
 function getMaxAbs(values) {

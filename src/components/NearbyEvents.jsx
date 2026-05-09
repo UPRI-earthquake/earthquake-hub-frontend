@@ -218,7 +218,8 @@ function NearbyEvents({
                   <div className={styles.eventMainContent}>
                     <div className={styles.magnitudeSection}>
                       <span className={styles.magnitude}>
-                        M{formatMagnitude(event)}
+                        <span className={styles.magnitudePrefix} aria-hidden>M</span>
+                        <span className={styles.magnitudeValue}>{formatMagnitude(event)}</span>
                       </span>
                     </div>
                     <div className={styles.eventDetails}>

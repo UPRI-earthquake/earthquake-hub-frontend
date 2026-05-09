@@ -151,18 +151,29 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #E53935 0%, #D32F2F 100%);
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
+  width: 56px;
+  min-height: 42px;
 }
 
 .magnitude {
-  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  font-size: 1.15rem;
   font-weight: 700;
-  color: white;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.magnitudePrefix {
+  color: #0ea5e9;
+  letter-spacing: 0.2px;
+}
+
+.magnitudeValue {
+  color: var(--text-primary);
 }
 
 .eventDetails {
@@ -256,8 +267,8 @@
   }
 
   .magnitudeSection {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    min-height: 36px;
   }
 
   .magnitude {
@@ -273,8 +284,16 @@
 
   .distanceSection {
     justify-content: flex-start;
-    padding-left: 52px;
+    padding-left: 56px;
   }
+}
+
+html[data-theme='dark'] .magnitudeValue {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .magnitudePrefix {
+  color: #7dd3fc;
 }
 
 html[data-theme='dark'] .eventItem {

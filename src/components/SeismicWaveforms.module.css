@@ -193,7 +193,7 @@
   --waveform-track-bg: #fbfcfd;
   position: relative;
   width: 100%;
-  height: 68px;
+  height: 78px;
   align-self: center;
   background: var(--waveform-track-bg);
   border: 0;
@@ -203,14 +203,107 @@
 }
 
 .compactWaveform {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   background: var(--waveform-track-bg);
 }
 
+.waveformPlot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .waveformTrackBackground {
   fill: var(--waveform-track-bg);
+}
+
+.waveformAxisLabels {
+  position: absolute;
+  inset: 0;
+  color: #64748b;
+  pointer-events: none;
+  user-select: none;
+}
+
+.waveformLabel {
+  position: absolute;
+  display: block;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--waveform-track-bg) 86%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.waveformLabelMax {
+  top: 7px;
+  left: 8px;
+}
+
+.waveformLabelMin {
+  top: calc(75% - 0.5em);
+  left: 8px;
+}
+
+.waveformLabelMax,
+.waveformLabelMin {
+  font-size: 8px;
+  opacity: 0.62;
+}
+
+.waveformLabelEnd {
+  right: 8px;
+  bottom: 4px;
+}
+
+.waveformEventTimeLabel {
+  bottom: 4px;
+  left: clamp(56px, var(--event-marker-left, 9%), calc(100% - 56px));
+  transform: translateX(-50%);
+  color: #475569;
+  opacity: 0.82;
+}
+
+@media (max-width: 768px) {
+  .waveformCanvas {
+    height: 94px;
+  }
+
+  .waveformLabel {
+    font-size: 11px;
+  }
+
+  .waveformLabelMax,
+  .waveformLabelMin {
+    font-size: 9px;
+  }
+
+  .waveformLabelMax {
+    left: 10px;
+  }
+
+  .waveformLabelMin {
+    left: 10px;
+  }
+
+  .waveformLabelEnd {
+    right: 10px;
+    bottom: 9px;
+  }
+
+  .waveformEventTimeLabel {
+    bottom: 9px;
+    left: clamp(58px, var(--event-marker-left, 9%), calc(100% - 58px));
+    transform: translateX(-50%);
+  }
 }
 
 .eventTimeMarker,
@@ -368,6 +461,13 @@
 :global(:root[data-theme='dark']) .eventTimeMarkerHalo,
 :global(:root[data-theme='imagery']) .eventTimeMarkerHalo {
   stroke: rgba(15, 23, 42, 0.72);
+}
+
+:global(:root[data-theme='dark']) .waveformAxisLabels,
+:global(:root[data-theme='dark']) .waveformEventTimeLabel,
+:global(:root[data-theme='imagery']) .waveformAxisLabels,
+:global(:root[data-theme='imagery']) .waveformEventTimeLabel {
+  color: rgba(226, 232, 240, 0.78);
 }
 
 :global(:root[data-theme='dark']) .channelSelect,
