@@ -269,6 +269,28 @@
   min-width: 0;
 }
 
+.source-details-eyebrow-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.source-match-quality-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  color: #047857;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .source-details-heading h3 {
   margin: 0;
   color: var(--text-primary);
@@ -403,6 +425,12 @@ html[data-theme='dark'] .source-compare-chip {
   background: rgba(14, 116, 144, 0.15);
   border-color: rgba(14, 116, 144, 0.3);
   color: #7dd3fc;
+}
+
+html[data-theme='dark'] .source-match-quality-pill {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.32);
+  color: #86efac;
 }
 
 html[data-theme='dark'] .source-details-backdrop {

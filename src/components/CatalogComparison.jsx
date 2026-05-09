@@ -32,6 +32,18 @@ const SOURCE_DISPLAY = {
   },
 };
 
+const MATCH_QUALITY_LABELS = {
+  high: 'Strong match',
+  medium: 'Likely match',
+  low: 'Possible match',
+};
+
+const MATCH_QUALITY_THRESHOLDS = {
+  high: { timeMinutes: 2, distanceKm: 100, magnitude: 0.5 },
+  medium: { timeMinutes: 5, distanceKm: 250, magnitude: 1 },
+  low: { timeMinutes: 10, distanceKm: 500, magnitude: 1.5 },
+};
+
 function getSourceDisplay(source) {
   const key = source?.source?.toLowerCase();
   const fallback = SOURCE_DISPLAY[key] ?? {
@@ -45,6 +57,45 @@ function getSourceDisplay(source) {
     label: source?.sourceLabel ?? fallback.label,
     iconUrl: source?.sourceIconUrl ?? fallback.iconUrl,
   };
+}
+
+function getDerivedMatchQuality(source) {
+  const timeDiff = toFiniteNumber(source?.timeDifferenceMinutes);
+  const distance = toFiniteNumber(source?.distanceKm);
+  const magnitudeDiff = toFiniteNumber(source?.magnitudeDifference);
+
+  if (timeDiff == null || distance == null || magnitudeDiff == null) return null;
+
+  if (
+    timeDiff <= MATCH_QUALITY_THRESHOLDS.high.timeMinutes &&
+    distance <= MATCH_QUALITY_THRESHOLDS.high.distanceKm &&
+    magnitudeDiff <= MATCH_QUALITY_THRESHOLDS.high.magnitude
+  ) {
+    return 'high';
+  }
+
+  if (
+    timeDiff <= MATCH_QUALITY_THRESHOLDS.medium.timeMinutes &&
+    distance <= MATCH_QUALITY_THRESHOLDS.medium.distanceKm &&
+    magnitudeDiff <= MATCH_QUALITY_THRESHOLDS.medium.magnitude
+  ) {
+    return 'medium';
+  }
+
+  if (
+    timeDiff <= MATCH_QUALITY_THRESHOLDS.low.timeMinutes &&
+    distance <= MATCH_QUALITY_THRESHOLDS.low.distanceKm &&
+    magnitudeDiff <= MATCH_QUALITY_THRESHOLDS.low.magnitude
+  ) {
+    return 'low';
+  }
+
+  return null;
+}
+
+function getMatchQualityLabel(source) {
+  const key = source?.matchQuality?.toLowerCase?.() ?? getDerivedMatchQuality(source);
+  return MATCH_QUALITY_LABELS[key] ?? null;
 }
 
 function formatEventTime(value) {
@@ -231,6 +282,7 @@ function CatalogDetailsModal({ source, onClose }) {
   const display = getSourceDisplay(source);
   const catalogUrl = source.url ?? source.detailUrl;
   const { descriptor, metrics, comparisonChips } = getSourceDetails(source);
+  const matchQualityLabel = getMatchQualityLabel(source);
 
   const modal = (
     <div className="source-details-backdrop" role="presentation" onMouseDown={onClose}>
@@ -246,7 +298,12 @@ function CatalogDetailsModal({ source, onClose }) {
           <div className="source-details-title-group">
             <SourceIcon src={display.iconUrl} abbreviation={display.abbreviation} />
             <div>
-              <p className="source-compare-eyebrow">Matched catalog record</p>
+              <div className="source-details-eyebrow-row">
+                <p className="source-compare-eyebrow">Matched catalog record</p>
+                {matchQualityLabel ? (
+                  <span className="source-match-quality-pill">{matchQualityLabel}</span>
+                ) : null}
+              </div>
               <h3 id="source-details-title">{display.label}</h3>
             </div>
           </div>
