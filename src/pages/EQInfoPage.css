@@ -9,60 +9,327 @@
 
 .eqinfo-hero {
   background:
-    var(--hero-overlay),
+    linear-gradient(180deg, rgba(5, 10, 18, 0.3), rgba(5, 10, 18, 0.5)),
     url('../assets/thumbnail.jpg');
   background-size: cover;
   background-position: center;
   color: var(--panel-hero-text);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 26px 24px 22px;
   box-shadow: 0 24px 54px rgba(0, 0, 0, 0.32);
 }
 
 .eqinfo-hero h1 {
-  margin: 8px 0 6px 0;
-  font-size: clamp(1.4rem, 1.4rem + 1.2vw, 2rem);
+  margin: 6px 0 8px 0;
+  font-size: clamp(1.45rem, 1.25rem + 1.35vw, 2.35rem);
   letter-spacing: -0.02em;
+  line-height: 1.08;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
 }
 
 .eqinfo-meta-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-1);
-  margin-top: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
 }
 
 .metric-card {
+  position: relative;
+  min-height: 188px;
+  overflow: hidden;
   background: var(--hero-card-glass);
   border: 1px solid var(--hero-card-border);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  backdrop-filter: blur(10px);
+  padding: 16px;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.metric-card span {
+.metric-card-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.metric-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--hero-card-text);
+}
+
+.metric-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+
+.metric-label,
+.metric-card > span:not([class]) {
   display: block;
   color: var(--hero-card-text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.2;
+  opacity: 0.9;
+}
+
+.metric-label {
+  min-width: 0;
+}
+
+.metric-card > span:not([class]) {
+  position: relative;
+  z-index: 1;
 }
 
 .metric-card strong {
+  position: relative;
+  z-index: 1;
   display: block;
   color: var(--hero-card-text);
-  font-size: clamp(1.1rem, 1rem + 0.6vw, 1.5rem);
-  margin-top: 6px;
+  font-size: clamp(1.35rem, 1.05rem + 0.8vw, 1.72rem);
+  margin-top: 0;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1.14;
+  overflow-wrap: anywhere;
+}
+
+.metric-card-body {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
 }
 
 .metric-sub {
+  position: relative;
+  z-index: 1;
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--hero-card-text);
-  font-size: 0.9rem;
-  opacity: 0.85;
+  font-size: 0.84rem;
+  opacity: 0.76;
   font-style: normal;
   line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.metric-zone {
+  width: max-content;
+  max-width: 100%;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.11);
+  opacity: 0.9;
+}
+
+.metric-tertiary {
+  margin-top: 7px;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+
+.metric-mini-map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  background: rgba(226, 232, 240, 0.38);
+  pointer-events: none;
+}
+
+.metric-mini-map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 13, 23, 0.2), rgba(8, 13, 23, 0.52)),
+    linear-gradient(90deg, rgba(8, 13, 23, 0.42), transparent 52%),
+    radial-gradient(circle at 50% 54%, transparent 0 20px, rgba(15, 23, 42, 0.09) 76%);
+  pointer-events: none;
+}
+
+.metric-mini-map-tiles {
+  position: absolute;
+  inset: 0;
+}
+
+.metric-mini-map img {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.metric-map-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 5px rgba(239, 68, 68, 0.18),
+    0 2px 6px rgba(15, 23, 42, 0.25);
+  transform: translate(-50%, -50%);
+}
+
+.metric-map-pin-epicenter {
+  background: #ef4444;
+}
+
+.metric-map-pin-station {
+  width: 0;
+  height: 0;
+  border-right: 10px solid transparent;
+  border-bottom: 18px solid #22c55e;
+  border-left: 10px solid transparent;
+  border-top: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 6px rgba(34, 197, 94, 0.34))
+    drop-shadow(0 2px 5px rgba(15, 23, 42, 0.35));
+}
+
+.metric-map-attribution {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  z-index: 3;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.76);
+  color: #e5edf8;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.metric-mini-map-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03)),
+    rgba(15, 23, 42, 0.12);
+}
+
+.metric-mini-map-empty span {
+  width: 46px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.metric-map-card {
+  padding: 0;
+}
+
+.metric-map-overlay {
+  position: absolute;
+  inset: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.metric-map-overlay .metric-card-head {
+  width: max-content;
+  max-width: 100%;
+  padding: 7px 9px 7px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.metric-map-value {
+  width: max-content;
+  max-width: 100%;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.metric-map-value strong {
+  font-size: clamp(1.22rem, 1rem + 0.55vw, 1.48rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-map-value .metric-sub {
+  margin-top: 5px;
+  font-size: 0.82rem;
+  opacity: 0.84;
+}
+
+.metric-coordinate-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.metric-coordinate-list div {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+}
+
+.metric-coordinate-list dt {
+  color: var(--hero-card-text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  opacity: 0.62;
+  text-transform: uppercase;
+}
+
+.metric-coordinate-list dd {
+  margin: 0;
+  color: var(--hero-card-text);
+  font-size: clamp(1.18rem, 0.98rem + 0.5vw, 1.42rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.eqinfo-last-updated {
+  margin: 12px 2px 0;
+  color: var(--panel-hero-text);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  opacity: 0.76;
+  text-align: right;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.34);
 }
 
 .eqinfo-grid {
@@ -200,6 +467,12 @@
   margin-top: 12px;
 }
 
+@media (max-width: 1040px) {
+  .eqinfo-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .eqinfo-shell {
     padding-top: calc(var(--header-h) + var(--space-2));
@@ -210,12 +483,34 @@
   }
 
   .eqinfo-meta-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     margin-top: 12px;
   }
 
   .metric-card {
+    min-height: 168px;
     padding: 12px 14px;
+  }
+
+  .metric-map-card {
+    padding: 0;
+  }
+
+  .metric-card strong {
+    font-size: 1.2rem;
+  }
+
+  .metric-label,
+  .metric-sub {
+    font-size: 0.82rem;
+  }
+
+  .metric-mini-map {
+    transform: none;
+  }
+
+  .eqinfo-last-updated {
+    text-align: left;
+    font-size: 0.78rem;
   }
 
   .list-items {
@@ -225,5 +520,34 @@
 
   .eqinfo-panel.scrollable {
     max-height: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .eqinfo-meta-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metric-card {
+    min-height: 154px;
+  }
+
+  .metric-card-depth,
+  .metric-card-time {
+    min-height: 0;
+    padding-block: 14px;
+    gap: 28px;
+  }
+
+  .metric-map-card {
+    min-height: 188px;
+  }
+
+  .metric-map-overlay {
+    inset: 10px;
+  }
+
+  .metric-map-value {
+    max-width: 100%;
   }
 }

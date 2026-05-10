@@ -644,11 +644,22 @@ function formatChannelLabel(code) {
 }
 
 const WAVEFORM_VIEW_WIDTH = 820;
-const WAVEFORM_VIEW_HEIGHT = 92;
-const WAVEFORM_BASELINE_Y = 42;
-const WAVEFORM_AMPLITUDE_Y = 27;
-const WAVEFORM_MARKER_TOP_Y = 12;
-const WAVEFORM_MARKER_BOTTOM_Y = 74;
+const WAVEFORM_VIEW_HEIGHT = 98;
+const WAVEFORM_PLOT_LEFT = 66;
+const WAVEFORM_PLOT_RIGHT = 16;
+const WAVEFORM_PLOT_TOP = 12;
+const WAVEFORM_PLOT_BOTTOM = 74;
+const WAVEFORM_PLOT_WIDTH = WAVEFORM_VIEW_WIDTH - WAVEFORM_PLOT_LEFT - WAVEFORM_PLOT_RIGHT;
+const WAVEFORM_BASELINE_Y = 43;
+const WAVEFORM_AMPLITUDE_Y = 25;
+const WAVEFORM_MARKER_TOP_Y = WAVEFORM_PLOT_TOP;
+const WAVEFORM_MARKER_BOTTOM_Y = WAVEFORM_PLOT_BOTTOM;
+const WAVEFORM_TIME_TICK_COUNT = 7;
+const WAVEFORM_AXIS_LABELS = [
+  { key: 'max', top: `${(WAVEFORM_PLOT_TOP / WAVEFORM_VIEW_HEIGHT) * 100}%` },
+  { key: 'zero', top: `${(WAVEFORM_BASELINE_Y / WAVEFORM_VIEW_HEIGHT) * 100}%` },
+  { key: 'min', top: `${(WAVEFORM_PLOT_BOTTOM / WAVEFORM_VIEW_HEIGHT) * 100}%` },
+];
 
 function getPreferredChannelCode(channels) {
   if (!Array.isArray(channels) || channels.length === 0) return '';
@@ -669,10 +680,8 @@ function CompactWaveform({ stationCode, stationIndex, channels, isLoading, event
   );
   const maxAmplitudeLabel = formatAmplitudeLabel(waveformDisplay.maxAmplitude);
   const minAmplitudeLabel = formatAmplitudeLabel(-waveformDisplay.maxAmplitude);
-  const eventTimeLabel = formatWaveformEventLabel(eventTime);
-  const eventMarkerPercent = eventMarkerX == null
-    ? null
-    : `${((eventMarkerX / WAVEFORM_VIEW_WIDTH) * 100).toFixed(3)}%`;
+  const timeTicks = useMemo(() => buildWaveformTimeTicks(eventTime), [eventTime]);
+  const eventMarkerPercent = eventMarkerX == null ? '' : toWaveformPercent(eventMarkerX);
 
   if (isLoading) {
     return (
@@ -709,16 +718,79 @@ function CompactWaveform({ stationCode, stationIndex, channels, isLoading, event
           width={WAVEFORM_VIEW_WIDTH}
           height={WAVEFORM_VIEW_HEIGHT}
         />
+        <g className={styles.waveformAxisLayer} aria-hidden="true">
+          <line
+            className={styles.waveformAxisLine}
+            x1={WAVEFORM_PLOT_LEFT}
+            y1={WAVEFORM_PLOT_TOP}
+            x2={WAVEFORM_PLOT_LEFT}
+            y2={WAVEFORM_PLOT_BOTTOM}
+            vectorEffect="non-scaling-stroke"
+          />
+          <line
+            className={styles.waveformAxisLine}
+            x1={WAVEFORM_PLOT_LEFT}
+            y1={WAVEFORM_PLOT_BOTTOM}
+            x2={WAVEFORM_VIEW_WIDTH - WAVEFORM_PLOT_RIGHT}
+            y2={WAVEFORM_PLOT_BOTTOM}
+            vectorEffect="non-scaling-stroke"
+          />
+          {[
+            { y: WAVEFORM_PLOT_TOP, label: maxAmplitudeLabel },
+            { y: WAVEFORM_BASELINE_Y, label: '0' },
+            { y: WAVEFORM_PLOT_BOTTOM, label: minAmplitudeLabel },
+          ].map((tick) => (
+            <g key={tick.y}>
+              <line
+                className={styles.waveformAxisTick}
+                x1={WAVEFORM_PLOT_LEFT - 8}
+                y1={tick.y}
+                x2={WAVEFORM_PLOT_LEFT}
+                y2={tick.y}
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          ))}
+          <line
+            className={styles.waveformBaselineLine}
+            x1={WAVEFORM_PLOT_LEFT}
+            y1={WAVEFORM_BASELINE_Y}
+            x2={WAVEFORM_VIEW_WIDTH - WAVEFORM_PLOT_RIGHT}
+            y2={WAVEFORM_BASELINE_Y}
+            vectorEffect="non-scaling-stroke"
+          />
+          {timeTicks.map((tick) => (
+            <g key={tick.x}>
+              <line
+                className={styles.waveformGridLine}
+                x1={tick.x}
+                y1={WAVEFORM_PLOT_TOP}
+                x2={tick.x}
+                y2={WAVEFORM_PLOT_BOTTOM}
+                vectorEffect="non-scaling-stroke"
+              />
+              <line
+                className={styles.waveformAxisTick}
+                x1={tick.x}
+                y1={WAVEFORM_PLOT_BOTTOM}
+                x2={tick.x}
+                y2={WAVEFORM_PLOT_BOTTOM + 7}
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          ))}
+        </g>
         {paths.map((path, index) => (
           <path
             key={path.code || index}
             d={path.points}
             fill="none"
             stroke={path.color || color}
-            strokeWidth={index === 0 ? '2.8' : '2'}
+            strokeWidth={index === 0 ? '2.35' : '1.8'}
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={index === 0 ? '0.95' : '0.68'}
+            vectorEffect="non-scaling-stroke"
           />
         ))}
         {eventMarkerX != null && (
@@ -744,12 +816,38 @@ function CompactWaveform({ stationCode, stationIndex, channels, isLoading, event
         )}
       </svg>
       <div className={styles.waveformAxisLabels} aria-hidden="true">
-        <span className={`${styles.waveformLabel} ${styles.waveformLabelMax}`}>{maxAmplitudeLabel}</span>
-        <span className={`${styles.waveformLabel} ${styles.waveformLabelMin}`}>{minAmplitudeLabel}</span>
-        <span className={`${styles.waveformLabel} ${styles.waveformLabelEnd}`}>+10 min</span>
-        {eventTimeLabel && eventMarkerPercent ? (
-          <span className={`${styles.waveformLabel} ${styles.waveformEventTimeLabel}`}>
-            {eventTimeLabel}
+        {WAVEFORM_AXIS_LABELS.map((label) => {
+          const labelText = {
+            max: maxAmplitudeLabel,
+            zero: '0',
+            min: minAmplitudeLabel,
+          }[label.key];
+
+          return (
+            <span
+              key={label.key}
+              className={`${styles.waveformAxisLabel} ${styles.waveformYAxisLabel}`}
+              style={{ top: label.top }}
+            >
+              {labelText}
+            </span>
+          );
+        })}
+        <span className={`${styles.waveformAxisLabel} ${styles.waveformUtcLabel}`}>UTC</span>
+        {timeTicks
+          .filter((tick) => tick.label)
+          .map((tick) => (
+            <span
+              key={tick.x}
+              className={`${styles.waveformAxisLabel} ${styles.waveformTimeLabel} ${tick.isSecondary ? styles.waveformTimeLabelSecondary : ''}`}
+              style={{ left: tick.percent }}
+            >
+              {tick.label}
+            </span>
+          ))}
+        {eventMarkerPercent ? (
+          <span className={`${styles.waveformAxisLabel} ${styles.waveformEventMarkerLabel}`}>
+            Event time
           </span>
         ) : null}
       </div>
@@ -773,7 +871,7 @@ function getEventMarkerX(eventTime) {
     return null;
   }
 
-  return (elapsedMs / totalMs) * WAVEFORM_VIEW_WIDTH;
+  return WAVEFORM_PLOT_LEFT + (elapsedMs / totalMs) * WAVEFORM_PLOT_WIDTH;
 }
 
 function getStationTraceColor(stationIndex) {
@@ -827,7 +925,7 @@ function buildWaveformPath(values, sharedMax) {
 
   return values
     .map((value, index) => {
-      const x = (index / (values.length - 1)) * WAVEFORM_VIEW_WIDTH;
+      const x = WAVEFORM_PLOT_LEFT + (index / (values.length - 1)) * WAVEFORM_PLOT_WIDTH;
       const y = WAVEFORM_BASELINE_Y - (value / sharedMax) * WAVEFORM_AMPLITUDE_Y;
       return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
     })
@@ -849,10 +947,26 @@ function formatAmplitudeLabel(value) {
   return value.toFixed(2);
 }
 
-function formatWaveformEventLabel(eventTime) {
+function buildWaveformTimeTicks(eventTime) {
   const eventMoment = moment.utc(eventTime);
-  if (!eventMoment.isValid()) return '';
-  return eventMoment.format('HH:mm:ss[ UTC]');
+  const start = eventMoment.isValid()
+    ? eventMoment.clone().subtract(60, 'second')
+    : null;
+
+  return Array.from({ length: WAVEFORM_TIME_TICK_COUNT }, (_, index) => {
+    const ratio = index / (WAVEFORM_TIME_TICK_COUNT - 1);
+    const x = WAVEFORM_PLOT_LEFT + ratio * WAVEFORM_PLOT_WIDTH;
+    const shouldLabel = index > 0 && index < WAVEFORM_TIME_TICK_COUNT - 1 && index % 2 === 0;
+    const label = shouldLabel && start
+      ? start.clone().add(Math.round(ratio * 660), 'second').format('HH:mm:ss')
+      : '';
+
+    return { x, label, percent: toWaveformPercent(x), isSecondary: index !== 4 };
+  });
+}
+
+function toWaveformPercent(x) {
+  return `${((x / WAVEFORM_VIEW_WIDTH) * 100).toFixed(3)}%`;
 }
 
 function getMaxAbs(values) {
