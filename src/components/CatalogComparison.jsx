@@ -44,6 +44,40 @@ const MATCH_QUALITY_THRESHOLDS = {
   low: { timeMinutes: 10, distanceKm: 500, magnitude: 1.5 },
 };
 
+const CATALOG_CONTENT_FIELDS = [
+  'dateTime',
+  'detailUrl',
+  'id',
+  'title',
+  'place',
+  'location',
+  'url',
+  'detail',
+  'queryUrl',
+  'time',
+  'latitude',
+  'longitude',
+  'depth',
+  'depthKm',
+  'magnitude',
+  'distanceKm',
+  'timeDifferenceMinutes',
+  'magnitudeDifference',
+  'score',
+];
+
+function hasCatalogValue(value) {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
+  return value != null && typeof value !== 'boolean';
+}
+
+function isCatalogSourceAvailable(source) {
+  if (!source || typeof source !== 'object') return false;
+  return CATALOG_CONTENT_FIELDS.some((field) => hasCatalogValue(source[field]));
+}
+
 function getSourceDisplay(source) {
   const key = source?.source?.toLowerCase();
   const fallback = SOURCE_DISPLAY[key] ?? {
@@ -368,7 +402,7 @@ function CatalogDetailsModal({ source, onClose }) {
 export default function CatalogComparison({ earthquakeInfo }) {
   const [selectedSource, setSelectedSource] = useState(null);
   const comparisonSources = useMemo(
-    () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(Boolean),
+    () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(isCatalogSourceAvailable),
     [earthquakeInfo?.additionalInformation],
   );
   const mainSource = useMemo(() => buildHubSource(earthquakeInfo), [earthquakeInfo]);
@@ -377,7 +411,7 @@ export default function CatalogComparison({ earthquakeInfo }) {
     [comparisonSources, mainSource],
   );
 
-  if (comparisonSources.length === 0) return null;
+  if (!earthquakeInfo) return null;
 
   return (
     <section className="eqinfo-panel source-compact-panel">
