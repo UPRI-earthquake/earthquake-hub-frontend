@@ -78,6 +78,14 @@ function isCatalogSourceAvailable(source) {
   return CATALOG_CONTENT_FIELDS.some((field) => hasCatalogValue(source[field]));
 }
 
+function getCatalogSources(additionalInformation) {
+  if (Array.isArray(additionalInformation)) {
+    return additionalInformation.filter(isCatalogSourceAvailable);
+  }
+
+  return Object.values(additionalInformation ?? {}).filter(isCatalogSourceAvailable);
+}
+
 function getSourceDisplay(source) {
   const key = source?.source?.toLowerCase();
   const fallback = SOURCE_DISPLAY[key] ?? {
@@ -402,7 +410,7 @@ function CatalogDetailsModal({ source, onClose }) {
 export default function CatalogComparison({ earthquakeInfo }) {
   const [selectedSource, setSelectedSource] = useState(null);
   const comparisonSources = useMemo(
-    () => Object.values(earthquakeInfo?.additionalInformation ?? {}).filter(isCatalogSourceAvailable),
+    () => getCatalogSources(earthquakeInfo?.additionalInformation),
     [earthquakeInfo?.additionalInformation],
   );
   const mainSource = useMemo(() => buildHubSource(earthquakeInfo), [earthquakeInfo]);
