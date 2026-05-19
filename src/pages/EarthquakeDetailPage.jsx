@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { FiArrowDown, FiClock, FiMapPin, FiRadio } from 'react-icons/fi';
@@ -13,6 +13,7 @@ import { calculateDistance } from '../utils/distanceCalculator';
 import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
+import EditableEventSummary from '../components/EditableEventSummary';
 import './EQInfoPage.css';
 
 const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
@@ -368,6 +369,7 @@ function EarthquakeDetailPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
+  const [displaySummary, setDisplaySummary] = useState('');
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
@@ -401,6 +403,18 @@ function EarthquakeDetailPage() {
   }), [eventCoordinates]);
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
+
+  // Sync displaySummary with earthquakeInfo
+  useEffect(() => {
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
+
+  // Callback when summary is updated
+  const handleSummaryUpdated = useCallback((updatedSummary) => {
+    setDisplaySummary(updatedSummary);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -612,19 +626,13 @@ function EarthquakeDetailPage() {
         </section>
 
         {summaryMarkup && (
-          <section className="eqinfo-panel scrollable eqinfo-summary-panel">
-            <div className="panel-header">
-              <div className="panel-title">
-                <h3>Event summary</h3>
-              </div>
-            </div>
-            <div className="panel-body">
-              <div
-                className="eqinfo-copy"
-                dangerouslySetInnerHTML={{ __html: summaryMarkup }}
-              />
-            </div>
-          </section>
+          <EditableEventSummary
+            eventId={earthquakeInfo?.publicID || eventId}
+            initialSummary={displaySummary}
+            earthquakeInfo={earthquakeInfo}
+            endpointType="eq-events"
+            onSummaryUpdated={handleSummaryUpdated}
+          />
         )}
 
         <div ref={waveformSentinelRef}>

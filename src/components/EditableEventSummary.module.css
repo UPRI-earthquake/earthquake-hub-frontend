@@ -31,6 +31,14 @@
   transform: scale(0.95);
 }
 
+.placeholderText {
+  padding: var(--space-2) 0;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .editingContent {
   display: flex;
   flex-direction: column;

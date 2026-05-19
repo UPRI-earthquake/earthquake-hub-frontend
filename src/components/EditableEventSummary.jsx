@@ -1,20 +1,29 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiEdit2, FiX, FiCheck } from 'react-icons/fi';
 import { getBackendHost } from '../utils/backendHost';
 import sanitizeHtml from '../utils/sanitizeHtml';
+import { generateEventSummary } from '../utils/generateEventSummary';
 import styles from './EditableEventSummary.module.css';
 
 /**
  * EditableEventSummary - Provides editable event summary with modal dialog and confirmation
  * @param {string} eventId - The event ID to update
- * @param {string} initialSummary - The initial summary content
+ * @param {string} initialSummary - The initial summary content (custom or empty)
+ * @param {Object} earthquakeInfo - Earthquake data for generating default summary
  * @param {function} onSummaryUpdated - Callback when summary is successfully updated
+ * @param {string} endpointType - Type of endpoint: 'significant-eqs' or 'eq-events' (default: 'significant-eqs')
  * @returns {JSX.Element}
  */
-function EditableEventSummary({ eventId, initialSummary, onSummaryUpdated }) {
+function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSummaryUpdated, endpointType = 'significant-eqs' }) {
+  // Generate default summary from earthquakeInfo if initialSummary is empty
+  const defaultSummary = useMemo(() => {
+    if (initialSummary?.trim()) return initialSummary;
+    return generateEventSummary(earthquakeInfo) || '';
+  }, [initialSummary, earthquakeInfo]);
+
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(initialSummary);
+  const [editedContent, setEditedContent] = useState(defaultSummary);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -28,9 +37,9 @@ function EditableEventSummary({ eventId, initialSummary, onSummaryUpdated }) {
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
-    setEditedContent(initialSummary);
+    setEditedContent(defaultSummary);
     setSaveError('');
-  }, [initialSummary]);
+  }, [defaultSummary]);
 
   const handleSaveClick = useCallback(() => {
     if (!editedContent.trim()) {
@@ -51,7 +60,7 @@ function EditableEventSummary({ eventId, initialSummary, onSummaryUpdated }) {
       }
 
       const response = await axios.patch(
-        `${backendHost}/significant-eqs/${eventId}`,
+        `${backendHost}/${endpointType}/${eventId}`,
         { eventSummary: editedContent },
         { withCredentials: true },
       );
@@ -95,10 +104,16 @@ function EditableEventSummary({ eventId, initialSummary, onSummaryUpdated }) {
 
       <div className="panel-body">
         {!isEditing ? (
-          <div
-            className="eqinfo-copy"
-            dangerouslySetInnerHTML={{ __html: sanitizedMarkup }}
-          />
+          editedContent.trim() ? (
+            <div
+              className="eqinfo-copy"
+              dangerouslySetInnerHTML={{ __html: sanitizedMarkup }}
+            />
+          ) : (
+            <div className={styles.placeholderText}>
+              No event summary available. Click the edit button to add one.
+            </div>
+          )
         ) : (
           <div className={styles.editingContent}>
             <textarea
