@@ -1,7 +1,7 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { FiArrowDown, FiClock, FiMapPin, FiRadio } from 'react-icons/fi';
+import { FiArrowDown, FiClock, FiImage, FiMapPin, FiRadio, FiSend, FiX } from 'react-icons/fi';
 import Header from '../components/Header';
 import NearbyEvents from '../components/NearbyEvents';
 import LoadingScreen from '../components/LoadingScreen';
@@ -20,6 +20,8 @@ const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
 const DETAIL_CACHE_VERSION = 1;
 const DETAIL_FETCH_TIMEOUT_MS = 12000;
 const RECENT_EVENTS_FETCH_TIMEOUT_MS = 20000;
+const COMMENTS_FETCH_TIMEOUT_MS = 12000;
+const COMMENT_POST_TIMEOUT_MS = 20000;
 const MINI_MAP_ZOOM = 9;
 const MINI_MAP_WIDTH = 168;
 const MINI_MAP_HEIGHT = 92;
@@ -174,6 +176,87 @@ function getEventCoordinates(earthquakeInfo) {
 
   if (latitude == null || longitude == null) return null;
   return { latitude, longitude };
+}
+
+function getEarthquakeEventId(earthquakeInfo, queryEventId) {
+  return (
+    earthquakeInfo?._id ||
+    earthquakeInfo?.publicID ||
+    earthquakeInfo?.id ||
+    earthquakeInfo?.event_id ||
+    queryEventId ||
+    ''
+  );
+}
+
+function getCommentsFromResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.payload)) return data.payload;
+  if (Array.isArray(data?.comments)) return data.comments;
+  if (Array.isArray(data?.payload?.comments)) return data.payload.comments;
+  return [];
+}
+
+function getCommentText(comment) {
+  return (
+    comment?.comment ||
+    comment?.content ||
+    comment?.description ||
+    comment?.report ||
+    comment?.text ||
+    ''
+  );
+}
+
+function getCommentImage(comment) {
+  return (
+    comment?.imageUrl ||
+    comment?.imageURL ||
+    comment?.image ||
+    comment?.photoUrl ||
+    comment?.photo ||
+    comment?.attachmentUrl ||
+    ''
+  );
+}
+
+function resolveCommentImageUrl(imageUrl) {
+  if (typeof imageUrl !== 'string') return '';
+
+  const trimmedUrl = imageUrl.trim();
+  if (!trimmedUrl) return '';
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(trimmedUrl)) return trimmedUrl;
+
+  const apiHost = backendHost();
+  if (!apiHost) return trimmedUrl;
+
+  try {
+    const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const backendUrl = new URL(apiHost, fallbackOrigin);
+    return new URL(trimmedUrl, `${backendUrl.origin}/`).toString();
+  } catch (_) {
+    const host = apiHost.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    const path = trimmedUrl.replace(/^\/+/, '');
+    return `${host}/${path}`;
+  }
+}
+
+function getCommentAuthor(comment) {
+  if (comment?.anonymous || comment?.isAnonymous) return 'Anonymous';
+  return (
+    comment?.author ||
+    comment?.username ||
+    comment?.user?.username ||
+    comment?.user?.name ||
+    'Anonymous'
+  );
+}
+
+function formatCommentTime(comment) {
+  const raw = comment?.createdAt || comment?.created_at || comment?.timestamp || comment?.date;
+  if (!raw) return '';
+  const parsed = moment(raw);
+  return parsed.isValid() ? parsed.format('MMM D, YYYY, h:mm A') : '';
 }
 
 function formatCoordinatePart(value, positiveLabel, negativeLabel) {
@@ -351,6 +434,214 @@ function MiniMapPreview({ coordinates, marker = 'epicenter' }) {
       <span className={`metric-map-pin metric-map-pin-${marker}`} />
       <span className="metric-map-attribution">CARTO</span>
     </div>
+  );
+}
+
+function ReportCommentsSection({ eventId, earthquakeInfo }) {
+  const [comments, setComments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [postAnonymously, setPostAnonymously] = useState(true);
+  const [isPosting, setIsPosting] = useState(false);
+  const [postError, setPostError] = useState('');
+
+  const loadComments = useCallback(async () => {
+    if (!eventId) return;
+
+    setIsLoading(true);
+    setLoadError('');
+    try {
+      const response = await axios.get(`${backendHost()}/comments/`, {
+        params: { eventId },
+        timeout: COMMENTS_FETCH_TIMEOUT_MS,
+        withCredentials: true,
+      });
+      setComments(getCommentsFromResponse(response.data));
+    } catch (error) {
+      setLoadError(error?.message || 'Failed to load reports.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl('');
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [imageFile]);
+
+  const resetForm = useCallback(() => {
+    setReportText('');
+    setImageFile(null);
+    setImagePreviewUrl('');
+    setPostAnonymously(true);
+    setPostError('');
+  }, []);
+
+  const closeModal = useCallback(() => {
+    if (isPosting) return;
+    setIsModalOpen(false);
+    resetForm();
+  }, [isPosting, resetForm]);
+
+  const handleImageChange = (event) => {
+    const nextFile = event.target.files?.[0] || null;
+    setImageFile(nextFile);
+  };
+
+  const handleSubmitReport = async (event) => {
+    event.preventDefault();
+    if (!eventId || isPosting) return;
+
+    const trimmedText = reportText.trim();
+    if (!trimmedText && !imageFile) {
+      console.log(earthquakeInfo);
+      setPostError('Add a report or image before posting.');
+      return;
+    }
+    console.log(earthquakeInfo);
+    const formData = new FormData();
+    formData.append('eventId', eventId);
+    formData.append('content', trimmedText);
+    formData.append('username', postAnonymously ? 'Anonymous' : 'false');
+    if (imageFile) formData.append('image', imageFile);
+
+    setIsPosting(true);
+    setPostError('');
+    try {
+      await axios.post(`${backendHost()}/comments`, formData, {
+        timeout: COMMENT_POST_TIMEOUT_MS,
+        withCredentials: true,
+      });
+      setIsModalOpen(false);
+      resetForm();
+      await loadComments();
+    } catch (error) {
+      setPostError(error?.response?.data?.message || error?.message || 'Failed to post report.');
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  return (
+    <section className="eqinfo-panel report-section" aria-labelledby="report-section-title">
+      <div className="report-section-header">
+        <div>
+          <h3 id="report-section-title">Reports</h3>
+          <p>Community observations for this earthquake.</p>
+        </div>
+        <button
+          type="button"
+          className="report-primary-button"
+          onClick={() => setIsModalOpen(true)}
+          disabled={!eventId}
+        >
+          Post a Report
+        </button>
+      </div>
+
+      {loadError && <div className="report-message report-message-error">{loadError}</div>}
+
+      <div className="report-list" aria-live="polite">
+        {isLoading ? (
+          <div className="report-empty">Loading reports...</div>
+        ) : comments.length > 0 ? (
+          comments.map((comment, index) => {
+            console.log(comment)
+            const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
+            const text = getCommentText(comment);
+            const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
+            return (
+              <article className="report-card" key={commentKey}>
+                <div className="report-card-meta">
+                  <strong>{getCommentAuthor(comment)}</strong>
+                  {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
+                </div>
+                {text && <p>{text}</p>}
+                {imageUrl && <img src={imageUrl} alt="Submitted report attachment" />}
+              </article>
+            );
+          })
+        ) : (
+          <div className="report-empty">No reports have been posted for this event.</div>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <div className="report-modal-backdrop" role="presentation" onMouseDown={closeModal}>
+          <form
+            className="report-modal"
+            aria-modal="true"
+            aria-labelledby="report-modal-title"
+            role="dialog"
+            onSubmit={handleSubmitReport}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="report-modal-titlebar">
+              <h3 id="report-modal-title">Post a Report</h3>
+              <button type="button" className="report-icon-button" onClick={closeModal} aria-label="Close report form">
+                <FiX />
+              </button>
+            </div>
+
+            <div className="report-anonymous-status">
+              <span aria-hidden="true" />
+              {postAnonymously ? 'Posting anonymously' : 'Posting with your account'}
+            </div>
+
+            <textarea
+              value={reportText}
+              onChange={(event) => setReportText(event.target.value)}
+              placeholder="Describe what you observed during or after the earthquake..."
+              rows={6}
+            />
+
+            {imagePreviewUrl && (
+              <div className="report-image-preview">
+                <img src={imagePreviewUrl} alt="Selected report attachment preview" />
+                <button type="button" onClick={() => setImageFile(null)}>Remove image</button>
+              </div>
+            )}
+
+            <div className="report-modal-controls">
+              <label className="report-image-button">
+                <FiImage aria-hidden="true" />
+                Insert Image
+                <input type="file" accept="image/*" onChange={handleImageChange} />
+              </label>
+              <label className="report-checkbox">
+                <input
+                  type="checkbox"
+                  checked={postAnonymously}
+                  onChange={(event) => setPostAnonymously(event.target.checked)}
+                />
+                <span>Post anonymously</span>
+              </label>
+            </div>
+
+            {postError && <div className="report-message report-message-error">{postError}</div>}
+
+            <button type="submit" className="report-submit-button" disabled={isPosting}>
+              <span>{isPosting ? 'Posting...' : 'Post Report'}</span>
+              <FiSend aria-hidden="true" />
+            </button>
+          </form>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -651,6 +942,8 @@ function EarthquakeDetailPage() {
             <CatalogComparison earthquakeInfo={earthquakeInfo} />
           </div>
         </div>
+
+        <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
       </div>
     </>
   );
