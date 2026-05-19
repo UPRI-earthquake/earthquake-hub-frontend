@@ -6,9 +6,9 @@ import StationDownloadButtons from '../components/StationDownloadButton';
 import Articles from '../components/Articles';
 import moment from '../utils/time';
 import { getBackendHost } from '../utils/backendHost';
-import sanitizeHtml from '../utils/sanitizeHtml';
 import { normalizeList } from '../utils/normalizeList';
 import InfoTooltip from '../components/InfoTooltip';
+import EditableEventSummary from '../components/EditableEventSummary';
 import './EQInfoPage.css';
 
 /**
@@ -23,6 +23,7 @@ function EQInfoPage() {
   const [earthquakeInfo, setEarthquakeInfo] = useState();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [displaySummary, setDisplaySummary] = useState('');
 
   const formatEventTime = useCallback((eventTime) => {
     const parsed = moment(eventTime);
@@ -72,10 +73,18 @@ function EQInfoPage() {
     return () => controller.abort();
   }, [fetchEarthquakeInfo]);
 
-  const summaryMarkup = useMemo(
-    () => sanitizeHtml(earthquakeInfo?.eventSummary || ''),
-    [earthquakeInfo],
-  );
+  // Sync displaySummary with earthquakeInfo
+  useEffect(() => {
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
+
+  // Callback when summary is updated
+  const handleSummaryUpdated = useCallback((updatedSummary) => {
+    setDisplaySummary(updatedSummary);
+  }, []);
+
   const instrumentRecordings = useMemo(
     () => normalizeList(earthquakeInfo?.instrumentRecordings),
     [earthquakeInfo?.instrumentRecordings],
@@ -136,22 +145,11 @@ function EQInfoPage() {
             </section>
 
             <div className="eqinfo-grid">
-              <section className="eqinfo-panel scrollable">
-                <div className="panel-header">
-                  <div className="panel-title">
-                    <h3>Event summary</h3>
-                    <InfoTooltip title="Event summary" label="About this section" variant="inline">
-                      Vetted narrative from authoritative sources.
-                    </InfoTooltip>
-                  </div>
-                </div>
-                <div className="panel-body">
-                  <div
-                    className="eqinfo-copy"
-                    dangerouslySetInnerHTML={{ __html: summaryMarkup }}
-                  />
-                </div>
-              </section>
+              <EditableEventSummary
+                eventId={id}
+                initialSummary={displaySummary}
+                onSummaryUpdated={handleSummaryUpdated}
+              />
 
               <section className="eqinfo-panel scrollable">
                 <div className="panel-header">
