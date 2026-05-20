@@ -76,6 +76,7 @@ function EQInfoPage() {
     () => sanitizeHtml(earthquakeInfo?.eventSummary || ''),
     [earthquakeInfo],
   );
+
   const instrumentRecordings = useMemo(
     () => normalizeList(earthquakeInfo?.instrumentRecordings),
     [earthquakeInfo?.instrumentRecordings],
