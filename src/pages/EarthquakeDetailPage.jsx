@@ -404,17 +404,39 @@ function EarthquakeDetailPage() {
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
 
-  // Sync displaySummary with earthquakeInfo
+    // Sync displaySummary with earthquakeInfo
   useEffect(() => {
-    if (earthquakeInfo?.eventSummary) {
-      setDisplaySummary(earthquakeInfo.eventSummary);
-    }
-  }, [earthquakeInfo?.eventSummary]);
+    const summary = earthquakeInfo?.summaryOverride?.text || earthquakeInfo?.eventSummary || '';
+    setDisplaySummary(summary);
+  }, [earthquakeInfo?.summaryOverride?.text, earthquakeInfo?.eventSummary]);
 
   // Callback when summary is updated
   const handleSummaryUpdated = useCallback((updatedSummary) => {
     setDisplaySummary(updatedSummary);
-  }, []);
+
+    // Patch the in-memory fetched earthquake so it survives re-renders
+    setFetchedEarthquake((prev) => {
+      const base = prev || earthquakeInfo;
+      if (!base) return prev;
+      return {
+        ...base,
+        eventSummary: updatedSummary,
+        summaryOverride: { ...(base.summaryOverride || {}), text: updatedSummary },
+      };
+    });
+
+    // Also update the localStorage cache so refresh doesn't revert it
+    if (eventId) {
+      const base = fetchedEarthquake || cachedEarthquake || earthquakeInfo;
+      if (base) {
+        writeCachedEarthquake(eventId, {
+          ...base,
+          eventSummary: updatedSummary,
+          summaryOverride: { ...(base.summaryOverride || {}), text: updatedSummary },
+        });
+      }
+    }
+  }, [eventId, earthquakeInfo, fetchedEarthquake, cachedEarthquake]);
 
   useEffect(() => {
     let isMounted = true;

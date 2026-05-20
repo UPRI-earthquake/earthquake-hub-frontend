@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiEdit2, FiX, FiCheck } from 'react-icons/fi';
 import { getBackendHost } from '../utils/backendHost';
@@ -15,11 +15,9 @@ import styles from './EditableEventSummary.module.css';
  * @param {string} endpointType - Type of endpoint: 'significant-eqs' or 'eq-events' (default: 'significant-eqs')
  * @returns {JSX.Element}
  */
-function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSummaryUpdated, endpointType = 'significant-eqs' }) {
-  // Generate default summary from earthquakeInfo if initialSummary is empty
+function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSummaryUpdated, endpointType = 'eq-events' }) {
   const defaultSummary = useMemo(() => {
-    if (initialSummary?.trim()) return initialSummary;
-    return generateEventSummary(earthquakeInfo) || '';
+    return initialSummary?.trim() || generateEventSummary(earthquakeInfo) || '';
   }, [initialSummary, earthquakeInfo]);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +25,12 @@ function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSumma
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedContent(defaultSummary);
+    }
+  }, [defaultSummary, isEditing]);
 
   const sanitizedMarkup = sanitizeHtml(editedContent || '');
 
@@ -60,8 +64,8 @@ function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSumma
       }
 
       const response = await axios.patch(
-        `${backendHost}/${endpointType}/${eventId}`,
-        { eventSummary: editedContent },
+        `${backendHost}/${endpointType}/${eventId}/summary`,
+        { text: editedContent },
         { withCredentials: true },
       );
 
@@ -74,11 +78,14 @@ function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSumma
       }
     } catch (error) {
       console.error('Error saving summary:', error);
-      setSaveError(error?.response?.data?.message || error?.message || 'Unable to save summary');
+
+      // First error is when user is not logged in
+      setSaveError(error?.response?.data?.message === 'Token in cookie missing' ? 'You are not logged in.' 
+        : error?.message || 'Unable to save summary');
     } finally {
       setIsSaving(false);
     }
-  }, [eventId, editedContent, onSummaryUpdated]);
+  }, [endpointType, eventId, editedContent, onSummaryUpdated]);
 
   const handleCancelConfirm = useCallback(() => {
     setShowConfirmDialog(false);

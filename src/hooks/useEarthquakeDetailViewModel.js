@@ -49,7 +49,11 @@ export default function useEarthquakeDetailViewModel(earthquakeInfo) {
 
   const summaryMarkup = useMemo(() => {
     if (!earthquakeInfo) return '';
-    return sanitizeHtml(earthquakeInfo.eventSummary || generateEventSummary(earthquakeInfo));
+    return sanitizeHtml(
+      earthquakeInfo?.summaryOverride?.text ||
+      earthquakeInfo.eventSummary ||
+      generateEventSummary(earthquakeInfo)
+    );
   }, [earthquakeInfo]);
 
   const stationsForDisplay = useMemo(
