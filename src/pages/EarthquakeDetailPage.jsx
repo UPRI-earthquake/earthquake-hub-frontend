@@ -931,8 +931,8 @@ function EarthquakeDetailPage() {
           )}
         </div>
 
-        <div className="eqinfo-grid">
-          <div className="eqinfo-related-source-row">
+        <div className="eqinfo-post-report-grid">
+          <div className="eqinfo-reference-column">
             <NearbyEvents
               earthquakeInfo={earthquakeInfo}
               nearbyEventCount={5}
@@ -941,9 +941,9 @@ function EarthquakeDetailPage() {
 
             <CatalogComparison earthquakeInfo={earthquakeInfo} />
           </div>
-        </div>
 
-        <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
+          <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
+        </div>
       </div>
     </>
   );
