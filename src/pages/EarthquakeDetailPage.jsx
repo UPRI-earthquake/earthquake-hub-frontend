@@ -13,6 +13,7 @@ import { calculateDistance } from '../utils/distanceCalculator';
 import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
+import EditableEventSummary from '../components/EditableEventSummary';
 import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
 import './EQInfoPage.css';
 
@@ -658,6 +659,8 @@ function EarthquakeDetailPage() {
   const [fetchError, setFetchError] = useState(null);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
+  const [displaySummary, setDisplaySummary] = useState('');
+  const [reportCount, setReportCount] = useState(0);
   const reportsRef = useRef(null);
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
@@ -691,9 +694,26 @@ function EarthquakeDetailPage() {
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
 
+  // Sync displaySummary with earthquakeInfo
+  useEffect(() => {
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
+
+  // Callback when summary is updated
+  const handleSummaryUpdated = useCallback((updatedSummary) => {
+    setDisplaySummary(updatedSummary);
+  }, []);
+
   // Callback to scroll to reports section
   const scrollToReports = useCallback(() => {
     reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Callback when reports are loaded
+  const handleReportsLoaded = useCallback((count) => {
+    setReportCount(count);
   }, []);
 
   useEffect(() => {
@@ -707,7 +727,6 @@ function EarthquakeDetailPage() {
         if (isMounted) setStationLocationsByCode({});
       });
 
-<<<<<<< HEAD
     return () => {
       isMounted = false;
     };
@@ -795,30 +814,6 @@ function EarthquakeDetailPage() {
   if (isDevelopment && typeof window !== 'undefined') {
     window._earthquakeDebug = debugInfo;
   }
-=======
-  const placeDescription = earthquakeInfo?.place || '';
-  const genericLocation = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
-
-  // Use place description for location if available, otherwise use generic location
-  const locationDisplay = placeDescription && placeDescription !== 'Unavailable'
-    ? placeDescription
-    : genericLocation;
-
-  // Generate dynamic title: "M6.8 Earthquake 067 km N 87° E of Cagwait (Surigao Del Sur)"
-  const pageTitle = useMemo(() => {
-    if (earthquakeInfo?.title) return earthquakeInfo.title;
-    
-    const magText = magnitude ? `M${magnitude} Earthquake` : 'Earthquake';
-    
-    if (placeDescription && placeDescription !== 'Unavailable') {
-      return `${magText} ${placeDescription}`;
-    } else if (genericLocation) {
-      return `${magText} ${genericLocation}`;
-    }
-    
-    return magText;
-  }, [magnitude, placeDescription, genericLocation, earthquakeInfo?.title]);
->>>>>>> 9050d25 (refactor: rename snake_case vars to camelCase in EarthquakeDetailPage)
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -889,7 +884,6 @@ function EarthquakeDetailPage() {
                 <em className="metric-sub metric-tertiary">{eventTimeDisplay.utc}</em>
               </div>
             </div>
-<<<<<<< HEAD
             <div className="metric-card metric-map-card metric-card-epicenter" role="group" aria-label={`Epicenter ${coordText || 'not available'}`} title={`Epicenter ${coordText || 'Not available'}`}>
               <MiniMapPreview coordinates={eventCoordinates} marker="epicenter" />
               <div className="metric-map-overlay">
@@ -910,11 +904,6 @@ function EarthquakeDetailPage() {
                   </dl>
                 </div>
               </div>
-=======
-            <div className="metric-card" role="group" aria-label={`Location ${locationDisplay || 'not available'}`} title={`Location ${locationDisplay || 'Not available'}`}>
-              <span>Location</span>
-              <strong>{locationDisplay || '—'}</strong>
->>>>>>> 9050d25 (refactor: rename snake_case vars to camelCase in EarthquakeDetailPage)
             </div>
             <div className="metric-card metric-map-card metric-card-station" role="group" aria-label={`Nearest recording station ${nearestRecordingStation.code || 'not available'}`} title={`Nearest recording station ${nearestRecordingStation.code || 'Not available'}`}>
               <MiniMapPreview coordinates={nearestRecordingStation.coordinates} marker="station" />
@@ -936,20 +925,32 @@ function EarthquakeDetailPage() {
           </p>
         </section>
 
-        {/* Community Reports Carousel */}
-        <section className="eqinfo-panel scrollable eqinfo-carousel-section">
-          <div className="panel-header">
-            <div className="panel-title">
-              <h3>Community reports</h3>
+        {/* Event Summary and Community Reports Carousel Preview - 1/3 to 2/3 Layout */}
+        <div className="eqinfo-summary-carousel-container">
+          <EditableEventSummary
+            eventId={earthquakeInfo?.publicID || eventId}
+            initialSummary={displaySummary}
+            earthquakeInfo={earthquakeInfo}
+            endpointType="eq-events"
+            onSummaryUpdated={handleSummaryUpdated}
+          />
+
+          <section className="eqinfo-panel scrollable eqinfo-carousel-section">
+            <div className="panel-header">
+              <div className="panel-title">
+                <h3>Community reports</h3>
+                {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
+              </div>
             </div>
-          </div>
-          <div className="panel-body">
-            <CommunityReportsCarousel
-              eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
-              onReportClick={scrollToReports}
-            />
-          </div>
-        </section>
+            <div className="panel-body">
+              <CommunityReportsCarousel
+                eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
+                onReportClick={scrollToReports}
+                onReportsLoaded={handleReportsLoaded}
+              />
+            </div>
+          </section>
+        </div>
 
         <div ref={waveformSentinelRef}>
           {shouldMountWaveforms ? (
