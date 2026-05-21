@@ -13,7 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--muted);
   border-radius: 4px;
   transition: all 0.2s ease;
   width: 32px;
@@ -54,14 +54,14 @@
   font-size: 14px;
   line-height: 1.5;
   resize: vertical;
-  background-color: var(--input-bg);
+  background-color: var(--surface);
   color: var(--text-primary);
   transition: all 0.2s ease;
 }
 
 .textarea:focus {
   outline: none;
-  border-color: var(--button-primary-bg);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
@@ -111,10 +111,11 @@
 .saveButton {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: var(--button-primary-bg);
-  color: white;
+  background-color: var(--primary);
+  color: #ffffff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -123,7 +124,7 @@
 }
 
 .saveButton:hover:not(:disabled) {
-  background-color: var(--button-primary-hover);
+  background-color: var(--primary-strong);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
@@ -206,7 +207,7 @@
 .confirmDialog p {
   margin: 0 0 var(--space-2) 0;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -219,10 +220,11 @@
 .confirmButton {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: var(--button-primary-bg);
-  color: white;
+  background-color: var(--primary);
+  color: #ffffff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -231,7 +233,7 @@
 }
 
 .confirmButton:hover:not(:disabled) {
-  background-color: var(--button-primary-hover);
+  background-color: var(--primary-strong);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
