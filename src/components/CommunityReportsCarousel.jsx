@@ -172,12 +172,10 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
             }}
             onClick={() => {
               handleNavigateToReport();
-              onReportClick?.();
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 handleNavigateToReport();
-                onReportClick?.();
               }
             }}
             role="button"
