@@ -679,7 +679,6 @@ function EarthquakeDetailPage() {
     depth,
     formattedUpdatedTime,
     formattedUpdatedTimeUtc,
-    pageTitle,
     stationsForDisplay,
   } = useEarthquakeDetailViewModel(earthquakeInfo);
   const nearestRecordingStation = useMemo(
@@ -732,9 +731,6 @@ function EarthquakeDetailPage() {
       : typeof earthquakeInfo?.magnitude_value === 'number'
       ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
       : earthquakeInfo?.magnitude;
-
-  const depthValue = Number(earthquakeInfo?.depth ?? earthquakeInfo?.depth_value);
-  const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
 
   const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
   const formattedEventTime = eventTime ? formatEventTime(eventTime) : null;
