@@ -52,6 +52,10 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
   const fetchCommunityReports = useCallback(async (signal) => {
     if (!eventId) {
       setReports([]);
+      setLoading(false);
+      setError('');
+      setCurrentIndex(0);
+      onReportsLoaded?.(0);
       return;
     }
 
