@@ -129,14 +129,6 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
     onReportClick?.();
   }, [currentReport, onReportClick]);
 
-  const handlePrevious = useCallback(() => {
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + reports.length) % reports.length);
-  }, [reports.length]);
-
-  const handleNext = useCallback(() => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % reports.length);
-  }, [reports.length]);
-
   const handleDotClick = useCallback((index) => {
     setCurrentIndex(index);
   }, []);
