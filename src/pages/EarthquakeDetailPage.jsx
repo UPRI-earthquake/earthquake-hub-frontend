@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { FiArrowDown, FiClock, FiImage, FiMapPin, FiRadio, FiSend, FiX } from 'react-icons/fi';
@@ -13,6 +13,8 @@ import { calculateDistance } from '../utils/distanceCalculator';
 import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
+import EditableEventSummary from '../components/EditableEventSummary';
+import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
 import './EQInfoPage.css';
 
 const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
@@ -508,11 +510,9 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
 
     const trimmedText = reportText.trim();
     if (!trimmedText && !imageFile) {
-      console.log(earthquakeInfo);
       setPostError('Add a report or image before posting.');
       return;
     }
-    console.log(earthquakeInfo);
     const formData = new FormData();
     formData.append('eventId', eventId);
     formData.append('content', trimmedText);
@@ -560,12 +560,11 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
           <div className="report-empty">Loading reports...</div>
         ) : comments.length > 0 ? (
           comments.map((comment, index) => {
-            console.log(comment)
             const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
             const text = getCommentText(comment);
             const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
             return (
-              <article className="report-card" key={commentKey}>
+              <article className="report-card" key={commentKey} id={`comment-${commentKey}`}>
                 <div className="report-card-meta">
                   <strong>{getCommentAuthor(comment)}</strong>
                   {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
@@ -660,6 +659,9 @@ function EarthquakeDetailPage() {
   const [fetchError, setFetchError] = useState(null);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
+  const [displaySummary, setDisplaySummary] = useState('');
+  const [reportCount, setReportCount] = useState(0);
+  const reportsRef = useRef(null);
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
   const isDevelopment =
@@ -692,6 +694,28 @@ function EarthquakeDetailPage() {
   }), [eventCoordinates]);
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
+
+  // Sync displaySummary with earthquakeInfo
+  useEffect(() => {
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
+
+  // Callback when summary is updated
+  const handleSummaryUpdated = useCallback((updatedSummary) => {
+    setDisplaySummary(updatedSummary);
+  }, []);
+
+  // Callback to scroll to reports section
+  const scrollToReports = useCallback(() => {
+    reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Callback when reports are loaded
+  const handleReportsLoaded = useCallback((count) => {
+    setReportCount(count);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -902,21 +926,32 @@ function EarthquakeDetailPage() {
           </p>
         </section>
 
-        {summaryMarkup && (
-          <section className="eqinfo-panel scrollable eqinfo-summary-panel">
+        {/* Event Summary and Community Reports Carousel Preview - 1/3 to 2/3 Layout */}
+        <div className="eqinfo-summary-carousel-container">
+          <EditableEventSummary
+            eventId={earthquakeInfo?.publicID || eventId}
+            initialSummary={displaySummary}
+            earthquakeInfo={earthquakeInfo}
+            endpointType="eq-events"
+            onSummaryUpdated={handleSummaryUpdated}
+          />
+
+          <section className="eqinfo-panel scrollable eqinfo-carousel-section">
             <div className="panel-header">
               <div className="panel-title">
-                <h3>Event summary</h3>
+                <h3>Community reports</h3>
+                {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
               </div>
             </div>
             <div className="panel-body">
-              <div
-                className="eqinfo-copy"
-                dangerouslySetInnerHTML={{ __html: summaryMarkup }}
+              <CommunityReportsCarousel
+                eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
+                onReportClick={scrollToReports}
+                onReportsLoaded={handleReportsLoaded}
               />
             </div>
           </section>
-        )}
+        </div>
 
         <div ref={waveformSentinelRef}>
           {shouldMountWaveforms ? (
@@ -943,7 +978,7 @@ function EarthquakeDetailPage() {
           </div>
         </div>
 
-        <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
+        <ReportCommentsSection ref={reportsRef} eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
       </div>
     </>
   );
