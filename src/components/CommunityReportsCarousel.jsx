@@ -85,14 +85,15 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
       if (axios.isCancel?.(err) || signal?.aborted) {
         return;
       }
-      setError('');
+      setError('Unable to load community reports.');
       setReports([]);
+      onReportsLoaded?.(0);
     } finally {
       if (!signal?.aborted) {
         setLoading(false);
       }
     }
-  }, [eventId]);
+  }, [eventId, onReportsLoaded]);
 
   // Fetch reports on component mount or when eventId changes
   useEffect(() => {
