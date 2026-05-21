@@ -681,7 +681,6 @@ function EarthquakeDetailPage() {
     formattedUpdatedTimeUtc,
     pageTitle,
     stationsForDisplay,
-    summaryMarkup,
   } = useEarthquakeDetailViewModel(earthquakeInfo);
   const nearestRecordingStation = useMemo(
     () => getNearestRecordingStation(stationsForDisplay, earthquakeInfo, stationLocationsByCode),
