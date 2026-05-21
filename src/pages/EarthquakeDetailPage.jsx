@@ -978,7 +978,9 @@ function EarthquakeDetailPage() {
           </div>
         </div>
 
-        <ReportCommentsSection ref={reportsRef} eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
+        <div ref={reportsRef}>
+          <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
+        </div>
       </div>
     </>
   );
