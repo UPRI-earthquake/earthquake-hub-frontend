@@ -36,7 +36,7 @@ export function formatCoordinate(value, positiveLabel, negativeLabel, options = 
 export function formatEventTimePh(eventTime, includeTimezone = false) {
   const parsed = moment.utc(eventTime);
   if (!parsed || !parsed.isValid()) return 'Date unavailable';
-  const suffix = includeTimezone ? ' [UTC+08:00]' : '';
+  const suffix = includeTimezone ? ' UTC+08:00' : '';
   return parsed.add(8, 'hour').format(`YYYY-MM-DD HH:mm:ss${suffix}`);
 }
 

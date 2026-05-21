@@ -26,7 +26,9 @@ const formatCoord = (value, positiveLabel, negativeLabel) => {
 
 const formatDateTime = (value) => {
   if (!value) return 'Unknown';
-  const parsed = moment(value);
+  const parsed = typeof moment.utc === 'function'
+    ? moment.utc(value).utcOffset(8 * 60)
+    : moment(value);
   if (!parsed || typeof parsed.isValid !== 'function' || !parsed.isValid()) return 'Unknown';
   return parsed.format('D MMMM YYYY h:mm A');
 };

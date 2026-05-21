@@ -15,6 +15,8 @@ import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel'
 import CatalogComparison from '../components/CatalogComparison';
 import EditableEventSummary from '../components/EditableEventSummary';
 import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
+import EditableEventSummary from '../components/EditableEventSummary';
+import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
 import './EQInfoPage.css';
 
 const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
@@ -183,9 +185,11 @@ function getEventCoordinates(earthquakeInfo) {
 function getEarthquakeEventId(earthquakeInfo, queryEventId) {
   return (
     queryEventId ||
+    queryEventId ||
     earthquakeInfo?.publicID ||
     earthquakeInfo?.id ||
     earthquakeInfo?.event_id ||
+    earthquakeInfo?._id ||
     earthquakeInfo?._id ||
     ''
   );
@@ -662,6 +666,9 @@ function EarthquakeDetailPage() {
   const [displaySummary, setDisplaySummary] = useState('');
   const [reportCount, setReportCount] = useState(0);
   const reportsRef = useRef(null);
+  const [displaySummary, setDisplaySummary] = useState('');
+  const [reportCount, setReportCount] = useState(0);
+  const reportsRef = useRef(null);
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
   const isDevelopment =
@@ -692,6 +699,28 @@ function EarthquakeDetailPage() {
   }), [eventCoordinates]);
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
+
+  // Sync displaySummary with earthquakeInfo
+  useEffect(() => {
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
+
+  // Callback when summary is updated
+  const handleSummaryUpdated = useCallback((updatedSummary) => {
+    setDisplaySummary(updatedSummary);
+  }, []);
+
+  // Callback to scroll to reports section
+  const scrollToReports = useCallback(() => {
+    reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Callback when reports are loaded
+  const handleReportsLoaded = useCallback((count) => {
+    setReportCount(count);
+  }, []);
 
   // Sync displaySummary with earthquakeInfo
   useEffect(() => {
