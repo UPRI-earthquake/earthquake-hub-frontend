@@ -18,7 +18,37 @@
   width: auto;
 }
 
+.title {
+  margin: 24px 24px 8px;
+  color: #f8fafc;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 .pg {
+  max-width: min(560px, calc(100vw - 48px));
+  margin: 0;
   color: #e5e7eb;
-  font-family: Courier New;
+  font-family: inherit;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.action {
+  margin-top: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.45);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.12);
+  color: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 16px;
+}
+
+.action:hover,
+.action:focus-visible {
+  background: rgba(248, 250, 252, 0.2);
+  outline: none;
 }

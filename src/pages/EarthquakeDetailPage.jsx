@@ -1,21 +1,648 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { FiArrowDown, FiClock, FiImage, FiMapPin, FiRadio, FiSend, FiX } from 'react-icons/fi';
 import Header from '../components/Header';
-import StationDownloadButtons from '../components/StationDownloadButton';
-import Articles from '../components/Articles';
 import NearbyEvents from '../components/NearbyEvents';
-import SeismicWaveforms from '../components/SeismicWaveforms';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
 import moment from '../utils/time';
-import sanitizeHtml from '../utils/sanitizeHtml';
-import { generateEventSummary } from '../utils/generateEventSummary';
 import { backendHost } from '../utils/env';
-import { normalizeList } from '../utils/normalizeList';
-import InfoTooltip from '../components/InfoTooltip';
-import EarthquakeSourceComparison from '../components/EarthquakeSourceComparison';
+import { toFiniteNumber } from '../utils/earthquakeFormat';
+import { calculateDistance } from '../utils/distanceCalculator';
+import { useStations } from '../hooks/useStations';
+import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
+import CatalogComparison from '../components/CatalogComparison';
+import EditableEventSummary from '../components/EditableEventSummary';
+import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
 import './EQInfoPage.css';
+
+const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
+const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+const DETAIL_CACHE_VERSION = 1;
+const DETAIL_FETCH_TIMEOUT_MS = 12000;
+const RECENT_EVENTS_FETCH_TIMEOUT_MS = 20000;
+const COMMENTS_FETCH_TIMEOUT_MS = 12000;
+const COMMENT_POST_TIMEOUT_MS = 20000;
+const MINI_MAP_ZOOM = 9;
+const MINI_MAP_WIDTH = 168;
+const MINI_MAP_HEIGHT = 92;
+const MINI_MAP_TILE_SIZE = 256;
+const MINI_MAP_TILE_URL = 'https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png';
+
+function getDetailCacheKey(eventId) {
+  return `earthquake-detail:${eventId}`;
+}
+
+function readCachedEarthquake(eventId) {
+  if (!eventId || typeof window === 'undefined') return null;
+
+  const cacheKey = getDetailCacheKey(eventId);
+  try {
+    const cached = window.localStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    if (parsed?.publicID === eventId && parsed.version !== DETAIL_CACHE_VERSION) {
+      writeCachedEarthquake(eventId, parsed);
+      return parsed;
+    }
+
+    const isFresh =
+      parsed?.version === DETAIL_CACHE_VERSION &&
+      parsed?.cachedAt &&
+      Date.now() - parsed.cachedAt < DETAIL_CACHE_TTL_MS;
+
+    if (!isFresh) {
+      window.localStorage.removeItem(cacheKey);
+      return null;
+    }
+
+    return parsed.payload || null;
+  } catch (_) {
+    window.localStorage.removeItem(cacheKey);
+    return null;
+  }
+}
+
+function writeCachedEarthquake(eventId, earthquake) {
+  if (!eventId || typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(
+      getDetailCacheKey(eventId),
+      JSON.stringify({
+        cachedAt: Date.now(),
+        payload: earthquake,
+        version: DETAIL_CACHE_VERSION,
+      }),
+    );
+  } catch (_) {
+    // Ignore localStorage failures; fetched data is still usable for this render.
+  }
+}
+
+function useNearViewport(rootMargin = '600px') {
+  const [targetNode, setTargetNode] = useState(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+
+  useEffect(() => {
+    if (isNearViewport || !targetNode) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsNearViewport(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin },
+    );
+
+    observer.observe(targetNode);
+    return () => observer.disconnect();
+  }, [isNearViewport, rootMargin, targetNode]);
+
+  return [setTargetNode, isNearViewport];
+}
+
+function getEventRevisionMs(earthquake) {
+  const revisionTime =
+    earthquake?.last_modification || earthquake?.updated || earthquake?.modified || earthquake?.updatedAt;
+  const parsed = revisionTime ? new Date(revisionTime).getTime() : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isNewerEvent(candidate, current) {
+  const candidateRevision = getEventRevisionMs(candidate);
+  const currentRevision = getEventRevisionMs(current);
+  if (candidateRevision || currentRevision) {
+    return candidateRevision > currentRevision;
+  }
+  return JSON.stringify(candidate) !== JSON.stringify(current);
+}
+
+async function fetchEarthquakeByPublicID(eventId) {
+  const res = await axios.get(`${backendHost()}/eq-events/${encodeURIComponent(eventId)}`, {
+    timeout: DETAIL_FETCH_TIMEOUT_MS,
+    withCredentials: true,
+  });
+  return res.data?.payload || null;
+}
+
+async function fetchEarthquakeFromRecentEvents(eventId) {
+  const endDate = moment().format('YYYY-MM-DD HH:mm:ss');
+  const startDate = moment().subtract(90, 'days').format('YYYY-MM-DD HH:mm:ss');
+
+  const res = await axios.get(`${backendHost()}/eq-events`, {
+    params: { startTime: startDate, endTime: endDate },
+    timeout: RECENT_EVENTS_FETCH_TIMEOUT_MS,
+    withCredentials: true,
+  });
+
+  const events = res.data?.payload || [];
+  return events.find((ev) => ev.publicID === eventId) || null;
+}
+
+async function fetchEarthquakeWithFallback(eventId) {
+  try {
+    const directEvent = await fetchEarthquakeByPublicID(eventId);
+    if (directEvent) return directEvent;
+  } catch (_) {
+    // Fall back to the older range query so the frontend still works while
+    // the direct detail endpoint is being rolled out or restarted locally.
+  }
+
+  return fetchEarthquakeFromRecentEvents(eventId);
+}
+
+function getFetchErrorMessage(error) {
+  if (error?.code === 'ECONNABORTED') {
+    return 'The earthquake detail request timed out. Please check that the backend is running and try again.';
+  }
+
+  return error?.message || 'Failed to load earthquake data. Please try again or select from the events list.';
+}
+
+function getEventCoordinates(earthquakeInfo) {
+  const latitude = toFiniteNumber(
+    earthquakeInfo?.latitude_value ?? earthquakeInfo?.latitude ?? earthquakeInfo?.lat
+  );
+  const longitude = toFiniteNumber(
+    earthquakeInfo?.longitude_value ?? earthquakeInfo?.longitude ?? earthquakeInfo?.lng
+  );
+
+  if (latitude == null || longitude == null) return null;
+  return { latitude, longitude };
+}
+
+function getEarthquakeEventId(earthquakeInfo, queryEventId) {
+  return (
+    queryEventId ||
+    earthquakeInfo?.publicID ||
+    earthquakeInfo?.id ||
+    earthquakeInfo?.event_id ||
+    earthquakeInfo?._id ||
+    ''
+  );
+}
+
+function getCommentsFromResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.payload)) return data.payload;
+  if (Array.isArray(data?.comments)) return data.comments;
+  if (Array.isArray(data?.payload?.comments)) return data.payload.comments;
+  return [];
+}
+
+function getCommentText(comment) {
+  return (
+    comment?.comment ||
+    comment?.content ||
+    comment?.description ||
+    comment?.report ||
+    comment?.text ||
+    ''
+  );
+}
+
+function getCommentImage(comment) {
+  return (
+    comment?.imageUrl ||
+    comment?.imageURL ||
+    comment?.image ||
+    comment?.photoUrl ||
+    comment?.photo ||
+    comment?.attachmentUrl ||
+    ''
+  );
+}
+
+function resolveCommentImageUrl(imageUrl) {
+  if (typeof imageUrl !== 'string') return '';
+
+  const trimmedUrl = imageUrl.trim();
+  if (!trimmedUrl) return '';
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(trimmedUrl)) return trimmedUrl;
+
+  const apiHost = backendHost();
+  if (!apiHost) return trimmedUrl;
+
+  try {
+    const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const backendUrl = new URL(apiHost, fallbackOrigin);
+    return new URL(trimmedUrl, `${backendUrl.origin}/`).toString();
+  } catch (_) {
+    const host = apiHost.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    const path = trimmedUrl.replace(/^\/+/, '');
+    return `${host}/${path}`;
+  }
+}
+
+function getCommentAuthor(comment) {
+  if (comment?.anonymous || comment?.isAnonymous) return 'Anonymous';
+  return (
+    comment?.author ||
+    comment?.username ||
+    comment?.user?.username ||
+    comment?.user?.name ||
+    'Anonymous'
+  );
+}
+
+function formatCommentTime(comment) {
+  const raw = comment?.createdAt || comment?.created_at || comment?.timestamp || comment?.date;
+  if (!raw) return '';
+  const parsed = moment(raw);
+  return parsed.isValid() ? parsed.format('MMM D, YYYY, h:mm A') : '';
+}
+
+function formatCoordinatePart(value, positiveLabel, negativeLabel) {
+  const num = toFiniteNumber(value);
+  if (num == null) return '—';
+  return `${Math.abs(num).toFixed(3)}°${num >= 0 ? positiveLabel : negativeLabel}`;
+}
+
+function buildStationLocationLookup(backendStations) {
+  if (!Array.isArray(backendStations)) return {};
+
+  return backendStations.reduce((acc, station) => {
+    const code = String(station?.code || station?.station || '').toUpperCase();
+    const latitude = toFiniteNumber(station?.latitude);
+    const longitude = toFiniteNumber(station?.longitude);
+
+    if (code && latitude != null && longitude != null) {
+      acc[code] = { latitude, longitude };
+    }
+
+    return acc;
+  }, {});
+}
+
+function formatApproxDistance(distanceKm) {
+  if (!Number.isFinite(distanceKm)) return '';
+  if (distanceKm < 1) return '<1 km';
+  return `~${Math.round(distanceKm).toLocaleString()} km`;
+}
+
+function getDepthContext(earthquakeInfo) {
+  const depthKm = toFiniteNumber(earthquakeInfo?.depth_km ?? earthquakeInfo?.depth ?? earthquakeInfo?.depth_value);
+  if (depthKm == null) return 'Depth unavailable';
+  if (depthKm <= 70) return 'Shallow depth';
+  if (depthKm <= 300) return 'Intermediate depth';
+  return 'Deep event';
+}
+
+function getEventTimeDisplay(earthquakeInfo) {
+  const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
+  const parsed = moment.utc(eventTime);
+
+  if (!parsed || !parsed.isValid()) {
+    return {
+      primary: 'Date unavailable',
+      zone: 'UTC+08:00',
+      utc: 'UTC —',
+    };
+  }
+
+  return {
+    primary: parsed.clone().add(8, 'hour').format('MMM D, YYYY, h:mm A'),
+    zone: 'UTC+08:00',
+    utc: `${parsed.format('YYYY-MM-DD HH:mm:ss')} UTC`,
+  };
+}
+
+function getNearestRecordingStation(stationsForDisplay, earthquakeInfo, stationLocationsByCode) {
+  const stationCode = String(stationsForDisplay?.[0] || '').toUpperCase();
+  if (!stationCode) {
+    return {
+      code: null,
+      subtext: 'No online station recordings',
+    };
+  }
+
+  const eventCoordinates = getEventCoordinates(earthquakeInfo);
+  const stationLocation = stationLocationsByCode[stationCode];
+  const stationLatitude = toFiniteNumber(stationLocation?.latitude);
+  const stationLongitude = toFiniteNumber(stationLocation?.longitude);
+
+  if (!eventCoordinates || stationLatitude == null || stationLongitude == null) {
+    return {
+      code: stationCode,
+      subtext: 'Nearest online recording',
+      coordinates: stationLatitude != null && stationLongitude != null
+        ? { latitude: stationLatitude, longitude: stationLongitude }
+        : null,
+    };
+  }
+
+  const distanceKm = calculateDistance(
+    eventCoordinates.latitude,
+    eventCoordinates.longitude,
+    stationLatitude,
+    stationLongitude
+  );
+
+  return {
+    code: stationCode,
+    subtext: Number.isFinite(distanceKm)
+      ? `${formatApproxDistance(distanceKm)} from epicenter`
+      : 'Nearest online recording',
+    coordinates: { latitude: stationLatitude, longitude: stationLongitude },
+  };
+}
+
+function lonToTilePixelX(longitude, zoom) {
+  return ((longitude + 180) / 360) * MINI_MAP_TILE_SIZE * 2 ** zoom;
+}
+
+function latToTilePixelY(latitude, zoom) {
+  const latRad = latitude * Math.PI / 180;
+  return (
+    (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) /
+    2 *
+    MINI_MAP_TILE_SIZE *
+    2 ** zoom
+  );
+}
+
+function buildMiniMapTiles(latitude, longitude, zoom = MINI_MAP_ZOOM) {
+  const centerX = lonToTilePixelX(longitude, zoom);
+  const centerY = latToTilePixelY(latitude, zoom);
+  const centerTileX = Math.floor(centerX / MINI_MAP_TILE_SIZE);
+  const centerTileY = Math.floor(centerY / MINI_MAP_TILE_SIZE);
+  const maxTile = 2 ** zoom;
+  const tiles = [];
+
+  for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
+    for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
+      const rawX = centerTileX + xOffset;
+      const tileX = ((rawX % maxTile) + maxTile) % maxTile;
+      const tileY = centerTileY + yOffset;
+
+      if (tileY < 0 || tileY >= maxTile) continue;
+
+      tiles.push({
+        key: `${tileX}-${tileY}`,
+        url: MINI_MAP_TILE_URL
+          .replace('{z}', zoom)
+          .replace('{x}', tileX)
+          .replace('{y}', tileY),
+        left: rawX * MINI_MAP_TILE_SIZE - centerX + MINI_MAP_WIDTH / 2,
+        top: tileY * MINI_MAP_TILE_SIZE - centerY + MINI_MAP_HEIGHT / 2,
+      });
+    }
+  }
+
+  return tiles;
+}
+
+function MiniMapPreview({ coordinates, marker = 'epicenter' }) {
+  const latitude = toFiniteNumber(coordinates?.latitude);
+  const longitude = toFiniteNumber(coordinates?.longitude);
+  const tiles = useMemo(
+    () => (latitude == null || longitude == null ? [] : buildMiniMapTiles(latitude, longitude)),
+    [latitude, longitude]
+  );
+
+  if (latitude == null || longitude == null) {
+    return (
+      <div className="metric-mini-map metric-mini-map-empty" aria-hidden="true">
+        <span />
+      </div>
+    );
+  }
+
+  return (
+    <div className="metric-mini-map" aria-hidden="true">
+      <div className="metric-mini-map-tiles">
+        {tiles.map((tile) => (
+          <img
+            key={tile.key}
+            src={tile.url}
+            alt=""
+            draggable="false"
+            style={{
+              left: `${tile.left}px`,
+              top: `${tile.top}px`,
+            }}
+          />
+        ))}
+      </div>
+      <span className={`metric-map-pin metric-map-pin-${marker}`} />
+      <span className="metric-map-attribution">CARTO</span>
+    </div>
+  );
+}
+
+function ReportCommentsSection({ eventId, earthquakeInfo }) {
+  const [comments, setComments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [postAnonymously, setPostAnonymously] = useState(true);
+  const [isPosting, setIsPosting] = useState(false);
+  const [postError, setPostError] = useState('');
+
+  const loadComments = useCallback(async () => {
+    if (!eventId) return;
+
+    setIsLoading(true);
+    setLoadError('');
+    try {
+      const response = await axios.get(`${backendHost()}/comments/`, {
+        params: { eventId },
+        timeout: COMMENTS_FETCH_TIMEOUT_MS,
+        withCredentials: true,
+      });
+      setComments(getCommentsFromResponse(response.data));
+    } catch (error) {
+      setLoadError(error?.message || 'Failed to load reports.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl('');
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [imageFile]);
+
+  const resetForm = useCallback(() => {
+    setReportText('');
+    setImageFile(null);
+    setImagePreviewUrl('');
+    setPostAnonymously(true);
+    setPostError('');
+  }, []);
+
+  const closeModal = useCallback(() => {
+    if (isPosting) return;
+    setIsModalOpen(false);
+    resetForm();
+  }, [isPosting, resetForm]);
+
+  const handleImageChange = (event) => {
+    const nextFile = event.target.files?.[0] || null;
+    setImageFile(nextFile);
+  };
+
+  const handleSubmitReport = async (event) => {
+    event.preventDefault();
+    if (!eventId || isPosting) return;
+
+    const trimmedText = reportText.trim();
+    if (!trimmedText && !imageFile) {
+      setPostError('Add a report or image before posting.');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('eventId', eventId);
+    formData.append('content', trimmedText);
+    formData.append('username', postAnonymously ? 'Anonymous' : 'false');
+    if (imageFile) formData.append('image', imageFile);
+
+    setIsPosting(true);
+    setPostError('');
+    try {
+      await axios.post(`${backendHost()}/comments`, formData, {
+        timeout: COMMENT_POST_TIMEOUT_MS,
+        withCredentials: true,
+      });
+      setIsModalOpen(false);
+      resetForm();
+      await loadComments();
+    } catch (error) {
+      setPostError(error?.response?.data?.message || error?.message || 'Failed to post report.');
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  return (
+    <section className="eqinfo-panel report-section" aria-labelledby="report-section-title">
+      <div className="report-section-header">
+        <div>
+          <h3 id="report-section-title">Reports</h3>
+          <p>Community observations for this earthquake.</p>
+        </div>
+        <button
+          type="button"
+          className="report-primary-button"
+          onClick={() => setIsModalOpen(true)}
+          disabled={!eventId}
+        >
+          Post a Report
+        </button>
+      </div>
+
+      {loadError && <div className="report-message report-message-error">{loadError}</div>}
+
+      <div className="report-list" aria-live="polite">
+        {isLoading ? (
+          <div className="report-empty">Loading reports...</div>
+        ) : comments.length > 0 ? (
+          comments.map((comment, index) => {
+            const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
+            const text = getCommentText(comment);
+            const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
+            return (
+              <article className="report-card" key={commentKey} id={`comment-${commentKey}`}>
+                <div className="report-card-meta">
+                  <strong>{getCommentAuthor(comment)}</strong>
+                  {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
+                </div>
+                {text && <p>{text}</p>}
+                {imageUrl && <img src={imageUrl} alt="Submitted report attachment" />}
+              </article>
+            );
+          })
+        ) : (
+          <div className="report-empty">No reports have been posted for this event.</div>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <div className="report-modal-backdrop" role="presentation" onMouseDown={closeModal}>
+          <form
+            className="report-modal"
+            aria-modal="true"
+            aria-labelledby="report-modal-title"
+            role="dialog"
+            onSubmit={handleSubmitReport}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="report-modal-titlebar">
+              <h3 id="report-modal-title">Post a Report</h3>
+              <button type="button" className="report-icon-button" onClick={closeModal} aria-label="Close report form">
+                <FiX />
+              </button>
+            </div>
+
+            <div className="report-anonymous-status">
+              <span aria-hidden="true" />
+              {postAnonymously ? 'Posting anonymously' : 'Posting with your account'}
+            </div>
+
+            <textarea
+              value={reportText}
+              onChange={(event) => setReportText(event.target.value)}
+              placeholder="Describe what you observed during or after the earthquake..."
+              rows={6}
+            />
+
+            {imagePreviewUrl && (
+              <div className="report-image-preview">
+                <img src={imagePreviewUrl} alt="Selected report attachment preview" />
+                <button type="button" onClick={() => setImageFile(null)}>Remove image</button>
+              </div>
+            )}
+
+            <div className="report-modal-controls">
+              <label className="report-image-button">
+                <FiImage aria-hidden="true" />
+                Insert Image
+                <input type="file" accept="image/*" onChange={handleImageChange} />
+              </label>
+              <label className="report-checkbox">
+                <input
+                  type="checkbox"
+                  checked={postAnonymously}
+                  onChange={(event) => setPostAnonymously(event.target.checked)}
+                />
+                <span>Post anonymously</span>
+              </label>
+            </div>
+
+            {postError && <div className="report-message report-message-error">{postError}</div>}
+
+            <button type="submit" className="report-submit-button" disabled={isPosting}>
+              <span>{isPosting ? 'Posting...' : 'Post Report'}</span>
+              <FiSend aria-hidden="true" />
+            </button>
+          </form>
+        </div>
+      )}
+    </section>
+  );
+}
 
 /**
  * Earthquake detail page for network-detected earthquakes. Displays event information
@@ -30,22 +657,80 @@ function EarthquakeDetailPage() {
   const [fetchedEarthquake, setFetchedEarthquake] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState(null);
+  const [stationLocationsByCode, setStationLocationsByCode] = useState({});
+  const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
+  const [displaySummary, setDisplaySummary] = useState('');
+  const [reportCount, setReportCount] = useState(0);
+  const reportsRef = useRef(null);
+  const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
   const isDevelopment =
     typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
 
   const cachedEarthquake = useMemo(() => {
-    if (!eventId || typeof window === 'undefined') return null;
-    try {
-      const cached = window.localStorage.getItem(`earthquake-detail:${eventId}`);
-      return cached ? JSON.parse(cached) : null;
-    } catch (_) {
-      return null;
-    }
+    return readCachedEarthquake(eventId);
   }, [eventId]);
 
   // Get earthquake from navigation state, cached detail data, or a direct URL fetch.
   const earthquakeInfo = location.state?.earthquake || cachedEarthquake || fetchedEarthquake;
+  const {
+    coordText,
+    debugInfo,
+    depth,
+    formattedUpdatedTime,
+    formattedUpdatedTimeUtc,
+    pageTitle,
+    stationsForDisplay,
+  } = useEarthquakeDetailViewModel(earthquakeInfo);
+  const nearestRecordingStation = useMemo(
+    () => getNearestRecordingStation(stationsForDisplay, earthquakeInfo, stationLocationsByCode),
+    [earthquakeInfo, stationLocationsByCode, stationsForDisplay]
+  );
+  const eventCoordinates = useMemo(() => getEventCoordinates(earthquakeInfo), [earthquakeInfo]);
+  const epicenterParts = useMemo(() => ({
+    latitude: formatCoordinatePart(eventCoordinates?.latitude, 'N', 'S'),
+    longitude: formatCoordinatePart(eventCoordinates?.longitude, 'E', 'W'),
+  }), [eventCoordinates]);
+  const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
+  const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
+
+  // Sync displaySummary with earthquakeInfo
+  useEffect(() => {
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
+
+  // Callback when summary is updated
+  const handleSummaryUpdated = useCallback((updatedSummary) => {
+    setDisplaySummary(updatedSummary);
+  }, []);
+
+  // Callback to scroll to reports section
+  const scrollToReports = useCallback(() => {
+    reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Callback when reports are loaded
+  const handleReportsLoaded = useCallback((count) => {
+    setReportCount(count);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchStations()
+      .then((backendStations) => {
+        if (isMounted) setStationLocationsByCode(buildStationLocationLookup(backendStations));
+      })
+      .catch(() => {
+        if (isMounted) setStationLocationsByCode({});
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchStations]);
 
   // Fetch earthquake data if not available via location.state but ID is in URL
   useEffect(() => {
@@ -64,30 +749,13 @@ function EarthquakeDetailPage() {
       setIsFetching(true);
       setFetchError(null);
       try {
-        // Fetch events from a 90-day range to find the one with matching ID
-        // This covers most earthquake queries; adjust if needed
-        const endDate = moment().format('YYYY-MM-DD HH:mm:ss');
-        const startDate = moment().subtract(90, 'days').format('YYYY-MM-DD HH:mm:ss');
-
-        const res = await axios.get(`${backendHost()}/eq-events`, {
-          params: { startTime: startDate, endTime: endDate },
-          withCredentials: true,
-        });
-
-        const events = res.data?.payload || [];
-        const found = events.find((ev) => ev.publicID === eventId);
+        const found = await fetchEarthquakeWithFallback(eventId);
 
         if (!isMounted) return;
 
         if (found) {
           setFetchedEarthquake(found);
-          if (typeof window !== 'undefined') {
-            try {
-              window.localStorage.setItem(`earthquake-detail:${eventId}`, JSON.stringify(found));
-            } catch (_) {
-              // Ignore localStorage failures; fetched data is still usable for this render.
-            }
-          }
+          writeCachedEarthquake(eventId, found);
           setFetchError(null);
         } else {
           setFetchError(
@@ -100,9 +768,7 @@ function EarthquakeDetailPage() {
           // eslint-disable-next-line no-console
           console.error('Error fetching earthquake:', error);
         }
-        setFetchError(
-          error?.message || 'Failed to load earthquake data. Please try again or select from the events list.'
-        );
+        setFetchError(getFetchErrorMessage(error));
       } finally {
         if (isMounted) {
           setIsFetching(false);
@@ -117,90 +783,37 @@ function EarthquakeDetailPage() {
     };
   }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
 
-  const formatEventTime = useCallback((eventTime) => {
-    const parsed = moment(eventTime);
-    if (!parsed || !parsed.isValid()) return 'Date unavailable';
-    return parsed.format('MMMM D, YYYY h:mm A');
-  }, []);
-
-  const summaryMarkup = useMemo(
-    () => sanitizeHtml(earthquakeInfo?.eventSummary || generateEventSummary(earthquakeInfo)), //using generated summary as fallback if eventSummary is not provided
-    [earthquakeInfo],
-  );
-  const instrumentRecordings = useMemo(
-    () => normalizeList(earthquakeInfo?.instrumentRecordings),
-    [earthquakeInfo?.instrumentRecordings],
-  );
-  const onlineStations = useMemo(
-    () => normalizeList(earthquakeInfo?.onlineStations),
-    [earthquakeInfo?.onlineStations],
-  );
-  const references = useMemo(() => normalizeList(earthquakeInfo?.references), [earthquakeInfo?.references]);
-
-  // For development/demo purposes, use mock stations if none exist
-  const stationsForDisplay = useMemo(() => {
-    const hasStations = onlineStations.length > 0 || instrumentRecordings.length > 0;
-    if (hasStations) {
-      return onlineStations.length > 0 ? onlineStations : instrumentRecordings;
+  useEffect(() => {
+    if (location.state?.earthquake || fetchedEarthquake || !cachedEarthquake || !eventId) {
+      return undefined;
     }
-    // Development fallback: show demo stations
-    if (isDevelopment) {
-      return ['R1382', 'R8095', 'RBD68'];
-    }
-    return [];
-  }, [onlineStations, instrumentRecordings, isDevelopment]);
+
+    let isMounted = true;
+    const revalidateCachedEarthquake = async () => {
+      try {
+        const freshEvent = await fetchEarthquakeByPublicID(eventId);
+        if (!isMounted || !freshEvent) return;
+
+        if (isNewerEvent(freshEvent, cachedEarthquake)) {
+          setFetchedEarthquake(freshEvent);
+          writeCachedEarthquake(eventId, freshEvent);
+        }
+      } catch (_) {
+        // Keep the cached event when background revalidation fails.
+      }
+    };
+
+    revalidateCachedEarthquake();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
 
   // Debug: Check earthquake object structure
   if (isDevelopment && typeof window !== 'undefined') {
-    window._earthquakeDebug = {
-      hasEarthquakeInfo: !!earthquakeInfo,
-      earthquakeKeys: earthquakeInfo ? Object.keys(earthquakeInfo) : [],
-      onlineStations: onlineStations,
-      instrumentRecordings: instrumentRecordings,
-      stationsForDisplay: stationsForDisplay,
-      onlineStationsLength: onlineStations.length,
-      instrumentRecordingsLength: instrumentRecordings.length,
-      stationsForDisplayLength: stationsForDisplay.length,
-    };
+    window._earthquakeDebug = debugInfo;
   }
-
-  const magnitude =
-    typeof earthquakeInfo?.magnitude === 'number'
-      ? earthquakeInfo.magnitude.toFixed(1).replace(/\.0$/, '')
-      : typeof earthquakeInfo?.magnitude_value === 'number'
-      ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
-      : earthquakeInfo?.magnitude;
-
-  const depthValue = Number(
-    earthquakeInfo?.depth_km ?? earthquakeInfo?.depth ?? earthquakeInfo?.depth_value,
-  );
-  const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
-
-  const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
-  const formattedEventTime = eventTime ? formatEventTime(eventTime) : null;
-
-  const placeDescription = earthquakeInfo?.place || '';
-  const genericLocation = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
-
-  // Use place description for location if available, otherwise use generic location
-  const locationDisplay = placeDescription && placeDescription !== 'Unavailable'
-    ? placeDescription
-    : genericLocation;
-
-  // Generate dynamic event title
-  const pageTitle = useMemo(() => {
-    if (earthquakeInfo?.title) return earthquakeInfo.title;
-    
-    const magText = magnitude ? `M${magnitude} Earthquake` : 'Earthquake';
-    
-    if (placeDescription && placeDescription !== 'Unavailable') {
-      return `${magText} ${placeDescription}`;
-    } else if (genericLocation) {
-      return `${magText} ${genericLocation}`;
-    }
-    
-    return magText;
-  }, [magnitude, placeDescription, genericLocation, earthquakeInfo?.title]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -250,117 +863,122 @@ function EarthquakeDetailPage() {
         <section className="eqinfo-hero">
           <h1>{pageTitle}</h1>
           <div className="eqinfo-meta-grid">
-            <div className="metric-card" role="group" aria-label={`Magnitude ${magnitude || 'not available'}`} title={`Magnitude ${magnitude || 'Not available'}`}>
-              <span>Magnitude</span>
-              <strong>{magnitude || '—'}</strong>
+            <div className="metric-card metric-card-depth" role="group" aria-label={`Depth ${depth || 'not available'}`} title={`Depth ${depth || 'Not available'}`}>
+              <div className="metric-card-head">
+                <span className="metric-icon" aria-hidden="true"><FiArrowDown /></span>
+                <span className="metric-label">Depth</span>
+              </div>
+              <div className="metric-card-body">
+                <strong>{depth || '—'}</strong>
+                <em className="metric-sub">{depthContext}</em>
+              </div>
             </div>
-            <div className="metric-card" role="group" aria-label={`Depth ${depth || 'not available'}`} title={`Depth ${depth || 'Not available'}`}>
-              <span>Depth</span>
-              <strong>{depth || '—'}</strong>
+            <div className="metric-card metric-card-time" role="group" aria-label={`Event time ${eventTimeDisplay.primary || 'not available'}`} title={`Event time ${eventTimeDisplay.primary || 'Not available'}`}>
+              <div className="metric-card-head">
+                <span className="metric-icon" aria-hidden="true"><FiClock /></span>
+                <span className="metric-label">Event time</span>
+              </div>
+              <div className="metric-card-body">
+                <strong>{eventTimeDisplay.primary}</strong>
+                <em className="metric-sub metric-zone">{eventTimeDisplay.zone}</em>
+                <em className="metric-sub metric-tertiary">{eventTimeDisplay.utc}</em>
+              </div>
             </div>
-            <div className="metric-card" role="group" aria-label={`Location ${locationDisplay || 'not available'}`} title={`Location ${locationDisplay || 'Not available'}`}>
-              <span>Location</span>
-              <strong>{locationDisplay || '—'}</strong>
+            <div className="metric-card metric-map-card metric-card-epicenter" role="group" aria-label={`Epicenter ${coordText || 'not available'}`} title={`Epicenter ${coordText || 'Not available'}`}>
+              <MiniMapPreview coordinates={eventCoordinates} marker="epicenter" />
+              <div className="metric-map-overlay">
+                <div className="metric-card-head">
+                  <span className="metric-icon" aria-hidden="true"><FiMapPin /></span>
+                  <span className="metric-label">Epicenter</span>
+                </div>
+                <div className="metric-map-value">
+                  <dl className="metric-coordinate-list">
+                    <div>
+                      <dt>Lat</dt>
+                      <dd>{epicenterParts.latitude}</dd>
+                    </div>
+                    <div>
+                      <dt>Lon</dt>
+                      <dd>{epicenterParts.longitude}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
             </div>
-            <div className="metric-card" role="group" aria-label={`Local time ${formattedEventTime || 'not available'}`} title={`Local time ${formattedEventTime || 'Not available'}`}>
-              <span>Local time</span>
-              <strong>{formattedEventTime ? `${formattedEventTime} (Local)` : '—'}</strong>
+            <div className="metric-card metric-map-card metric-card-station" role="group" aria-label={`Nearest recording station ${nearestRecordingStation.code || 'not available'}`} title={`Nearest recording station ${nearestRecordingStation.code || 'Not available'}`}>
+              <MiniMapPreview coordinates={nearestRecordingStation.coordinates} marker="station" />
+              <div className="metric-map-overlay">
+                <div className="metric-card-head">
+                  <span className="metric-icon" aria-hidden="true"><FiRadio /></span>
+                  <span className="metric-label">Nearest station</span>
+                </div>
+                <div className="metric-map-value">
+                  <strong>{nearestRecordingStation.code || 'Unavailable'}</strong>
+                  <em className="metric-sub">{nearestRecordingStation.subtext}</em>
+                </div>
+              </div>
             </div>
           </div>
+          <p className="eqinfo-last-updated">
+            Last updated {formattedUpdatedTime ? `${formattedUpdatedTime} UTC+08:00` : 'unavailable'}
+            {formattedUpdatedTimeUtc ? ` (${formattedUpdatedTimeUtc} UTC)` : ''}
+          </p>
         </section>
 
-        <SeismicWaveforms 
-          earthquakeInfo={earthquakeInfo} 
-          stations={stationsForDisplay}
-        />
-
-        <div className="eqinfo-grid">
-          <NearbyEvents
+        {/* Event Summary and Community Reports Carousel Preview - 1/3 to 2/3 Layout */}
+        <div className="eqinfo-summary-carousel-container">
+          <EditableEventSummary
+            eventId={earthquakeInfo?.publicID || eventId}
+            initialSummary={displaySummary}
             earthquakeInfo={earthquakeInfo}
-            nearbyEventCount={5}
-            distanceThresholdKm={200}
+            endpointType="eq-events"
+            onSummaryUpdated={handleSummaryUpdated}
           />
 
-          {summaryMarkup && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Event summary</h3>
-                  <InfoTooltip title="Event summary" label="About this section" variant="inline">
-                    Vetted narrative from authoritative sources.
-                  </InfoTooltip>
-                </div>
+          <section className="eqinfo-panel scrollable eqinfo-carousel-section">
+            <div className="panel-header">
+              <div className="panel-title">
+                <h3>Community reports</h3>
+                {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
               </div>
-              <div className="panel-body">
-                <div
-                  className="eqinfo-copy"
-                  dangerouslySetInnerHTML={{ __html: summaryMarkup }}
-                />
-              </div>
-            </section>
-          )}
+            </div>
+            <div className="panel-body">
+              <CommunityReportsCarousel
+                eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
+                onReportClick={scrollToReports}
+                onReportsLoaded={handleReportsLoaded}
+              />
+            </div>
+          </section>
+        </div>
 
-          <EarthquakeSourceComparison earthquakeInfo={earthquakeInfo} />
-
-          {instrumentRecordings.length > 0 && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Instrument recordings</h3>
-                  <InfoTooltip title="Instrument recordings" label="About this section" variant="inline">
-                    Download station traces around the event origin time.
-                  </InfoTooltip>
-                </div>
-              </div>
-              <div className="panel-body">
-                <ul className="station-list">
-                  {instrumentRecordings.map((station, idx) => (
-                    <li key={`${station}-${idx}`} aria-label={`Station ${station}`}>
-                      <div className="list-items">
-                        <div className="station-label">{station}</div>
-                        <StationDownloadButtons stationCode={station} eventTime={eventTime} />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
+        <div ref={waveformSentinelRef}>
+          {shouldMountWaveforms ? (
+            <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
+              <SeismicWaveforms
+                earthquakeInfo={earthquakeInfo}
+                stations={stationsForDisplay}
+              />
+            </Suspense>
+          ) : (
+            <div className="eqinfo-panel muted">Preparing station recordings...</div>
           )}
+        </div>
 
-          {references.length > 0 && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Reports & references</h3>
-                  <InfoTooltip title="Reports & references" label="About this section" variant="inline">
-                    Open source links in a new tab.
-                  </InfoTooltip>
-                </div>
-              </div>
-              <div className="panel-body">
-                <div className="reference-grid">
-                  {references.map((reference, index) => (
-                    <Articles key={`ref-${index}`} url={reference} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
+        <div className="eqinfo-grid">
+          <div className="eqinfo-related-source-row">
+            <NearbyEvents
+              earthquakeInfo={earthquakeInfo}
+              nearbyEventCount={5}
+              distanceThresholdKm={200}
+            />
 
-          {!summaryMarkup && instrumentRecordings.length === 0 && references.length === 0 && (
-            <section className="eqinfo-panel scrollable">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Event details</h3>
-                </div>
-              </div>
-              <div className="panel-body">
-                <p className="muted">
-                  This earthquake was detected by the network. Additional analysis and authoritative reports may be available from official sources.
-                </p>
-              </div>
-            </section>
-          )}
+            <CatalogComparison earthquakeInfo={earthquakeInfo} />
+          </div>
+        </div>
+
+        <div ref={reportsRef}>
+          <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
         </div>
       </div>
     </>
