@@ -11,111 +11,55 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 6px;
-}
-
-.panelHeader h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
 }
 
 .panelTitle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
+}
+
+.panelTitle h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .waveformList {
   display: flex;
   flex-direction: column;
-}
-
-.toggleRow {
-  display: flex;
-  justify-content: center;
-  padding-top: 12px;
-}
-
-.toggleButton {
-  min-width: 140px;
-  gap: 8px;
-  align-items: center;
-}
-
-.toggleIcon {
-  font-size: 1rem;
-  line-height: 1;
-  transform: translateY(1px);
-}
-
-.toggleButton[aria-expanded='true'] .toggleIcon {
-  transform: rotate(180deg) translateY(-1px);
+  gap: 20px;
 }
 
 .waveformRow {
   display: grid;
-  grid-template-columns: 174px minmax(0, 1fr) 96px;
+  grid-template-columns: 80px 1fr 140px;
   gap: 16px;
   align-items: stretch;
-  min-height: 108px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.waveformRow:last-child {
-  border-bottom: 0;
-  padding-bottom: 10px;
+  padding: 16px;
+  background: var(--panel-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-height: 280px;
 }
 
 @media (max-width: 768px) {
   .waveformRow {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
     gap: 12px;
-    min-height: 0;
+    min-height: auto;
   }
-
-  .waveformCanvas {
-    grid-column: 1;
-  }
-}
-
-.stationCodeCell {
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-}
-
-.stationControlGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.stationControl {
-  display: grid;
-  grid-template-columns: minmax(76px, 1fr) minmax(76px, 0.9fr);
-  gap: 8px;
-  align-items: center;
 }
 
 .stationLabel {
-  min-height: 31px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1rem;
   color: var(--text-primary);
-  background: var(--panel-surface);
-  border: 1px solid color-mix(in srgb, var(--border) 82%, #6b7280);
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-  padding: 4px 8px;
+  padding: 8px;
   text-align: center;
   word-break: break-word;
   white-space: nowrap;
@@ -123,256 +67,52 @@
   text-overflow: ellipsis;
 }
 
-.channelSelect {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  min-width: 0;
-  min-height: 31px;
-  border: 1px solid color-mix(in srgb, var(--border) 80%, #64748b);
-  border-radius: 8px;
-  background:
-    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
-    linear-gradient(135deg, var(--muted) 50%, transparent 50%),
-    color-mix(in srgb, var(--panel-surface) 90%, #e2e8f0);
-  background-position:
-    calc(100% - 12px) 50%,
-    calc(100% - 7px) 50%,
-    0 0;
-  background-size:
-    5px 5px,
-    5px 5px,
-    100% 100%;
-  background-repeat: no-repeat;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 4px 22px 4px 8px;
-}
-
-.channelSelect:hover {
-  border-color: color-mix(in srgb, var(--border) 50%, #0ea5e9);
-}
-
-.channelSelect:focus-visible {
-  outline: 2px solid rgba(14, 165, 233, 0.35);
-  outline-offset: 2px;
-}
-
-.channelSelect option {
-  background: #ffffff;
-  color: #0f172a;
-}
-
-.stationDistance {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 500;
-  line-height: 1.25;
-  text-align: center;
-}
-
 @media (max-width: 768px) {
-  .stationControl {
-    grid-template-columns: minmax(86px, 120px) minmax(88px, 120px);
-    justify-content: start;
-  }
-
   .stationLabel {
-    font-size: 0.9rem;
-  }
-
-  .stationDistance {
+    padding: 0;
     text-align: left;
+    font-size: 0.95rem;
   }
 }
 
 .waveformCanvas {
-  --waveform-track-bg: #fbfcfd;
   position: relative;
   width: 100%;
-  height: 84px;
-  align-self: center;
-  background: var(--waveform-track-bg);
-  border: 0;
-  border-radius: 0;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  height: 250px;
+  background: var(--panel-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-}
-
-.compactWaveform {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: var(--waveform-track-bg);
-}
-
-.waveformPlot {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.waveformTrackBackground {
-  fill: var(--waveform-track-bg);
-}
-
-.waveformAxisLabels {
-  position: absolute;
-  inset: 0;
-  color: #475569;
-  pointer-events: none;
-  user-select: none;
-}
-
-.waveformAxisLabel {
-  position: absolute;
-  display: block;
-  padding: 1px 3px;
-  background: color-mix(in srgb, var(--waveform-track-bg) 90%, transparent);
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  white-space: nowrap;
-  transform: translate(-50%, -50%);
-}
-
-.waveformYAxisLabel {
-  left: 35px;
-  min-width: 42px;
-  text-align: right;
-}
-
-.waveformUtcLabel {
-  left: 52px;
-  bottom: 3px;
-  font-size: 10px;
-  font-weight: 800;
-  transform: translateX(-50%);
-}
-
-.waveformTimeLabel {
-  bottom: 3px;
-  min-width: 54px;
-  text-align: center;
-  transform: translateX(-50%);
-  font-variant-numeric: tabular-nums;
-}
-
-.waveformEventMarkerLabel {
-  top: 9px;
-  left: clamp(96px, var(--event-marker-left, 9%), calc(100% - 50px));
-  color: #334155;
-  font-size: 10px;
-  padding: 3px 6px;
-  border: 1px solid rgba(71, 85, 105, 0.16);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--waveform-track-bg) 76%, white 24%);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-  transform: translateX(-50%);
-}
-
-.waveformAxisLayer {
-  pointer-events: none;
-}
-
-.waveformAxisLine,
-.waveformAxisTick {
-  stroke: rgba(71, 85, 105, 0.72);
-  stroke-width: 1.35;
-  stroke-linecap: square;
-}
-
-.waveformGridLine {
-  stroke: rgba(100, 116, 139, 0.18);
-  stroke-width: 1;
-}
-
-.waveformBaselineLine {
-  stroke: rgba(71, 85, 105, 0.38);
-  stroke-width: 1.25;
-}
-
-@media (max-width: 768px) {
-  .waveformCanvas {
-    height: 96px;
-  }
-
-  .waveformAxisLabel {
-    font-size: 10px;
-  }
-
-  .waveformYAxisLabel {
-    left: 30px;
-    min-width: 36px;
-  }
-
-  .waveformUtcLabel {
-    left: 30px;
-    bottom: 6px;
-    font-size: 10px;
-  }
-
-  .waveformTimeLabel {
-    bottom: 6px;
-    min-width: 50px;
-  }
-
-  .waveformEventMarkerLabel {
-    top: 14px;
-    left: clamp(86px, var(--event-marker-left, 9%), calc(100% - 46px));
-  }
-
-  .waveformTimeLabelSecondary {
-    display: none;
-  }
-}
-
-.eventTimeMarker,
-.eventTimeMarkerHalo {
-  stroke-linecap: round;
-  stroke-dasharray: 5 6;
-}
-
-.eventTimeMarker {
-  stroke: #334155;
-  stroke-width: 2.25;
-  opacity: 0.94;
-}
-
-.eventTimeMarkerHalo {
-  stroke: rgba(255, 255, 255, 0.95);
-  stroke-width: 5.5;
-  opacity: 0.96;
-}
-
-.eventTimeMarkerLayer {
-  pointer-events: none;
-}
-
-.compactPlaceholder {
   display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.plot {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.plot > * {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1;
+}
+
+.loadingPlaceholder,
+.emptyPlaceholder {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-}
-
-.compactEmpty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  gap: 8px;
   color: var(--muted);
-  font-size: 0.82rem;
-  text-align: center;
+  font-size: 0.9rem;
 }
 
 .emptyState {
@@ -403,159 +143,79 @@
   }
 }
 
-.rowActions {
-  align-self: stretch;
+.actionButtons {
   display: flex;
+  gap: 8px;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  padding: 0 4px;
 }
 
-.metadataBtn,
-.downloadBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 0;
-  min-height: 31px;
-  padding: 5px 8px;
-  font-size: 0.72rem;
+@media (max-width: 768px) {
+  .actionButtons {
+    flex-direction: row;
+    gap: 10px;
+  }
+}
+
+.downloadBtn,
+.metadataBtn {
+  flex: 1;
+  min-width: fit-content;
+  padding: 8px 12px;
+  font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   transition: all 0.2s ease;
 }
 
-.actionIcon {
-  flex: 0 0 auto;
-  width: 0.95em;
-  height: 0.95em;
-  stroke-width: 2.4;
-}
-
-.metadataBtn {
-  background: #64748b;
-  color: #ffffff;
-  border: 1px solid #475569;
-  cursor: pointer;
-}
-
-.metadataBtn:hover {
-  background: #526176;
-  border-color: #334155;
-}
-
 .downloadBtn {
-  background: #5aa3e8;
-  color: #ffffff;
-  border: 1px solid #2d7fca;
+  background: #0ea5e9;
+  color: white;
+  border: none;
   cursor: pointer;
 }
 
 .downloadBtn:hover:not(:disabled) {
-  background: #408fd6;
-  border-color: #246fab;
+  background: #0284c7;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
 .downloadBtn:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-:global(:root[data-theme='dark']) .waveformContainer,
-:global(:root[data-theme='imagery']) .waveformContainer {
-  background: var(--panel-surface);
-}
-
-:global(:root[data-theme='dark']) .waveformCanvas,
-:global(:root[data-theme='imagery']) .waveformCanvas {
-  --waveform-track-bg: #111c30;
-  background: var(--waveform-track-bg);
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
-}
-
-:global(:root[data-theme='dark']) .compactWaveform,
-:global(:root[data-theme='imagery']) .compactWaveform {
-  background: var(--waveform-track-bg);
-}
-
-:global(:root[data-theme='dark']) .eventTimeMarker,
-:global(:root[data-theme='imagery']) .eventTimeMarker {
-  stroke: rgba(248, 250, 252, 0.9);
-  opacity: 0.92;
-}
-
-:global(:root[data-theme='dark']) .eventTimeMarkerHalo,
-:global(:root[data-theme='imagery']) .eventTimeMarkerHalo {
-  stroke: rgba(15, 23, 42, 0.88);
-}
-
-:global(:root[data-theme='dark']) .waveformAxisLine,
-:global(:root[data-theme='dark']) .waveformAxisTick,
-:global(:root[data-theme='imagery']) .waveformAxisLine,
-:global(:root[data-theme='imagery']) .waveformAxisTick {
-  stroke: rgba(226, 232, 240, 0.82);
-}
-
-:global(:root[data-theme='dark']) .waveformGridLine,
-:global(:root[data-theme='imagery']) .waveformGridLine {
-  stroke: rgba(226, 232, 240, 0.16);
-}
-
-:global(:root[data-theme='dark']) .waveformBaselineLine,
-:global(:root[data-theme='imagery']) .waveformBaselineLine {
-  stroke: rgba(226, 232, 240, 0.36);
-}
-
-:global(:root[data-theme='dark']) .waveformAxisLabels,
-:global(:root[data-theme='imagery']) .waveformAxisLabels {
-  color: rgba(226, 232, 240, 0.88);
-}
-
-:global(:root[data-theme='dark']) .waveformEventMarkerLabel,
-:global(:root[data-theme='imagery']) .waveformEventMarkerLabel {
-  color: rgba(241, 245, 249, 0.94);
-  border-color: rgba(226, 232, 240, 0.18);
-  background: color-mix(in srgb, var(--waveform-track-bg) 72%, #334155 28%);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
-}
-
-:global(:root[data-theme='dark']) .channelSelect,
-:global(:root[data-theme='imagery']) .channelSelect {
-  background:
-    linear-gradient(45deg, transparent 50%, #dbeafe 50%),
-    linear-gradient(135deg, #dbeafe 50%, transparent 50%),
-    rgba(255, 255, 255, 0.08);
-  background-position:
-    calc(100% - 12px) 50%,
-    calc(100% - 7px) 50%,
-    0 0;
-  background-size:
-    5px 5px,
-    5px 5px,
-    100% 100%;
-  background-repeat: no-repeat;
+.metadataBtn {
+  background: var(--panel-subtle);
   color: var(--text-primary);
+  border: 1px solid var(--border);
+  cursor: pointer;
 }
 
-:global(:root[data-theme='dark']) .channelSelect option,
-:global(:root[data-theme='imagery']) .channelSelect option {
-  background: #1f2937;
-  color: #f8fafc;
+.metadataBtn:hover {
+  background: var(--border);
+  border-color: var(--text-primary);
 }
 
-:global(:root[data-theme='dark']) .channelSelect option:checked,
-:global(:root[data-theme='imagery']) .channelSelect option:checked {
-  background: #2563eb;
-  color: #ffffff;
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .waveformRow {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .waveformCanvas {
+    background: rgba(0, 0, 0, 0.3);
+  }
 }
 
-@media (max-width: 768px) {
-  .rowActions {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: flex-end;
-    padding-top: 0;
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+  .waveformRow {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .waveformCanvas {
+    background: white;
   }
 }

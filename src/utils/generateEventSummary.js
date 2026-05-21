@@ -1,17 +1,19 @@
-import moment from './time';
-
-function formatDatePh(isoString) {
+function formatDate(isoString) {
   if (!isoString) return '—';
-  const parsed = moment.utc(isoString);
-  if (!parsed || !parsed.isValid()) return '—';
-  return parsed.add(8, 'hour').format('MMMM D, YYYY');
+  const date = new Date(isoString);
+  if (isNaN(date)) return '—';
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
-function formatTimePh(isoString) {
+function formatTime(isoString) {
   if (!isoString) return '—';
-  const parsed = moment.utc(isoString);
-  if (!parsed || !parsed.isValid()) return '—';
-  return parsed.add(8, 'hour').format('HH:mm:ss');
+  const date = new Date(isoString);
+  if (isNaN(date)) return '—';
+  return date.toISOString().substring(11, 19); 
 }
 
 function formatMagnitude(value) {
@@ -82,6 +84,7 @@ export function generateEventSummary(earthquakeInfo) {
 
   // — Time fields (mirrors page's eventTime logic) —
   const eventTime = earthquakeInfo.eventTime || earthquakeInfo.OT;
+  const updatedTime = earthquakeInfo.updatedTime || earthquakeInfo.lastUpdate;
 
   // — Depth (mirrors page's depthValue logic) —
   const depth = formatDepth(earthquakeInfo.depth ?? earthquakeInfo.depth_value);
@@ -105,13 +108,18 @@ export function generateEventSummary(earthquakeInfo) {
 
   let summary =
     `A magnitude ${magnitude} ${struckPhrase} ` +
-    `on ${formatDatePh(eventTime)}, at ${formatTimePh(eventTime)} UTC+08:00, ` +
+    `on ${formatDate(eventTime)}, at ${formatTime(eventTime)} UTC+00:00, ` +
     `with a depth of ${depth} km.`;
 
   // — Assemble sentence 2 (coordinates) —
   // Only render if we have at least one valid coordinate
   if (lat && lon) {
-    summary += ` The earthquake epicenter was located at ${lat} latitude and ${lon} longitude.`;
+    summary += ` The earthquake was located at ${lat} latitude and ${lon} longitude`;
+
+    const formattedUpdate = formatTime(updatedTime);
+    summary += formattedUpdate !== '—'
+      ? `, and was last updated at ${formattedUpdate} UTC+00:00.`
+      : '.';
   }
 
   return summary;

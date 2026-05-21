@@ -31,13 +31,7 @@ const StationDownloadButtons = (stationInfo) => {
   const endTime = formatDateTime(stationInfo.eventTime, 60 * 10); // seconds to minutes
   const dateSuffix = parseEventTimeUtc(stationInfo.eventTime).format('MMDDYY');
   const metadataFilename = `${network}.${stationCodeUpper}.00.MULTI.xml`;
-  const startSuffix = parseEventTimeUtc(stationInfo.eventTime)
-    .add(-60, 'second')
-    .format('YYYYMMDDTHHmmss') + 'Z';
-  const endSuffix = parseEventTimeUtc(stationInfo.eventTime)
-    .add(60 * 10, 'second')
-    .format('YYYYMMDDTHHmmss') + 'Z';
-  const waveformFilename = `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.${startSuffix}-${endSuffix}.mseed`;
+  const waveformFilename = `${network}.${stationCodeUpper}.00.MULTI.${dateSuffix}.mseed`;
 
   const emitDownload = (kind) => {
     try {
