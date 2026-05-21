@@ -291,15 +291,11 @@
 
 .metric-coordinate-list {
   display: grid;
-  gap: 6px;
-  margin: 0;
-}
-
-.metric-coordinate-list div {
-  display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: baseline;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 6px;
+  margin: 0;
 }
 
 .metric-coordinate-list dt {

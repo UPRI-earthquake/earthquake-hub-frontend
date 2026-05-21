@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { FiArrowDown, FiClock, FiImage, FiMapPin, FiRadio, FiSend, FiX } from 'react-icons/fi';
@@ -14,6 +14,7 @@ import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
 import EditableEventSummary from '../components/EditableEventSummary';
+import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
 import './EQInfoPage.css';
 
 const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
@@ -181,11 +182,11 @@ function getEventCoordinates(earthquakeInfo) {
 
 function getEarthquakeEventId(earthquakeInfo, queryEventId) {
   return (
-    earthquakeInfo?._id ||
+    queryEventId ||
     earthquakeInfo?.publicID ||
     earthquakeInfo?.id ||
     earthquakeInfo?.event_id ||
-    queryEventId ||
+    earthquakeInfo?._id ||
     ''
   );
 }
@@ -509,11 +510,9 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
 
     const trimmedText = reportText.trim();
     if (!trimmedText && !imageFile) {
-      console.log(earthquakeInfo);
       setPostError('Add a report or image before posting.');
       return;
     }
-    console.log(earthquakeInfo);
     const formData = new FormData();
     formData.append('eventId', eventId);
     formData.append('content', trimmedText);
@@ -561,12 +560,11 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
           <div className="report-empty">Loading reports...</div>
         ) : comments.length > 0 ? (
           comments.map((comment, index) => {
-            console.log(comment)
             const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
             const text = getCommentText(comment);
             const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
             return (
-              <article className="report-card" key={commentKey}>
+              <article className="report-card" key={commentKey} id={`comment-${commentKey}`}>
                 <div className="report-card-meta">
                   <strong>{getCommentAuthor(comment)}</strong>
                   {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
@@ -660,8 +658,10 @@ function EarthquakeDetailPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
-  const [displaySummary, setDisplaySummary] = useState('');
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
+  const [displaySummary, setDisplaySummary] = useState('');
+  const [reportCount, setReportCount] = useState(0);
+  const reportsRef = useRef(null);
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
   const isDevelopment =
@@ -681,7 +681,6 @@ function EarthquakeDetailPage() {
     formattedUpdatedTimeUtc,
     pageTitle,
     stationsForDisplay,
-    summaryMarkup,
   } = useEarthquakeDetailViewModel(earthquakeInfo);
   const nearestRecordingStation = useMemo(
     () => getNearestRecordingStation(stationsForDisplay, earthquakeInfo, stationLocationsByCode),
@@ -695,138 +694,73 @@ function EarthquakeDetailPage() {
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
 
-    // Sync displaySummary with earthquakeInfo
+  // Sync displaySummary with earthquakeInfo
   useEffect(() => {
-    const summary = earthquakeInfo?.summaryOverride?.text || earthquakeInfo?.eventSummary || '';
-    setDisplaySummary(summary);
-  }, [earthquakeInfo?.summaryOverride?.text, earthquakeInfo?.eventSummary]);
+    if (earthquakeInfo?.eventSummary) {
+      setDisplaySummary(earthquakeInfo.eventSummary);
+    }
+  }, [earthquakeInfo?.eventSummary]);
 
   // Callback when summary is updated
   const handleSummaryUpdated = useCallback((updatedSummary) => {
     setDisplaySummary(updatedSummary);
+  }, []);
 
-    // Patch the in-memory fetched earthquake so it survives re-renders
-    setFetchedEarthquake((prev) => {
-      const base = prev || earthquakeInfo;
-      if (!base) return prev;
-      return {
-        ...base,
-        eventSummary: updatedSummary,
-        summaryOverride: { ...(base.summaryOverride || {}), text: updatedSummary },
-      };
-    });
+  // Callback to scroll to reports section
+  const scrollToReports = useCallback(() => {
+    reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
-    // Also update the localStorage cache so refresh doesn't revert it
-    if (eventId) {
-      const base = fetchedEarthquake || cachedEarthquake || earthquakeInfo;
-      if (base) {
-        writeCachedEarthquake(eventId, {
-          ...base,
-          eventSummary: updatedSummary,
-          summaryOverride: { ...(base.summaryOverride || {}), text: updatedSummary },
-        });
-      }
+  // Callback when reports are loaded
+  const handleReportsLoaded = useCallback((count) => {
+    setReportCount(count);
+  }, []);
+
+  const summaryMarkup = useMemo(
+    () => sanitizeHtml(earthquakeInfo?.eventSummary || ''),
+    [earthquakeInfo],
+  );
+  const instrumentRecordings = useMemo(
+    () => normalizeList(earthquakeInfo?.instrumentRecordings),
+    [earthquakeInfo?.instrumentRecordings],
+  );
+  const references = useMemo(() => normalizeList(earthquakeInfo?.references), [earthquakeInfo?.references]);
+
+  const magnitude =
+    typeof earthquakeInfo?.magnitude === 'number'
+      ? earthquakeInfo.magnitude.toFixed(1).replace(/\.0$/, '')
+      : typeof earthquakeInfo?.magnitude_value === 'number'
+      ? earthquakeInfo.magnitude_value.toFixed(1).replace(/\.0$/, '')
+      : earthquakeInfo?.magnitude;
+
+  const depthValue = Number(earthquakeInfo?.depth ?? earthquakeInfo?.depth_value);
+  const depth = Number.isFinite(depthValue) ? `${depthValue.toFixed(0)} km` : null;
+
+  const eventTime = earthquakeInfo?.eventTime || earthquakeInfo?.OT;
+  const formattedEventTime = eventTime ? formatEventTime(eventTime) : null;
+
+  const place_description = earthquakeInfo?.place || '';
+  const generic_location = earthquakeInfo?.location || earthquakeInfo?.text || 'Location unavailable';
+  
+  // Use place description for location if available, otherwise use generic location
+  const location_display = place_description && place_description !== 'Unavailable' 
+    ? place_description 
+    : generic_location;
+
+  // Generate dynamic title: "M6.8 Earthquake 067 km N 87° E of Cagwait (Surigao Del Sur)"
+  const pageTitle = useMemo(() => {
+    if (earthquakeInfo?.title) return earthquakeInfo.title;
+    
+    const magText = magnitude ? `M${magnitude} Earthquake` : 'Earthquake';
+    
+    if (place_description && place_description !== 'Unavailable') {
+      return `${magText} ${place_description}`;
+    } else if (generic_location) {
+      return `${magText} ${generic_location}`;
     }
-  }, [eventId, earthquakeInfo, fetchedEarthquake, cachedEarthquake]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    fetchStations()
-      .then((backendStations) => {
-        if (isMounted) setStationLocationsByCode(buildStationLocationLookup(backendStations));
-      })
-      .catch(() => {
-        if (isMounted) setStationLocationsByCode({});
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [fetchStations]);
-
-  // Fetch earthquake data if not available via location.state but ID is in URL
-  useEffect(() => {
-    if (location.state?.earthquake || cachedEarthquake || fetchedEarthquake) {
-      // Already have data, no need to fetch
-      return;
-    }
-
-    if (!eventId) {
-      // No ID in URL, can't fetch anything
-      return;
-    }
-
-    let isMounted = true;
-    const fetchEarthquake = async () => {
-      setIsFetching(true);
-      setFetchError(null);
-      try {
-        const found = await fetchEarthquakeWithFallback(eventId);
-
-        if (!isMounted) return;
-
-        if (found) {
-          setFetchedEarthquake(found);
-          writeCachedEarthquake(eventId, found);
-          setFetchError(null);
-        } else {
-          setFetchError(
-            `Earthquake with ID "${eventId}" not found in recent events. It may have been archived.`
-          );
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error('Error fetching earthquake:', error);
-        }
-        setFetchError(getFetchErrorMessage(error));
-      } finally {
-        if (isMounted) {
-          setIsFetching(false);
-        }
-      }
-    };
-
-    fetchEarthquake();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
-
-  useEffect(() => {
-    if (location.state?.earthquake || fetchedEarthquake || !cachedEarthquake || !eventId) {
-      return undefined;
-    }
-
-    let isMounted = true;
-    const revalidateCachedEarthquake = async () => {
-      try {
-        const freshEvent = await fetchEarthquakeByPublicID(eventId);
-        if (!isMounted || !freshEvent) return;
-
-        if (isNewerEvent(freshEvent, cachedEarthquake)) {
-          setFetchedEarthquake(freshEvent);
-          writeCachedEarthquake(eventId, freshEvent);
-        }
-      } catch (_) {
-        // Keep the cached event when background revalidation fails.
-      }
-    };
-
-    revalidateCachedEarthquake();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
-
-  // Debug: Check earthquake object structure
-  if (isDevelopment && typeof window !== 'undefined') {
-    window._earthquakeDebug = debugInfo;
-  }
+    
+    return magText;
+  }, [magnitude, place_description, generic_location, earthquakeInfo?.title]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -886,16 +820,13 @@ function EarthquakeDetailPage() {
                 <em className="metric-sub">{depthContext}</em>
               </div>
             </div>
-            <div className="metric-card metric-card-time" role="group" aria-label={`Event time ${eventTimeDisplay.primary || 'not available'}`} title={`Event time ${eventTimeDisplay.primary || 'Not available'}`}>
-              <div className="metric-card-head">
-                <span className="metric-icon" aria-hidden="true"><FiClock /></span>
-                <span className="metric-label">Event time</span>
-              </div>
-              <div className="metric-card-body">
-                <strong>{eventTimeDisplay.primary}</strong>
-                <em className="metric-sub metric-zone">{eventTimeDisplay.zone}</em>
-                <em className="metric-sub metric-tertiary">{eventTimeDisplay.utc}</em>
-              </div>
+            <div className="metric-card" role="group" aria-label={`Location ${location_display || 'not available'}`} title={`Location ${location_display || 'Not available'}`}>
+              <span>Location</span>
+              <strong>{location_display || '—'}</strong>
+            </div>
+            <div className="metric-card" role="group" aria-label={`Local time ${formattedEventTime || 'not available'}`} title={`Local time ${formattedEventTime || 'Not available'}`}>
+              <span>Local time</span>
+              <strong>{formattedEventTime ? `${formattedEventTime} (Local)` : '—'}</strong>
             </div>
             <div className="metric-card metric-map-card metric-card-epicenter" role="group" aria-label={`Epicenter ${coordText || 'not available'}`} title={`Epicenter ${coordText || 'Not available'}`}>
               <MiniMapPreview coordinates={eventCoordinates} marker="epicenter" />
@@ -938,7 +869,8 @@ function EarthquakeDetailPage() {
           </p>
         </section>
 
-        {summaryMarkup && (
+        {/* Event Summary and Community Reports Carousel Preview - 1/3 to 2/3 Layout */}
+        <div className="eqinfo-summary-carousel-container">
           <EditableEventSummary
             eventId={earthquakeInfo?.publicID || eventId}
             initialSummary={displaySummary}
@@ -946,7 +878,23 @@ function EarthquakeDetailPage() {
             endpointType="eq-events"
             onSummaryUpdated={handleSummaryUpdated}
           />
-        )}
+
+          <section className="eqinfo-panel scrollable eqinfo-carousel-section">
+            <div className="panel-header">
+              <div className="panel-title">
+                <h3>Community reports</h3>
+                {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
+              </div>
+            </div>
+            <div className="panel-body">
+              <CommunityReportsCarousel
+                eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
+                onReportClick={scrollToReports}
+                onReportsLoaded={handleReportsLoaded}
+              />
+            </div>
+          </section>
+        </div>
 
         <div ref={waveformSentinelRef}>
           {shouldMountWaveforms ? (
@@ -961,8 +909,8 @@ function EarthquakeDetailPage() {
           )}
         </div>
 
-        <div className="eqinfo-post-report-grid">
-          <div className="eqinfo-reference-column">
+        <div className="eqinfo-grid">
+          <div className="eqinfo-related-source-row">
             <NearbyEvents
               earthquakeInfo={earthquakeInfo}
               nearbyEventCount={5}
@@ -971,7 +919,9 @@ function EarthquakeDetailPage() {
 
             <CatalogComparison earthquakeInfo={earthquakeInfo} />
           </div>
+        </div>
 
+        <div ref={reportsRef}>
           <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
         </div>
       </div>
