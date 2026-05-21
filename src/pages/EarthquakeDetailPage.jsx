@@ -13,7 +13,6 @@ import { calculateDistance } from '../utils/distanceCalculator';
 import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
-import EditableEventSummary from '../components/EditableEventSummary';
 import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
 import './EQInfoPage.css';
 
@@ -659,8 +658,6 @@ function EarthquakeDetailPage() {
   const [fetchError, setFetchError] = useState(null);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
-  const [displaySummary, setDisplaySummary] = useState('');
-  const [reportCount, setReportCount] = useState(0);
   const reportsRef = useRef(null);
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
@@ -694,26 +691,9 @@ function EarthquakeDetailPage() {
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
 
-  // Sync displaySummary with earthquakeInfo
-  useEffect(() => {
-    if (earthquakeInfo?.eventSummary) {
-      setDisplaySummary(earthquakeInfo.eventSummary);
-    }
-  }, [earthquakeInfo?.eventSummary]);
-
-  // Callback when summary is updated
-  const handleSummaryUpdated = useCallback((updatedSummary) => {
-    setDisplaySummary(updatedSummary);
-  }, []);
-
   // Callback to scroll to reports section
   const scrollToReports = useCallback(() => {
     reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  // Callback when reports are loaded
-  const handleReportsLoaded = useCallback((count) => {
-    setReportCount(count);
   }, []);
 
   useEffect(() => {
@@ -956,32 +936,20 @@ function EarthquakeDetailPage() {
           </p>
         </section>
 
-        {/* Event Summary and Community Reports Carousel Preview - 1/3 to 2/3 Layout */}
-        <div className="eqinfo-summary-carousel-container">
-          <EditableEventSummary
-            eventId={earthquakeInfo?.publicID || eventId}
-            initialSummary={displaySummary}
-            earthquakeInfo={earthquakeInfo}
-            endpointType="eq-events"
-            onSummaryUpdated={handleSummaryUpdated}
-          />
-
-          <section className="eqinfo-panel scrollable eqinfo-carousel-section">
-            <div className="panel-header">
-              <div className="panel-title">
-                <h3>Community reports</h3>
-                {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
-              </div>
+        {/* Community Reports Carousel */}
+        <section className="eqinfo-panel scrollable eqinfo-carousel-section">
+          <div className="panel-header">
+            <div className="panel-title">
+              <h3>Community reports</h3>
             </div>
-            <div className="panel-body">
-              <CommunityReportsCarousel
-                eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
-                onReportClick={scrollToReports}
-                onReportsLoaded={handleReportsLoaded}
-              />
-            </div>
-          </section>
-        </div>
+          </div>
+          <div className="panel-body">
+            <CommunityReportsCarousel
+              eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
+              onReportClick={scrollToReports}
+            />
+          </div>
+        </section>
 
         <div ref={waveformSentinelRef}>
           {shouldMountWaveforms ? (

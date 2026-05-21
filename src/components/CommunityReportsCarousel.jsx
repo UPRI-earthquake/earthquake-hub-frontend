@@ -12,24 +12,43 @@ const CAROUSEL_ROTATION_INTERVAL_MS = 6000; // 6 seconds
  * @returns {string} - Resolved absolute URL or empty string
  */
 function resolveImageUrl(imageUrl) {
-  if (typeof imageUrl !== 'string') return '';
-  const trimmedUrl = imageUrl.trim();
-  if (!trimmedUrl) return '';
-  // If already absolute URL (http/https/data), return as-is
-  if (/^(?:[a-z][a-z\d+.-]*:|\/\/|data:)/i.test(trimmedUrl)) return trimmedUrl;
-  // If relative path, construct from backend host
-  const apiHost = getBackendHost();
-  if (!apiHost) return trimmedUrl;
-  try {
-    const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
-    const backendUrl = new URL(apiHost, fallbackOrigin);
-    return new URL(trimmedUrl, `${backendUrl.origin}/`).toString();
-  } catch (_) {
-    const host = apiHost.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
-    const path = trimmedUrl.replace(/^\/+/, '');
-    return `${host}/${path}`;
-  }
-}
+if (typeof imageUrl !== 'string') return '';
+   const trimmedUrl = imageUrl.trim();
+   if (!trimmedUrl) return '';
+   
+
+   const isSafeDataImageUrl = (url) => /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+$/i.test(url);
+   const isSafeHttpUrl = (url) => {
+     try {
+       const parsedUrl = new URL(url);
+       return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+     } catch (_) {
+       return false;
+     }
+   };
+   const isSafeProtocolRelativeUrl = (url) => /^\/\//.test(url);
+   // If already an allowed absolute URL, return as-is
+   if (isSafeDataImageUrl(trimmedUrl) || isSafeHttpUrl(trimmedUrl) || isSafeProtocolRelativeUrl(trimmedUrl)) {
+     return trimmedUrl;
+   }
+   // Reject other explicit URI schemes (for example, javascript:)
+   if (/^[a-z][a-z\d+.-]*:/i.test(trimmedUrl)) return '';
+   // If relative path, construct from backend host
+   const apiHost = getBackendHost();
+
+   if (!apiHost) return '';
+   try {
+     const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
+     const backendUrl = new URL(apiHost, fallbackOrigin);
+     const resolvedUrl = new URL(trimmedUrl, `${backendUrl.origin}/`).toString();
+     return isSafeHttpUrl(resolvedUrl) ? resolvedUrl : '';
+   } catch (_) {
+     const host = apiHost.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+     const path = trimmedUrl.replace(/^\/+/, '');
+     const resolvedUrl = `${host}/${path}`;
+     return isSafeHttpUrl(resolvedUrl) ? resolvedUrl : '';
+   }
+ }
 
 /**
  * CommunityReportsCarousel component displays community reports/comments for an earthquake event
@@ -68,9 +87,10 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
       }
 
       // Construct the API endpoint to fetch comments for the event
-      const endpoint = `${backendHost}/comments?eventId=${encodeURIComponent(eventId)}`;
+      const endpoint = `${backendHost}/comments/`;
       
-      const response = await axios.get(endpoint, { 
+      const response = await axios.get(endpoint, {
+        params: { eventId }, 
         withCredentials: true, 
         signal,
         timeout: 10000 
@@ -121,19 +141,19 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
     [reports, currentIndex]
   );
 
-  const handleNavigateToReport = useCallback(() => {
-    if (!currentReport?.id && !currentReport?._id) return;
-    // Scroll to the actual report in the reports section
-    const reportId = currentReport.id || currentReport._id;
-    const reportElement = document.getElementById(`comment-${reportId}`);
-    if (reportElement) {
-      reportElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    // Trigger the callback for additional actions
-    onReportClick?.();
-  }, [currentReport, onReportClick]);
-
-  const handleDotClick = useCallback((index) => {
+     const handleNavigateToReport = useCallback(() => {
+     if (!currentReport?.id && !currentReport?._id) return;
+     // Trigger any parent-level navigation first so the final scroll
+     // can target the specific report element.
+     onReportClick?.();
+     // Scroll to the actual report in the reports section
+     const reportId = currentReport.id || currentReport._id;
+     const reportElement = document.getElementById(`comment-${reportId}`);
+     if (reportElement) {
+       reportElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+     }
+   }, [currentReport, onReportClick]);
+   const handleDotClick = useCallback((index) => {
     setCurrentIndex(index);
   }, []);
 
@@ -169,9 +189,12 @@ function CommunityReportsCarousel({ eventId, onReportClick, onReportsLoaded }) {
               handleNavigateToReport();
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === 'Enter') {
                 handleNavigateToReport();
-              }
+              } else if (e.key === ' ') {
+                 e.preventDefault();
+                 handleNavigateToReport();
+               }
             }}
             role="button"
             tabIndex={0}
