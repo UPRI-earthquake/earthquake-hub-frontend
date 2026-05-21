@@ -182,11 +182,11 @@ function getEventCoordinates(earthquakeInfo) {
 
 function getEarthquakeEventId(earthquakeInfo, queryEventId) {
   return (
-    earthquakeInfo?._id ||
+    queryEventId ||
     earthquakeInfo?.publicID ||
     earthquakeInfo?.id ||
     earthquakeInfo?.event_id ||
-    queryEventId ||
+    earthquakeInfo?._id ||
     ''
   );
 }
