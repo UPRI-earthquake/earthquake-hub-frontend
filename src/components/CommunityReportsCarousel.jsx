@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import styles from './CommunityReportsCarousel.module.css';
-import InfoTooltip from './InfoTooltip';
 import { getBackendHost } from '../utils/backendHost';
 import thumbnailImage from '../assets/thumbnail.jpg';
 
