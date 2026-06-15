@@ -732,13 +732,6 @@
   font-weight: 700;
 }
 
-.report-account-note {
-  margin: -4px 0 0;
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
 .report-attachment-unavailable {
   width: fit-content;
   max-width: 100%;
@@ -1047,25 +1040,10 @@
   accent-color: var(--accent);
 }
 
-.report-identity-card {
-  display: inline-grid;
-  gap: 2px;
-  min-height: 40px;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--panel-subtle);
-  color: var(--text-primary);
-  font-size: 0.8rem;
-}
-
-.report-identity-card strong {
-  font-size: 0.78rem;
-}
-
-.report-identity-card span {
+.report-identity-note {
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 .report-image-preview {
@@ -1398,7 +1376,7 @@
   }
 
   .report-image-button,
-  .report-identity-card,
+  .report-identity-note,
   .report-checkbox {
     width: 100%;
   }

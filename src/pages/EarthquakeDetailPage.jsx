@@ -207,6 +207,10 @@ function getCommentTotalFromResponse(data, comments) {
   return Number.isFinite(total) ? total : comments.length;
 }
 
+function getCommentKey(comment, fallback = '') {
+  return comment?.id || comment?._id || comment?.commentId || fallback;
+}
+
 function getCommentText(comment) {
   return (
     comment?.comment ||
@@ -522,6 +526,34 @@ function ReportCommentsSection({
   const canPostWithAccount = Boolean(accountIdentity?.username);
   const selectedFileSummary = imageFile ? `${imageFile.name} (${Math.max(1, Math.round(imageFile.size / 1024))} KB)` : '';
 
+  const refreshAccountIdentity = useCallback(async (nextDetail = null) => {
+    if (nextDetail && nextDetail.authenticated === false) {
+      setAccountIdentity(null);
+      return;
+    }
+
+    if (nextDetail && nextDetail.authenticated === true && nextDetail.username) {
+      setAccountIdentity({ username: nextDetail.username });
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${backendHost()}/accounts/profile`, {
+        timeout: COMMENTS_FETCH_TIMEOUT_MS,
+        withCredentials: true,
+        validateStatus: (status) => status < 500,
+      });
+      if (response.status === 200 && response.data?.payload?.username) {
+        setAccountIdentity({ username: response.data.payload.username });
+        return;
+      }
+    } catch (_) {
+      // Guest posting remains anonymous when account status cannot be confirmed.
+    }
+
+    setAccountIdentity(null);
+  }, []);
+
   const resetForm = useCallback(() => {
     setReportText('');
     setImageFile(null);
@@ -542,39 +574,30 @@ function ReportCommentsSection({
   }, [imageFile]);
 
   useEffect(() => {
-    let isMounted = true;
+    refreshAccountIdentity();
+  }, [refreshAccountIdentity]);
 
-    const loadAccountIdentity = async () => {
-      try {
-        const response = await axios.get(`${backendHost()}/accounts/profile`, {
-          timeout: COMMENTS_FETCH_TIMEOUT_MS,
-          withCredentials: true,
-          validateStatus: (status) => status < 500,
-        });
-        if (isMounted && response.status === 200 && response.data?.payload?.username) {
-          setAccountIdentity({ username: response.data.payload.username });
-          return;
-        }
-      } catch (_) {
-        // Guest posting remains anonymous when account status cannot be confirmed.
-      }
-
-      if (isMounted) {
-        setAccountIdentity(null);
-      }
+  useEffect(() => {
+    const handleAuthState = (event) => {
+      refreshAccountIdentity(event?.detail || null);
     };
 
-    loadAccountIdentity();
+    window.addEventListener('ui:auth-state', handleAuthState);
     return () => {
-      isMounted = false;
+      window.removeEventListener('ui:auth-state', handleAuthState);
     };
-  }, []);
+  }, [refreshAccountIdentity]);
 
   useEffect(() => {
     if (!canPostWithAccount) {
       setPostAnonymously(true);
     }
   }, [canPostWithAccount]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    refreshAccountIdentity();
+  }, [isModalOpen, refreshAccountIdentity]);
 
   useEffect(() => {
     if (!isModalOpen) return undefined;
@@ -662,14 +685,14 @@ function ReportCommentsSection({
     setIsPosting(true);
     setPostError('');
     try {
-      await axios.post(`${backendHost()}/comments`, formData, {
+      const response = await axios.post(`${backendHost()}/comments`, formData, {
         timeout: COMMENT_POST_TIMEOUT_MS,
         withCredentials: true,
       });
       setIsModalOpen(false);
       resetForm();
       triggerButtonRef.current?.focus();
-      await onReportsChanged?.();
+      await onReportsChanged?.({ createdComment: response?.data?.payload || null });
     } catch (error) {
       setPostError(error?.response?.data?.message || error?.message || 'Failed to post report.');
     } finally {
@@ -710,7 +733,7 @@ function ReportCommentsSection({
       {loadError && <div className="report-message report-message-error" role="alert">{loadError}</div>}
 
       <div className="report-list" aria-live="polite">
-        {isLoading ? (
+        {isLoading && comments.length === 0 ? (
           <div className="report-empty" role="status">Loading reports...</div>
         ) : comments.length > 0 ? (
           comments.map((comment, index) => {
@@ -783,7 +806,10 @@ function ReportCommentsSection({
                   ? 'Anonymous report'
                   : `Posting as ${accountIdentity?.username || 'your account'}`}
               </div>
-              <p>Text or image is required. Avoid sharing personal contact details.</p>
+              <p>
+                Text or image is required. Avoid sharing personal contact details.
+                {!canPostWithAccount ? ' Sign in from the account menu to post under your contributor name.' : ''}
+              </p>
             </div>
 
             <div className="report-field-row">
@@ -832,18 +858,11 @@ function ReportCommentsSection({
                   <span>Post anonymously</span>
                 </label>
               ) : (
-                <div className="report-identity-card">
-                  <strong>Guest report</strong>
-                  <span>Posted anonymously</span>
+                <div className="report-identity-note" aria-live="polite">
+                  This report will be posted anonymously.
                 </div>
               )}
             </div>
-
-            {!canPostWithAccount && (
-              <p className="report-account-note">
-                Sign in to post with your account. Guest reports are posted anonymously.
-              </p>
-            )}
 
             {postError && (
               <div id="report-form-error" className="report-message report-message-error" role="alert">
@@ -978,6 +997,23 @@ function EarthquakeDetailPage() {
       setReportsLoading(false);
     }
   }, [reportEventId]);
+
+  const handleReportsChanged = useCallback(async ({ createdComment } = {}) => {
+    if (createdComment) {
+      setReportComments((prev) => {
+        const createdKey = getCommentKey(createdComment, 'created-comment');
+        const withoutDuplicate = prev.filter(
+          (comment, index) => getCommentKey(comment, `existing-${index}`) !== createdKey
+        );
+        return [createdComment, ...withoutDuplicate];
+      });
+      setReportCount((prev) => Math.max(prev + 1, 1));
+      void loadReports();
+      return;
+    }
+
+    await loadReports();
+  }, [loadReports]);
 
   useEffect(() => {
     loadReports();
@@ -1307,7 +1343,7 @@ function EarthquakeDetailPage() {
                 comments={reportComments}
                 isLoading={reportsLoading}
                 loadError={reportsError}
-                onReportsChanged={loadReports}
+                onReportsChanged={handleReportsChanged}
               />
             </div>
           </div>
