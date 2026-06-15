@@ -15,7 +15,15 @@ import styles from './EditableEventSummary.module.css';
  * @param {string} endpointType - Type of endpoint: 'significant-eqs' or 'eq-events' (default: 'significant-eqs')
  * @returns {JSX.Element}
  */
-function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSummaryUpdated, endpointType = 'eq-events' }) {
+function EditableEventSummary({
+  eventId,
+  initialSummary,
+  earthquakeInfo,
+  onSummaryUpdated,
+  endpointType = 'eq-events',
+  canEdit = false,
+  className = '',
+}) {
   const defaultSummary = useMemo(() => {
     return initialSummary?.trim() || generateEventSummary(earthquakeInfo) || '';
   }, [initialSummary, earthquakeInfo]);
@@ -92,11 +100,11 @@ function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSumma
   }, []);
 
   return (
-    <section className={`${styles.summaryContainer} eqinfo-panel scrollable`}>
+    <section className={`${styles.summaryContainer} eqinfo-panel ${className}`.trim()}>
       <div className="panel-header">
         <div className="panel-title">
           <h3>Event summary</h3>
-          {!isEditing && (
+          {!isEditing && canEdit && (
             <button
               className={styles.editButton}
               onClick={handleEditClick}
@@ -118,7 +126,7 @@ function EditableEventSummary({ eventId, initialSummary, earthquakeInfo, onSumma
             />
           ) : (
             <div className={styles.placeholderText}>
-              No event summary available. Click the edit button to add one.
+              No event summary available.
             </div>
           )
         ) : (

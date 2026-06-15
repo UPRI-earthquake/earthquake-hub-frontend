@@ -189,7 +189,8 @@ function NearbyEvents({
           </div>
         ) : nearbyEvents.length === 0 ? (
           <div className={styles.empty}>
-            No events found within {distanceThresholdKm} km from {timeWindowDays} days before to {timeWindowDays} days after this event.
+            <strong>No nearby events in range.</strong>
+            <span>Nothing matched within {distanceThresholdKm} km and ±{timeWindowDays} days of this event.</span>
           </div>
         ) : (
           <ul className={styles.eventList}>

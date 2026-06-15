@@ -7,6 +7,15 @@
   color: var(--text-primary);
 }
 
+.waveformContainerCompact {
+  padding: 16px 20px 18px;
+  background: color-mix(in srgb, var(--panel-surface) 92%, #f8fbff);
+  border-color: color-mix(in srgb, var(--border) 82%, #dbe7f3);
+  box-shadow:
+    0 10px 22px rgba(148, 163, 184, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
 .panelHeader {
   display: flex;
   align-items: center;
@@ -56,11 +65,8 @@
 
 .waveformRow {
   display: grid;
-  grid-template-columns: 174px minmax(0, 1fr) 96px;
-  gap: 16px;
-  align-items: stretch;
-  min-height: 108px;
-  padding: 12px 0;
+  gap: 10px;
+  padding: 12px 0 14px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -69,53 +75,39 @@
   padding-bottom: 10px;
 }
 
-@media (max-width: 768px) {
-  .waveformRow {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    min-height: 0;
-  }
-
-  .waveformCanvas {
-    grid-column: 1;
-  }
-}
-
-.stationCodeCell {
-  align-self: stretch;
+.waveformRowTop {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .stationControlGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .stationControl {
-  display: grid;
-  grid-template-columns: minmax(76px, 1fr) minmax(76px, 0.9fr);
-  gap: 8px;
+  display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .stationLabel {
-  min-height: 31px;
+  min-height: 29px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.92rem;
   color: var(--text-primary);
   background: var(--panel-surface);
   border: 1px solid color-mix(in srgb, var(--border) 82%, #6b7280);
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-  padding: 4px 8px;
+  padding: 4px 10px;
   text-align: center;
   word-break: break-word;
   white-space: nowrap;
@@ -126,9 +118,9 @@
 .channelSelect {
   appearance: none;
   -webkit-appearance: none;
-  width: 100%;
-  min-width: 0;
-  min-height: 31px;
+  width: auto;
+  min-width: 96px;
+  min-height: 29px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, #64748b);
   border-radius: 8px;
   background:
@@ -146,10 +138,10 @@
   background-repeat: no-repeat;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   line-height: 1;
-  padding: 4px 22px 4px 8px;
+  padding: 4px 22px 4px 10px;
 }
 
 .channelSelect:hover {
@@ -169,15 +161,20 @@
 .stationDistance {
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.25;
-  text-align: center;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
+  .waveformRowTop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
   .stationControl {
-    grid-template-columns: minmax(86px, 120px) minmax(88px, 120px);
-    justify-content: start;
+    gap: 6px;
   }
 
   .stationLabel {
@@ -185,7 +182,7 @@
   }
 
   .stationDistance {
-    text-align: left;
+    white-space: normal;
   }
 }
 
@@ -193,7 +190,7 @@
   --waveform-track-bg: #fbfcfd;
   position: relative;
   width: 100%;
-  height: 84px;
+  height: 88px;
   align-self: center;
   background: var(--waveform-track-bg);
   border: 0;
@@ -233,24 +230,27 @@
   position: absolute;
   display: block;
   padding: 1px 3px;
-  background: color-mix(in srgb, var(--waveform-track-bg) 90%, transparent);
+  background: color-mix(in srgb, var(--waveform-track-bg) 96%, white 4%);
   border-radius: 3px;
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
 }
 
 .waveformYAxisLabel {
-  left: 35px;
-  min-width: 42px;
-  text-align: right;
+  left: 10%;
+  width: max-content;
+  max-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transform: translate(-50%, -50%);
 }
 
 .waveformUtcLabel {
-  left: 52px;
+  left: 66px;
   bottom: 3px;
   font-size: 10px;
   font-weight: 800;
@@ -301,7 +301,7 @@
 
 @media (max-width: 768px) {
   .waveformCanvas {
-    height: 96px;
+    height: 92px;
   }
 
   .waveformAxisLabel {
@@ -309,12 +309,11 @@
   }
 
   .waveformYAxisLabel {
-    left: 30px;
-    min-width: 36px;
+    max-width: 52px;
   }
 
   .waveformUtcLabel {
-    left: 30px;
+    left: 60px;
     bottom: 6px;
     font-size: 10px;
   }
@@ -380,12 +379,49 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  gap: 4px;
+  min-height: 76px;
+  padding: 18px 20px;
   color: var(--muted);
   font-size: 0.95rem;
   background: var(--panel-subtle);
   border-radius: var(--radius-md);
   text-align: center;
+}
+
+.emptyStateCompact {
+  min-height: 0;
+  padding: 18px 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.96));
+}
+
+.emptyStateCompact span {
+  color: var(--text-primary);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.emptyState small {
+  max-width: 440px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.emptyStateCompact small {
+  max-width: 520px;
+  font-size: 0.82rem;
+}
+
+@media (min-width: 769px) {
+  .waveformContainerCompact {
+    margin-top: 4px;
+  }
+
+  .waveformContainerCompact .panelHeader {
+    margin-bottom: 10px;
+  }
 }
 
 .spinner {
@@ -404,11 +440,11 @@
 }
 
 .rowActions {
-  align-self: stretch;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  flex: 0 0 auto;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .metadataBtn,
@@ -418,8 +454,8 @@
   justify-content: center;
   gap: 5px;
   min-width: 0;
-  min-height: 31px;
-  padding: 5px 8px;
+  min-height: 29px;
+  padding: 4px 9px;
   font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;

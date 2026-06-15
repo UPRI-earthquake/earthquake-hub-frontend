@@ -342,7 +342,10 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
   }
 
   return (
-    <section className={styles.waveformContainer} ref={containerRef}>
+    <section
+      className={`${styles.waveformContainer} ${!hasStations ? styles.waveformContainerCompact : ''}`}
+      ref={containerRef}
+    >
       <div className={styles.panelHeader}>
         <div className={styles.panelTitle}>
           <h3>Station Recordings</h3>
@@ -385,7 +388,10 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
           ) : null}
         </>
       ) : (
-        <div className={styles.emptyState}>No station recordings</div>
+        <div className={`${styles.emptyState} ${styles.emptyStateCompact}`}>
+          <span>No station recordings</span>
+          <small>No online station recordings are currently available for this event.</small>
+        </div>
       )}
     </section>
   );
@@ -524,7 +530,7 @@ function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earth
 
   return (
     <div className={styles.waveformRow}>
-      <div className={styles.stationCodeCell}>
+      <div className={styles.waveformRowTop}>
         <StationChannelControl
           stationCode={stationCode}
           channels={channels}
@@ -532,6 +538,10 @@ function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earth
           onChange={setSelectedChannel}
           distanceLabel={distanceLabel}
         />
+        <div className={styles.rowActions}>
+          <MetadataButton stationCode={stationCode} earthquakeInfo={earthquakeInfo} />
+          <DownloadButton stationCode={stationCode} earthquakeInfo={earthquakeInfo} />
+        </div>
       </div>
 
       <div className={styles.waveformCanvas}>
@@ -542,11 +552,6 @@ function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earth
           isLoading={isLoading}
           eventTime={earthquakeInfo?.eventTime || earthquakeInfo?.OT}
         />
-      </div>
-
-      <div className={styles.rowActions}>
-        <MetadataButton stationCode={stationCode} earthquakeInfo={earthquakeInfo} />
-        <DownloadButton stationCode={stationCode} earthquakeInfo={earthquakeInfo} />
       </div>
     </div>
   );
@@ -577,10 +582,10 @@ function StationChannelControl({ stationCode, channels, selectedChannel, onChang
             </option>
           ))}
         </select>
+        {distanceLabel ? (
+          <div className={styles.stationDistance}>{distanceLabel}</div>
+        ) : null}
       </div>
-      {distanceLabel ? (
-        <div className={styles.stationDistance}>{distanceLabel}</div>
-      ) : null}
     </div>
   );
 }
@@ -645,7 +650,7 @@ function formatChannelLabel(code) {
 
 const WAVEFORM_VIEW_WIDTH = 820;
 const WAVEFORM_VIEW_HEIGHT = 98;
-const WAVEFORM_PLOT_LEFT = 66;
+const WAVEFORM_PLOT_LEFT = 82;
 const WAVEFORM_PLOT_RIGHT = 16;
 const WAVEFORM_PLOT_TOP = 12;
 const WAVEFORM_PLOT_BOTTOM = 74;

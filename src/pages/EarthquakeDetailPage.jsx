@@ -15,6 +15,7 @@ import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel'
 import CatalogComparison from '../components/CatalogComparison';
 import EditableEventSummary from '../components/EditableEventSummary';
 import CommunityReportsCarousel from '../components/CommunityReportsCarousel';
+import InfoTooltip from '../components/InfoTooltip';
 import './EQInfoPage.css';
 
 const SeismicWaveforms = lazy(() => import('../components/SeismicWaveforms'));
@@ -24,6 +25,8 @@ const DETAIL_FETCH_TIMEOUT_MS = 12000;
 const RECENT_EVENTS_FETCH_TIMEOUT_MS = 20000;
 const COMMENTS_FETCH_TIMEOUT_MS = 12000;
 const COMMENT_POST_TIMEOUT_MS = 20000;
+const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const REPORT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MINI_MAP_ZOOM = 9;
 const MINI_MAP_WIDTH = 168;
 const MINI_MAP_HEIGHT = 92;
@@ -199,6 +202,11 @@ function getCommentsFromResponse(data) {
   return [];
 }
 
+function getCommentTotalFromResponse(data, comments) {
+  const total = Number(data?.pagination?.total ?? data?.total ?? data?.payload?.total);
+  return Number.isFinite(total) ? total : comments.length;
+}
+
 function getCommentText(comment) {
   return (
     comment?.comment ||
@@ -227,7 +235,21 @@ function resolveCommentImageUrl(imageUrl) {
 
   const trimmedUrl = imageUrl.trim();
   if (!trimmedUrl) return '';
-  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(trimmedUrl)) return trimmedUrl;
+
+  const isSafeDataImageUrl = (url) => /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+$/i.test(url);
+  const isSafeHttpUrl = (url) => {
+    try {
+      const parsedUrl = new URL(url);
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  };
+
+  if (isSafeDataImageUrl(trimmedUrl) || isSafeHttpUrl(trimmedUrl) || /^\/\//.test(trimmedUrl)) {
+    return trimmedUrl;
+  }
+  if (/^[a-z][a-z\d+.-]*:/i.test(trimmedUrl)) return '';
 
   const apiHost = backendHost();
   if (!apiHost) return trimmedUrl;
@@ -235,12 +257,52 @@ function resolveCommentImageUrl(imageUrl) {
   try {
     const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
     const backendUrl = new URL(apiHost, fallbackOrigin);
-    return new URL(trimmedUrl, `${backendUrl.origin}/`).toString();
+    const resolvedUrl = new URL(trimmedUrl, `${backendUrl.origin}/`).toString();
+    return isSafeHttpUrl(resolvedUrl) ? resolvedUrl : '';
   } catch (_) {
     const host = apiHost.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
     const path = trimmedUrl.replace(/^\/+/, '');
-    return `${host}/${path}`;
+    const resolvedUrl = `${host}/${path}`;
+    return isSafeHttpUrl(resolvedUrl) ? resolvedUrl : '';
   }
+}
+
+function ReportAttachment({ src, onPreview }) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [isUnavailable, setIsUnavailable] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setIsUnavailable(false);
+  }, [src]);
+
+  if (isUnavailable) {
+    return (
+      <div className="report-attachment-unavailable" role="status">
+        Attachment unavailable
+      </div>
+    );
+  }
+
+  if (!currentSrc) return null;
+
+  return (
+    <button
+      type="button"
+      className="report-attachment-button"
+      onClick={() => onPreview?.(currentSrc)}
+      aria-label="Open submitted report attachment"
+    >
+      <img
+        src={currentSrc}
+        alt="Submitted report attachment"
+        onError={() => {
+          setCurrentSrc('');
+          setIsUnavailable(true);
+        }}
+      />
+    </button>
+  );
 }
 
 function getCommentAuthor(comment) {
@@ -439,10 +501,13 @@ function MiniMapPreview({ coordinates, marker = 'epicenter' }) {
   );
 }
 
-function ReportCommentsSection({ eventId, earthquakeInfo }) {
-  const [comments, setComments] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState('');
+function ReportCommentsSection({
+  eventId,
+  comments = [],
+  isLoading,
+  loadError,
+  onReportsChanged,
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportText, setReportText] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -450,29 +515,20 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
   const [postAnonymously, setPostAnonymously] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [postError, setPostError] = useState('');
+  const [selectedAttachment, setSelectedAttachment] = useState(null);
+  const [accountIdentity, setAccountIdentity] = useState(null);
+  const triggerButtonRef = useRef(null);
+  const textareaRef = useRef(null);
+  const canPostWithAccount = Boolean(accountIdentity?.username);
+  const selectedFileSummary = imageFile ? `${imageFile.name} (${Math.max(1, Math.round(imageFile.size / 1024))} KB)` : '';
 
-  const loadComments = useCallback(async () => {
-    if (!eventId) return;
-
-    setIsLoading(true);
-    setLoadError('');
-    try {
-      const response = await axios.get(`${backendHost()}/comments/`, {
-        params: { eventId },
-        timeout: COMMENTS_FETCH_TIMEOUT_MS,
-        withCredentials: true,
-      });
-      setComments(getCommentsFromResponse(response.data));
-    } catch (error) {
-      setLoadError(error?.message || 'Failed to load reports.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    loadComments();
-  }, [loadComments]);
+  const resetForm = useCallback(() => {
+    setReportText('');
+    setImageFile(null);
+    setImagePreviewUrl('');
+    setPostAnonymously(true);
+    setPostError('');
+  }, []);
 
   useEffect(() => {
     if (!imageFile) {
@@ -485,22 +541,106 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
     return () => URL.revokeObjectURL(previewUrl);
   }, [imageFile]);
 
-  const resetForm = useCallback(() => {
-    setReportText('');
-    setImageFile(null);
-    setImagePreviewUrl('');
-    setPostAnonymously(true);
-    setPostError('');
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAccountIdentity = async () => {
+      try {
+        const response = await axios.get(`${backendHost()}/accounts/profile`, {
+          timeout: COMMENTS_FETCH_TIMEOUT_MS,
+          withCredentials: true,
+          validateStatus: (status) => status < 500,
+        });
+        if (isMounted && response.status === 200 && response.data?.payload?.username) {
+          setAccountIdentity({ username: response.data.payload.username });
+          return;
+        }
+      } catch (_) {
+        // Guest posting remains anonymous when account status cannot be confirmed.
+      }
+
+      if (isMounted) {
+        setAccountIdentity(null);
+      }
+    };
+
+    loadAccountIdentity();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!canPostWithAccount) {
+      setPostAnonymously(true);
+    }
+  }, [canPostWithAccount]);
+
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+
+    const focusTimer = window.setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (!isPosting) {
+          setIsModalOpen(false);
+          resetForm();
+          triggerButtonRef.current?.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen, isPosting, resetForm]);
+
+  useEffect(() => {
+    if (!selectedAttachment) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSelectedAttachment(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAttachment]);
 
   const closeModal = useCallback(() => {
     if (isPosting) return;
     setIsModalOpen(false);
     resetForm();
+    triggerButtonRef.current?.focus();
   }, [isPosting, resetForm]);
 
   const handleImageChange = (event) => {
     const nextFile = event.target.files?.[0] || null;
+    if (!nextFile) {
+      setImageFile(null);
+      return;
+    }
+    if (!REPORT_IMAGE_TYPES.includes(nextFile.type)) {
+      setPostError('Report image must be a JPG, PNG, GIF, or WebP file.');
+      event.target.value = '';
+      setImageFile(null);
+      return;
+    }
+    if (nextFile.size > REPORT_IMAGE_MAX_BYTES) {
+      setPostError('Report image must be 5 MB or smaller.');
+      event.target.value = '';
+      setImageFile(null);
+      return;
+    }
+    setPostError('');
     setImageFile(nextFile);
   };
 
@@ -515,8 +655,8 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
     }
     const formData = new FormData();
     formData.append('eventId', eventId);
-    formData.append('content', trimmedText);
-    formData.append('username', postAnonymously ? 'Anonymous' : 'false');
+    formData.append('anonymous', postAnonymously ? 'true' : 'false');
+    if (trimmedText) formData.append('content', trimmedText);
     if (imageFile) formData.append('image', imageFile);
 
     setIsPosting(true);
@@ -528,7 +668,8 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
       });
       setIsModalOpen(false);
       resetForm();
-      await loadComments();
+      triggerButtonRef.current?.focus();
+      await onReportsChanged?.();
     } catch (error) {
       setPostError(error?.response?.data?.message || error?.message || 'Failed to post report.');
     } finally {
@@ -540,12 +681,25 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
     <section className="eqinfo-panel report-section" aria-labelledby="report-section-title">
       <div className="report-section-header">
         <div>
-          <h3 id="report-section-title">Reports</h3>
-          <p>Community observations for this earthquake.</p>
+          <div className="report-section-heading-row">
+            <h3 id="report-section-title">Reports</h3>
+            <InfoTooltip
+              title="Community reports"
+              label="About community reports"
+              variant="inline"
+            >
+              Community observations linked to this earthquake are public submissions and may not be verified by UPRI.
+            </InfoTooltip>
+          </div>
+          <p className="report-trust-note">
+            Public submissions may not be verified by UPRI.
+          </p>
         </div>
         <button
+          id="report-post-trigger"
           type="button"
           className="report-primary-button"
+          ref={triggerButtonRef}
           onClick={() => setIsModalOpen(true)}
           disabled={!eventId}
         >
@@ -553,29 +707,51 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
         </button>
       </div>
 
-      {loadError && <div className="report-message report-message-error">{loadError}</div>}
+      {loadError && <div className="report-message report-message-error" role="alert">{loadError}</div>}
 
       <div className="report-list" aria-live="polite">
         {isLoading ? (
-          <div className="report-empty">Loading reports...</div>
+          <div className="report-empty" role="status">Loading reports...</div>
         ) : comments.length > 0 ? (
           comments.map((comment, index) => {
             const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
             const text = getCommentText(comment);
             const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
+            const author = getCommentAuthor(comment);
             return (
-              <article className="report-card" key={commentKey} id={`comment-${commentKey}`}>
-                <div className="report-card-meta">
-                  <strong>{getCommentAuthor(comment)}</strong>
-                  {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
+              <article
+                className={`report-card ${imageUrl ? 'report-card-with-media' : ''}`}
+                key={commentKey}
+                id={`comment-${commentKey}`}
+              >
+                {imageUrl && (
+                  <div className="report-card-media">
+                    <ReportAttachment
+                      src={imageUrl}
+                      onPreview={(src) => setSelectedAttachment({
+                        src,
+                        alt: `Submitted report attachment from ${author}`,
+                      })}
+                    />
+                  </div>
+                )}
+                <div className="report-card-content">
+                  <div className="report-card-meta">
+                    <strong>{author}</strong>
+                    {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
+                  </div>
+                  {text && <p>{text}</p>}
+                  {!text && imageUrl && <p className="report-image-only-label">Image report</p>}
                 </div>
-                {text && <p>{text}</p>}
-                {imageUrl && <img src={imageUrl} alt="Submitted report attachment" />}
               </article>
             );
           })
         ) : (
-          <div className="report-empty">No reports have been posted for this event.</div>
+          <div className="report-empty report-empty-compact" role="status">
+            <strong>No reports yet.</strong>
+            <span>Share the first on-the-ground observation for this event.</span>
+            <small>Use “Post a Report” to add a public note or image.</small>
+          </div>
         )}
       </div>
 
@@ -585,59 +761,132 @@ function ReportCommentsSection({ eventId, earthquakeInfo }) {
             className="report-modal"
             aria-modal="true"
             aria-labelledby="report-modal-title"
+            aria-describedby={postError ? 'report-form-error' : undefined}
             role="dialog"
             onSubmit={handleSubmitReport}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="report-modal-titlebar">
-              <h3 id="report-modal-title">Post a Report</h3>
+              <div className="report-modal-heading">
+                <h3 id="report-modal-title">Post a Report</h3>
+                <p>Share a public observation linked to this earthquake.</p>
+              </div>
               <button type="button" className="report-icon-button" onClick={closeModal} aria-label="Close report form">
                 <FiX />
               </button>
             </div>
 
-            <div className="report-anonymous-status">
-              <span aria-hidden="true" />
-              {postAnonymously ? 'Posting anonymously' : 'Posting with your account'}
+            <div className="report-modal-intro">
+              <div className="report-anonymous-status">
+                <span aria-hidden="true" />
+                {postAnonymously
+                  ? 'Anonymous report'
+                  : `Posting as ${accountIdentity?.username || 'your account'}`}
+              </div>
+              <p>Text or image is required. Avoid sharing personal contact details.</p>
             </div>
 
+            <div className="report-field-row">
+              <label className="report-field-label" htmlFor="report-observation">
+                Observation
+              </label>
+              <span>{reportText.trim().length} characters</span>
+            </div>
             <textarea
+              id="report-observation"
+              ref={textareaRef}
               value={reportText}
               onChange={(event) => setReportText(event.target.value)}
-              placeholder="Describe what you observed during or after the earthquake..."
-              rows={6}
+              placeholder="Describe what you observed..."
+              rows={5}
             />
 
             {imagePreviewUrl && (
               <div className="report-image-preview">
                 <img src={imagePreviewUrl} alt="Selected report attachment preview" />
-                <button type="button" onClick={() => setImageFile(null)}>Remove image</button>
+                <div className="report-image-preview-meta">
+                  <strong>Attached image</strong>
+                  <span>{selectedFileSummary}</span>
+                  <button type="button" onClick={() => setImageFile(null)}>Remove image</button>
+                </div>
               </div>
             )}
 
             <div className="report-modal-controls">
               <label className="report-image-button">
                 <FiImage aria-hidden="true" />
-                Insert Image
-                <input type="file" accept="image/*" onChange={handleImageChange} />
+                Add image
+                <input type="file" accept={REPORT_IMAGE_TYPES.join(',')} onChange={handleImageChange} />
               </label>
-              <label className="report-checkbox">
-                <input
-                  type="checkbox"
-                  checked={postAnonymously}
-                  onChange={(event) => setPostAnonymously(event.target.checked)}
-                />
-                <span>Post anonymously</span>
-              </label>
+              <span className="report-control-hint">JPG, PNG, GIF, or WebP up to 5 MB</span>
             </div>
 
-            {postError && <div className="report-message report-message-error">{postError}</div>}
+            <div className="report-modal-controls report-modal-controls-secondary">
+              {canPostWithAccount ? (
+                <label className="report-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={postAnonymously}
+                    onChange={(event) => setPostAnonymously(event.target.checked)}
+                  />
+                  <span>Post anonymously</span>
+                </label>
+              ) : (
+                <div className="report-identity-card">
+                  <strong>Guest report</strong>
+                  <span>Posted anonymously</span>
+                </div>
+              )}
+            </div>
 
-            <button type="submit" className="report-submit-button" disabled={isPosting}>
-              <span>{isPosting ? 'Posting...' : 'Post Report'}</span>
-              <FiSend aria-hidden="true" />
-            </button>
+            {!canPostWithAccount && (
+              <p className="report-account-note">
+                Sign in to post with your account. Guest reports are posted anonymously.
+              </p>
+            )}
+
+            {postError && (
+              <div id="report-form-error" className="report-message report-message-error" role="alert">
+                {postError}
+              </div>
+            )}
+
+            <div className="report-modal-actions">
+              <button type="button" className="report-secondary-button" onClick={closeModal} disabled={isPosting}>
+                Cancel
+              </button>
+              <button type="submit" className="report-submit-button" disabled={isPosting}>
+                <span>{isPosting ? 'Posting...' : 'Post Report'}</span>
+                <FiSend aria-hidden="true" />
+              </button>
+            </div>
           </form>
+        </div>
+      )}
+
+      {selectedAttachment && (
+        <div
+          className="report-lightbox-backdrop"
+          role="presentation"
+          onMouseDown={() => setSelectedAttachment(null)}
+        >
+          <div
+            className="report-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Report attachment preview"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="report-icon-button report-lightbox-close"
+              onClick={() => setSelectedAttachment(null)}
+              aria-label="Close attachment preview"
+            >
+              <FiX />
+            </button>
+            <img src={selectedAttachment.src} alt={selectedAttachment.alt} />
+          </div>
         </div>
       )}
     </section>
@@ -660,7 +909,10 @@ function EarthquakeDetailPage() {
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
   const [displaySummary, setDisplaySummary] = useState('');
+  const [reportComments, setReportComments] = useState([]);
   const [reportCount, setReportCount] = useState(0);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState('');
   const reportsRef = useRef(null);
   const { fetchStations } = useStations();
   const eventId = searchParams.get('id');
@@ -693,9 +945,45 @@ function EarthquakeDetailPage() {
   }), [eventCoordinates]);
   const depthContext = useMemo(() => getDepthContext(earthquakeInfo), [earthquakeInfo]);
   const eventTimeDisplay = useMemo(() => getEventTimeDisplay(earthquakeInfo), [earthquakeInfo]);
+  const reportEventId = useMemo(
+    () => (earthquakeInfo ? getEarthquakeEventId(earthquakeInfo, eventId) : ''),
+    [earthquakeInfo, eventId]
+  );
+  const showCommunityPreview = reportsLoading || Boolean(reportsError) || reportComments.length > 0;
+
+  const loadReports = useCallback(async () => {
+    if (!reportEventId) {
+      setReportComments([]);
+      setReportCount(0);
+      setReportsError('');
+      return;
+    }
+
+    setReportsLoading(true);
+    setReportsError('');
+    try {
+      const response = await axios.get(`${backendHost()}/comments/`, {
+        params: { eventId: reportEventId },
+        timeout: COMMENTS_FETCH_TIMEOUT_MS,
+        withCredentials: true,
+      });
+      const nextComments = getCommentsFromResponse(response.data);
+      setReportComments(nextComments);
+      setReportCount(getCommentTotalFromResponse(response.data, nextComments));
+    } catch (error) {
+      setReportComments([]);
+      setReportCount(0);
+      setReportsError(error?.response?.data?.message || error?.message || 'Failed to load reports.');
+    } finally {
+      setReportsLoading(false);
+    }
+  }, [reportEventId]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
   // Sync displaySummary with earthquakeInfo
-    // Sync displaySummary with earthquakeInfo
   useEffect(() => {
     const summary = earthquakeInfo?.summaryOverride?.text || earthquakeInfo?.eventSummary || '';
     setDisplaySummary(summary);
@@ -735,10 +1023,12 @@ function EarthquakeDetailPage() {
     reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  // Callback when reports are loaded
-  const handleReportsLoaded = useCallback((count) => {
-    setReportCount(count);
-  }, []);
+  const openReportComposer = useCallback(() => {
+    scrollToReports();
+    window.setTimeout(() => {
+      document.getElementById('report-post-trigger')?.click();
+    }, 250);
+  }, [scrollToReports]);
 
   useEffect(() => {
     let isMounted = true;
@@ -949,48 +1239,18 @@ function EarthquakeDetailPage() {
           </p>
         </section>
 
-        {/* Event Summary and Community Reports Carousel Preview - 1/3 to 2/3 Layout */}
-        <div className="eqinfo-summary-carousel-container">
-          <EditableEventSummary
-            eventId={earthquakeInfo?.publicID || eventId}
-            initialSummary={displaySummary}
-            earthquakeInfo={earthquakeInfo}
-            endpointType="eq-events"
-            onSummaryUpdated={handleSummaryUpdated}
-          />
+        <div className="eqinfo-main-columns">
+          <div className="eqinfo-main-column eqinfo-main-column-reference">
+            <EditableEventSummary
+              eventId={earthquakeInfo?.publicID || eventId}
+              initialSummary={displaySummary}
+              earthquakeInfo={earthquakeInfo}
+              endpointType="eq-events"
+              canEdit={false}
+              onSummaryUpdated={handleSummaryUpdated}
+              className="eqinfo-panel-summary-only"
+            />
 
-          <section className="eqinfo-panel scrollable eqinfo-carousel-section">
-            <div className="panel-header">
-              <div className="panel-title">
-                <h3>Community reports</h3>
-                {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
-              </div>
-            </div>
-            <div className="panel-body">
-              <CommunityReportsCarousel
-                eventId={getEarthquakeEventId(earthquakeInfo, eventId)}
-                onReportClick={scrollToReports}
-                onReportsLoaded={handleReportsLoaded}
-              />
-            </div>
-          </section>
-        </div>
-
-        <div ref={waveformSentinelRef}>
-          {shouldMountWaveforms ? (
-            <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
-              <SeismicWaveforms
-                earthquakeInfo={earthquakeInfo}
-                stations={stationsForDisplay}
-              />
-            </Suspense>
-          ) : (
-            <div className="eqinfo-panel muted">Preparing station recordings...</div>
-          )}
-        </div>
-
-        <div className="eqinfo-grid">
-          <div className="eqinfo-related-source-row">
             <NearbyEvents
               earthquakeInfo={earthquakeInfo}
               nearbyEventCount={5}
@@ -999,10 +1259,58 @@ function EarthquakeDetailPage() {
 
             <CatalogComparison earthquakeInfo={earthquakeInfo} />
           </div>
-        </div>
 
-        <div ref={reportsRef}>
-          <ReportCommentsSection eventId={getEarthquakeEventId(earthquakeInfo, eventId)} earthquakeInfo={earthquakeInfo} />
+          <div className="eqinfo-main-column eqinfo-main-column-community">
+            {showCommunityPreview ? (
+              <section className="eqinfo-panel eqinfo-carousel-section">
+                <div className="panel-header">
+                  <div className="panel-title">
+                    <h3>Community reports</h3>
+                    {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
+                  </div>
+                  <div className="community-preview-actions">
+                    <button type="button" onClick={scrollToReports}>
+                      View all
+                    </button>
+                    <button type="button" onClick={openReportComposer}>
+                      Post report
+                    </button>
+                  </div>
+                </div>
+                <div className="panel-body eqinfo-panel-body-plain">
+                  <CommunityReportsCarousel
+                    reports={reportComments}
+                    loading={reportsLoading}
+                    error={reportsError}
+                    onReportClick={scrollToReports}
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            <div ref={waveformSentinelRef} className="eqinfo-support-section">
+              {shouldMountWaveforms ? (
+                <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
+                  <SeismicWaveforms
+                    earthquakeInfo={earthquakeInfo}
+                    stations={stationsForDisplay}
+                  />
+                </Suspense>
+              ) : (
+                <div className="eqinfo-panel muted">Preparing station recordings...</div>
+              )}
+            </div>
+
+            <div ref={reportsRef}>
+              <ReportCommentsSection
+                eventId={reportEventId}
+                comments={reportComments}
+                isLoading={reportsLoading}
+                loadError={reportsError}
+                onReportsChanged={loadReports}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </>

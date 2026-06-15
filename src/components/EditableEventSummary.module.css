@@ -1,8 +1,8 @@
 .summaryContainer {
   grid-column: 1;
-  min-height: 400px;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .editButton {
