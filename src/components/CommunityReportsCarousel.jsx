@@ -3,6 +3,7 @@ import styles from './CommunityReportsCarousel.module.css';
 import { getBackendHost } from '../utils/backendHost';
 
 const CAROUSEL_ROTATION_INTERVAL_MS = 6000;
+const MAX_PREVIEW_REPORTS = 5;
 
 function usePrefersReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -87,24 +88,25 @@ function CommunityReportsCarousel({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
+  const previewReports = useMemo(() => reports.slice(0, MAX_PREVIEW_REPORTS), [reports]);
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [reports]);
+  }, [previewReports]);
 
   useEffect(() => {
-    if (prefersReducedMotion || isPaused || reports.length <= 1) return undefined;
+    if (prefersReducedMotion || isPaused || previewReports.length <= 1) return undefined;
 
     const timer = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % reports.length);
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % previewReports.length);
     }, CAROUSEL_ROTATION_INTERVAL_MS);
 
     return () => clearInterval(timer);
-  }, [isPaused, prefersReducedMotion, reports.length]);
+  }, [isPaused, prefersReducedMotion, previewReports.length]);
 
   const currentReport = useMemo(
-    () => (reports.length > 0 ? reports[currentIndex] : null),
-    [reports, currentIndex]
+    () => (previewReports.length > 0 ? previewReports[currentIndex] : null),
+    [previewReports, currentIndex]
   );
   const currentReportImage = useMemo(() => {
     const rawImageUrl =
@@ -135,14 +137,18 @@ function CommunityReportsCarousel({
   return (
     <>
       {loading && !reports.length && (
-        <div className={styles.emptyState} role="status" aria-live="polite">Loading community reports...</div>
+        <div className={`${styles.emptyState} eqinfo-empty-state`} role="status" aria-live="polite">
+          Loading community reports...
+        </div>
       )}
 
       {error && !reports.length && (
-        <div className={styles.emptyState} role="alert">{error}</div>
+        <div className={`${styles.emptyState} eqinfo-empty-state`} role="alert">
+          {error}
+        </div>
       )}
 
-      {reports.length > 0 && currentReport && (
+      {previewReports.length > 0 && currentReport && (
         <div
           className={styles.carouselContainer}
           onMouseEnter={() => setIsPaused(true)}
@@ -186,16 +192,16 @@ function CommunityReportsCarousel({
             </div>
           </div>
 
-          {reports.length > 1 && (
+          {previewReports.length > 1 && (
             <div className={styles.dotsContainer} aria-label="Community report slides">
-              {reports.map((_, index) => (
+              {previewReports.map((_, index) => (
                 <button
                   key={index}
                   className={`${styles.dot} ${
                     index === currentIndex ? styles.active : ''
                   }`}
                   onClick={() => handleDotClick(index)}
-                  aria-label={`Go to report ${index + 1} of ${reports.length}`}
+                  aria-label={`Go to preview report ${index + 1} of ${previewReports.length}`}
                   aria-current={index === currentIndex ? 'true' : 'false'}
                   type="button"
                 />
@@ -205,8 +211,10 @@ function CommunityReportsCarousel({
         </div>
       )}
 
-      {!loading && reports.length === 0 && (
-        <div className={styles.emptyState} role="status">No community reports yet.</div>
+      {!loading && previewReports.length === 0 && (
+        <div className={`${styles.emptyState} eqinfo-empty-state`} role="status">
+          No community reports yet.
+        </div>
       )}
     </>
   );

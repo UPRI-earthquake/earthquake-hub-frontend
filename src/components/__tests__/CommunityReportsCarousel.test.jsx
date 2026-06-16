@@ -27,6 +27,13 @@ const mockReports = [
   },
 ];
 
+const mockReportsWithOverflow = [
+  ...mockReports,
+  { id: '4', username: 'user4', content: 'Fourth report' },
+  { id: '5', username: 'user5', content: 'Fifth report' },
+  { id: '6', username: 'user6', content: 'Sixth report' },
+];
+
 function mockReducedMotion(matches = false) {
   window.matchMedia = jest.fn().mockImplementation((query) => ({
     matches,
@@ -82,6 +89,13 @@ describe('CommunityReportsCarousel', () => {
     const { container } = render(<CommunityReportsCarousel reports={mockReports} />);
 
     expect(container.querySelectorAll('.dot')).toHaveLength(3);
+  });
+
+  test('caps preview dots to the latest preview set', () => {
+    const { container } = render(<CommunityReportsCarousel reports={mockReportsWithOverflow} />);
+
+    expect(container.querySelectorAll('.dot')).toHaveLength(5);
+    expect(screen.queryByLabelText(/Go to preview report 6/i)).not.toBeInTheDocument();
   });
 
   test('does not render dots when there is only one report', () => {

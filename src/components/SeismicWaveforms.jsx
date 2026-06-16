@@ -388,7 +388,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
           ) : null}
         </>
       ) : (
-        <div className={`${styles.emptyState} ${styles.emptyStateCompact}`}>
+        <div className={`${styles.emptyState} ${styles.emptyStateCompact} eqinfo-empty-state eqinfo-empty-state--compact`}>
           <span>No station recordings</span>
           <small>No online station recordings are currently available for this event.</small>
         </div>
@@ -530,7 +530,7 @@ function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earth
 
   return (
     <div className={styles.waveformRow}>
-      <div className={styles.waveformRowTop}>
+      <div className={styles.waveformHeader}>
         <StationChannelControl
           stationCode={stationCode}
           channels={channels}

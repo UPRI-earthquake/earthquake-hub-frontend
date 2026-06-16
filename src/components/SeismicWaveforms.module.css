@@ -9,11 +9,6 @@
 
 .waveformContainerCompact {
   padding: 16px 20px 18px;
-  background: color-mix(in srgb, var(--panel-surface) 92%, #f8fbff);
-  border-color: color-mix(in srgb, var(--border) 82%, #dbe7f3);
-  box-shadow:
-    0 10px 22px rgba(148, 163, 184, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .panelHeader {
@@ -75,7 +70,7 @@
   padding-bottom: 10px;
 }
 
-.waveformRowTop {
+.waveformHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -167,14 +162,20 @@
 }
 
 @media (max-width: 768px) {
-  .waveformRowTop {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+  .waveformHeader {
+    display: contents;
   }
 
   .stationControl {
     gap: 6px;
+  }
+
+  .stationControlGroup {
+    order: 1;
+  }
+
+  .waveformCanvas {
+    order: 2;
   }
 
   .stationLabel {
@@ -392,9 +393,7 @@
 .emptyStateCompact {
   min-height: 0;
   padding: 18px 18px;
-  border: 1px dashed rgba(148, 163, 184, 0.22);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.96));
 }
 
 .emptyStateCompact span {
@@ -504,6 +503,22 @@
   background: var(--panel-surface);
 }
 
+:global(:root[data-theme='dark']) .emptyState,
+:global(:root[data-theme='imagery']) .emptyState {
+  background: color-mix(in srgb, var(--panel-subtle) 74%, var(--panel-surface));
+  color: rgba(226, 232, 240, 0.78);
+}
+
+:global(:root[data-theme='dark']) .emptyStateCompact span,
+:global(:root[data-theme='imagery']) .emptyStateCompact span {
+  color: rgba(248, 250, 252, 0.96);
+}
+
+:global(:root[data-theme='dark']) .emptyStateCompact small,
+:global(:root[data-theme='imagery']) .emptyStateCompact small {
+  color: rgba(226, 232, 240, 0.74);
+}
+
 :global(:root[data-theme='dark']) .waveformCanvas,
 :global(:root[data-theme='imagery']) .waveformCanvas {
   --waveform-track-bg: #111c30;
@@ -589,9 +604,16 @@
 
 @media (max-width: 768px) {
   .rowActions {
-    grid-column: 1 / -1;
+    order: 3;
     flex-direction: row;
-    justify-content: flex-end;
-    padding-top: 0;
+    justify-content: stretch;
+    gap: 8px;
+    padding-top: 2px;
+  }
+
+  .metadataBtn,
+  .downloadBtn {
+    flex: 1 1 0;
+    min-height: 34px;
   }
 }
