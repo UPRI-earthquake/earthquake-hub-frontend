@@ -19,6 +19,7 @@ function NearbyEvents({
   const navigate = useNavigate();
   const [nearbyEvents, setNearbyEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [navigatingEventId, setNavigatingEventId] = useState('');
   const isMountedRef = useRef(true);
 
   const currentLat = Number(earthquakeInfo?.latitude_value);
@@ -155,6 +156,9 @@ function NearbyEvents({
   const handleEventClick = useCallback(
     (event) => {
       const eventId = event?.publicID;
+      if (eventId) {
+        setNavigatingEventId(eventId);
+      }
       const detailUrl = eventId
         ? `/earthquake-detail?id=${encodeURIComponent(eventId)}`
         : '/earthquake-detail';
@@ -183,9 +187,18 @@ function NearbyEvents({
 
       <div className={styles.panelBody}>
         {loading ? (
-          <div className={styles.loader} role="status" aria-live="polite">
-            <div className={styles.spinner} aria-hidden />
-            <span>Loading nearby events…</span>
+          <div className={styles.skeletonList} role="status" aria-live="polite" aria-label="Loading related events">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div className={styles.skeletonItem} key={`nearby-skeleton-${index}`} aria-hidden="true">
+                <span className={`${styles.skeletonBlock} ${styles.skeletonMagnitude}`} />
+                <span className={styles.skeletonContent}>
+                  <span className={`${styles.skeletonBlock} ${styles.skeletonTitle}`} />
+                  <span className={`${styles.skeletonBlock} ${styles.skeletonMeta}`} />
+                </span>
+                <span className={`${styles.skeletonBlock} ${styles.skeletonDistance}`} />
+              </div>
+            ))}
+            <span className={styles.srOnly}>Loading related events...</span>
           </div>
         ) : nearbyEvents.length === 0 ? (
           <div className={styles.empty}>
@@ -214,7 +227,8 @@ function NearbyEvents({
                   role="button"
                   tabIndex="0"
                   aria-label={`Magnitude ${formatMagnitude(event)} - ${formatLocation(event)}`}
-                  className={styles.eventItem}
+                  className={`${styles.eventItem} ${navigatingEventId === event.publicID ? styles.eventItemNavigating : ''}`}
+                  aria-busy={navigatingEventId === event.publicID ? 'true' : undefined}
                 >
                   <div className={styles.eventMainContent}>
                     <div className={styles.magnitudeSection}>
@@ -230,7 +244,7 @@ function NearbyEvents({
                       {timeOffset && (
                         <div className={styles.eventMeta}>
                           <span className={styles.timeOffset}>
-                            {timeOffset}
+                            {navigatingEventId === event.publicID ? 'Opening event...' : timeOffset}
                           </span>
                         </div>
                       )}

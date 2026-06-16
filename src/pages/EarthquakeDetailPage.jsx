@@ -4,7 +4,6 @@ import axios from 'axios';
 import { FiArrowDown, FiClock, FiImage, FiMapPin, FiRadio, FiSend, FiX } from 'react-icons/fi';
 import Header from '../components/Header';
 import NearbyEvents from '../components/NearbyEvents';
-import LoadingScreen from '../components/LoadingScreen';
 import ErrorScreen from '../components/ErrorScreen';
 import moment from '../utils/time';
 import { backendHost } from '../utils/env';
@@ -23,6 +22,7 @@ const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
 const DETAIL_CACHE_VERSION = 1;
 const DETAIL_FETCH_TIMEOUT_MS = 12000;
 const RECENT_EVENTS_FETCH_TIMEOUT_MS = 20000;
+const DETAIL_FETCH_STALL_MS = 8000;
 const COMMENTS_FETCH_TIMEOUT_MS = 12000;
 const COMMENT_POST_TIMEOUT_MS = 20000;
 const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
@@ -47,8 +47,9 @@ function readCachedEarthquake(eventId) {
 
     const parsed = JSON.parse(cached);
     if (parsed?.publicID === eventId && parsed.version !== DETAIL_CACHE_VERSION) {
-      writeCachedEarthquake(eventId, parsed);
-      return parsed;
+      const legacyPayload = parsed?.payload || parsed;
+      writeCachedEarthquake(eventId, legacyPayload);
+      return legacyPayload;
     }
 
     const isFresh =
@@ -129,15 +130,18 @@ function isNewerEvent(candidate, current) {
   return JSON.stringify(candidate) !== JSON.stringify(current);
 }
 
-async function fetchEarthquakeByPublicID(eventId) {
+async function fetchEarthquakeByPublicID(eventId, signal) {
   const res = await axios.get(`${backendHost()}/eq-events/${encodeURIComponent(eventId)}`, {
     timeout: DETAIL_FETCH_TIMEOUT_MS,
     withCredentials: true,
+    signal,
+    validateStatus: (status) => status < 500,
   });
+  if (res.status === 404) return null;
   return res.data?.payload || null;
 }
 
-async function fetchEarthquakeFromRecentEvents(eventId) {
+async function fetchEarthquakeFromRecentEvents(eventId, signal) {
   const endDate = moment().format('YYYY-MM-DD HH:mm:ss');
   const startDate = moment().subtract(90, 'days').format('YYYY-MM-DD HH:mm:ss');
 
@@ -145,25 +149,38 @@ async function fetchEarthquakeFromRecentEvents(eventId) {
     params: { startTime: startDate, endTime: endDate },
     timeout: RECENT_EVENTS_FETCH_TIMEOUT_MS,
     withCredentials: true,
+    signal,
   });
 
   const events = res.data?.payload || [];
   return events.find((ev) => ev.publicID === eventId) || null;
 }
 
-async function fetchEarthquakeWithFallback(eventId) {
+function shouldTryRecentEventsFallback(error) {
+  const status = Number(error?.response?.status);
+  if (status === 404 || status === 405 || status === 501) return true;
+  return String(error?.code || '').toUpperCase() === 'ERR_BAD_REQUEST';
+}
+
+async function fetchEarthquakeWithFallback(eventId, signal) {
   try {
-    const directEvent = await fetchEarthquakeByPublicID(eventId);
+    const directEvent = await fetchEarthquakeByPublicID(eventId, signal);
     if (directEvent) return directEvent;
-  } catch (_) {
+  } catch (error) {
+    if (!shouldTryRecentEventsFallback(error)) {
+      throw error;
+    }
     // Fall back to the older range query so the frontend still works while
     // the direct detail endpoint is being rolled out or restarted locally.
   }
 
-  return fetchEarthquakeFromRecentEvents(eventId);
+  return fetchEarthquakeFromRecentEvents(eventId, signal);
 }
 
 function getFetchErrorMessage(error) {
+  if (axios.isCancel?.(error) || error?.code === 'ERR_CANCELED') {
+    return '';
+  }
   if (error?.code === 'ECONNABORTED') {
     return 'The earthquake detail request timed out. Please check that the backend is running and try again.';
   }
@@ -327,6 +344,83 @@ function formatCommentTime(comment) {
   return parsed.isValid() ? parsed.format('MMM D, YYYY, h:mm A') : '';
 }
 
+function SkeletonBlock({ className = '' }) {
+  return <span className={`eqinfo-skeleton-block ${className}`} aria-hidden="true" />;
+}
+
+function EarthquakeDetailSkeleton({ isSlow, onRetry }) {
+  return (
+    <>
+      <Header />
+      <div className="eqinfo-shell eqinfo-skeleton-page" role="status" aria-live="polite" aria-busy="true">
+        <section className="eqinfo-hero eqinfo-hero-skeleton">
+          <SkeletonBlock className="eqinfo-skeleton-title" />
+          <div className="eqinfo-meta-grid">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div className="metric-card eqinfo-skeleton-card" key={`detail-skeleton-metric-${index}`}>
+                <div className="metric-card-head">
+                  <SkeletonBlock className="eqinfo-skeleton-icon" />
+                  <SkeletonBlock className="eqinfo-skeleton-label" />
+                </div>
+                <div className="metric-card-body">
+                  <SkeletonBlock className="eqinfo-skeleton-value" />
+                  <SkeletonBlock className="eqinfo-skeleton-caption" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="eqinfo-main-columns">
+          <div className="eqinfo-main-column">
+            <section className="eqinfo-panel eqinfo-skeleton-panel">
+              <SkeletonBlock className="eqinfo-skeleton-heading" />
+              <SkeletonBlock className="eqinfo-skeleton-line" />
+              <SkeletonBlock className="eqinfo-skeleton-line eqinfo-skeleton-line-wide" />
+              <SkeletonBlock className="eqinfo-skeleton-line eqinfo-skeleton-line-short" />
+            </section>
+            <section className="eqinfo-panel eqinfo-skeleton-panel">
+              <SkeletonBlock className="eqinfo-skeleton-heading" />
+              {Array.from({ length: 3 }).map((_, index) => (
+                <SkeletonBlock className="eqinfo-skeleton-list-row" key={`detail-skeleton-related-${index}`} />
+              ))}
+            </section>
+          </div>
+
+          <div className="eqinfo-main-column eqinfo-main-column-community">
+            <section className="eqinfo-panel eqinfo-skeleton-panel">
+              <div className="report-section-header">
+                <SkeletonBlock className="eqinfo-skeleton-heading" />
+                <SkeletonBlock className="eqinfo-skeleton-button" />
+              </div>
+              <SkeletonBlock className="eqinfo-skeleton-media" />
+            </section>
+            <section className="eqinfo-panel eqinfo-skeleton-panel">
+              <SkeletonBlock className="eqinfo-skeleton-heading" />
+              <SkeletonBlock className="eqinfo-skeleton-line eqinfo-skeleton-line-wide" />
+              <SkeletonBlock className="eqinfo-skeleton-line" />
+            </section>
+          </div>
+        </div>
+
+        {isSlow ? (
+          <div className="eqinfo-panel muted eqinfo-skeleton-slow">
+            <div>
+              <h3>Still loading earthquake details</h3>
+              <p>The detail request is taking longer than expected. You can retry now without refreshing the page.</p>
+            </div>
+            <button type="button" className="report-primary-button" onClick={onRetry}>
+              Retry now
+            </button>
+          </div>
+        ) : (
+          <span className="eqinfo-sr-only">Loading earthquake details...</span>
+        )}
+      </div>
+    </>
+  );
+}
+
 function formatCoordinatePart(value, positiveLabel, negativeLabel) {
   const num = toFiniteNumber(value);
   if (num == null) return '—';
@@ -382,43 +476,73 @@ function getEventTimeDisplay(earthquakeInfo) {
   };
 }
 
-function getNearestRecordingStation(stationsForDisplay, earthquakeInfo, stationLocationsByCode) {
+function getNearestRecordingStation(stationsForDisplay, allStations, earthquakeInfo, stationLocationsByCode) {
   const stationCode = String(stationsForDisplay?.[0] || '').toUpperCase();
-  if (!stationCode) {
-    return {
-      code: null,
-      subtext: 'No online station recordings',
-    };
-  }
-
   const eventCoordinates = getEventCoordinates(earthquakeInfo);
-  const stationLocation = stationLocationsByCode[stationCode];
-  const stationLatitude = toFiniteNumber(stationLocation?.latitude);
-  const stationLongitude = toFiniteNumber(stationLocation?.longitude);
+  const resolveStationResult = (code, fallbackLabel) => {
+    if (!code) return null;
 
-  if (!eventCoordinates || stationLatitude == null || stationLongitude == null) {
+    const stationLocation = stationLocationsByCode[code];
+    const stationLatitude = toFiniteNumber(stationLocation?.latitude);
+    const stationLongitude = toFiniteNumber(stationLocation?.longitude);
+
+    if (!eventCoordinates || stationLatitude == null || stationLongitude == null) {
+      return {
+        code,
+        subtext: fallbackLabel,
+        coordinates:
+          stationLatitude != null && stationLongitude != null
+            ? { latitude: stationLatitude, longitude: stationLongitude }
+            : null,
+      };
+    }
+
+    const distanceKm = calculateDistance(
+      eventCoordinates.latitude,
+      eventCoordinates.longitude,
+      stationLatitude,
+      stationLongitude
+    );
+
     return {
-      code: stationCode,
-      subtext: 'Nearest online recording',
-      coordinates: stationLatitude != null && stationLongitude != null
-        ? { latitude: stationLatitude, longitude: stationLongitude }
-        : null,
+      code,
+      subtext: Number.isFinite(distanceKm)
+        ? `${formatApproxDistance(distanceKm)} from epicenter`
+        : fallbackLabel,
+      coordinates: { latitude: stationLatitude, longitude: stationLongitude },
     };
-  }
+  };
 
-  const distanceKm = calculateDistance(
-    eventCoordinates.latitude,
-    eventCoordinates.longitude,
-    stationLatitude,
-    stationLongitude
-  );
+  const onlineStationResult = resolveStationResult(stationCode, 'Nearest online recording');
+  if (onlineStationResult) return onlineStationResult;
+
+  const fallbackStationCode = Array.isArray(allStations) && eventCoordinates
+    ? allStations
+        .map((station) => {
+          const code = String(station?.code || station?.station || '').toUpperCase();
+          const latitude = toFiniteNumber(station?.latitude);
+          const longitude = toFiniteNumber(station?.longitude);
+          if (!code || latitude == null || longitude == null) return null;
+          return {
+            code,
+            distanceKm: calculateDistance(
+              eventCoordinates.latitude,
+              eventCoordinates.longitude,
+              latitude,
+              longitude
+            ),
+          };
+        })
+        .filter((station) => station && Number.isFinite(station.distanceKm))
+        .sort((a, b) => a.distanceKm - b.distanceKm)?.[0]?.code
+    : String(allStations?.[0]?.code || allStations?.[0]?.station || '').toUpperCase();
+
+  const fallbackStationResult = resolveStationResult(fallbackStationCode, 'Nearest station');
+  if (fallbackStationResult) return fallbackStationResult;
 
   return {
-    code: stationCode,
-    subtext: Number.isFinite(distanceKm)
-      ? `${formatApproxDistance(distanceKm)} from epicenter`
-      : 'Nearest online recording',
-    coordinates: { latitude: stationLatitude, longitude: stationLongitude },
+    code: null,
+    subtext: 'Station unavailable',
   };
 }
 
@@ -521,6 +645,7 @@ function ReportCommentsSection({
   const [postError, setPostError] = useState('');
   const [selectedAttachment, setSelectedAttachment] = useState(null);
   const [accountIdentity, setAccountIdentity] = useState(null);
+  const [expandedComments, setExpandedComments] = useState({});
   const triggerButtonRef = useRef(null);
   const textareaRef = useRef(null);
   const canPostWithAccount = Boolean(accountIdentity?.username);
@@ -645,6 +770,13 @@ function ReportCommentsSection({
     triggerButtonRef.current?.focus();
   }, [isPosting, resetForm]);
 
+  const toggleExpandedComment = useCallback((commentKey) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [commentKey]: !prev[commentKey],
+    }));
+  }, []);
+
   const handleImageChange = (event) => {
     const nextFile = event.target.files?.[0] || null;
     if (!nextFile) {
@@ -741,6 +873,8 @@ function ReportCommentsSection({
             const text = getCommentText(comment);
             const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
             const author = getCommentAuthor(comment);
+            const isExpanded = Boolean(expandedComments[commentKey]);
+            const shouldClampText = Boolean(text && text.length > 280);
             return (
               <article
                 className={`report-card ${imageUrl ? 'report-card-with-media' : ''}`}
@@ -763,14 +897,28 @@ function ReportCommentsSection({
                     <strong>{author}</strong>
                     {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
                   </div>
-                  {text && <p>{text}</p>}
+                  {text && (
+                    <>
+                      <p className={shouldClampText && !isExpanded ? 'report-text-clamped' : ''}>{text}</p>
+                      {shouldClampText && (
+                        <button
+                          type="button"
+                          className="report-text-toggle"
+                          onClick={() => toggleExpandedComment(commentKey)}
+                          aria-expanded={isExpanded}
+                        >
+                          {isExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </>
+                  )}
                   {!text && imageUrl && <p className="report-image-only-label">Image report</p>}
                 </div>
               </article>
             );
           })
         ) : (
-          <div className="report-empty report-empty-compact" role="status">
+          <div className="report-empty report-empty-compact eqinfo-empty-state eqinfo-empty-state--compact" role="status">
             <strong>No reports yet.</strong>
             <span>Share the first on-the-ground observation for this event.</span>
             <small>Use “Post a Report” to add a public note or image.</small>
@@ -924,7 +1072,10 @@ function EarthquakeDetailPage() {
   const [searchParams] = useSearchParams();
   const [fetchedEarthquake, setFetchedEarthquake] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
+  const [isFetchSlow, setIsFetchSlow] = useState(false);
   const [fetchError, setFetchError] = useState(null);
+  const [fetchAttempt, setFetchAttempt] = useState(0);
+  const [isEventTransitioning, setIsEventTransitioning] = useState(false);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const [waveformSentinelRef, shouldMountWaveforms] = useNearViewport();
   const [displaySummary, setDisplaySummary] = useState('');
@@ -932,9 +1083,12 @@ function EarthquakeDetailPage() {
   const [reportCount, setReportCount] = useState(0);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsError, setReportsError] = useState('');
-  const reportsRef = useRef(null);
-  const { fetchStations } = useStations();
+  const [allStations, setAllStations] = useState([]);
   const eventId = searchParams.get('id');
+  const reportsRef = useRef(null);
+  const detailFetchSeqRef = useRef(0);
+  const previousEventIdRef = useRef(eventId);
+  const { fetchStations } = useStations();
   const isDevelopment =
     typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
 
@@ -954,8 +1108,8 @@ function EarthquakeDetailPage() {
     stationsForDisplay,
   } = useEarthquakeDetailViewModel(earthquakeInfo);
   const nearestRecordingStation = useMemo(
-    () => getNearestRecordingStation(stationsForDisplay, earthquakeInfo, stationLocationsByCode),
-    [earthquakeInfo, stationLocationsByCode, stationsForDisplay]
+    () => getNearestRecordingStation(stationsForDisplay, allStations, earthquakeInfo, stationLocationsByCode),
+    [allStations, earthquakeInfo, stationLocationsByCode, stationsForDisplay]
   );
   const eventCoordinates = useMemo(() => getEventCoordinates(earthquakeInfo), [earthquakeInfo]);
   const epicenterParts = useMemo(() => ({
@@ -968,7 +1122,28 @@ function EarthquakeDetailPage() {
     () => (earthquakeInfo ? getEarthquakeEventId(earthquakeInfo, eventId) : ''),
     [earthquakeInfo, eventId]
   );
+  const hasWaveformStations = stationsForDisplay.length > 0;
   const showCommunityPreview = reportsLoading || Boolean(reportsError) || reportComments.length > 0;
+
+  useEffect(() => {
+    const previousEventId = previousEventIdRef.current;
+    if (!previousEventId || previousEventId === eventId) {
+      previousEventIdRef.current = eventId;
+      return undefined;
+    }
+
+    previousEventIdRef.current = eventId;
+    setIsEventTransitioning(true);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const timer = window.setTimeout(() => {
+      setIsEventTransitioning(false);
+    }, 650);
+
+    return () => window.clearTimeout(timer);
+  }, [eventId]);
 
   const loadReports = useCallback(async () => {
     if (!reportEventId) {
@@ -1059,6 +1234,12 @@ function EarthquakeDetailPage() {
     reportsRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  const retryDetailLoad = useCallback(() => {
+    setFetchError(null);
+    setIsFetchSlow(false);
+    setFetchAttempt((prev) => prev + 1);
+  }, []);
+
   const openReportComposer = useCallback(() => {
     scrollToReports();
     window.setTimeout(() => {
@@ -1071,10 +1252,14 @@ function EarthquakeDetailPage() {
 
     fetchStations()
       .then((backendStations) => {
-        if (isMounted) setStationLocationsByCode(buildStationLocationLookup(backendStations));
+        if (!isMounted) return;
+        setAllStations(Array.isArray(backendStations) ? backendStations : []);
+        setStationLocationsByCode(buildStationLocationLookup(backendStations));
       })
       .catch(() => {
-        if (isMounted) setStationLocationsByCode({});
+        if (!isMounted) return;
+        setAllStations([]);
+        setStationLocationsByCode({});
       });
 
     return () => {
@@ -1095,13 +1280,19 @@ function EarthquakeDetailPage() {
     }
 
     let isMounted = true;
+    const controller = new AbortController();
+    const requestId = detailFetchSeqRef.current + 1;
+    detailFetchSeqRef.current = requestId;
+    const isCurrentRequest = () => isMounted && detailFetchSeqRef.current === requestId;
+
     const fetchEarthquake = async () => {
       setIsFetching(true);
+      setIsFetchSlow(false);
       setFetchError(null);
       try {
-        const found = await fetchEarthquakeWithFallback(eventId);
+        const found = await fetchEarthquakeWithFallback(eventId, controller.signal);
 
-        if (!isMounted) return;
+        if (!isCurrentRequest()) return;
 
         if (found) {
           setFetchedEarthquake(found);
@@ -1113,25 +1304,39 @@ function EarthquakeDetailPage() {
           );
         }
       } catch (error) {
-        if (!isMounted) return;
+        if (!isCurrentRequest()) return;
+        if (axios.isCancel?.(error) || error?.code === 'ERR_CANCELED') {
+          setFetchError(null);
+          return;
+        }
         if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
           console.error('Error fetching earthquake:', error);
         }
-        setFetchError(getFetchErrorMessage(error));
+        const message = getFetchErrorMessage(error);
+        if (message) setFetchError(message);
       } finally {
-        if (isMounted) {
+        if (isCurrentRequest()) {
           setIsFetching(false);
+          setIsFetchSlow(false);
         }
       }
     };
 
     fetchEarthquake();
 
+    const slowTimer = window.setTimeout(() => {
+      if (isCurrentRequest()) {
+        setIsFetchSlow(true);
+      }
+    }, DETAIL_FETCH_STALL_MS);
+
     return () => {
       isMounted = false;
+      controller.abort();
+      window.clearTimeout(slowTimer);
     };
-  }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
+  }, [cachedEarthquake, eventId, fetchAttempt, fetchedEarthquake, location.state]);
 
   useEffect(() => {
     if (location.state?.earthquake || fetchedEarthquake || !cachedEarthquake || !eventId) {
@@ -1139,9 +1344,10 @@ function EarthquakeDetailPage() {
     }
 
     let isMounted = true;
+    const controller = new AbortController();
     const revalidateCachedEarthquake = async () => {
       try {
-        const freshEvent = await fetchEarthquakeByPublicID(eventId);
+        const freshEvent = await fetchEarthquakeByPublicID(eventId, controller.signal);
         if (!isMounted || !freshEvent) return;
 
         if (isNewerEvent(freshEvent, cachedEarthquake)) {
@@ -1157,6 +1363,7 @@ function EarthquakeDetailPage() {
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [cachedEarthquake, eventId, fetchedEarthquake, location.state]);
 
@@ -1170,17 +1377,22 @@ function EarthquakeDetailPage() {
     document.title = `${pageTitle} | Earthquake Hub`;
   }, [pageTitle]);
 
-  // Show loading screen while fetching
-  if (isFetching) {
-    return <LoadingScreen />;
+  // Show loading screen while fetching only when there is no event data to render yet.
+  if (!earthquakeInfo && isFetching) {
+    return <EarthquakeDetailSkeleton isSlow={isFetchSlow} onRetry={retryDetailLoad} />;
   }
 
   // Show error screen if fetch failed
-  if (fetchError) {
+  if (!earthquakeInfo && fetchError) {
     return (
       <>
         <Header />
-        <div className="eqinfo-shell">
+        {isEventTransitioning && (
+          <div className="eqinfo-route-status" role="status" aria-live="polite">
+            Opening selected event...
+          </div>
+        )}
+        <div className={`eqinfo-shell ${isEventTransitioning ? 'eqinfo-shell-transitioning' : ''}`}>
           <ErrorScreen
             title="Unable to Load Earthquake"
             message={fetchError}
@@ -1324,18 +1536,20 @@ function EarthquakeDetailPage() {
               </section>
             ) : null}
 
-            <div ref={waveformSentinelRef} className="eqinfo-support-section">
-              {shouldMountWaveforms ? (
-                <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
-                  <SeismicWaveforms
-                    earthquakeInfo={earthquakeInfo}
-                    stations={stationsForDisplay}
-                  />
-                </Suspense>
-              ) : (
-                <div className="eqinfo-panel muted">Preparing station recordings...</div>
-              )}
-            </div>
+            {hasWaveformStations ? (
+              <div ref={waveformSentinelRef} className="eqinfo-support-section">
+                {shouldMountWaveforms ? (
+                  <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
+                    <SeismicWaveforms
+                      earthquakeInfo={earthquakeInfo}
+                      stations={stationsForDisplay}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="eqinfo-panel muted">Preparing station recordings...</div>
+                )}
+              </div>
+            ) : null}
 
             <div ref={reportsRef}>
               <ReportCommentsSection

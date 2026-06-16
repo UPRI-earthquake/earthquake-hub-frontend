@@ -3,11 +3,11 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoadingScreen from './components/LoadingScreen';
 import ConsentBanner from './components/ConsentBanner';
+import EarthquakeDetailPage from './pages/EarthquakeDetailPage';
 
 // Lazy-load heavy routes to improve initial load
 const SignificantEQsPage = lazy(() => import('./pages/SignificantEQsPage'));
 const EQInfoPage = lazy(() => import('./pages/EQInfoPage'));
-const EarthquakeDetailPage = lazy(() => import('./pages/EarthquakeDetailPage'));//Earthquake detail page route
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
