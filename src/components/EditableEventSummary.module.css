@@ -5,30 +5,42 @@
   height: 100%;
 }
 
-.editButton {
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconButton {
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   cursor: pointer;
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--muted);
-  border-radius: 4px;
+  border-radius: 8px;
   transition: all 0.2s ease;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
+  background: color-mix(in srgb, var(--panel-surface) 88%, transparent);
 }
 
-.editButton:hover {
+.iconButton:hover {
   background-color: var(--border);
   color: var(--text-primary);
-  transform: scale(1.1);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
 }
 
-.editButton:active {
-  transform: scale(0.95);
+.iconButton:active {
+  transform: translateY(1px);
+}
+
+.iconButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  outline-offset: 2px;
 }
 
 .placeholderText {

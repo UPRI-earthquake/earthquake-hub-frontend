@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { FiEdit2, FiX, FiCheck } from 'react-icons/fi';
+import { FiEdit2, FiX, FiCheck, FiCopy } from 'react-icons/fi';
 import { getBackendHost } from '../utils/backendHost';
 import sanitizeHtml from '../utils/sanitizeHtml';
 import { generateEventSummary } from '../utils/generateEventSummary';
@@ -33,6 +33,7 @@ function EditableEventSummary({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [copyState, setCopyState] = useState('idle');
 
   useEffect(() => {
     if (!isEditing) {
@@ -99,22 +100,65 @@ function EditableEventSummary({
     setShowConfirmDialog(false);
   }, []);
 
+  const handleCopySummary = useCallback(async () => {
+    const summaryText = editedContent?.trim();
+    if (!summaryText) return;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(summaryText);
+      } else {
+        const fallbackInput = document.createElement('textarea');
+        fallbackInput.value = summaryText;
+        fallbackInput.setAttribute('readonly', '');
+        fallbackInput.style.position = 'absolute';
+        fallbackInput.style.left = '-9999px';
+        document.body.appendChild(fallbackInput);
+        fallbackInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(fallbackInput);
+      }
+
+      setCopyState('copied');
+      window.setTimeout(() => setCopyState('idle'), 1800);
+    } catch (_) {
+      setCopyState('error');
+      window.setTimeout(() => setCopyState('idle'), 2200);
+    }
+  }, [editedContent]);
+
   return (
     <section className={`${styles.summaryContainer} eqinfo-panel ${className}`.trim()}>
       <div className="panel-header">
         <div className="panel-title">
           <h3>Event summary</h3>
-          {!isEditing && canEdit && (
-            <button
-              className={styles.editButton}
-              onClick={handleEditClick}
-              title="Edit event summary"
-              aria-label="Edit event summary"
-            >
-              <FiEdit2 size={16} />
-            </button>
-          )}
         </div>
+        {!isEditing && (
+          <div className={styles.headerActions}>
+            {editedContent.trim() && (
+              <button
+                className={styles.iconButton}
+                onClick={handleCopySummary}
+                title={copyState === 'copied' ? 'Summary copied' : 'Copy event summary'}
+                aria-label={copyState === 'copied' ? 'Event summary copied' : 'Copy event summary'}
+                type="button"
+              >
+                {copyState === 'copied' ? <FiCheck size={16} /> : <FiCopy size={16} />}
+              </button>
+            )}
+            {canEdit && (
+              <button
+                className={styles.iconButton}
+                onClick={handleEditClick}
+                title="Edit event summary"
+                aria-label="Edit event summary"
+                type="button"
+              >
+                <FiEdit2 size={16} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="panel-body">

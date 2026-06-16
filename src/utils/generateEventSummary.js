@@ -11,7 +11,7 @@ function formatTimePh(isoString) {
   if (!isoString) return '—';
   const parsed = moment.utc(isoString);
   if (!parsed || !parsed.isValid()) return '—';
-  return parsed.add(8, 'hour').format('HH:mm:ss');
+  return parsed.add(8, 'hour').format('h:mm:ss A');
 }
 
 function formatMagnitude(value) {
@@ -99,19 +99,20 @@ export function generateEventSummary(earthquakeInfo) {
   );
 
   // — Assemble sentence 1 —
-  const struckPhrase = proximityPhrase
-    ? `earthquake struck ${proximityPhrase}`
-    : 'earthquake was detected'; // graceful when place is truly absent
+  const locationPhrase = proximityPhrase
+    ? `near ${proximityPhrase}`
+    : null;
 
   let summary =
-    `A magnitude ${magnitude} ${struckPhrase} ` +
-    `on ${formatDatePh(eventTime)}, at ${formatTimePh(eventTime)} UTC+08:00, ` +
-    `with a depth of ${depth} km.`;
+    `A magnitude ${magnitude} earthquake was recorded` +
+    `${locationPhrase ? ` ${locationPhrase}` : ''} ` +
+    `on ${formatDatePh(eventTime)}, at ${formatTimePh(eventTime)} PHT, ` +
+    `with a reported depth of ${depth} km.`;
 
   // — Assemble sentence 2 (coordinates) —
   // Only render if we have at least one valid coordinate
   if (lat && lon) {
-    summary += ` The earthquake epicenter was located at ${lat} latitude and ${lon} longitude.`;
+    summary += ` The reported epicenter was located at ${lat} latitude and ${lon} longitude.`;
   }
 
   return summary;
