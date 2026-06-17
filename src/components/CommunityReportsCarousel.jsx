@@ -67,6 +67,10 @@ function resolveImageUrl(imageUrl) {
   }
 }
 
+function getReportKey(report) {
+  return report?.commentId || report?.id || report?._id || '';
+}
+
 /**
  * CommunityReportsCarousel component displays community reports/comments for an earthquake event
  * in a carousel format with auto-rotation and featured report display.
@@ -120,9 +124,9 @@ function CommunityReportsCarousel({
   const hasCurrentReportImage = Boolean(currentReportImage);
 
   const handleNavigateToReport = useCallback(() => {
-    if (!currentReport?.id && !currentReport?._id) return;
+    const reportId = getReportKey(currentReport);
+    if (!reportId) return;
     onReportClick?.();
-    const reportId = currentReport.id || currentReport._id;
     const reportElement = document.getElementById(`comment-${reportId}`);
     if (reportElement) {
       reportElement.scrollIntoView({ behavior: 'smooth', block: 'start' });

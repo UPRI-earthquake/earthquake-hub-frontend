@@ -225,7 +225,7 @@ function getCommentTotalFromResponse(data, comments) {
 }
 
 function getCommentKey(comment, fallback = '') {
-  return comment?.id || comment?._id || comment?.commentId || fallback;
+  return comment?.commentId || comment?.id || comment?._id || fallback;
 }
 
 function getCommentText(comment) {
@@ -871,7 +871,7 @@ function ReportCommentsSection({
           comments.map((comment, index) => {
             const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
             const text = getCommentText(comment);
-            const commentKey = comment?.id || comment?._id || `${eventId}-comment-${index}`;
+            const commentKey = getCommentKey(comment, `${eventId}-comment-${index}`);
             const author = getCommentAuthor(comment);
             const isExpanded = Boolean(expandedComments[commentKey]);
             const shouldClampText = Boolean(text && text.length > 280);

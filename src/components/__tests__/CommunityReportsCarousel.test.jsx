@@ -147,6 +147,37 @@ describe('CommunityReportsCarousel', () => {
     document.body.removeChild(mockElement);
   });
 
+  test('uses commentId as the stable report anchor when Mongo ids are not exposed', async () => {
+    const onReportClick = jest.fn();
+    const mockElement = document.createElement('div');
+    mockElement.id = 'comment-report-public-id';
+    mockElement.scrollIntoView = jest.fn();
+    document.body.appendChild(mockElement);
+
+    const { container } = render(
+      <CommunityReportsCarousel
+        reports={[{
+          commentId: 'report-public-id',
+          username: 'Anonymous',
+          content: 'Public report content',
+        }]}
+        onReportClick={onReportClick}
+      />,
+    );
+
+    fireEvent.click(container.querySelector('.featuredReportContainer'));
+
+    expect(onReportClick).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockElement.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+
+    document.body.removeChild(mockElement);
+  });
+
   test('keyboard activation opens the selected report', () => {
     const onReportClick = jest.fn();
     const { container } = render(
