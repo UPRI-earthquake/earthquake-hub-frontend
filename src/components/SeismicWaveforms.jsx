@@ -15,7 +15,13 @@ import { FiChevronDown, FiDownload } from 'react-icons/fi';
  * during an earthquake event. Each station shows a compact waveform visualization with
  * access to station metadata.
  */
-function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
+function SeismicWaveforms({
+  earthquakeInfo,
+  stations = [],
+  availabilityStatus = 'verified',
+  isAvailabilityPending = false,
+  stationListSource = 'verified',
+}) {
   const [waveforms, setWaveforms] = useState({});
   const [loadingStations, setLoadingStations] = useState(new Set());
   const [showAllStations, setShowAllStations] = useState(false);
@@ -337,6 +343,10 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
     };
   }
 
+  const availabilityNote = isAvailabilityPending || stationListSource === 'candidate'
+    ? 'Candidate stations were active near detection time. Waveform availability is still being checked as FDSN data catches up.'
+    : 'Only stations with confirmed data for this event are listed.';
+
   if (!earthquakeInfo) {
     return null;
   }
@@ -350,7 +360,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
         <div className={styles.panelTitle}>
           <h3>Station Recordings</h3>
           <InfoTooltip title="Station recordings" label="About station recordings" variant="inline">
-            Only stations with data and online during the event are included. Recordings are sorted by distance, with the nearest station to the epicenter shown first.
+            {availabilityNote}
           </InfoTooltip>
         </div>
       </div>
@@ -367,6 +377,7 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
                 isLoading={loadingStations.has(stationCode)}
                 earthquakeInfo={earthquakeInfo}
                 distanceLabel={getStationDistanceLabel(stationCode, eventCoordinates, stationLocationsByCode)}
+                isAvailabilityPending={isAvailabilityPending}
               />
             ))}
           </div>
@@ -390,7 +401,11 @@ function SeismicWaveforms({ earthquakeInfo, stations = [] }) {
       ) : (
         <div className={`${styles.emptyState} ${styles.emptyStateCompact} eqinfo-empty-state eqinfo-empty-state--compact`}>
           <span>No station recordings</span>
-          <small>No online station recordings are currently available for this event.</small>
+          <small>
+            {availabilityStatus === 'pending'
+              ? 'Recording availability is still being checked for this event.'
+              : 'No online station recordings are currently available for this event.'}
+          </small>
         </div>
       )}
     </section>
@@ -507,7 +522,15 @@ const DEFAULT_VISIBLE_STATION_COUNT = 3;
 /**
  * Individual waveform row component
  */
-function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earthquakeInfo, distanceLabel }) {
+function WaveformRow({
+  stationCode,
+  stationIndex,
+  waveformData,
+  isLoading,
+  earthquakeInfo,
+  distanceLabel,
+  isAvailabilityPending,
+}) {
   const channels = useMemo(
     () => (Array.isArray(waveformData?.channelSamples) ? waveformData.channelSamples : []),
     [waveformData]
@@ -551,6 +574,7 @@ function WaveformRow({ stationCode, stationIndex, waveformData, isLoading, earth
           channels={displayedChannels}
           isLoading={isLoading}
           eventTime={earthquakeInfo?.eventTime || earthquakeInfo?.OT}
+          isAvailabilityPending={isAvailabilityPending}
         />
       </div>
     </div>
@@ -672,7 +696,7 @@ function getPreferredChannelCode(channels) {
   return (preferred || channels[0]).code;
 }
 
-function CompactWaveform({ stationCode, stationIndex, channels, isLoading, eventTime }) {
+function CompactWaveform({ stationCode, stationIndex, channels, isLoading, eventTime, isAvailabilityPending }) {
   const color = getStationTraceColor(stationIndex);
   const waveformDisplay = useMemo(
     () => buildWaveformPaths(channels),
@@ -699,7 +723,7 @@ function CompactWaveform({ stationCode, stationIndex, channels, isLoading, event
   if (paths.length === 0) {
     return (
       <div className={styles.compactEmpty}>
-        <span>No waveform data available</span>
+        <span>{isAvailabilityPending ? 'Checking waveform availability' : 'No waveform data available'}</span>
       </div>
     );
   }

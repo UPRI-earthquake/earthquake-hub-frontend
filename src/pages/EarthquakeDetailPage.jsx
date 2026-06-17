@@ -1132,7 +1132,10 @@ function EarthquakeDetailPage() {
     depth,
     formattedUpdatedTime,
     formattedUpdatedTimeUtc,
+    isRecordingAvailabilityPending,
     pageTitle,
+    recordingAvailabilityStatus,
+    stationListSource,
     stationsForDisplay,
   } = useEarthquakeDetailViewModel(earthquakeInfo);
   const nearestRecordingStation = useMemo(
@@ -1610,6 +1613,9 @@ function EarthquakeDetailPage() {
                     <SeismicWaveforms
                       earthquakeInfo={earthquakeInfo}
                       stations={stationsForDisplay}
+                      availabilityStatus={recordingAvailabilityStatus}
+                      isAvailabilityPending={isRecordingAvailabilityPending}
+                      stationListSource={stationListSource}
                     />
                   </Suspense>
                 ) : (

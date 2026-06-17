@@ -56,9 +56,27 @@ export default function useEarthquakeDetailViewModel(earthquakeInfo) {
     );
   }, [earthquakeInfo]);
 
-  const stationsForDisplay = useMemo(
-    () => normalizeList(earthquakeInfo?.onlineStations),
-    [earthquakeInfo?.onlineStations],
+  const recordingStations = useMemo(
+    () => normalizeList(earthquakeInfo?.recordingStations),
+    [earthquakeInfo?.recordingStations],
+  );
+  const candidateStations = useMemo(
+    () => normalizeList(earthquakeInfo?.candidateStations || earthquakeInfo?.onlineStations),
+    [earthquakeInfo?.candidateStations, earthquakeInfo?.onlineStations],
+  );
+  const recordingAvailabilityStatus = earthquakeInfo?.recordingAvailabilityStatus || (
+    recordingStations.length > 0
+      ? 'verified'
+      : candidateStations.length > 0
+        ? 'pending'
+        : 'unavailable'
+  );
+  const stationListSource = recordingStations.length > 0 ? 'verified' : 'candidate';
+  const stationsForDisplay = recordingStations.length > 0 ? recordingStations : candidateStations;
+  const isRecordingAvailabilityPending = (
+    recordingStations.length === 0 &&
+    candidateStations.length > 0 &&
+    ['pending', 'partial'].includes(recordingAvailabilityStatus)
   );
 
   const pageTitle = useMemo(() => {
@@ -84,7 +102,11 @@ export default function useEarthquakeDetailViewModel(earthquakeInfo) {
     stationsForDisplay,
     onlineStationsLength: stationsForDisplay.length,
     stationsForDisplayLength: stationsForDisplay.length,
-  }), [earthquakeInfo, stationsForDisplay]);
+    candidateStations,
+    recordingStations,
+    recordingAvailabilityStatus,
+    stationListSource,
+  }), [candidateStations, earthquakeInfo, recordingAvailabilityStatus, recordingStations, stationListSource, stationsForDisplay]);
 
   return {
     coordText,
@@ -96,6 +118,11 @@ export default function useEarthquakeDetailViewModel(earthquakeInfo) {
     formattedUpdatedTimeUtc,
     magnitude,
     pageTitle,
+    candidateStations,
+    isRecordingAvailabilityPending,
+    recordingAvailabilityStatus,
+    recordingStations,
+    stationListSource,
     stationsForDisplay,
     summaryMarkup,
   };
