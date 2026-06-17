@@ -53,3 +53,24 @@ test('renders only catalog sources with available match data', () => {
   expect(container.querySelectorAll('.source-compact-row:not(.source-compact-header)')).toHaveLength(2);
   expect(container.querySelectorAll('.source-compact-name')[1]).toHaveTextContent('PHIVOLCS');
 });
+
+test('renders migrated legacy catalog records with a stable UPRI label', () => {
+  render(
+    <CatalogComparison
+      earthquakeInfo={{
+        ...baseEvent,
+        additionalInformation: [
+          {
+            source: 'upri-legacy',
+            sourceLabel: 'UPRI Legacy Catalog',
+            id: 'old-public-id',
+            magnitude: 6,
+            time: '2026-05-04T06:09:50.000Z',
+          },
+        ],
+      }}
+    />,
+  );
+
+  expect(screen.getByText('UPRI Legacy Catalog')).toBeInTheDocument();
+});

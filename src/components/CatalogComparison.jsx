@@ -20,6 +20,21 @@ const SOURCE_DISPLAY = {
     abbreviation: 'UP',
     iconUrl: UPRI_FAVICON_URL,
   },
+  'upri-current': {
+    label: 'UPRI',
+    abbreviation: 'UP',
+    iconUrl: UPRI_FAVICON_URL,
+  },
+  'upri-legacy': {
+    label: 'UPRI Legacy',
+    abbreviation: 'UL',
+    iconUrl: UPRI_FAVICON_URL,
+  },
+  'legacy-old-server': {
+    label: 'UPRI Legacy',
+    abbreviation: 'UL',
+    iconUrl: UPRI_FAVICON_URL,
+  },
   phivolcs: {
     label: 'PHIVOLCS',
     abbreviation: 'PH',
@@ -200,7 +215,7 @@ function buildCompactRows(mainSource, comparisonSources) {
     const display = getSourceDisplay(source);
 
     return {
-      key: source.source ?? source.id ?? source.url,
+      key: `${source.source ?? 'source'}-${source.id ?? source.url ?? source.time ?? source.dateTime ?? 'record'}`,
       source: source.source,
       details: source,
       label: display.label,

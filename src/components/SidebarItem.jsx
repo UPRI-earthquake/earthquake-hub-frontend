@@ -7,7 +7,17 @@ import { trackEvent } from '../analytics';
 /**
  * Single earthquake item entry used in the sidebar list.
  */
-function SidebarItem({ publicID, title, description, subDescription, status, last_modification, depthKm }) {
+function SidebarItem({
+  publicID,
+  title,
+  description,
+  subDescription,
+  status,
+  last_modification,
+  depthKm,
+  isLegacyRecord = false,
+  sourceLabel = '',
+}) {
   // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
   const selectedEvent = useSelector((state) => state);
@@ -103,6 +113,11 @@ function SidebarItem({ publicID, title, description, subDescription, status, las
         <p className={styles.desc}>{description}</p>
         <div className={styles.metaRow}>
           <span className={styles.subDesc}>{subDescription}</span>
+          {isLegacyRecord && (
+            <span className={styles.legacyBadge} title={sourceLabel || 'Legacy event record'}>
+              Legacy
+            </span>
+          )}
           {Number.isFinite(depthKm) && (
             <div
               className={styles.depthBadge}
@@ -126,6 +141,8 @@ export default React.memo(SidebarItem, (prevProps, nextProps) => {
   return !(
     nextProps.status === 'NEW' ||
     nextProps.status === 'UPDATE' ||
-    nextProps.last_modification !== prevProps.last_modification
+    nextProps.last_modification !== prevProps.last_modification ||
+    nextProps.isLegacyRecord !== prevProps.isLegacyRecord ||
+    nextProps.sourceLabel !== prevProps.sourceLabel
   );
 });

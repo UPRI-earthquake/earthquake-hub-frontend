@@ -9,6 +9,7 @@ import moment from '../utils/time';
 import { backendHost } from '../utils/env';
 import { toFiniteNumber } from '../utils/earthquakeFormat';
 import { calculateDistance } from '../utils/distanceCalculator';
+import { getEventSourceLabel, isLegacyEvent } from '../utils/eventProvenance';
 import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
@@ -1155,6 +1156,8 @@ function EarthquakeDetailPage() {
   );
   const hasWaveformStations = stationsForDisplay.length > 0;
   const showCommunityPreview = reportsLoading || Boolean(reportsError) || reportComments.length > 0;
+  const isLegacyRecord = isLegacyEvent(earthquakeInfo);
+  const legacySourceLabel = getEventSourceLabel(earthquakeInfo);
 
   useEffect(() => {
     const previousEventId = previousEventIdRef.current;
@@ -1493,7 +1496,14 @@ function EarthquakeDetailPage() {
       <Header />
       <div className="eqinfo-shell">
         <section className="eqinfo-hero">
-          <h1>{pageTitle}</h1>
+          <div className="eqinfo-title-row">
+            <h1>{pageTitle}</h1>
+            {isLegacyRecord ? (
+              <span className="eqinfo-legacy-badge" title={legacySourceLabel || 'Legacy event record'}>
+                Legacy
+              </span>
+            ) : null}
+          </div>
           <div className="eqinfo-meta-grid">
             <div className="metric-card metric-card-depth" role="group" aria-label={`Depth ${depth || 'not available'}`} title={`Depth ${depth || 'Not available'}`}>
               <div className="metric-card-head">

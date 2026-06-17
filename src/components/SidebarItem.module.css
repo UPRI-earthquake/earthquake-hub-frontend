@@ -109,6 +109,29 @@ html[data-theme='imagery'] .depthBadge {
 html[data-theme='dark'] .metaRow .subDesc,
 html[data-theme='imagery'] .metaRow .subDesc { color: #d1d5db; opacity: 0.85; }
 
+.legacyBadge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 18px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  background: rgba(100, 116, 139, 0.1);
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+html[data-theme='dark'] .legacyBadge,
+html[data-theme='imagery'] .legacyBadge {
+  border-color: rgba(203, 213, 225, 0.22);
+  background: rgba(203, 213, 225, 0.12);
+  color: #e2e8f0;
+}
+
 .sidebarItem > div {
   white-space: nowrap;
   /* overflow: hidden; */
