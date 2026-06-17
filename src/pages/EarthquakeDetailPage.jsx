@@ -25,6 +25,7 @@ const RECENT_EVENTS_FETCH_TIMEOUT_MS = 20000;
 const DETAIL_FETCH_STALL_MS = 8000;
 const COMMENTS_FETCH_TIMEOUT_MS = 12000;
 const COMMENT_POST_TIMEOUT_MS = 20000;
+const REPORTS_PAGE_SIZE = 20;
 const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const REPORT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MINI_MAP_ZOOM = 9;
@@ -222,6 +223,14 @@ function getCommentsFromResponse(data) {
 function getCommentTotalFromResponse(data, comments) {
   const total = Number(data?.pagination?.total ?? data?.total ?? data?.payload?.total);
   return Number.isFinite(total) ? total : comments.length;
+}
+
+function getCommentPaginationFromResponse(data) {
+  const pagination = data?.pagination && typeof data.pagination === 'object' ? data.pagination : {};
+  return {
+    nextCursor: typeof pagination.nextCursor === 'string' && pagination.nextCursor ? pagination.nextCursor : null,
+    hasMore: Boolean(pagination.hasMore),
+  };
 }
 
 function getCommentKey(comment, fallback = '') {
@@ -633,7 +642,10 @@ function ReportCommentsSection({
   eventId,
   comments = [],
   isLoading,
+  isLoadingMore,
   loadError,
+  hasMore,
+  onLoadMore,
   onReportsChanged,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -926,6 +938,19 @@ function ReportCommentsSection({
         )}
       </div>
 
+      {comments.length > 0 && hasMore && (
+        <div className="report-load-more-row">
+          <button
+            type="button"
+            className="report-secondary-button"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? 'Loading reports...' : 'Load more reports'}
+          </button>
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="report-modal-backdrop" role="presentation" onMouseDown={closeModal}>
           <form
@@ -1082,7 +1107,10 @@ function EarthquakeDetailPage() {
   const [reportComments, setReportComments] = useState([]);
   const [reportCount, setReportCount] = useState(0);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsLoadingMore, setReportsLoadingMore] = useState(false);
   const [reportsError, setReportsError] = useState('');
+  const [reportsNextCursor, setReportsNextCursor] = useState(null);
+  const [reportsHasMore, setReportsHasMore] = useState(false);
   const [allStations, setAllStations] = useState([]);
   const eventId = searchParams.get('id');
   const reportsRef = useRef(null);
@@ -1145,36 +1173,70 @@ function EarthquakeDetailPage() {
     return () => window.clearTimeout(timer);
   }, [eventId]);
 
-  const loadReports = useCallback(async () => {
+  const loadReports = useCallback(async ({ cursor = '', append = false } = {}) => {
     if (!reportEventId) {
       setReportComments([]);
       setReportCount(0);
       setReportsError('');
+      setReportsNextCursor(null);
+      setReportsHasMore(false);
       return;
     }
 
-    setReportsLoading(true);
+    const shouldAppend = Boolean(append && cursor);
+    if (shouldAppend) {
+      setReportsLoadingMore(true);
+    } else {
+      setReportsLoading(true);
+    }
     setReportsError('');
     try {
       const response = await axios.get(`${backendHost()}/comments/`, {
-        params: { eventId: reportEventId },
+        params: {
+          eventId: reportEventId,
+          limit: REPORTS_PAGE_SIZE,
+          ...(cursor ? { cursor } : {}),
+        },
         timeout: COMMENTS_FETCH_TIMEOUT_MS,
         withCredentials: true,
       });
       const nextComments = getCommentsFromResponse(response.data);
-      setReportComments(nextComments);
+      setReportComments((prev) => {
+        if (!shouldAppend) return nextComments;
+        const existingKeys = new Set(prev.map((comment, index) => getCommentKey(comment, `existing-${index}`)));
+        const uniqueNextComments = nextComments.filter(
+          (comment, index) => !existingKeys.has(getCommentKey(comment, `next-${index}`))
+        );
+        return [...prev, ...uniqueNextComments];
+      });
       setReportCount(getCommentTotalFromResponse(response.data, nextComments));
+      const pagination = getCommentPaginationFromResponse(response.data);
+      setReportsNextCursor(pagination.nextCursor);
+      setReportsHasMore(pagination.hasMore);
     } catch (error) {
-      setReportComments([]);
-      setReportCount(0);
+      if (!shouldAppend) {
+        setReportComments([]);
+        setReportCount(0);
+        setReportsNextCursor(null);
+        setReportsHasMore(false);
+      }
       setReportsError(error?.response?.data?.message || error?.message || 'Failed to load reports.');
     } finally {
-      setReportsLoading(false);
+      if (shouldAppend) {
+        setReportsLoadingMore(false);
+      } else {
+        setReportsLoading(false);
+      }
     }
   }, [reportEventId]);
 
   const handleReportsChanged = useCallback(async ({ createdComment } = {}) => {
     if (createdComment) {
+      if (createdComment.status && createdComment.status !== 'approved') {
+        await loadReports();
+        return;
+      }
+
       setReportComments((prev) => {
         const createdKey = getCommentKey(createdComment, 'created-comment');
         const withoutDuplicate = prev.filter(
@@ -1193,6 +1255,11 @@ function EarthquakeDetailPage() {
   useEffect(() => {
     loadReports();
   }, [loadReports]);
+
+  const loadMoreReports = useCallback(() => {
+    if (!reportsHasMore || !reportsNextCursor || reportsLoadingMore) return;
+    void loadReports({ cursor: reportsNextCursor, append: true });
+  }, [loadReports, reportsHasMore, reportsLoadingMore, reportsNextCursor]);
 
   // Sync displaySummary with earthquakeInfo
   useEffect(() => {
@@ -1556,7 +1623,10 @@ function EarthquakeDetailPage() {
                 eventId={reportEventId}
                 comments={reportComments}
                 isLoading={reportsLoading}
+                isLoadingMore={reportsLoadingMore}
                 loadError={reportsError}
+                hasMore={reportsHasMore}
+                onLoadMore={loadMoreReports}
                 onReportsChanged={handleReportsChanged}
               />
             </div>

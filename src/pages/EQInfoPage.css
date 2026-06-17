@@ -1077,6 +1077,12 @@
   color: #991b1b;
 }
 
+.report-load-more-row {
+  display: flex;
+  justify-content: center;
+  padding-top: 14px;
+}
+
 .report-modal-backdrop {
   position: fixed;
   inset: 0;
