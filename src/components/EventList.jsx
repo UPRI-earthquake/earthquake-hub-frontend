@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import moment from '../utils/time';
 import { filterAndSortEvents } from '../utils/eventFilters';
-import { getEventSourceLabel, isLegacyEvent } from '../utils/eventProvenance';
 import SidebarItem from './SidebarItem';
 
 function EventList({ events, filters, sort, loading }) {
@@ -53,8 +52,6 @@ function EventList({ events, filters, sort, loading }) {
       subDescription={moment(item.OT).fromNow()}
       status={item.eventType ? item.eventType : null}
       last_modification={item.last_modification}
-      isLegacyRecord={isLegacyEvent(item)}
-      sourceLabel={getEventSourceLabel(item)}
     />
   ));
 }

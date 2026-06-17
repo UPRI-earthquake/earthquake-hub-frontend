@@ -15,8 +15,6 @@ function SidebarItem({
   status,
   last_modification,
   depthKm,
-  isLegacyRecord = false,
-  sourceLabel = '',
 }) {
   // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
@@ -113,11 +111,6 @@ function SidebarItem({
         <p className={styles.desc}>{description}</p>
         <div className={styles.metaRow}>
           <span className={styles.subDesc}>{subDescription}</span>
-          {isLegacyRecord && (
-            <span className={styles.legacyBadge} title={sourceLabel || 'Legacy event record'}>
-              Legacy
-            </span>
-          )}
           {Number.isFinite(depthKm) && (
             <div
               className={styles.depthBadge}
@@ -142,7 +135,6 @@ export default React.memo(SidebarItem, (prevProps, nextProps) => {
     nextProps.status === 'NEW' ||
     nextProps.status === 'UPDATE' ||
     nextProps.last_modification !== prevProps.last_modification ||
-    nextProps.isLegacyRecord !== prevProps.isLegacyRecord ||
-    nextProps.sourceLabel !== prevProps.sourceLabel
+    nextProps.depthKm !== prevProps.depthKm
   );
 });

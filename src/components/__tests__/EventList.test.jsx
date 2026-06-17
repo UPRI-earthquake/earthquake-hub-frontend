@@ -63,7 +63,7 @@ test('empty state renders when no results', () => {
   expect(container.textContent).toMatch(/No results/i);
 });
 
-test('marks migrated legacy primary events', () => {
+test('does not render migrated legacy primary events with a visual badge', () => {
   const { container } = render(
     <Provider store={makeStore()}>
       <EventList
@@ -78,5 +78,5 @@ test('marks migrated legacy primary events', () => {
     </Provider>,
   );
 
-  expect(container.textContent).toMatch(/Legacy/);
+  expect(container.textContent).not.toMatch(/Legacy/);
 });

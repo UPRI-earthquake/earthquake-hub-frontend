@@ -38,23 +38,6 @@
   min-width: 0;
 }
 
-.eqinfo-legacy-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  background: rgba(15, 23, 42, 0.24);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.68rem;
-  font-weight: 750;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0;
-  backdrop-filter: blur(8px);
-}
-
 .eqinfo-meta-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -184,6 +167,7 @@
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 2;
   background:
     linear-gradient(180deg, rgba(8, 13, 23, 0.2), rgba(8, 13, 23, 0.52)),
     linear-gradient(90deg, rgba(8, 13, 23, 0.42), transparent 52%),
@@ -194,21 +178,21 @@
 .metric-mini-map-tiles {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 
 .metric-mini-map img {
   position: absolute;
-  width: 256px;
-  height: 256px;
   user-select: none;
   pointer-events: none;
 }
 
 .metric-map-pin {
+  --metric-epicenter-scale: 1;
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 2;
+  z-index: 4;
   width: 16px;
   height: 16px;
   border: 3px solid rgba(255, 255, 255, 0.95);
@@ -216,7 +200,8 @@
   box-shadow:
     0 0 0 5px rgba(239, 68, 68, 0.18),
     0 2px 6px rgba(15, 23, 42, 0.25);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--metric-epicenter-scale));
+  transform-origin: center;
 }
 
 .metric-map-pin-epicenter {
@@ -224,12 +209,10 @@
 }
 
 .metric-map-pin-station {
-  width: 0;
-  height: 0;
-  border-right: 10px solid transparent;
-  border-bottom: 18px solid #22c55e;
-  border-left: 10px solid transparent;
-  border-top: 0;
+  --metric-epicenter-scale: 1;
+  width: 25px;
+  height: 25px;
+  border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -237,13 +220,64 @@
     drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
     drop-shadow(0 0 6px rgba(34, 197, 94, 0.34))
     drop-shadow(0 2px 5px rgba(15, 23, 42, 0.35));
+  transform: translate(-50%, -50%);
+}
+
+.metric-map-pin-station svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.metric-map-pin-paired.metric-map-pin-epicenter {
+  width: 13px;
+  height: 13px;
+  border-width: 3px;
+  box-shadow:
+    0 0 0 4px rgba(239, 68, 68, 0.2),
+    0 2px 6px rgba(15, 23, 42, 0.3);
+}
+
+.metric-map-distance-line {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.metric-map-wavefront {
+  fill: none;
+  stroke: rgba(239, 68, 68, 0.64);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 1px 3px rgba(15, 23, 42, 0.38));
+  vector-effect: non-scaling-stroke;
+}
+
+.metric-map-wavefront-1 {
+  stroke-opacity: 0.28;
+}
+
+.metric-map-wavefront-2 {
+  stroke-opacity: 0.42;
+}
+
+.metric-map-wavefront-3 {
+  stroke-opacity: 0.72;
+  stroke-width: 2;
 }
 
 .metric-map-attribution {
   position: absolute;
   right: 5px;
   bottom: 4px;
-  z-index: 3;
+  z-index: 5;
   padding: 1px 3px;
   border-radius: 3px;
   background: rgba(15, 23, 42, 0.76);
@@ -280,41 +314,114 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
   pointer-events: none;
 }
 
+.metric-map-overlay-station {
+  justify-content: space-between;
+}
+
 .metric-map-overlay .metric-card-head {
   width: max-content;
   max-width: 100%;
   padding: 7px 9px 7px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 11px;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(10px);
+  background: rgba(248, 250, 252, 0.16);
+  color: rgba(15, 23, 42, 0.96);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(3px) saturate(1.04);
+}
+
+.metric-map-overlay .metric-icon {
+  background: rgba(248, 250, 252, 0.22);
+  color: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.1);
+}
+
+.metric-map-overlay .metric-label {
+  color: rgba(15, 23, 42, 0.96);
+  font-weight: 800;
+  opacity: 1;
 }
 
 .metric-map-value {
-  width: max-content;
-  max-width: 100%;
+  display: inline-block;
+  width: fit-content;
+  max-width: max-content;
   padding: 9px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(10px);
+  background: rgba(248, 250, 252, 0.16);
+  color: rgba(15, 23, 42, 0.96);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(3px) saturate(1.04);
 }
 
 .metric-map-value strong {
+  color: rgba(15, 23, 42, 0.98);
   font-size: clamp(1.22rem, 1rem + 0.55vw, 1.48rem);
   font-variant-numeric: tabular-nums;
 }
 
 .metric-map-value .metric-sub {
+  color: rgba(15, 23, 42, 0.95);
   margin-top: 5px;
   font-size: 0.82rem;
-  opacity: 0.84;
+  font-weight: 750;
+  opacity: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.metric-card-epicenter .metric-map-value {
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+
+.metric-card-epicenter .metric-coordinate-list {
+  gap: 4px;
+}
+
+.metric-card-epicenter .metric-coordinate-list div {
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.metric-card-epicenter .metric-coordinate-list dt {
+  color: rgba(15, 23, 42, 0.94);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  opacity: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.metric-card-epicenter .metric-coordinate-list dd {
+  font-size: clamp(0.9rem, 0.78rem + 0.32vw, 1.08rem);
+  line-height: 1;
+}
+
+.metric-station-map-value {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+
+.metric-station-map-value strong {
+  font-size: clamp(0.92rem, 0.8rem + 0.35vw, 1.08rem);
+  line-height: 1;
+}
+
+.metric-station-map-value .metric-sub {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1.1;
+  opacity: 1;
 }
 
 .metric-coordinate-list {
@@ -331,7 +438,7 @@
 }
 
 .metric-coordinate-list dt {
-  color: var(--hero-card-text);
+  color: rgba(15, 23, 42, 0.68);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -342,7 +449,7 @@
 
 .metric-coordinate-list dd {
   margin: 0;
-  color: var(--hero-card-text);
+  color: rgba(15, 23, 42, 0.92);
   font-size: clamp(1.18rem, 0.98rem + 0.5vw, 1.42rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -1559,6 +1666,20 @@
   .panel-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .eqinfo-panel-summary-only .panel-header {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .eqinfo-panel-summary-only .panel-title {
+    min-width: 0;
+  }
+
+  .eqinfo-panel-summary-only .panel-title h3 {
+    overflow-wrap: anywhere;
   }
 
   .community-preview-actions {

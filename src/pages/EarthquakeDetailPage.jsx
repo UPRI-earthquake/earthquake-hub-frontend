@@ -9,7 +9,7 @@ import moment from '../utils/time';
 import { backendHost } from '../utils/env';
 import { toFiniteNumber } from '../utils/earthquakeFormat';
 import { calculateDistance } from '../utils/distanceCalculator';
-import { getEventSourceLabel, isLegacyEvent } from '../utils/eventProvenance';
+import { buildTriangleSVG } from '../utils/triangleMarker';
 import { useStations } from '../hooks/useStations';
 import useEarthquakeDetailViewModel from '../hooks/useEarthquakeDetailViewModel';
 import CatalogComparison from '../components/CatalogComparison';
@@ -30,6 +30,9 @@ const REPORTS_PAGE_SIZE = 20;
 const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const REPORT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MINI_MAP_ZOOM = 9;
+const EPICENTER_MINI_MAP_ZOOM = 5;
+const MINI_MAP_DISTANCE_MIN_ZOOM = 3;
+const MINI_MAP_DISTANCE_MAX_ZOOM = 9;
 const MINI_MAP_WIDTH = 168;
 const MINI_MAP_HEIGHT = 92;
 const MINI_MAP_TILE_SIZE = 256;
@@ -459,6 +462,30 @@ function formatApproxDistance(distanceKm) {
   return `~${Math.round(distanceKm).toLocaleString()} km`;
 }
 
+function getMagnitudeValue(earthquakeInfo) {
+  return toFiniteNumber(
+    earthquakeInfo?.magnitude ??
+    earthquakeInfo?.magnitude_value ??
+    earthquakeInfo?.mag ??
+    earthquakeInfo?.magnitudeValue
+  );
+}
+
+function getMagnitudeMarkerScale(magnitudeValue) {
+  if (magnitudeValue == null) return 1;
+  return Math.min(1.28, Math.max(0.88, 0.78 + magnitudeValue * 0.065));
+}
+
+function getMagnitudeMarkerStyle(magnitudeValue, point = null) {
+  const markerScale = getMagnitudeMarkerScale(magnitudeValue);
+  const style = { '--metric-epicenter-scale': markerScale };
+  if (point) {
+    style.left = `${point.left}px`;
+    style.top = `${point.top}px`;
+  }
+  return style;
+}
+
 function getDepthContext(earthquakeInfo) {
   const depthKm = toFiniteNumber(earthquakeInfo?.depth_km ?? earthquakeInfo?.depth ?? earthquakeInfo?.depth_value);
   if (depthKm == null) return 'Depth unavailable';
@@ -570,7 +597,41 @@ function latToTilePixelY(latitude, zoom) {
   );
 }
 
-function buildMiniMapTiles(latitude, longitude, zoom = MINI_MAP_ZOOM) {
+function useMiniMapDimensions() {
+  const [node, setNode] = useState(null);
+  const [dimensions, setDimensions] = useState({
+    width: MINI_MAP_WIDTH,
+    height: MINI_MAP_HEIGHT,
+  });
+
+  useEffect(() => {
+    if (!node) return undefined;
+
+    const updateDimensions = () => {
+      const rect = node.getBoundingClientRect();
+      const width = Math.max(1, rect.width || MINI_MAP_WIDTH);
+      const height = Math.max(1, rect.height || MINI_MAP_HEIGHT);
+      setDimensions((current) => (
+        Math.abs(current.width - width) < 0.5 && Math.abs(current.height - height) < 0.5
+          ? current
+          : { width, height }
+      ));
+    };
+
+    updateDimensions();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(updateDimensions);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node]);
+
+  return [setNode, dimensions];
+}
+
+function buildMiniMapTiles(latitude, longitude, zoom = MINI_MAP_ZOOM, dimensions = {}) {
+  const viewportWidth = dimensions.width || MINI_MAP_WIDTH;
+  const viewportHeight = dimensions.height || MINI_MAP_HEIGHT;
   const centerX = lonToTilePixelX(longitude, zoom);
   const centerY = latToTilePixelY(latitude, zoom);
   const centerTileX = Math.floor(centerX / MINI_MAP_TILE_SIZE);
@@ -592,8 +653,8 @@ function buildMiniMapTiles(latitude, longitude, zoom = MINI_MAP_ZOOM) {
           .replace('{z}', zoom)
           .replace('{x}', tileX)
           .replace('{y}', tileY),
-        left: rawX * MINI_MAP_TILE_SIZE - centerX + MINI_MAP_WIDTH / 2,
-        top: tileY * MINI_MAP_TILE_SIZE - centerY + MINI_MAP_HEIGHT / 2,
+        left: rawX * MINI_MAP_TILE_SIZE - centerX + viewportWidth / 2,
+        top: tileY * MINI_MAP_TILE_SIZE - centerY + viewportHeight / 2,
       });
     }
   }
@@ -601,12 +662,104 @@ function buildMiniMapTiles(latitude, longitude, zoom = MINI_MAP_ZOOM) {
   return tiles;
 }
 
-function MiniMapPreview({ coordinates, marker = 'epicenter' }) {
+function getMiniMapPoint(coordinates, centerCoordinates, zoom, dimensions = {}) {
+  const latitude = toFiniteNumber(coordinates?.latitude);
+  const longitude = toFiniteNumber(coordinates?.longitude);
+  const centerLatitude = toFiniteNumber(centerCoordinates?.latitude);
+  const centerLongitude = toFiniteNumber(centerCoordinates?.longitude);
+  const viewportWidth = dimensions.width || MINI_MAP_WIDTH;
+  const viewportHeight = dimensions.height || MINI_MAP_HEIGHT;
+
+  if (
+    latitude == null ||
+    longitude == null ||
+    centerLatitude == null ||
+    centerLongitude == null
+  ) {
+    return null;
+  }
+
+  return {
+    left: lonToTilePixelX(longitude, zoom) - lonToTilePixelX(centerLongitude, zoom) + viewportWidth / 2,
+    top: latToTilePixelY(latitude, zoom) - latToTilePixelY(centerLatitude, zoom) + viewportHeight / 2,
+  };
+}
+
+function getMiniMapProjectedDelta(firstCoordinates, secondCoordinates, zoom) {
+  const firstLatitude = toFiniteNumber(firstCoordinates?.latitude);
+  const firstLongitude = toFiniteNumber(firstCoordinates?.longitude);
+  const secondLatitude = toFiniteNumber(secondCoordinates?.latitude);
+  const secondLongitude = toFiniteNumber(secondCoordinates?.longitude);
+
+  if (
+    firstLatitude == null ||
+    firstLongitude == null ||
+    secondLatitude == null ||
+    secondLongitude == null
+  ) {
+    return null;
+  }
+
+  return {
+    x: lonToTilePixelX(firstLongitude, zoom) - lonToTilePixelX(secondLongitude, zoom),
+    y: latToTilePixelY(firstLatitude, zoom) - latToTilePixelY(secondLatitude, zoom),
+  };
+}
+
+function getMiniMapDistanceZoom(epicenterCoordinates, stationCoordinates, dimensions = {}) {
+  const baseDelta = getMiniMapProjectedDelta(epicenterCoordinates, stationCoordinates, 0);
+  const baseDistance = baseDelta ? Math.hypot(baseDelta.x, baseDelta.y) : 0;
+  const viewportMin = Math.min(dimensions.width || MINI_MAP_WIDTH, dimensions.height || MINI_MAP_HEIGHT);
+  const targetDistance = Math.min(92, Math.max(34, viewportMin * 0.34));
+
+  if (!Number.isFinite(baseDistance) || baseDistance <= 0) {
+    return EPICENTER_MINI_MAP_ZOOM;
+  }
+
+  const targetZoom = Math.round(Math.log2(targetDistance / baseDistance));
+  return Math.min(
+    MINI_MAP_DISTANCE_MAX_ZOOM,
+    Math.max(MINI_MAP_DISTANCE_MIN_ZOOM, targetZoom)
+  );
+}
+
+function getMiniMapTileStyle(tile) {
+  return {
+    left: `${tile.left}px`,
+    top: `${tile.top}px`,
+    width: `${MINI_MAP_TILE_SIZE}px`,
+    height: `${MINI_MAP_TILE_SIZE}px`,
+  };
+}
+
+function getDistanceMapLabel(distanceLabel) {
+  const text = String(distanceLabel || '').trim();
+  if (!text || !/^~?<?[\d,.]+\s*km\b/i.test(text)) return '';
+  return text.replace(/\s+from\s+epicenter$/i, '');
+}
+
+function MiniMapStationPin({ stationCode = 'station', style = null }) {
+  const triangleMarkup = useMemo(
+    () => buildTriangleSVG('#22c55e', `metric-${stationCode || 'station'}`),
+    [stationCode]
+  );
+
+  return (
+    <span
+      className="metric-map-pin metric-map-pin-station"
+      style={style || undefined}
+      dangerouslySetInnerHTML={{ __html: triangleMarkup }}
+    />
+  );
+}
+
+function MiniMapPreview({ coordinates, magnitudeValue = null, marker = 'epicenter', zoom = MINI_MAP_ZOOM }) {
+  const [setMapNode, dimensions] = useMiniMapDimensions();
   const latitude = toFiniteNumber(coordinates?.latitude);
   const longitude = toFiniteNumber(coordinates?.longitude);
   const tiles = useMemo(
-    () => (latitude == null || longitude == null ? [] : buildMiniMapTiles(latitude, longitude)),
-    [latitude, longitude]
+    () => (latitude == null || longitude == null ? [] : buildMiniMapTiles(latitude, longitude, zoom, dimensions)),
+    [dimensions, latitude, longitude, zoom]
   );
 
   if (latitude == null || longitude == null) {
@@ -618,7 +771,7 @@ function MiniMapPreview({ coordinates, marker = 'epicenter' }) {
   }
 
   return (
-    <div className="metric-mini-map" aria-hidden="true">
+    <div ref={setMapNode} className="metric-mini-map" aria-hidden="true">
       <div className="metric-mini-map-tiles">
         {tiles.map((tile) => (
           <img
@@ -626,14 +779,104 @@ function MiniMapPreview({ coordinates, marker = 'epicenter' }) {
             src={tile.url}
             alt=""
             draggable="false"
-            style={{
-              left: `${tile.left}px`,
-              top: `${tile.top}px`,
-            }}
+            style={getMiniMapTileStyle(tile)}
           />
         ))}
       </div>
-      <span className={`metric-map-pin metric-map-pin-${marker}`} />
+      {marker === 'station' ? (
+        <MiniMapStationPin />
+      ) : (
+        <span
+          className={`metric-map-pin metric-map-pin-${marker}`}
+          style={marker === 'epicenter' ? getMagnitudeMarkerStyle(magnitudeValue) : undefined}
+        />
+      )}
+      <span className="metric-map-attribution">CARTO</span>
+    </div>
+  );
+}
+
+function MiniMapDistancePreview({ epicenterCoordinates, magnitudeValue = null, stationCode, stationCoordinates }) {
+  const [setMapNode, dimensions] = useMiniMapDimensions();
+  const centerCoordinates = useMemo(
+    () => {
+      const latitude = toFiniteNumber(stationCoordinates?.latitude);
+      const longitude = toFiniteNumber(stationCoordinates?.longitude);
+      return latitude == null || longitude == null ? null : { latitude, longitude };
+    },
+    [stationCoordinates]
+  );
+  const zoom = useMemo(
+    () => (
+      centerCoordinates
+        ? getMiniMapDistanceZoom(epicenterCoordinates, stationCoordinates, dimensions)
+        : MINI_MAP_ZOOM
+    ),
+    [centerCoordinates, dimensions, epicenterCoordinates, stationCoordinates]
+  );
+  const tiles = useMemo(
+    () => (
+      centerCoordinates
+        ? buildMiniMapTiles(centerCoordinates.latitude, centerCoordinates.longitude, zoom, dimensions)
+        : []
+    ),
+    [centerCoordinates, dimensions, zoom]
+  );
+  const epicenterPoint = useMemo(
+    () => getMiniMapPoint(epicenterCoordinates, centerCoordinates, zoom, dimensions),
+    [centerCoordinates, dimensions, epicenterCoordinates, zoom]
+  );
+  const stationPoint = useMemo(
+    () => getMiniMapPoint(stationCoordinates, centerCoordinates, zoom, dimensions),
+    [centerCoordinates, dimensions, stationCoordinates, zoom]
+  );
+
+  if (!centerCoordinates || !epicenterPoint || !stationPoint) {
+    return <MiniMapPreview coordinates={stationCoordinates} marker="station" />;
+  }
+
+  const wavefrontRadius = Math.hypot(
+    stationPoint.left - epicenterPoint.left,
+    stationPoint.top - epicenterPoint.top
+  );
+  const wavefrontRadii = wavefrontRadius > 0
+    ? [0.46, 0.73, 1].map((ratio) => wavefrontRadius * ratio)
+    : [];
+
+  return (
+    <div ref={setMapNode} className="metric-mini-map metric-mini-map-distance" aria-hidden="true">
+      <div className="metric-mini-map-tiles">
+        {tiles.map((tile) => (
+          <img
+            key={tile.key}
+            src={tile.url}
+            alt=""
+            draggable="false"
+            style={getMiniMapTileStyle(tile)}
+          />
+        ))}
+      </div>
+      <svg
+        className="metric-map-distance-line"
+        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+        preserveAspectRatio="none"
+        focusable="false"
+      >
+        {wavefrontRadii.map((radius, index) => (
+          <circle
+            key={`station-wavefront-${index}`}
+            className={`metric-map-wavefront metric-map-wavefront-${index + 1}`}
+            cx={epicenterPoint.left}
+            cy={epicenterPoint.top}
+            r={radius}
+          />
+        ))}
+      </svg>
+      <span
+        className="metric-map-pin metric-map-pin-epicenter metric-map-pin-paired"
+        style={getMagnitudeMarkerStyle(magnitudeValue, epicenterPoint)}
+      />
+      <MiniMapStationPin stationCode={stationCode} style={{ left: `${stationPoint.left}px`, top: `${stationPoint.top}px` }} />
       <span className="metric-map-attribution">CARTO</span>
     </div>
   );
@@ -1144,6 +1387,7 @@ function EarthquakeDetailPage() {
     [allStations, earthquakeInfo, stationLocationsByCode, stationsForDisplay]
   );
   const eventCoordinates = useMemo(() => getEventCoordinates(earthquakeInfo), [earthquakeInfo]);
+  const magnitudeValue = useMemo(() => getMagnitudeValue(earthquakeInfo), [earthquakeInfo]);
   const epicenterParts = useMemo(() => ({
     latitude: formatCoordinatePart(eventCoordinates?.latitude, 'N', 'S'),
     longitude: formatCoordinatePart(eventCoordinates?.longitude, 'E', 'W'),
@@ -1156,8 +1400,6 @@ function EarthquakeDetailPage() {
   );
   const hasWaveformStations = stationsForDisplay.length > 0;
   const showCommunityPreview = reportsLoading || Boolean(reportsError) || reportComments.length > 0;
-  const isLegacyRecord = isLegacyEvent(earthquakeInfo);
-  const legacySourceLabel = getEventSourceLabel(earthquakeInfo);
 
   useEffect(() => {
     const previousEventId = previousEventIdRef.current;
@@ -1498,11 +1740,6 @@ function EarthquakeDetailPage() {
         <section className="eqinfo-hero">
           <div className="eqinfo-title-row">
             <h1>{pageTitle}</h1>
-            {isLegacyRecord ? (
-              <span className="eqinfo-legacy-badge" title={legacySourceLabel || 'Legacy event record'}>
-                Legacy
-              </span>
-            ) : null}
           </div>
           <div className="eqinfo-meta-grid">
             <div className="metric-card metric-card-depth" role="group" aria-label={`Depth ${depth || 'not available'}`} title={`Depth ${depth || 'Not available'}`}>
@@ -1527,7 +1764,12 @@ function EarthquakeDetailPage() {
               </div>
             </div>
             <div className="metric-card metric-map-card metric-card-epicenter" role="group" aria-label={`Epicenter ${coordText || 'not available'}`} title={`Epicenter ${coordText || 'Not available'}`}>
-              <MiniMapPreview coordinates={eventCoordinates} marker="epicenter" />
+              <MiniMapPreview
+                coordinates={eventCoordinates}
+                magnitudeValue={magnitudeValue}
+                marker="epicenter"
+                zoom={EPICENTER_MINI_MAP_ZOOM}
+              />
               <div className="metric-map-overlay">
                 <div className="metric-card-head">
                   <span className="metric-icon" aria-hidden="true"><FiMapPin /></span>
@@ -1548,15 +1790,22 @@ function EarthquakeDetailPage() {
               </div>
             </div>
             <div className="metric-card metric-map-card metric-card-station" role="group" aria-label={`Nearest recording station ${nearestRecordingStation.code || 'not available'}`} title={`Nearest recording station ${nearestRecordingStation.code || 'Not available'}`}>
-              <MiniMapPreview coordinates={nearestRecordingStation.coordinates} marker="station" />
-              <div className="metric-map-overlay">
+              <MiniMapDistancePreview
+                epicenterCoordinates={eventCoordinates}
+                magnitudeValue={magnitudeValue}
+                stationCode={nearestRecordingStation.code}
+                stationCoordinates={nearestRecordingStation.coordinates}
+              />
+              <div className="metric-map-overlay metric-map-overlay-station">
                 <div className="metric-card-head">
                   <span className="metric-icon" aria-hidden="true"><FiRadio /></span>
                   <span className="metric-label">Nearest station</span>
                 </div>
-                <div className="metric-map-value">
+                <div className="metric-map-value metric-station-map-value">
                   <strong>{nearestRecordingStation.code || 'Unavailable'}</strong>
-                  <em className="metric-sub">{nearestRecordingStation.subtext}</em>
+                  <em className="metric-sub">
+                    {getDistanceMapLabel(nearestRecordingStation.subtext) || nearestRecordingStation.subtext}
+                  </em>
                 </div>
               </div>
             </div>
