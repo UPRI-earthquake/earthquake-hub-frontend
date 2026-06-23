@@ -65,6 +65,11 @@ const Header = ({
   const navigate = useNavigate(); // For navigation
   const isSecureFlow = variant === 'secure' || showAccountControls === false;
   const themeEnabled = showThemeToggle !== false;
+  const emitAuthState = useCallback((detail) => {
+    try {
+      window.dispatchEvent(new CustomEvent('ui:auth-state', { detail }));
+    } catch (_) {}
+  }, []);
 
   // Handle Home button click
   const handleHomeClick = () => navigate('/');
@@ -85,6 +90,12 @@ const Header = ({
     setPasswordPolicyVersion(authMeta.passwordPolicyVersion);
     setShowAuthModal(false);
     setShowDashboard(true);
+    emitAuthState({
+      authenticated: true,
+      username,
+      role,
+      email: authMeta.email || '',
+    });
   };
   const handleSignUpSuccess = () => {
     setToastMessage('Registration Successful. You may now sign in.');
@@ -99,6 +110,7 @@ const Header = ({
     setPasswordStatus(undefined);
     setPasswordPolicyVersion(undefined);
     setLoggedInUserRole(undefined);
+    emitAuthState({ authenticated: false });
 
     // remove toast after timeout
     setTimeout(() => {
@@ -119,6 +131,7 @@ const Header = ({
     setPasswordStatus(undefined);
     setPasswordPolicyVersion(undefined);
     setLoggedInUserRole(undefined);
+    emitAuthState({ authenticated: false });
   };
 
   useEffect(() => {
@@ -137,7 +150,13 @@ const Header = ({
     setPasswordPolicyVersion(payload.passwordPolicyVersion);
     setLoggedInUserRole(derivedRole);
     setIsLoggedIn(true);
-  }, []);
+    emitAuthState({
+      authenticated: true,
+      username: payload.username || '',
+      role: derivedRole,
+      email: payload.email || '',
+    });
+  }, [emitAuthState]);
 
   const handleSessionExpiry = useCallback(() => {
     setShowDashboard(false);
@@ -148,7 +167,8 @@ const Header = ({
     setPasswordStatus(undefined);
     setPasswordPolicyVersion(undefined);
     setLoggedInUserRole(undefined);
-  }, []);
+    emitAuthState({ authenticated: false });
+  }, [emitAuthState]);
 
   const fetchProfile = useCallback(async () => {
     try {

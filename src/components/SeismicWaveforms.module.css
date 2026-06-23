@@ -7,59 +7,102 @@
   color: var(--text-primary);
 }
 
+.waveformContainerCompact {
+  padding: 16px 20px 18px;
+}
+
 .panelHeader {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 16px;
+  margin-bottom: 6px;
+}
+
+.panelHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .panelTitle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.panelTitle h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
+  min-width: 0;
 }
 
 .waveformList {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+}
+
+.toggleRow {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+
+.toggleButton {
+  min-width: 140px;
+  gap: 8px;
+  align-items: center;
+}
+
+.toggleIcon {
+  font-size: 1rem;
+  line-height: 1;
+  transform: translateY(1px);
+}
+
+.toggleButton[aria-expanded='true'] .toggleIcon {
+  transform: rotate(180deg) translateY(-1px);
 }
 
 .waveformRow {
   display: grid;
-  grid-template-columns: 80px 1fr 140px;
-  gap: 16px;
-  align-items: stretch;
-  padding: 16px;
-  background: var(--panel-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  min-height: 280px;
+  gap: 10px;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--border);
 }
 
-@media (max-width: 768px) {
-  .waveformRow {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    min-height: auto;
-  }
+.waveformRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 10px;
+}
+
+.waveformHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stationControlGroup {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.stationControl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .stationLabel {
-  font-weight: 600;
-  font-size: 1rem;
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.92rem;
   color: var(--text-primary);
-  padding: 8px;
+  background: var(--panel-surface);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, #6b7280);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  padding: 4px 10px;
   text-align: center;
   word-break: break-word;
   white-space: nowrap;
@@ -67,52 +110,269 @@
   text-overflow: ellipsis;
 }
 
+.channelSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  width: auto;
+  min-width: 96px;
+  min-height: 29px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, #64748b);
+  border-radius: 8px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%),
+    color-mix(in srgb, var(--panel-surface) 90%, #e2e8f0);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 7px) 50%,
+    0 0;
+  background-size:
+    5px 5px,
+    5px 5px,
+    100% 100%;
+  background-repeat: no-repeat;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 22px 4px 10px;
+}
+
+.channelSelect:hover {
+  border-color: color-mix(in srgb, var(--border) 50%, #0ea5e9);
+}
+
+.channelSelect:focus-visible {
+  outline: 2px solid rgba(14, 165, 233, 0.35);
+  outline-offset: 2px;
+}
+
+.channelSelect option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.stationDistance {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
+  .waveformHeader {
+    display: contents;
+  }
+
+  .stationControl {
+    gap: 6px;
+  }
+
+  .stationControlGroup {
+    order: 1;
+  }
+
+  .waveformCanvas {
+    order: 2;
+  }
+
   .stationLabel {
-    padding: 0;
-    text-align: left;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+  }
+
+  .stationDistance {
+    white-space: normal;
   }
 }
 
 .waveformCanvas {
+  --waveform-track-bg: #fbfcfd;
   position: relative;
   width: 100%;
-  height: 250px;
-  background: var(--panel-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  height: 88px;
+  align-self: center;
+  background: var(--waveform-track-bg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
   overflow: hidden;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
 }
 
-.plot {
+.compactWaveform {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
+  display: block;
+  background: var(--waveform-track-bg);
 }
 
-.plot > * {
-  width: 100% !important;
-  height: 100% !important;
-  flex: 1;
+.waveformPlot {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-.loadingPlaceholder,
-.emptyPlaceholder {
+.waveformTrackBackground {
+  fill: var(--waveform-track-bg);
+}
+
+.waveformAxisLabels {
+  position: absolute;
+  inset: 0;
+  color: #475569;
+  pointer-events: none;
+  user-select: none;
+}
+
+.waveformAxisLabel {
+  position: absolute;
+  display: block;
+  padding: 1px 3px;
+  background: color-mix(in srgb, var(--waveform-track-bg) 96%, white 4%);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.waveformYAxisLabel {
+  left: 10%;
+  width: max-content;
+  max-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transform: translate(-50%, -50%);
+}
+
+.waveformUtcLabel {
+  left: 66px;
+  bottom: 3px;
+  font-size: 10px;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+
+.waveformTimeLabel {
+  bottom: 3px;
+  min-width: 54px;
+  text-align: center;
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
+}
+
+.waveformEventMarkerLabel {
+  top: 9px;
+  left: clamp(96px, var(--event-marker-left, 9%), calc(100% - 50px));
+  color: #334155;
+  font-size: 10px;
+  padding: 3px 6px;
+  border: 1px solid rgba(71, 85, 105, 0.16);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--waveform-track-bg) 76%, white 24%);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  transform: translateX(-50%);
+}
+
+.waveformAxisLayer {
+  pointer-events: none;
+}
+
+.waveformAxisLine,
+.waveformAxisTick {
+  stroke: rgba(71, 85, 105, 0.72);
+  stroke-width: 1.35;
+  stroke-linecap: square;
+}
+
+.waveformGridLine {
+  stroke: rgba(100, 116, 139, 0.18);
+  stroke-width: 1;
+}
+
+.waveformBaselineLine {
+  stroke: rgba(71, 85, 105, 0.38);
+  stroke-width: 1.25;
+}
+
+@media (max-width: 768px) {
+  .waveformCanvas {
+    height: 92px;
+  }
+
+  .waveformAxisLabel {
+    font-size: 10px;
+  }
+
+  .waveformYAxisLabel {
+    max-width: 52px;
+  }
+
+  .waveformUtcLabel {
+    left: 60px;
+    bottom: 6px;
+    font-size: 10px;
+  }
+
+  .waveformTimeLabel {
+    bottom: 6px;
+    min-width: 50px;
+  }
+
+  .waveformEventMarkerLabel {
+    top: 14px;
+    left: clamp(86px, var(--event-marker-left, 9%), calc(100% - 46px));
+  }
+
+  .waveformTimeLabelSecondary {
+    display: none;
+  }
+}
+
+.eventTimeMarker,
+.eventTimeMarkerHalo {
+  stroke-linecap: round;
+  stroke-dasharray: 5 6;
+}
+
+.eventTimeMarker {
+  stroke: #334155;
+  stroke-width: 2.25;
+  opacity: 0.94;
+}
+
+.eventTimeMarkerHalo {
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 5.5;
+  opacity: 0.96;
+}
+
+.eventTimeMarkerLayer {
+  pointer-events: none;
+}
+
+.compactPlaceholder {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  gap: 8px;
+}
+
+.compactEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  text-align: center;
 }
 
 .emptyState {
@@ -120,12 +380,47 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  gap: 4px;
+  min-height: 76px;
+  padding: 18px 20px;
   color: var(--muted);
   font-size: 0.95rem;
   background: var(--panel-subtle);
   border-radius: var(--radius-md);
   text-align: center;
+}
+
+.emptyStateCompact {
+  min-height: 0;
+  padding: 18px 18px;
+  border-radius: 14px;
+}
+
+.emptyStateCompact span {
+  color: var(--text-primary);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.emptyState small {
+  max-width: 440px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.emptyStateCompact small {
+  max-width: 520px;
+  font-size: 0.82rem;
+}
+
+@media (min-width: 769px) {
+  .waveformContainerCompact {
+    margin-top: 4px;
+  }
+
+  .waveformContainerCompact .panelHeader {
+    margin-bottom: 10px;
+  }
 }
 
 .spinner {
@@ -143,79 +438,182 @@
   }
 }
 
-.actionButtons {
+.rowActions {
   display: flex;
-  gap: 8px;
-  flex-direction: column;
-  padding: 0 4px;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-  .actionButtons {
-    flex-direction: row;
-    gap: 10px;
-  }
-}
-
-.downloadBtn,
-.metadataBtn {
-  flex: 1;
-  min-width: fit-content;
-  padding: 8px 12px;
-  font-size: 0.85rem;
+.metadataBtn,
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 29px;
+  padding: 4px 9px;
+  font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   transition: all 0.2s ease;
 }
 
-.downloadBtn {
-  background: #0ea5e9;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.downloadBtn:hover:not(:disabled) {
-  background: #0284c7;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-}
-
-.downloadBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.actionIcon {
+  flex: 0 0 auto;
+  width: 0.95em;
+  height: 0.95em;
+  stroke-width: 2.4;
 }
 
 .metadataBtn {
-  background: var(--panel-subtle);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
+  background: #64748b;
+  color: #ffffff;
+  border: 1px solid #475569;
   cursor: pointer;
 }
 
 .metadataBtn:hover {
-  background: var(--border);
-  border-color: var(--text-primary);
+  background: #526176;
+  border-color: #334155;
 }
 
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .waveformRow {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .waveformCanvas {
-    background: rgba(0, 0, 0, 0.3);
-  }
+.downloadBtn {
+  background: #5aa3e8;
+  color: #ffffff;
+  border: 1px solid #2d7fca;
+  cursor: pointer;
 }
 
-/* Light mode adjustments */
-@media (prefers-color-scheme: light) {
-  .waveformRow {
-    background: rgba(0, 0, 0, 0.02);
+.downloadBtn:hover:not(:disabled) {
+  background: #408fd6;
+  border-color: #246fab;
+}
+
+.downloadBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+:global(:root[data-theme='dark']) .waveformContainer,
+:global(:root[data-theme='imagery']) .waveformContainer {
+  background: var(--panel-surface);
+}
+
+:global(:root[data-theme='dark']) .emptyState,
+:global(:root[data-theme='imagery']) .emptyState {
+  background: color-mix(in srgb, var(--panel-subtle) 74%, var(--panel-surface));
+  color: rgba(226, 232, 240, 0.78);
+}
+
+:global(:root[data-theme='dark']) .emptyStateCompact span,
+:global(:root[data-theme='imagery']) .emptyStateCompact span {
+  color: rgba(248, 250, 252, 0.96);
+}
+
+:global(:root[data-theme='dark']) .emptyStateCompact small,
+:global(:root[data-theme='imagery']) .emptyStateCompact small {
+  color: rgba(226, 232, 240, 0.74);
+}
+
+:global(:root[data-theme='dark']) .waveformCanvas,
+:global(:root[data-theme='imagery']) .waveformCanvas {
+  --waveform-track-bg: #111c30;
+  background: var(--waveform-track-bg);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+}
+
+:global(:root[data-theme='dark']) .compactWaveform,
+:global(:root[data-theme='imagery']) .compactWaveform {
+  background: var(--waveform-track-bg);
+}
+
+:global(:root[data-theme='dark']) .eventTimeMarker,
+:global(:root[data-theme='imagery']) .eventTimeMarker {
+  stroke: rgba(248, 250, 252, 0.9);
+  opacity: 0.92;
+}
+
+:global(:root[data-theme='dark']) .eventTimeMarkerHalo,
+:global(:root[data-theme='imagery']) .eventTimeMarkerHalo {
+  stroke: rgba(15, 23, 42, 0.88);
+}
+
+:global(:root[data-theme='dark']) .waveformAxisLine,
+:global(:root[data-theme='dark']) .waveformAxisTick,
+:global(:root[data-theme='imagery']) .waveformAxisLine,
+:global(:root[data-theme='imagery']) .waveformAxisTick {
+  stroke: rgba(226, 232, 240, 0.82);
+}
+
+:global(:root[data-theme='dark']) .waveformGridLine,
+:global(:root[data-theme='imagery']) .waveformGridLine {
+  stroke: rgba(226, 232, 240, 0.16);
+}
+
+:global(:root[data-theme='dark']) .waveformBaselineLine,
+:global(:root[data-theme='imagery']) .waveformBaselineLine {
+  stroke: rgba(226, 232, 240, 0.36);
+}
+
+:global(:root[data-theme='dark']) .waveformAxisLabels,
+:global(:root[data-theme='imagery']) .waveformAxisLabels {
+  color: rgba(226, 232, 240, 0.88);
+}
+
+:global(:root[data-theme='dark']) .waveformEventMarkerLabel,
+:global(:root[data-theme='imagery']) .waveformEventMarkerLabel {
+  color: rgba(241, 245, 249, 0.94);
+  border-color: rgba(226, 232, 240, 0.18);
+  background: color-mix(in srgb, var(--waveform-track-bg) 72%, #334155 28%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+}
+
+:global(:root[data-theme='dark']) .channelSelect,
+:global(:root[data-theme='imagery']) .channelSelect {
+  background:
+    linear-gradient(45deg, transparent 50%, #dbeafe 50%),
+    linear-gradient(135deg, #dbeafe 50%, transparent 50%),
+    rgba(255, 255, 255, 0.08);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 7px) 50%,
+    0 0;
+  background-size:
+    5px 5px,
+    5px 5px,
+    100% 100%;
+  background-repeat: no-repeat;
+  color: var(--text-primary);
+}
+
+:global(:root[data-theme='dark']) .channelSelect option,
+:global(:root[data-theme='imagery']) .channelSelect option {
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+:global(:root[data-theme='dark']) .channelSelect option:checked,
+:global(:root[data-theme='imagery']) .channelSelect option:checked {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .rowActions {
+    order: 3;
+    flex-direction: row;
+    justify-content: stretch;
+    gap: 8px;
+    padding-top: 2px;
   }
 
-  .waveformCanvas {
-    background: white;
+  .metadataBtn,
+  .downloadBtn {
+    flex: 1 1 0;
+    min-height: 34px;
   }
 }

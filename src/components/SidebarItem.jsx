@@ -7,7 +7,15 @@ import { trackEvent } from '../analytics';
 /**
  * Single earthquake item entry used in the sidebar list.
  */
-function SidebarItem({ publicID, title, description, subDescription, status, last_modification, depthKm }) {
+function SidebarItem({
+  publicID,
+  title,
+  description,
+  subDescription,
+  status,
+  last_modification,
+  depthKm,
+}) {
   // Change state when clicked, to tell EventMarker (with same publicID)
   const dispatch = useDispatch();
   const selectedEvent = useSelector((state) => state);
@@ -126,6 +134,7 @@ export default React.memo(SidebarItem, (prevProps, nextProps) => {
   return !(
     nextProps.status === 'NEW' ||
     nextProps.status === 'UPDATE' ||
-    nextProps.last_modification !== prevProps.last_modification
+    nextProps.last_modification !== prevProps.last_modification ||
+    nextProps.depthKm !== prevProps.depthKm
   );
 });

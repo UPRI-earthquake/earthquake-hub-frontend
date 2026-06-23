@@ -62,3 +62,21 @@ test('empty state renders when no results', () => {
   );
   expect(container.textContent).toMatch(/No results/i);
 });
+
+test('does not render migrated legacy primary events with a visual badge', () => {
+  const { container } = render(
+    <Provider store={makeStore()}>
+      <EventList
+        events={[
+          {
+            ...baseItems[0],
+            isLegacyRecord: true,
+            sourceLabel: 'UPRI Legacy Catalog',
+          },
+        ]}
+      />
+    </Provider>,
+  );
+
+  expect(container.textContent).not.toMatch(/Legacy/);
+});

@@ -13,10 +13,10 @@ describe('generateEventSummary', () => {
     expect(result).toContain('depth of 10 km');
   });
 
-  test('formats time as UTC HH:MM:SS from ISO string', () => {
+  test('formats time in PHT 12-hour format from ISO string', () => {
     const info = { magnitude: 5.0, depth: 5, eventTime: '2025-06-20T14:32:10Z' };
     const result = generateEventSummary(info);
-    expect(result).toContain('14:32:10 UTC+00:00');
+    expect(result).toContain('10:32:10 PM PHT');
   });
 
   test('parses standard proximity place format into a human-readable phrase', () => {
@@ -52,13 +52,13 @@ describe('generateEventSummary', () => {
     expect(result).toContain('Philippine Islands Region');
   });
 
-  test('generates "was detected" phrase when no location context is available', () => {
+  test('generates "was recorded" phrase when no location context is available', () => {
     const info = { magnitude: 3.0, depth: 5, eventTime: '2025-01-15T08:30:00Z' };
     const result = generateEventSummary(info);
-    expect(result).toContain('earthquake was detected');
+    expect(result).toContain('earthquake was recorded');
   });
 
-  test('includes coordinates when latitude_value and longitude_value are present', () => {
+  test('includes epicenter wording when coordinates are present', () => {
     const info = {
       magnitude: 5.5,
       latitude_value: 14.5,
@@ -67,6 +67,7 @@ describe('generateEventSummary', () => {
       eventTime: '2025-01-15T08:30:00Z',
     };
     const result = generateEventSummary(info);
+    expect(result).toContain('epicenter');
     expect(result).toContain('14.500°N');
     expect(result).toContain('121.000°E');
   });

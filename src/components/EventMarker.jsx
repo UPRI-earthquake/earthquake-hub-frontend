@@ -26,9 +26,11 @@ const formatCoord = (value, positiveLabel, negativeLabel) => {
 
 const formatDateTime = (value) => {
   if (!value) return 'Unknown';
-  const parsed = moment(value);
+  const parsed = typeof moment.utc === 'function'
+    ? moment.utc(value).utcOffset(8 * 60)
+    : moment(value);
   if (!parsed || typeof parsed.isValid !== 'function' || !parsed.isValid()) return 'Unknown';
-  return parsed.format('YYYY-MM-DD HH:mm:ss [UTC]Z');
+  return parsed.format('D MMMM YYYY h:mm A');
 };
 
 const normalizeLocation = (value) => {
@@ -295,10 +297,6 @@ const EventMarker = ({
   const latText = useMemo(() => formatCoord(lat, 'N', 'S'), [lat]);
   const lngText = useMemo(() => formatCoord(lng, 'E', 'W'), [lng]);
   const timestampText = useMemo(() => formatDateTime(time), [time]);
-  const updatedText = useMemo(
-    () => formatDateTime(last_modification || time),
-    [last_modification, time],
-  );
   const locationText = locationLabel || `${latText}, ${lngText}`;
   const showCoordRows = Boolean(locationLabel);
 
@@ -306,7 +304,14 @@ const EventMarker = ({
   const handleEventInfoClick = useCallback(() => {
     if (!publicID || !eventData) return;
     try {
-      window.localStorage.setItem(`earthquake-detail:${publicID}`, JSON.stringify(eventData));
+      window.localStorage.setItem(
+        `earthquake-detail:${publicID}`,
+        JSON.stringify({
+          cachedAt: Date.now(),
+          payload: eventData,
+          version: 1,
+        }),
+      );
     } catch (_) {}
     const url = `/earthquake-detail?id=${encodeURIComponent(publicID)}`;
     try {
@@ -401,7 +406,7 @@ const EventMarker = ({
               <span className={styles.popupValue}>{locationText}</span>
             </div>
             <div className={styles.popupRow}>
-              <span className={styles.popupKey}>Time</span>
+              <span className={styles.popupKey}>PH Time</span>
               <span className={styles.popupValue}>{timestampText}</span>
             </div>
           </div>
@@ -422,12 +427,6 @@ const EventMarker = ({
                 </div>
               </>
             ) : null}
-          </div>
-          <div className={`${styles.popupGroup} ${styles.popupGroupTertiary}`}>
-            <div className={styles.popupRow}>
-              <span className={styles.popupKey}>Updated</span>
-              <span className={styles.popupValue}>{updatedText}</span>
-            </div>
           </div>
           <div className={styles.popupGroup}>
             <button
