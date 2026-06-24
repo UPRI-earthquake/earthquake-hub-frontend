@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoadingScreen from './components/LoadingScreen';
 import ConsentBanner from './components/ConsentBanner';
+import OldDomainMigrationNotice from './components/OldDomainMigrationNotice';
 import EarthquakeDetailPage from './pages/EarthquakeDetailPage';
 
 // Lazy-load heavy routes to improve initial load
@@ -19,6 +20,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 function App() {
   return (
     <div className="App">
+      <OldDomainMigrationNotice />
       <ConsentBanner />
       <Router>
         <Suspense fallback={<LoadingScreen />}>

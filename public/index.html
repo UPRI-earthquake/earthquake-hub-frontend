@@ -86,7 +86,7 @@
           var midProd = env.REACT_APP_GA_MEASUREMENT_ID || '';
           var midDev = env.REACT_APP_GA_MEASUREMENT_ID_DEV || '';
           var host = (location.hostname || '').toLowerCase();
-          var isProdDomain = host === 'earthquake.science.upd.edu.ph';
+          var isProdDomain = host === 'earthquake.up.edu.ph';
           var mid = isProdDomain ? midProd : (midDev || midProd);
 
           if (mid) {
