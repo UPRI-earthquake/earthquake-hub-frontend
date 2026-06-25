@@ -29,9 +29,9 @@ const mockReports = [
 
 const mockReportsWithOverflow = [
   ...mockReports,
-  { id: '4', username: 'user4', content: 'Fourth report' },
-  { id: '5', username: 'user5', content: 'Fifth report' },
-  { id: '6', username: 'user6', content: 'Sixth report' },
+  { id: '4', username: 'user4', content: 'Fourth report', imageURL: '/uploads_dev/4.jpg' },
+  { id: '5', username: 'user5', content: 'Fifth report', imageURL: '/uploads_dev/5.jpg' },
+  { id: '6', username: 'user6', content: 'Sixth report', imageURL: '/uploads_dev/6.jpg' },
 ];
 
 function mockReducedMotion(matches = false) {
@@ -74,21 +74,22 @@ describe('CommunityReportsCarousel', () => {
   test('renders empty state when there are no reports', () => {
     render(<CommunityReportsCarousel reports={[]} />);
 
-    expect(screen.getByText(/No community reports yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/No image reports yet/i)).toBeInTheDocument();
   });
 
   test('renders carousel container with featured report when reports are provided', () => {
     const { container } = render(<CommunityReportsCarousel reports={mockReports} />);
 
     expect(container.querySelector('.carouselContainer')).toBeInTheDocument();
-    expect(screen.getByText('user1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reported by user1')).toBeInTheDocument();
     expect(screen.getByText('First report content here')).toBeInTheDocument();
   });
 
-  test('renders dot indicators for multiple reports', () => {
+  test('renders dot indicators only for image reports', () => {
     const { container } = render(<CommunityReportsCarousel reports={mockReports} />);
 
-    expect(container.querySelectorAll('.dot')).toHaveLength(3);
+    expect(container.querySelectorAll('.dot')).toHaveLength(2);
+    expect(screen.queryByText('Third report without an image')).not.toBeInTheDocument();
   });
 
   test('caps preview dots to the latest preview set', () => {
@@ -96,6 +97,34 @@ describe('CommunityReportsCarousel', () => {
 
     expect(container.querySelectorAll('.dot')).toHaveLength(5);
     expect(screen.queryByLabelText(/Go to preview report 6/i)).not.toBeInTheDocument();
+  });
+
+  test('prioritizes helpful image reports before recency in the preview', () => {
+    render(
+      <CommunityReportsCarousel
+        reports={[
+          {
+            id: 'newer',
+            username: 'newer-user',
+            content: 'Newer image report',
+            imageURL: '/uploads_dev/newer.jpg',
+            helpfulCount: 1,
+            createdAt: '2026-06-24T04:00:00.000Z',
+          },
+          {
+            id: 'older-helpful',
+            username: 'older-user',
+            content: 'More helpful image report',
+            imageURL: '/uploads_dev/older.jpg',
+            helpfulCount: 4,
+            createdAt: '2026-06-24T03:00:00.000Z',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('More helpful image report')).toBeInTheDocument();
+    expect(screen.queryByText('Newer image report')).not.toBeInTheDocument();
   });
 
   test('does not render dots when there is only one report', () => {
@@ -110,16 +139,16 @@ describe('CommunityReportsCarousel', () => {
     fireEvent.click(container.querySelectorAll('.dot')[1]);
 
     expect(screen.getByText('Second report content here')).toBeInTheDocument();
-    expect(screen.getByText('user2')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reported by user2')).toBeInTheDocument();
   });
 
   test('active class moves when navigating to a different dot', () => {
     const { container } = render(<CommunityReportsCarousel reports={mockReports} />);
 
     expect(container.querySelectorAll('.dot')[0]).toHaveClass('active');
-    fireEvent.click(container.querySelectorAll('.dot')[2]);
+    fireEvent.click(container.querySelectorAll('.dot')[1]);
 
-    expect(container.querySelectorAll('.dot')[2]).toHaveClass('active');
+    expect(container.querySelectorAll('.dot')[1]).toHaveClass('active');
     expect(container.querySelectorAll('.dot')[0]).not.toHaveClass('active');
   });
 
@@ -160,6 +189,7 @@ describe('CommunityReportsCarousel', () => {
           commentId: 'report-public-id',
           username: 'Anonymous',
           content: 'Public report content',
+          imageURL: '/uploads_dev/public.jpg',
         }]}
         onReportClick={onReportClick}
       />,
@@ -187,6 +217,47 @@ describe('CommunityReportsCarousel', () => {
     fireEvent.keyDown(container.querySelector('.featuredReportContainer'), { key: 'Enter' });
 
     expect(onReportClick).toHaveBeenCalled();
+  });
+
+  test('clicking a featured report image opens image preview when available', () => {
+    const onReportClick = jest.fn();
+    const onImagePreview = jest.fn();
+    const { container } = render(
+      <CommunityReportsCarousel
+        reports={mockReports}
+        onReportClick={onReportClick}
+        onImagePreview={onImagePreview}
+      />,
+    );
+
+    fireEvent.click(container.querySelector('.featuredReportContainer'));
+
+    expect(onImagePreview).toHaveBeenCalledWith(expect.objectContaining({
+      src: '/uploads_dev/1.jpg',
+      alt: 'Submitted report attachment from user1',
+      source: 'community-carousel',
+      galleryIndex: 0,
+      overlay: {
+        author: 'user1',
+        text: 'First report content here',
+      },
+      gallery: expect.arrayContaining([
+        expect.objectContaining({ src: '/uploads_dev/1.jpg' }),
+        expect.objectContaining({ src: '/uploads_dev/2.jpg' }),
+      ]),
+    }));
+    expect(onReportClick).not.toHaveBeenCalled();
+  });
+
+  test('keyboard activation opens image preview when the selected report has an image', () => {
+    const onImagePreview = jest.fn();
+    const { container } = render(
+      <CommunityReportsCarousel reports={mockReports} onImagePreview={onImagePreview} />,
+    );
+
+    fireEvent.keyDown(container.querySelector('.featuredReportContainer'), { key: 'Enter' });
+
+    expect(onImagePreview).toHaveBeenCalled();
   });
 
   test('auto-rotates when motion is allowed', () => {
@@ -222,9 +293,57 @@ describe('CommunityReportsCarousel', () => {
     expect(screen.getByText('Second report content here')).toBeInTheDocument();
   });
 
-  test('renders image-only report fallback text', () => {
-    render(<CommunityReportsCarousel reports={[{ id: '1', username: 'Anonymous', imageURL: '/uploads_dev/1.jpg' }]} />);
+  test('renders anonymous avatar without placeholder text for image-only reports', () => {
+    const { container } = render(
+      <CommunityReportsCarousel reports={[{ id: '1', username: 'Anonymous', imageURL: '/uploads_dev/1.jpg' }]} />,
+    );
 
-    expect(screen.getByText('Image report')).toBeInTheDocument();
+    expect(screen.queryByText('Anonymous')).not.toBeInTheDocument();
+    expect(screen.queryByText('Image report')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Reported by Anonymous')).toBeInTheDocument();
+    expect(container.querySelector('.contentOverlay')).toBeInTheDocument();
+  });
+
+  test('renders named author initials without full author text for image-only reports', () => {
+    const { container } = render(
+      <CommunityReportsCarousel reports={[{ id: '1', username: 'Field team', imageURL: '/uploads_dev/1.jpg' }]} />,
+    );
+
+    expect(screen.queryByText('Field team')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Reported by Field team')).toBeInTheDocument();
+    expect(screen.getByText('FT')).toBeInTheDocument();
+    expect(container.querySelector('.contentOverlay')).toBeInTheDocument();
+  });
+
+  test('renders report text without anonymous author label', () => {
+    render(
+      <CommunityReportsCarousel
+        reports={[{
+          id: '1',
+          username: 'Anonymous',
+          content: 'Visible community observation',
+          imageURL: '/uploads_dev/1.jpg',
+        }]}
+      />,
+    );
+
+    expect(screen.queryByText('Anonymous')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Reported by Anonymous')).toBeInTheDocument();
+    expect(screen.getByText('Visible community observation')).toBeInTheDocument();
+  });
+
+  test('does not include text-only reports in the carousel', () => {
+    render(
+      <CommunityReportsCarousel
+        reports={[{
+          id: 'text-only',
+          username: 'Field team',
+          content: 'Text-only observation',
+        }]}
+      />,
+    );
+
+    expect(screen.getByText(/No image reports yet/i)).toBeInTheDocument();
+    expect(screen.queryByText('Text-only observation')).not.toBeInTheDocument();
   });
 });
