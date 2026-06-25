@@ -39,23 +39,53 @@
 .toggleRow {
   display: flex;
   justify-content: center;
-  padding-top: 12px;
+  padding-top: 14px;
 }
 
 .toggleButton {
-  min-width: 140px;
-  gap: 8px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--panel-surface));
+  color: var(--primary);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.toggleButton:hover {
+  border-color: color-mix(in srgb, var(--primary) 52%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--panel-surface));
+  transform: translateY(-1px);
+}
+
+.toggleButton:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .toggleIcon {
-  font-size: 1rem;
-  line-height: 1;
-  transform: translateY(1px);
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  stroke-width: 2.5;
 }
 
 .toggleButton[aria-expanded='true'] .toggleIcon {
-  transform: rotate(180deg) translateY(-1px);
+  transform: rotate(180deg);
 }
 
 .waveformRow {
@@ -113,8 +143,9 @@
 .channelSelect {
   appearance: none;
   -webkit-appearance: none;
-  width: auto;
-  min-width: 96px;
+  width: calc(var(--channel-label-width, 3ch) + 2.55rem);
+  min-width: 68px;
+  max-width: 126px;
   min-height: 29px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, #64748b);
   border-radius: 8px;
@@ -136,7 +167,8 @@
   font-size: 0.76rem;
   font-weight: 700;
   line-height: 1;
-  padding: 4px 22px 4px 10px;
+  padding: 4px 24px 4px 10px;
+  text-overflow: ellipsis;
 }
 
 .channelSelect:hover {

@@ -8,7 +8,7 @@ import moment from '../utils/time';
 import { useStations } from '../hooks/useStations';
 import { calculateDistance } from '../utils/distanceCalculator';
 import { toFiniteNumber } from '../utils/earthquakeFormat';
-import { FiChevronDown, FiDownload } from 'react-icons/fi';
+import { FiChevronDown, FiDownload, FiMaximize2 } from 'react-icons/fi';
 
 /**
  * SeismicWaveforms component displays recorded seismic waveforms for multiple stations
@@ -21,10 +21,16 @@ function SeismicWaveforms({
   availabilityStatus = 'verified',
   isAvailabilityPending = false,
   stationListSource = 'verified',
+  initialVisibleCount = DEFAULT_VISIBLE_STATION_COUNT,
+  showAllByDefault = false,
+  showStationToggle = true,
+  onViewAllStations,
+  className = '',
+  title = 'Station Recordings',
 }) {
   const [waveforms, setWaveforms] = useState({});
   const [loadingStations, setLoadingStations] = useState(new Set());
-  const [showAllStations, setShowAllStations] = useState(false);
+  const [showAllStations, setShowAllStations] = useState(showAllByDefault);
   const [stationLocationsByCode, setStationLocationsByCode] = useState({});
   const containerRef = useRef(null);
   const seisplotjsRef = useRef(null);
@@ -46,11 +52,12 @@ function SeismicWaveforms({
     [stations]
   );
   const hasStations = stationList.length > 0;
+  const visibleStationCount = Math.max(1, Number(initialVisibleCount) || DEFAULT_VISIBLE_STATION_COUNT);
   const visibleStations = useMemo(
-    () => (showAllStations ? stationList : stationList.slice(0, DEFAULT_VISIBLE_STATION_COUNT)),
-    [showAllStations, stationList]
+    () => (showAllStations ? stationList : stationList.slice(0, visibleStationCount)),
+    [showAllStations, stationList, visibleStationCount]
   );
-  const canToggleStations = stationList.length > DEFAULT_VISIBLE_STATION_COUNT;
+  const canToggleStations = stationList.length > visibleStationCount;
   const eventCoordinates = useMemo(
     () => getEventCoordinates(earthquakeInfo),
     [earthquakeInfo]
@@ -72,6 +79,10 @@ function SeismicWaveforms({
       isMounted = false;
     };
   }, [fetchStations]);
+
+  useEffect(() => {
+    setShowAllStations(showAllByDefault);
+  }, [showAllByDefault, stationList.length]);
 
   // Lazy load seisplotjs
   const ensureSeisplotjs = useCallback(async () => {
@@ -288,8 +299,8 @@ function SeismicWaveforms({
     requestedWaveformsRef.current = new Set();
     setWaveforms({});
     setLoadingStations(new Set());
-    setShowAllStations(false);
-  }, [eventTimeKey]);
+    setShowAllStations(showAllByDefault);
+  }, [eventTimeKey, showAllByDefault]);
 
   // Load waveforms when the event or visible station list changes.
   useEffect(() => {
@@ -353,12 +364,12 @@ function SeismicWaveforms({
 
   return (
     <section
-      className={`${styles.waveformContainer} ${!hasStations ? styles.waveformContainerCompact : ''}`}
+      className={`${styles.waveformContainer} ${!hasStations ? styles.waveformContainerCompact : ''} ${className}`}
       ref={containerRef}
     >
       <div className={styles.panelHeader}>
         <div className={styles.panelTitle}>
-          <h3>Station Recordings</h3>
+          <h3>{title}</h3>
           <InfoTooltip title="Station recordings" label="About station recordings" variant="inline">
             {availabilityNote}
           </InfoTooltip>
@@ -381,20 +392,32 @@ function SeismicWaveforms({
               />
             ))}
           </div>
-          {canToggleStations ? (
+          {canToggleStations && showStationToggle ? (
             <div className={styles.toggleRow}>
-              <Button
+              <button
                 type="button"
-                variant="secondary"
                 className={styles.toggleButton}
                 aria-expanded={showAllStations}
-                onClick={() => setShowAllStations((prev) => !prev)}
+                aria-haspopup={onViewAllStations ? 'dialog' : undefined}
+                onClick={() => {
+                  if (onViewAllStations && !showAllStations) {
+                    onViewAllStations();
+                    return;
+                  }
+                  setShowAllStations((prev) => !prev);
+                }}
               >
-                {showAllStations
-                  ? 'Show fewer stations'
-                  : `Show all ${stationList.length} stations`}
-                <FiChevronDown className={styles.toggleIcon} aria-hidden="true" focusable="false" />
-              </Button>
+                {onViewAllStations && !showAllStations
+                  ? `View all ${stationList.length} stations`
+                  : showAllStations
+                    ? 'Show fewer stations'
+                    : `Show all ${stationList.length} stations`}
+                {onViewAllStations && !showAllStations ? (
+                  <FiMaximize2 className={styles.toggleIcon} aria-hidden="true" focusable="false" />
+                ) : (
+                  <FiChevronDown className={styles.toggleIcon} aria-hidden="true" focusable="false" />
+                )}
+              </button>
             </div>
           ) : null}
         </>
@@ -595,6 +618,7 @@ function StationChannelControl({ stationCode, channels, selectedChannel, onChang
           aria-label={`Waveform channel for ${stationCode}`}
           value={selectedChannel}
           onChange={(event) => onChange(event.target.value)}
+          style={{ '--channel-label-width': `${Math.max(formatChannelLabel(selectedChannel).length, 3)}ch` }}
         >
           {channelOptions.map((channelCode) => (
             <option

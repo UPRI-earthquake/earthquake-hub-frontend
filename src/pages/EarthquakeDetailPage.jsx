@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { FiArrowDown, FiClock, FiImage, FiMapPin, FiRadio, FiSend, FiX } from 'react-icons/fi';
+import { FiArrowDown, FiChevronLeft, FiChevronRight, FiClock, FiFlag, FiImage, FiMapPin, FiRadio, FiRotateCcw, FiSend, FiThumbsUp, FiUser, FiX, FiZoomIn, FiZoomOut } from 'react-icons/fi';
 import Header from '../components/Header';
 import NearbyEvents from '../components/NearbyEvents';
 import ErrorScreen from '../components/ErrorScreen';
@@ -27,8 +27,20 @@ const DETAIL_FETCH_STALL_MS = 8000;
 const COMMENTS_FETCH_TIMEOUT_MS = 12000;
 const COMMENT_POST_TIMEOUT_MS = 20000;
 const REPORTS_PAGE_SIZE = 20;
+const REPORTS_INITIAL_VISIBLE_COUNT = 5;
+const REPORTS_VISIBLE_INCREMENT = 5;
 const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const REPORT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const REPORT_IMAGE_VIEWER_MIN_SCALE = 1;
+const REPORT_IMAGE_VIEWER_MAX_SCALE = 5;
+const REPORT_IMAGE_VIEWER_SCALE_STEP = 0.25;
+const REPORT_ISSUE_REASONS = [
+  { value: 'duplicate', label: 'Duplicate' },
+  { value: 'unclear', label: 'Unclear' },
+  { value: 'wrong_location', label: 'Wrong location' },
+  { value: 'not_related', label: 'Not related to this earthquake' },
+  { value: 'inappropriate', label: 'Inappropriate' },
+];
 const MINI_MAP_ZOOM = 9;
 const EPICENTER_MINI_MAP_ZOOM = 5;
 const MINI_MAP_DISTANCE_MIN_ZOOM = 3;
@@ -241,6 +253,32 @@ function getCommentKey(comment, fallback = '') {
   return comment?.commentId || comment?.id || comment?._id || fallback;
 }
 
+function formatReportCount(count) {
+  const numericCount = Number(count);
+  if (!Number.isFinite(numericCount) || numericCount <= 0) return '';
+  return `${numericCount} ${numericCount === 1 ? 'report' : 'reports'}`;
+}
+
+function formatStationCount(count) {
+  const numericCount = Number(count);
+  if (!Number.isFinite(numericCount) || numericCount <= 0) return 'No stations';
+  return `${numericCount} ${numericCount === 1 ? 'station' : 'stations'}`;
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getAuthorInitials(author) {
+  if (!author || author.toLowerCase() === 'anonymous') return '';
+  return author
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
 function getCommentText(comment) {
   return (
     comment?.comment ||
@@ -250,6 +288,15 @@ function getCommentText(comment) {
     comment?.text ||
     ''
   );
+}
+
+function getCommentHelpfulCount(comment) {
+  const rawCount = Number(comment?.helpfulCount ?? comment?.helpful_count ?? 0);
+  return Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 0;
+}
+
+function getViewerHasMarkedHelpful(comment) {
+  return Boolean(comment?.viewerHasMarkedHelpful || comment?.viewer_has_marked_helpful);
 }
 
 function getCommentImage(comment) {
@@ -336,6 +383,291 @@ function ReportAttachment({ src, onPreview }) {
         }}
       />
     </button>
+  );
+}
+
+function ReportAuthorAvatar({ author }) {
+  const displayAuthor = author || 'Anonymous';
+  const isAnonymous = displayAuthor.toLowerCase() === 'anonymous';
+  const initials = getAuthorInitials(displayAuthor);
+
+  return (
+    <span
+      className={`report-author-avatar ${isAnonymous ? 'report-author-avatar-anonymous' : ''}`}
+      title={displayAuthor}
+      aria-label={`Reported by ${displayAuthor}`}
+    >
+      {isAnonymous ? <FiUser aria-hidden="true" /> : initials}
+    </span>
+  );
+}
+
+function ReportImageViewer({ image, onClose }) {
+  const [scale, setScale] = useState(REPORT_IMAGE_VIEWER_MIN_SCALE);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [activeImage, setActiveImage] = useState(image || null);
+  const dragStartRef = useRef(null);
+  const imageSrc = activeImage?.src || '';
+  const overlayAuthor = activeImage?.overlay?.author || '';
+  const overlayText = typeof activeImage?.overlay?.text === 'string' ? activeImage.overlay.text.trim() : '';
+  const hasOverlay = Boolean(overlayAuthor || overlayText);
+  const imageGallery = Array.isArray(activeImage?.gallery) ? activeImage.gallery : [];
+  const rawGalleryIndex = Number(activeImage?.galleryIndex);
+  const resolvedGalleryIndex = Number.isFinite(rawGalleryIndex)
+    ? rawGalleryIndex
+    : imageGallery.findIndex((item) => item?.src === imageSrc);
+  const canNavigateGallery = imageGallery.length > 1 && resolvedGalleryIndex >= 0;
+  const galleryPositionLabel = canNavigateGallery ? `${resolvedGalleryIndex + 1} of ${imageGallery.length}` : '';
+
+  useEffect(() => {
+    setActiveImage(image || null);
+  }, [image]);
+
+  const updateScale = useCallback((nextScale) => {
+    setScale((previousScale) => {
+      const rawScale = typeof nextScale === 'function' ? nextScale(previousScale) : nextScale;
+      const clampedScale = clampNumber(
+        rawScale,
+        REPORT_IMAGE_VIEWER_MIN_SCALE,
+        REPORT_IMAGE_VIEWER_MAX_SCALE,
+      );
+      if (clampedScale === REPORT_IMAGE_VIEWER_MIN_SCALE) {
+        setOffset({ x: 0, y: 0 });
+      }
+      return clampedScale;
+    });
+  }, []);
+
+  const resetView = useCallback(() => {
+    setScale(REPORT_IMAGE_VIEWER_MIN_SCALE);
+    setOffset({ x: 0, y: 0 });
+    setIsDragging(false);
+    dragStartRef.current = null;
+  }, []);
+
+  const navigateGallery = useCallback((direction) => {
+    setActiveImage((currentImage) => {
+      const gallery = Array.isArray(currentImage?.gallery) ? currentImage.gallery : [];
+      if (gallery.length <= 1) return currentImage;
+
+      const currentIndex = Number.isFinite(Number(currentImage?.galleryIndex))
+        ? Number(currentImage.galleryIndex)
+        : gallery.findIndex((item) => item?.src === currentImage?.src);
+      if (currentIndex < 0) return currentImage;
+
+      const nextIndex = (currentIndex + direction + gallery.length) % gallery.length;
+      return {
+        ...gallery[nextIndex],
+        source: currentImage?.source,
+        gallery,
+        galleryIndex: nextIndex,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    resetView();
+  }, [imageSrc, resetView]);
+
+  useEffect(() => {
+    if (!imageSrc || typeof document === 'undefined') return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [imageSrc]);
+
+  useEffect(() => {
+    if (!imageSrc) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose?.();
+      } else if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        updateScale((currentScale) => currentScale + REPORT_IMAGE_VIEWER_SCALE_STEP);
+      } else if (event.key === '-') {
+        event.preventDefault();
+        updateScale((currentScale) => currentScale - REPORT_IMAGE_VIEWER_SCALE_STEP);
+      } else if (event.key === '0') {
+        event.preventDefault();
+        resetView();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        navigateGallery(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        navigateGallery(1);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [imageSrc, navigateGallery, onClose, resetView, updateScale]);
+
+  const handlePointerDown = useCallback((event) => {
+    if (scale <= REPORT_IMAGE_VIEWER_MIN_SCALE) return;
+    event.preventDefault();
+    setIsDragging(true);
+    dragStartRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      offset,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }, [offset, scale]);
+
+  const handlePointerMove = useCallback((event) => {
+    if (!isDragging || !dragStartRef.current) return;
+    event.preventDefault();
+    setOffset({
+      x: dragStartRef.current.offset.x + event.clientX - dragStartRef.current.x,
+      y: dragStartRef.current.offset.y + event.clientY - dragStartRef.current.y,
+    });
+  }, [isDragging]);
+
+  const stopDragging = useCallback((event) => {
+    setIsDragging(false);
+    if (dragStartRef.current?.pointerId != null) {
+      event.currentTarget.releasePointerCapture?.(dragStartRef.current.pointerId);
+    }
+    dragStartRef.current = null;
+  }, []);
+
+  const handleWheel = useCallback((event) => {
+    event.preventDefault();
+    const direction = event.deltaY < 0 ? 1 : -1;
+    updateScale((currentScale) => currentScale + direction * REPORT_IMAGE_VIEWER_SCALE_STEP);
+  }, [updateScale]);
+
+  const handleDoubleClick = useCallback(() => {
+    updateScale((currentScale) => (
+      currentScale > REPORT_IMAGE_VIEWER_MIN_SCALE
+        ? REPORT_IMAGE_VIEWER_MIN_SCALE
+        : REPORT_IMAGE_VIEWER_MIN_SCALE + REPORT_IMAGE_VIEWER_SCALE_STEP * 4
+    ));
+  }, [updateScale]);
+
+  if (!imageSrc) return null;
+
+  const zoomPercent = Math.round(scale * 100);
+
+  return (
+    <div
+      className="report-image-viewer-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose?.();
+      }}
+    >
+      <div
+        className="report-image-viewer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Report image viewer"
+      >
+        <div className="report-image-viewer-toolbar" role="group" aria-label="Image viewer controls">
+          <button
+            type="button"
+            className="report-image-viewer-control"
+            onClick={() => updateScale((currentScale) => currentScale - REPORT_IMAGE_VIEWER_SCALE_STEP)}
+            disabled={scale <= REPORT_IMAGE_VIEWER_MIN_SCALE}
+            aria-label="Zoom out"
+          >
+            <FiZoomOut aria-hidden="true" />
+          </button>
+          <output className="report-image-viewer-zoom" aria-live="polite">
+            {zoomPercent}%
+          </output>
+          <button
+            type="button"
+            className="report-image-viewer-control"
+            onClick={() => updateScale((currentScale) => currentScale + REPORT_IMAGE_VIEWER_SCALE_STEP)}
+            disabled={scale >= REPORT_IMAGE_VIEWER_MAX_SCALE}
+            aria-label="Zoom in"
+          >
+            <FiZoomIn aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="report-image-viewer-control"
+            onClick={resetView}
+            disabled={scale === REPORT_IMAGE_VIEWER_MIN_SCALE && offset.x === 0 && offset.y === 0}
+            aria-label="Reset image view"
+          >
+            <FiRotateCcw aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="report-image-viewer-control report-image-viewer-close"
+            onClick={onClose}
+            aria-label="Close image viewer"
+          >
+            <FiX aria-hidden="true" />
+          </button>
+        </div>
+        {canNavigateGallery && (
+          <>
+            <button
+              type="button"
+              className="report-image-viewer-nav report-image-viewer-nav-previous"
+              onClick={() => navigateGallery(-1)}
+              aria-label="View previous community report image"
+            >
+              <FiChevronLeft aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="report-image-viewer-nav report-image-viewer-nav-next"
+              onClick={() => navigateGallery(1)}
+              aria-label="View next community report image"
+            >
+              <FiChevronRight aria-hidden="true" />
+            </button>
+            <div className="report-image-viewer-count" aria-live="polite">
+              {galleryPositionLabel}
+            </div>
+          </>
+        )}
+        <div
+          className={`report-image-viewer-stage ${scale > REPORT_IMAGE_VIEWER_MIN_SCALE ? 'report-image-viewer-stage-zoomed' : ''}`}
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+          onDoubleClick={handleDoubleClick}
+        >
+          <img
+            src={imageSrc}
+            alt={activeImage?.alt || 'Submitted report attachment'}
+            draggable="false"
+            style={{
+              transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
+            }}
+          />
+          {hasOverlay && (
+            <div className={`report-image-viewer-overlay ${!overlayText ? 'report-image-viewer-overlay-compact' : ''}`}>
+              <ReportAuthorAvatar author={overlayAuthor || 'Anonymous'} />
+              <div className="report-image-viewer-overlay-body">
+                <p className="report-image-viewer-overlay-author">
+                  <span>Reported by</span>
+                  <strong>{overlayAuthor || 'Anonymous'}</strong>
+                </p>
+                {overlayText && (
+                  <p className="report-image-viewer-overlay-comment">{overlayText}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -885,12 +1217,15 @@ function MiniMapDistancePreview({ epicenterCoordinates, magnitudeValue = null, s
 function ReportCommentsSection({
   eventId,
   comments = [],
+  totalCount = 0,
   isLoading,
   isLoadingMore,
   loadError,
   hasMore,
   onLoadMore,
   onReportsChanged,
+  onCommentPatched,
+  onAttachmentPreview,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportText, setReportText] = useState('');
@@ -899,13 +1234,30 @@ function ReportCommentsSection({
   const [postAnonymously, setPostAnonymously] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [postError, setPostError] = useState('');
-  const [selectedAttachment, setSelectedAttachment] = useState(null);
   const [accountIdentity, setAccountIdentity] = useState(null);
   const [expandedComments, setExpandedComments] = useState({});
+  const [reportActionMessage, setReportActionMessage] = useState('');
+  const [pendingHelpfulCommentId, setPendingHelpfulCommentId] = useState('');
+  const [issueMenuCommentId, setIssueMenuCommentId] = useState('');
+  const [pendingIssueCommentId, setPendingIssueCommentId] = useState('');
+  const [reportedIssueReasons, setReportedIssueReasons] = useState({});
+  const [visibleReportLimit, setVisibleReportLimit] = useState(REPORTS_INITIAL_VISIBLE_COUNT);
   const triggerButtonRef = useRef(null);
   const textareaRef = useRef(null);
   const canPostWithAccount = Boolean(accountIdentity?.username);
   const selectedFileSummary = imageFile ? `${imageFile.name} (${Math.max(1, Math.round(imageFile.size / 1024))} KB)` : '';
+  const visibleComments = useMemo(
+    () => comments.slice(0, visibleReportLimit),
+    [comments, visibleReportLimit]
+  );
+  const visibleReportCount = visibleComments.length;
+  const reportedTotalCount = Math.max(Number(totalCount) || 0, comments.length);
+  const hasHiddenLoadedReports = comments.length > visibleReportCount;
+  const canShowMoreReports = hasHiddenLoadedReports || hasMore;
+
+  useEffect(() => {
+    setVisibleReportLimit(REPORTS_INITIAL_VISIBLE_COUNT);
+  }, [eventId]);
 
   const refreshAccountIdentity = useCallback(async (nextDetail = null) => {
     if (nextDetail && nextDetail.authenticated === false) {
@@ -961,13 +1313,14 @@ function ReportCommentsSection({
   useEffect(() => {
     const handleAuthState = (event) => {
       refreshAccountIdentity(event?.detail || null);
+      void onReportsChanged?.();
     };
 
     window.addEventListener('ui:auth-state', handleAuthState);
     return () => {
       window.removeEventListener('ui:auth-state', handleAuthState);
     };
-  }, [refreshAccountIdentity]);
+  }, [onReportsChanged, refreshAccountIdentity]);
 
   useEffect(() => {
     if (!canPostWithAccount) {
@@ -1005,20 +1358,6 @@ function ReportCommentsSection({
     };
   }, [isModalOpen, isPosting, resetForm]);
 
-  useEffect(() => {
-    if (!selectedAttachment) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setSelectedAttachment(null);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedAttachment]);
-
   const closeModal = useCallback(() => {
     if (isPosting) return;
     setIsModalOpen(false);
@@ -1032,6 +1371,125 @@ function ReportCommentsSection({
       [commentKey]: !prev[commentKey],
     }));
   }, []);
+
+  const promptSignInForReportAction = useCallback(() => {
+    setReportActionMessage('Sign in to mark reports as helpful or report an issue.');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ui:auth', { detail: { view: 'signin' } }));
+    }
+  }, []);
+
+  const handleToggleHelpful = useCallback(async (comment) => {
+    const commentKey = getCommentKey(comment);
+    if (!commentKey || pendingHelpfulCommentId) return;
+
+    if (!canPostWithAccount) {
+      promptSignInForReportAction();
+      return;
+    }
+
+    const wasMarkedHelpful = getViewerHasMarkedHelpful(comment);
+    const previousCount = getCommentHelpfulCount(comment);
+    const optimisticCount = wasMarkedHelpful ? Math.max(0, previousCount - 1) : previousCount + 1;
+
+    setReportActionMessage('');
+    setPendingHelpfulCommentId(commentKey);
+    onCommentPatched?.(commentKey, {
+      helpfulCount: optimisticCount,
+      viewerHasMarkedHelpful: !wasMarkedHelpful,
+    });
+
+    try {
+      const response = await axios({
+        method: wasMarkedHelpful ? 'delete' : 'put',
+        url: `${backendHost()}/comments/${encodeURIComponent(commentKey)}/helpful`,
+        timeout: COMMENTS_FETCH_TIMEOUT_MS,
+        withCredentials: true,
+      });
+      if (response.data?.payload) {
+        onCommentPatched?.(commentKey, response.data.payload);
+      }
+    } catch (error) {
+      onCommentPatched?.(commentKey, {
+        helpfulCount: previousCount,
+        viewerHasMarkedHelpful: wasMarkedHelpful,
+      });
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        promptSignInForReportAction();
+      } else {
+        setReportActionMessage(error?.response?.data?.message || error?.message || 'Unable to update helpful status.');
+      }
+    } finally {
+      setPendingHelpfulCommentId('');
+    }
+  }, [
+    canPostWithAccount,
+    onCommentPatched,
+    pendingHelpfulCommentId,
+    promptSignInForReportAction,
+  ]);
+
+  const handleOpenIssueMenu = useCallback((commentKey) => {
+    if (!commentKey) return;
+    if (!canPostWithAccount) {
+      promptSignInForReportAction();
+      return;
+    }
+    setReportActionMessage('');
+    setIssueMenuCommentId((current) => (current === commentKey ? '' : commentKey));
+  }, [canPostWithAccount, promptSignInForReportAction]);
+
+  const handleReportIssue = useCallback(async (commentKey, reason) => {
+    if (!commentKey || pendingIssueCommentId) return;
+    if (!canPostWithAccount) {
+      promptSignInForReportAction();
+      return;
+    }
+
+    setReportActionMessage('');
+    setPendingIssueCommentId(commentKey);
+    try {
+      const response = await axios.post(
+        `${backendHost()}/comments/${encodeURIComponent(commentKey)}/issues`,
+        { reason },
+        {
+          timeout: COMMENTS_FETCH_TIMEOUT_MS,
+          withCredentials: true,
+        },
+      );
+      const submittedReason = response.data?.payload?.reason || reason;
+      setReportedIssueReasons((prev) => ({
+        ...prev,
+        [commentKey]: submittedReason,
+      }));
+      setIssueMenuCommentId('');
+      setReportActionMessage('Issue report submitted for review.');
+    } catch (error) {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        promptSignInForReportAction();
+      } else {
+        setReportActionMessage(error?.response?.data?.message || error?.message || 'Unable to submit issue report.');
+      }
+    } finally {
+      setPendingIssueCommentId('');
+    }
+  }, [
+    canPostWithAccount,
+    pendingIssueCommentId,
+    promptSignInForReportAction,
+  ]);
+
+  const handleShowMoreReports = useCallback(() => {
+    if (hasHiddenLoadedReports) {
+      setVisibleReportLimit((current) => current + REPORTS_VISIBLE_INCREMENT);
+      return;
+    }
+
+    if (hasMore && !isLoadingMore) {
+      setVisibleReportLimit((current) => current + REPORTS_VISIBLE_INCREMENT);
+      onLoadMore?.();
+    }
+  }, [hasHiddenLoadedReports, hasMore, isLoadingMore, onLoadMore]);
 
   const handleImageChange = (event) => {
     const nextFile = event.target.files?.[0] || null;
@@ -1119,18 +1577,28 @@ function ReportCommentsSection({
       </div>
 
       {loadError && <div className="report-message report-message-error" role="alert">{loadError}</div>}
+      {reportActionMessage && (
+        <div className="report-message report-action-message" role="status">
+          {reportActionMessage}
+        </div>
+      )}
 
       <div className="report-list" aria-live="polite">
         {isLoading && comments.length === 0 ? (
           <div className="report-empty" role="status">Loading reports...</div>
         ) : comments.length > 0 ? (
-          comments.map((comment, index) => {
+          visibleComments.map((comment, index) => {
             const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
             const text = getCommentText(comment);
             const commentKey = getCommentKey(comment, `${eventId}-comment-${index}`);
             const author = getCommentAuthor(comment);
             const isExpanded = Boolean(expandedComments[commentKey]);
-            const shouldClampText = Boolean(text && text.length > 280);
+            const shouldClampText = Boolean(text && text.length > 160);
+            const helpfulCount = getCommentHelpfulCount(comment);
+            const hasMarkedHelpful = getViewerHasMarkedHelpful(comment);
+            const isHelpfulPending = pendingHelpfulCommentId === commentKey;
+            const isIssuePending = pendingIssueCommentId === commentKey;
+            const reportedIssueReason = reportedIssueReasons[commentKey] || '';
             return (
               <article
                 className={`report-card ${imageUrl ? 'report-card-with-media' : ''}`}
@@ -1141,7 +1609,7 @@ function ReportCommentsSection({
                   <div className="report-card-media">
                     <ReportAttachment
                       src={imageUrl}
-                      onPreview={(src) => setSelectedAttachment({
+                      onPreview={(src) => onAttachmentPreview?.({
                         src,
                         alt: `Submitted report attachment from ${author}`,
                       })}
@@ -1150,7 +1618,10 @@ function ReportCommentsSection({
                 )}
                 <div className="report-card-content">
                   <div className="report-card-meta">
-                    <strong>{author}</strong>
+                    <div className="report-card-author">
+                      <ReportAuthorAvatar author={author} />
+                      <strong className="report-card-author-name">{author}</strong>
+                    </div>
                     {formatCommentTime(comment) && <span>{formatCommentTime(comment)}</span>}
                   </div>
                   {text && (
@@ -1168,7 +1639,48 @@ function ReportCommentsSection({
                       )}
                     </>
                   )}
-                  {!text && imageUrl && <p className="report-image-only-label">Image report</p>}
+                  <div className="report-card-actions" aria-label={`Actions for report by ${author}`}>
+                    <button
+                      type="button"
+                      className={`report-action-button report-helpful-button ${hasMarkedHelpful ? 'is-active' : ''}`}
+                      onClick={() => handleToggleHelpful(comment)}
+                      disabled={Boolean(pendingHelpfulCommentId)}
+                      aria-pressed={hasMarkedHelpful}
+                      title={canPostWithAccount ? 'Mark this report as helpful' : 'Sign in to mark reports as helpful'}
+                    >
+                      <FiThumbsUp aria-hidden="true" />
+                      <span>{isHelpfulPending ? 'Saving...' : 'Helpful'}</span>
+                      {helpfulCount > 0 && <strong className="report-action-count">{helpfulCount}</strong>}
+                    </button>
+                    <div className="report-issue-action">
+                      <button
+                        type="button"
+                        className="report-action-button report-issue-button"
+                        onClick={() => handleOpenIssueMenu(commentKey)}
+                        disabled={Boolean(pendingIssueCommentId)}
+                        aria-expanded={issueMenuCommentId === commentKey}
+                        title={canPostWithAccount ? 'Privately report a problem with this report' : 'Sign in to report an issue'}
+                      >
+                        <FiFlag aria-hidden="true" />
+                        <span>{reportedIssueReason ? 'Issue sent' : isIssuePending ? 'Sending...' : 'Report issue'}</span>
+                      </button>
+                      {issueMenuCommentId === commentKey && (
+                        <div className="report-issue-menu" role="menu" aria-label="Choose issue reason">
+                          {REPORT_ISSUE_REASONS.map((reason) => (
+                            <button
+                              key={reason.value}
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleReportIssue(commentKey, reason.value)}
+                              disabled={isIssuePending}
+                            >
+                              {reason.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </article>
             );
@@ -1182,16 +1694,25 @@ function ReportCommentsSection({
         )}
       </div>
 
-      {comments.length > 0 && hasMore && (
+      {comments.length > 0 && (
         <div className="report-load-more-row">
-          <button
-            type="button"
-            className="report-secondary-button"
-            onClick={onLoadMore}
-            disabled={isLoadingMore}
-          >
-            {isLoadingMore ? 'Loading reports...' : 'Load more reports'}
-          </button>
+          <span className="report-visible-count">
+            Showing {visibleReportCount} of {formatReportCount(reportedTotalCount)}
+          </span>
+          {canShowMoreReports && (
+            <button
+              type="button"
+              className="report-secondary-button"
+              onClick={handleShowMoreReports}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore
+                ? 'Loading reports...'
+                : hasHiddenLoadedReports
+                  ? 'Show more reports'
+                  : 'Load more reports'}
+            </button>
+          )}
         </div>
       )}
 
@@ -1300,31 +1821,6 @@ function ReportCommentsSection({
         </div>
       )}
 
-      {selectedAttachment && (
-        <div
-          className="report-lightbox-backdrop"
-          role="presentation"
-          onMouseDown={() => setSelectedAttachment(null)}
-        >
-          <div
-            className="report-lightbox"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Report attachment preview"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="report-icon-button report-lightbox-close"
-              onClick={() => setSelectedAttachment(null)}
-              aria-label="Close attachment preview"
-            >
-              <FiX />
-            </button>
-            <img src={selectedAttachment.src} alt={selectedAttachment.alt} />
-          </div>
-        </div>
-      )}
     </section>
   );
 }
@@ -1355,6 +1851,8 @@ function EarthquakeDetailPage() {
   const [reportsError, setReportsError] = useState('');
   const [reportsNextCursor, setReportsNextCursor] = useState(null);
   const [reportsHasMore, setReportsHasMore] = useState(false);
+  const [selectedReportImage, setSelectedReportImage] = useState(null);
+  const [isRecordingsModalOpen, setIsRecordingsModalOpen] = useState(false);
   const [allStations, setAllStations] = useState([]);
   const eventId = searchParams.get('id');
   const reportsRef = useRef(null);
@@ -1399,7 +1897,11 @@ function EarthquakeDetailPage() {
     [earthquakeInfo, eventId]
   );
   const hasWaveformStations = stationsForDisplay.length > 0;
-  const showCommunityPreview = reportsLoading || Boolean(reportsError) || reportComments.length > 0;
+  const hasImageReports = useMemo(
+    () => reportComments.some((comment) => Boolean(resolveCommentImageUrl(getCommentImage(comment)))),
+    [reportComments]
+  );
+  const showCommunityPreview = reportsLoading || Boolean(reportsError) || hasImageReports;
 
   useEffect(() => {
     const previousEventId = previousEventIdRef.current;
@@ -1500,6 +2002,18 @@ function EarthquakeDetailPage() {
     await loadReports();
   }, [loadReports]);
 
+  const patchReportComment = useCallback((commentId, patch) => {
+    if (!commentId || !patch) return;
+    setReportComments((prev) => prev.map((comment, index) => {
+      const commentKey = getCommentKey(comment, `comment-${index}`);
+      if (commentKey !== commentId) return comment;
+      return {
+        ...comment,
+        ...patch,
+      };
+    }));
+  }, []);
+
   useEffect(() => {
     loadReports();
   }, [loadReports]);
@@ -1561,6 +2075,24 @@ function EarthquakeDetailPage() {
       document.getElementById('report-post-trigger')?.click();
     }, 250);
   }, [scrollToReports]);
+
+  const closeRecordingsModal = useCallback(() => {
+    setIsRecordingsModalOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isRecordingsModalOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeRecordingsModal();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [closeRecordingsModal, isRecordingsModalOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1843,7 +2375,7 @@ function EarthquakeDetailPage() {
                 <div className="panel-header">
                   <div className="panel-title">
                     <h3>Community reports</h3>
-                    {reportCount > 0 && <span className="panel-report-count">{reportCount} reports</span>}
+                    {reportCount > 0 && <span className="panel-report-count">{formatReportCount(reportCount)}</span>}
                   </div>
                   <div className="community-preview-actions">
                     <button type="button" onClick={scrollToReports}>
@@ -1860,6 +2392,7 @@ function EarthquakeDetailPage() {
                     loading={reportsLoading}
                     error={reportsError}
                     onReportClick={scrollToReports}
+                    onImagePreview={setSelectedReportImage}
                   />
                 </div>
               </section>
@@ -1875,6 +2408,9 @@ function EarthquakeDetailPage() {
                       availabilityStatus={recordingAvailabilityStatus}
                       isAvailabilityPending={isRecordingAvailabilityPending}
                       stationListSource={stationListSource}
+                      initialVisibleCount={3}
+                      onViewAllStations={() => setIsRecordingsModalOpen(true)}
+                      className="station-recordings-overview"
                     />
                   </Suspense>
                 ) : (
@@ -1887,17 +2423,63 @@ function EarthquakeDetailPage() {
               <ReportCommentsSection
                 eventId={reportEventId}
                 comments={reportComments}
+                totalCount={reportCount}
                 isLoading={reportsLoading}
                 isLoadingMore={reportsLoadingMore}
                 loadError={reportsError}
                 hasMore={reportsHasMore}
                 onLoadMore={loadMoreReports}
                 onReportsChanged={handleReportsChanged}
+                onCommentPatched={patchReportComment}
+                onAttachmentPreview={setSelectedReportImage}
               />
             </div>
           </div>
         </div>
       </div>
+      <ReportImageViewer
+        image={selectedReportImage}
+        onClose={() => setSelectedReportImage(null)}
+      />
+      {isRecordingsModalOpen && (
+        <div className="recordings-modal-backdrop" role="presentation" onMouseDown={closeRecordingsModal}>
+          <div
+            className="recordings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recordings-modal-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="recordings-modal-titlebar">
+              <div>
+                <h3 id="recordings-modal-title">All Station Recordings</h3>
+                <p>{formatStationCount(stationsForDisplay.length)} with available waveform access for this event.</p>
+              </div>
+              <button
+                type="button"
+                className="report-icon-button recordings-modal-close"
+                onClick={closeRecordingsModal}
+                aria-label="Close station recordings"
+              >
+                <FiX />
+              </button>
+            </div>
+            <Suspense fallback={<div className="eqinfo-panel muted">Loading waveform viewer...</div>}>
+              <SeismicWaveforms
+                earthquakeInfo={earthquakeInfo}
+                stations={stationsForDisplay}
+                availabilityStatus={recordingAvailabilityStatus}
+                isAvailabilityPending={isRecordingAvailabilityPending}
+                stationListSource={stationListSource}
+                showAllByDefault
+                showStationToggle={false}
+                className="station-recordings-viewer"
+                title="Station Recordings"
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
     </>
   );
 }
