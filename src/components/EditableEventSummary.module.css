@@ -85,8 +85,9 @@
 
 .errorMessage {
   padding: var(--space-1);
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, var(--border));
+  background: color-mix(in srgb, var(--danger) 11%, var(--panel-surface));
+  color: color-mix(in srgb, var(--danger) 84%, var(--text-primary));
   border-radius: 4px;
   font-size: 13px;
 }

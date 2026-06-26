@@ -547,9 +547,9 @@
 }
 
 .eqinfo-panel.alert {
-  background: rgba(254, 242, 242, 0.7);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: #991b1b;
+  background: color-mix(in srgb, var(--danger) 11%, var(--panel-surface));
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+  color: color-mix(in srgb, var(--danger) 82%, var(--text-primary));
 }
 
 .eqinfo-panel.muted {
@@ -800,12 +800,14 @@
 }
 
 .panel-report-count {
-  background-color: #e8f0ff;
-  color: #0066cc;
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--panel-surface));
+  color: var(--primary);
   padding: 0.35rem 0.75rem;
   border-radius: 12px;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -823,10 +825,10 @@
 .community-preview-actions button {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, var(--muted));
   border-radius: 6px;
-  background: var(--panel-surface);
-  color: var(--muted);
+  background: color-mix(in srgb, var(--panel-surface) 86%, var(--panel-subtle));
+  color: color-mix(in srgb, var(--text-primary) 72%, var(--muted));
   font-size: 0.82rem;
   font-weight: 800;
   cursor: pointer;
@@ -845,6 +847,7 @@
 .community-preview-actions button:hover {
   transform: translateY(-1px);
   border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 9%, var(--panel-surface));
   color: var(--primary);
 }
 
@@ -1602,9 +1605,9 @@
 }
 
 .report-message-error {
-  border: 1px solid rgba(239, 68, 68, 0.22);
-  background: rgba(254, 242, 242, 0.72);
-  color: #991b1b;
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, var(--border));
+  background: color-mix(in srgb, var(--danger) 12%, var(--panel-surface));
+  color: color-mix(in srgb, var(--danger) 84%, var(--text-primary));
 }
 
 .report-load-more-row {
