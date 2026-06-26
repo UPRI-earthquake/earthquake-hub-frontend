@@ -1161,22 +1161,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 12px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
   border: 1px solid color-mix(in srgb, var(--border) 86%, var(--muted));
   border-radius: 999px;
   background: color-mix(in srgb, var(--panel-surface) 90%, var(--panel-subtle));
   color: color-mix(in srgb, var(--text-primary) 82%, var(--muted));
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 800;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
 }
 
 .report-action-button svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .report-action-button:hover:not(:disabled) {
@@ -2419,23 +2419,25 @@
   }
 
   .report-card-actions {
-    gap: 8px;
+    align-items: flex-start;
+    gap: 7px;
   }
 
   .report-action-button {
-    min-height: 44px;
+    min-height: 40px;
+    padding-inline: 10px;
   }
 
   .report-issue-action {
-    position: static;
-    width: 100%;
+    position: relative;
+    width: auto;
   }
 
   .report-issue-menu {
-    position: static;
-    width: 100%;
+    left: auto;
+    right: 0;
+    width: min(260px, calc(100vw - 48px));
     margin-top: 6px;
-    box-shadow: none;
   }
 
   .report-attachment-button img {
