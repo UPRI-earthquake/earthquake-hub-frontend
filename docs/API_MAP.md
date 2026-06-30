@@ -32,7 +32,7 @@
 
   - **List:** `GET ${BACKEND}/significant-eqs/all` (`src/pages/SignificantEQsPage.jsx:1`)
   - **Detail by id:** `POST ${BACKEND}/significant-eqs` with `{ id }` (`src/pages/EQInfoPage.jsx:1`)
-  - **Detail page download buttons** (hardcoded domain): fdsnws query at `https://earthquake.science.upd.edu.ph/fdsnws/...` (`src/components/StationDownloadButton.jsx:1`)
+  - **Detail page download buttons** (configured FDSNWS endpoint): fdsnws query at `https://earthquake.up.edu.ph/fdsnws/...` (`src/components/StationDownloadButton.jsx:1`)
 
 - **Auth + Accounts**
 

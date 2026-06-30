@@ -1163,7 +1163,7 @@ function buildStationFdsnDownloads(stationCode, earthquakeInfo) {
 
 function getFdsnwsBaseUrl() {
   const env = typeof window !== 'undefined' && window.ENV ? window.ENV : {};
-  return String(env.REACT_APP_FDSNWS || 'https://earthquake.science.upd.edu.ph/fdsnws').replace(/\/$/, '');
+  return String(env.REACT_APP_FDSNWS || 'https://earthquake.up.edu.ph/fdsnws').replace(/\/$/, '');
 }
 
 function parseEventTimeUtc(value) {

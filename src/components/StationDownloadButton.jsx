@@ -11,6 +11,7 @@ import moment from '../utils/time';
  */
 const StationDownloadButtons = (stationInfo) => {
   const network = 'AM';
+  const fdsnwsBaseUrl = getFdsnwsBaseUrl();
   const parseEventTimeUtc = (value) => {
     const parsed = moment(value || Date.now()).utc();
     return parsed && typeof parsed.isValid === 'function' && parsed.isValid()
@@ -90,7 +91,7 @@ const StationDownloadButtons = (stationInfo) => {
         title={`Download station metadata for ${stationCodeUpper}`}
         onClick={() =>
           fetchAndDownload(
-            `https://earthquake.science.upd.edu.ph/fdsnws/station/1/query?level=response&starttime=${startTime}&endtime=${endTime}&station=${stationCode}&formatted=true&nodata=404`,
+            `${fdsnwsBaseUrl}/station/1/query?level=response&starttime=${startTime}&endtime=${endTime}&station=${stationCode}&formatted=true&nodata=404`,
             metadataFilename,
             'metadata',
             'application/xml, text/xml; q=0.9, */*; q=0.1'
@@ -105,7 +106,7 @@ const StationDownloadButtons = (stationInfo) => {
         title={`Download waveform for ${stationCodeUpper}`}
         onClick={() =>
           fetchAndDownload(
-            `https://earthquake.science.upd.edu.ph/fdsnws/dataselect/1/query?starttime=${startTime}&endtime=${endTime}&station=${stationCode}&nodata=404`,
+            `${fdsnwsBaseUrl}/dataselect/1/query?starttime=${startTime}&endtime=${endTime}&station=${stationCode}&nodata=404`,
             waveformFilename,
             'waveform',
             'application/vnd.fdsn.mseed, application/octet-stream, */*;q=0.1'
@@ -117,5 +118,14 @@ const StationDownloadButtons = (stationInfo) => {
     </div>
   );
 };
+
+function getFdsnwsBaseUrl() {
+  const runtimeEnv = typeof window !== 'undefined' ? window.ENV || window['ENV'] || {} : {};
+  return String(
+    runtimeEnv.REACT_APP_FDSNWS ||
+      process.env.REACT_APP_FDSNWS ||
+      'https://earthquake.up.edu.ph/fdsnws'
+  ).replace(/\/$/, '');
+}
 
 export default StationDownloadButtons;
