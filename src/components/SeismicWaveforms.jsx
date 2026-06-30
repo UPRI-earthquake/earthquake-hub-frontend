@@ -499,33 +499,57 @@ function createWaveformDisplay(sp, records) {
     config,
     channels: selectedSeismograms.map((seis) => seis.codes()),
     channelSamples: selectedSeismograms
-      .map((seis, index) => ({
-        code: seis.codes(),
-        samples: extractSeismogramSamples(seis),
-        color: WAVEFORM_CHANNEL_COLORS[index % WAVEFORM_CHANNEL_COLORS.length],
-      }))
+      .map((seis, index) => {
+        const series = extractSeismogramSeries(seis);
+        return {
+          code: seis.codes(),
+          samples: series.samples,
+          segments: series.segments,
+          color: WAVEFORM_CHANNEL_COLORS[index % WAVEFORM_CHANNEL_COLORS.length],
+        };
+      })
       .filter((channel) => channel.samples.length > 0),
   };
 }
 
-function extractSeismogramSamples(seismogram) {
+function extractSeismogramSeries(seismogram) {
   const segments = Array.isArray(seismogram?.segments) ? seismogram.segments : [];
   const samples = [];
+  const timedSegments = [];
 
   segments.forEach((segment) => {
     try {
       const yValues = segment?.y;
       if (yValues && typeof yValues.length === 'number') {
-        samples.push(...Array.from(yValues));
+        const segmentSamples = Array.from(yValues)
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value));
+        samples.push(...segmentSamples);
+
+        const startTimeMs = toEpochMillis(segment?.startTime || segment?.start);
+        const sampleRate = Number(segment?.sampleRate);
+        if (Number.isFinite(startTimeMs) && Number.isFinite(sampleRate) && sampleRate > 0) {
+          timedSegments.push({
+            startTimeMs,
+            sampleRate,
+            samples: segmentSamples,
+          });
+        }
       }
     } catch (_) {
       // Skip a segment if seisplotjs cannot decode it.
     }
   });
 
-  return samples
-    .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value));
+  return { samples, segments: timedSegments };
+}
+
+function toEpochMillis(value) {
+  if (!value) return NaN;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  const parsed = moment.utc(value);
+  return parsed.isValid() ? parsed.valueOf() : NaN;
 }
 
 const WAVEFORM_CHANNEL_COLORS = [
@@ -723,8 +747,8 @@ function getPreferredChannelCode(channels) {
 function CompactWaveform({ stationCode, stationIndex, channels, isLoading, eventTime, isAvailabilityPending }) {
   const color = getStationTraceColor(stationIndex);
   const waveformDisplay = useMemo(
-    () => buildWaveformPaths(channels),
-    [channels]
+    () => buildWaveformPaths(channels, eventTime),
+    [channels, eventTime]
   );
   const paths = waveformDisplay.paths;
   const eventMarkerX = useMemo(
@@ -932,14 +956,11 @@ function getStationTraceColor(stationIndex) {
   return colors[stationIndex % colors.length];
 }
 
-function buildWaveformPaths(channels) {
+function buildWaveformPaths(channels, eventTime) {
+  const waveformWindow = getWaveformWindow(eventTime);
   const preparedChannels = channels
-    .map((channel) => ({
-      code: channel.code,
-      color: channel.color,
-      values: prepareWaveformValues(channel.samples),
-    }))
-    .filter((channel) => channel.values.length >= 2);
+    .map((channel) => prepareWaveformChannel(channel, waveformWindow))
+    .filter((channel) => channel.values.length >= 2 || channel.segments.some((segment) => segment.values.length >= 2));
   const sharedMax = preparedChannels.reduce(
     (largest, channel) => Math.max(largest, getMaxAbs(channel.values)),
     0
@@ -952,13 +973,89 @@ function buildWaveformPaths(channels) {
   return {
     maxAmplitude: sharedMax,
     paths: preparedChannels
-      .map((channel) => ({
-        code: channel.code,
-        color: channel.color,
-        points: buildWaveformPath(channel.values, sharedMax),
-      }))
+      .flatMap((channel) => {
+        if (channel.segments.length > 0) {
+          return channel.segments.map((segment) => ({
+            code: channel.code,
+            color: channel.color,
+            points: buildTimedWaveformPath(segment.values, sharedMax, waveformWindow),
+          }));
+        }
+
+        return [{
+          code: channel.code,
+          color: channel.color,
+          points: buildWaveformPath(channel.values, sharedMax),
+        }];
+      })
       .filter((channel) => channel.points),
   };
+}
+
+function getWaveformWindow(eventTime) {
+  const eventMoment = moment.utc(eventTime);
+  if (!eventMoment.isValid()) return null;
+
+  const start = eventMoment.clone().subtract(60, 'second');
+  const end = eventMoment.clone().add(600, 'second');
+  const startMs = start.valueOf();
+  const endMs = end.valueOf();
+
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return null;
+  return { startMs, endMs, totalMs: endMs - startMs };
+}
+
+function prepareWaveformChannel(channel, waveformWindow) {
+  const rawValues = Array.isArray(channel.samples)
+    ? channel.samples.map((value) => Number(value)).filter((value) => Number.isFinite(value))
+    : [];
+  const mean = rawValues.length > 0
+    ? rawValues.reduce((sum, value) => sum + value, 0) / rawValues.length
+    : 0;
+  const timedSegments = Array.isArray(channel.segments) && waveformWindow
+    ? channel.segments
+      .map((segment) => prepareTimedWaveformSegment(segment, mean, waveformWindow))
+      .filter((segment) => segment.values.length >= 2)
+    : [];
+
+  return {
+    code: channel.code,
+    color: channel.color,
+    values: timedSegments.length > 0 ? timedSegments.flatMap((segment) => segment.values.map((point) => point.value)) : prepareWaveformValues(channel.samples),
+    segments: timedSegments,
+  };
+}
+
+function prepareTimedWaveformSegment(segment, mean, waveformWindow) {
+  const sampleRate = Number(segment?.sampleRate);
+  const startTimeMs = Number(segment?.startTimeMs);
+  const samples = Array.isArray(segment?.samples) ? segment.samples : [];
+
+  if (!Number.isFinite(sampleRate) || sampleRate <= 0 || !Number.isFinite(startTimeMs)) {
+    return { values: [] };
+  }
+
+  const samplePeriodMs = 1000 / sampleRate;
+  const values = samples
+    .map((sample, index) => ({
+      timeMs: startTimeMs + (index * samplePeriodMs),
+      value: Number(sample) - mean,
+    }))
+    .filter((point) => (
+      Number.isFinite(point.timeMs) &&
+      Number.isFinite(point.value) &&
+      point.timeMs >= waveformWindow.startMs &&
+      point.timeMs <= waveformWindow.endMs
+    ));
+  const segmentDurationMs = values.length >= 2
+    ? values[values.length - 1].timeMs - values[0].timeMs
+    : 0;
+  const bucketCount = Math.max(
+    4,
+    Math.ceil((segmentDurationMs / waveformWindow.totalMs) * 420)
+  );
+
+  return { values: minMaxDownsampleTimed(values, bucketCount) };
 }
 
 function prepareWaveformValues(samples) {
@@ -980,6 +1077,21 @@ function buildWaveformPath(values, sharedMax) {
     .map((value, index) => {
       const x = WAVEFORM_PLOT_LEFT + (index / (values.length - 1)) * WAVEFORM_PLOT_WIDTH;
       const y = WAVEFORM_BASELINE_Y - (value / sharedMax) * WAVEFORM_AMPLITUDE_Y;
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(' ');
+}
+
+function buildTimedWaveformPath(values, sharedMax, waveformWindow) {
+  if (!Array.isArray(values) || values.length < 2 || !sharedMax || !waveformWindow) {
+    return '';
+  }
+
+  return values
+    .map((point, index) => {
+      const ratio = (point.timeMs - waveformWindow.startMs) / waveformWindow.totalMs;
+      const x = WAVEFORM_PLOT_LEFT + ratio * WAVEFORM_PLOT_WIDTH;
+      const y = WAVEFORM_BASELINE_Y - (point.value / sharedMax) * WAVEFORM_AMPLITUDE_Y;
       return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(' ');
@@ -1062,6 +1174,48 @@ function minMaxDownsample(samples, bucketCount) {
       result.push(max, min);
     } else {
       result.push(samples[start]);
+    }
+  }
+
+  return result;
+}
+
+function minMaxDownsampleTimed(points, bucketCount) {
+  if (!Array.isArray(points) || points.length <= bucketCount * 2) {
+    return points;
+  }
+
+  const result = [];
+  const bucketSize = points.length / bucketCount;
+
+  for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
+    const start = Math.floor(bucketIndex * bucketSize);
+    const end = Math.min(points.length, Math.floor((bucketIndex + 1) * bucketSize));
+    if (end <= start) continue;
+
+    let min = points[start];
+    let max = points[start];
+    let minIndex = start;
+    let maxIndex = start;
+
+    for (let index = start + 1; index < end; index += 1) {
+      const point = points[index];
+      if (point.value < min.value) {
+        min = point;
+        minIndex = index;
+      }
+      if (point.value > max.value) {
+        max = point;
+        maxIndex = index;
+      }
+    }
+
+    if (minIndex < maxIndex) {
+      result.push(min, max);
+    } else if (maxIndex < minIndex) {
+      result.push(max, min);
+    } else {
+      result.push(min);
     }
   }
 
