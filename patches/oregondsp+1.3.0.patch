@@ -1,0 +1,20 @@
+diff --git a/node_modules/oregondsp/kotlin/kotlin-kotlin-stdlib-js-ir.js b/node_modules/oregondsp/kotlin/kotlin-kotlin-stdlib-js-ir.js
+index 181352c..e469226 100644
+--- a/node_modules/oregondsp/kotlin/kotlin-kotlin-stdlib-js-ir.js
++++ b/node_modules/oregondsp/kotlin/kotlin-kotlin-stdlib-js-ir.js
+@@ -14304,5 +14304,3 @@ if (typeof Math.imul === 'undefined') {
+   //endregion
+   return _;
+ }));
+-
+-//# sourceMappingURL=kotlin-kotlin-stdlib-js-ir.js.map
+diff --git a/node_modules/oregondsp/kotlin/oregondsp.js b/node_modules/oregondsp/kotlin/oregondsp.js
+index 58e1a37..8689f63 100644
+--- a/node_modules/oregondsp/kotlin/oregondsp.js
++++ b/node_modules/oregondsp/kotlin/oregondsp.js
+@@ -5813,5 +5813,3 @@
+   //endregion
+   return _;
+ }));
+-
+-//# sourceMappingURL=oregondsp.js.map
