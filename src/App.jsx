@@ -20,7 +20,7 @@ function App() {
   return (
     <div className="App">
       <ConsentBanner />
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/" exact element={<HomePage />} />
