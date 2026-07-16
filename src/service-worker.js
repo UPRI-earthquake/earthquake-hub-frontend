@@ -25,7 +25,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 // are fulfilled with your index.html shell. Learn more at
 // https://developers.google.com/web/fundamentals/architecture/app-shell
 const fileExtensionRegexp = new RegExp('/[^/?]+\\.[^/]+$');
-const backendProxyPathRegexp = /^\/(?:api|fdsnws|ringserver)(?:\/|$)/;
+const nonPublicAppPathRegexp = /^\/(?:admin|api|fdsnws|ringserver)(?:\/|$)/;
 registerRoute(
   // Return false to exempt requests from being fulfilled by index.html.
   ({ request, url }) => {
@@ -42,8 +42,8 @@ registerRoute(
       return false;
     }
 
-    // Let server-side proxy/back-end routes bypass SPA app-shell fallback.
-    if (backendProxyPathRegexp.test(url.pathname)) {
+    // Let server-side proxy/back-end and admin routes bypass the public SPA app-shell fallback.
+    if (nonPublicAppPathRegexp.test(url.pathname)) {
       return false;
     } // Return true to signal that we want to use the handler.
 
