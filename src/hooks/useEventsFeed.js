@@ -3,6 +3,7 @@ import axios from 'axios';
 import moment from '../utils/time';
 import { backendHost } from '../utils/env';
 import { emitToast } from '../utils/toast';
+import { eventSummaryProjection } from '../utils/eventSummaryContract';
 // Performance: avoid shipping the EventSource polyfill to modern browsers.
 // We dynamically import it only if the native API is unavailable.
 
@@ -150,6 +151,8 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
               depth_km: depthVal,
               // Include descriptive text so Sidebar can display it
               text: data.text,
+              place: data.place,
+              ...eventSummaryProjection(data),
               eventType: 'NEW',
               last_modification: data.last_modification,
             };
@@ -195,6 +198,8 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
                 magnitude_value: data.magnitude_value ?? ev.magnitude_value,
                 depth_km: mergedDepth,
                 text: data.text ?? ev.text,
+                place: data.place ?? ev.place,
+                ...eventSummaryProjection(data),
                 eventType: 'UPDATE',
                 last_modification: data.last_modification ?? ev.last_modification,
               };

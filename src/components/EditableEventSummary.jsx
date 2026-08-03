@@ -81,7 +81,8 @@ function EditableEventSummary({
       if (response.data.status === 0) {
         setIsEditing(false);
         setShowConfirmDialog(false);
-        onSummaryUpdated?.(editedContent);
+        const summaryContract = response.data.data || {};
+        onSummaryUpdated?.(summaryContract.effectiveSummary || editedContent, summaryContract);
       } else {
         setSaveError(response.data.message || 'Failed to save summary');
       }

@@ -12,6 +12,12 @@
 - **Earthquake Events**
 
   - **Initial events:** `GET ${BACKEND}/eq-events?startTime=...&endTime=...` (`src/hooks/useEventsFeed.js:1` via `src/hooks/useAppData.js:1`)
+  - **Event summary contract:** event responses expose `generatedSummary`,
+    `effectiveSummary`, and `summaryPublication`. The public UI renders
+    `effectiveSummary`; only Approved custom summaries are selected by default.
+    `eventSummary` remains a compatibility alias, and the local generator is a
+    fallback for older backend responses. `SC_EVENT` SSE payloads use the same
+    public summary projection.
   - **Live updates (SSE):** `EventSource` to `${BACKEND}/messaging` (`src/hooks/useEventsFeed.js:1`), events:
 
     - `SC_EVENT` → NEW/UPDATE of events; merged into live list used by `EventMarkers` and `SidebarItems` (`src/hooks/useEventsFeed.js:1` → `src/components/EventMarkers.jsx:1`, `src/components/SidebarItems.jsx:1`)

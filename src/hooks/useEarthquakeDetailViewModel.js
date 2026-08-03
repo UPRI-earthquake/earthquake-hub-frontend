@@ -50,8 +50,10 @@ export default function useEarthquakeDetailViewModel(earthquakeInfo) {
   const summaryMarkup = useMemo(() => {
     if (!earthquakeInfo) return '';
     return sanitizeHtml(
-      earthquakeInfo?.summaryOverride?.text ||
+      earthquakeInfo.effectiveSummary ||
       earthquakeInfo.eventSummary ||
+      earthquakeInfo?.summaryOverride?.text ||
+      earthquakeInfo.generatedSummary ||
       generateEventSummary(earthquakeInfo)
     );
   }, [earthquakeInfo]);

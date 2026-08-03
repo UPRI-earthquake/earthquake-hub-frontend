@@ -2025,13 +2025,17 @@ function EarthquakeDetailPage() {
 
   // Sync displaySummary with earthquakeInfo
   useEffect(() => {
-    const summary = earthquakeInfo?.summaryOverride?.text || earthquakeInfo?.eventSummary || '';
+    const summary = earthquakeInfo?.effectiveSummary
+      || earthquakeInfo?.eventSummary
+      || earthquakeInfo?.summaryOverride?.text
+      || earthquakeInfo?.generatedSummary
+      || '';
     setDisplaySummary(summary);
-  }, [earthquakeInfo?.summaryOverride?.text, earthquakeInfo?.eventSummary]);
+  }, [earthquakeInfo?.effectiveSummary, earthquakeInfo?.eventSummary, earthquakeInfo?.generatedSummary, earthquakeInfo?.summaryOverride?.text]);
 
 
   // Callback when summary is updated
-  const handleSummaryUpdated = useCallback((updatedSummary) => {
+  const handleSummaryUpdated = useCallback((updatedSummary, summaryContract = {}) => {
     setDisplaySummary(updatedSummary);
 
     // Patch the in-memory fetched earthquake so it survives re-renders
@@ -2041,7 +2045,10 @@ function EarthquakeDetailPage() {
       return {
         ...base,
         eventSummary: updatedSummary,
-        summaryOverride: { ...(base.summaryOverride || {}), text: updatedSummary },
+        effectiveSummary: summaryContract.effectiveSummary || updatedSummary,
+        generatedSummary: summaryContract.generatedSummary || base.generatedSummary,
+        summaryPublication: summaryContract.summaryPublication || base.summaryPublication,
+        summaryOverride: summaryContract.summaryOverride || base.summaryOverride,
       };
     });
 
@@ -2052,7 +2059,10 @@ function EarthquakeDetailPage() {
         writeCachedEarthquake(eventId, {
           ...base,
           eventSummary: updatedSummary,
-          summaryOverride: { ...(base.summaryOverride || {}), text: updatedSummary },
+          effectiveSummary: summaryContract.effectiveSummary || updatedSummary,
+          generatedSummary: summaryContract.generatedSummary || base.generatedSummary,
+          summaryPublication: summaryContract.summaryPublication || base.summaryPublication,
+          summaryOverride: summaryContract.summaryOverride || base.summaryOverride,
         });
       }
     }
