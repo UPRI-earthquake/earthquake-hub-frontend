@@ -44,7 +44,6 @@ const StationMarker = ({
   );
   const demoTimerRef = useRef(null);
   const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
-  const ringserver_ws = ringserverWS();
   const logDownload = useCallback(
     (payload) => {
       try {
@@ -182,7 +181,15 @@ const StationMarker = ({
   const initDatalink = () => {
     const sp = spRef.current;
     if (!sp) return;
-    datalinkRef.current = new sp.datalink.DataLinkConnection(ringserver_ws, packetHandler, errorFn);
+    const ringserverUrl = ringserverWS();
+    if (!ringserverUrl) {
+      throw new Error('Ringserver WebSocket URL is not configured');
+    }
+    datalinkRef.current = new sp.datalink.DataLinkConnection(
+      ringserverUrl,
+      packetHandler,
+      errorFn,
+    );
   };
 
   const drawGraph = function () {

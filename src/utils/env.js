@@ -18,7 +18,7 @@ export function backendHost() {
 }
 
 export function ringserverWS() {
-  const isProd =
-    typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production';
-  return isProd ? getEnv('REACT_APP_RINGSERVER_WS') : getEnv('REACT_APP_RINGSERVER_WS_DEV');
+  return process.env.NODE_ENV === 'production'
+    ? getEnv('REACT_APP_RINGSERVER_WS')
+    : getEnv('REACT_APP_RINGSERVER_WS_DEV');
 }
