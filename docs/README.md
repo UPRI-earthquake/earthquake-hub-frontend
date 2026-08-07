@@ -5,6 +5,7 @@ Topic-focused docs for features and interactions.
 - API and Components
   - `API_MAP.md` — backend endpoints used
   - `COMPONENT_MAP.md` — routes and component tree
+  - `ADMIN_EVENT_SUMMARIES.md` — backend-owned event summary publication contract
 - Map and Layers
   - `LAYERS_SETUP.md` — layers wiring and design
   - `MAP_FEATURES_DESIGN.md` — UX, data contracts, acceptance criteria
@@ -24,4 +25,3 @@ Topic-focused docs for features and interactions.
   - `TESTING_GUIDE.md` — running and adding tests
   - `AUTH_DASHBOARD.md` — auth UI and flows
   - `DEPLOYMENT.md` — local, docker, build
-
