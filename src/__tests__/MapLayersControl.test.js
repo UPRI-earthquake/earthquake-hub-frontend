@@ -1,12 +1,11 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MapContainer } from 'react-leaflet';
 import MapLayersControl from '../components/MapLayersControl';
 import { OverlayStateProvider } from '../components/OverlayStateContext';
 
-// Basic smoke test to ensure LayersControl renders inside a MapContainer
-test('renders LayersControl on the map', () => {
-  const { container } = render(
+test('renders LayersControl with Satellite selected and CARTO Default disabled', () => {
+  render(
     <div style={{ width: '400px', height: '400px' }}>
       <MapContainer center={[0, 0]} zoom={2} style={{ width: '400px', height: '400px' }}>
         <OverlayStateProvider>
@@ -15,6 +14,8 @@ test('renders LayersControl on the map', () => {
       </MapContainer>
     </div>,
   );
-  const ctrl = container.querySelector('.leaflet-control-layers');
-  expect(ctrl).toBeTruthy();
+
+  expect(screen.queryByRole('radio', { name: 'Default' })).not.toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: 'Terrain' })).not.toBeChecked();
+  expect(screen.getByRole('radio', { name: 'Satellite' })).toBeChecked();
 });

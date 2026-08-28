@@ -6,13 +6,14 @@ const { BaseLayer } = LayersControl;
 
 /**
  * Basemap options for the map. Uses leaflet-providers via config to render
- * CARTO light/dark (auto-selected), Esri World Topo Map, and Esri World Imagery.
+ * optional CARTO light/dark, Esri World Topo Map, and Esri World Imagery.
  */
 export default function BasemapLayers({
   bases: basesProp,
   registerBaseLayer,
   activeTheme = 'light',
   activeBase = 'default',
+  defaultBasemapEnabled = true,
 }) {
   const bases = useMemo(
     () =>
@@ -38,14 +39,16 @@ export default function BasemapLayers({
 
   return (
     <>
-      <BaseLayer checked={activeBase === 'default'} name="Default">
-        <TileLayer
-          ref={attach('default')}
-          url={defaultProps.url}
-          {...defaultProps.options}
-          key={`default-${defaultVariant}`}
-        />
-      </BaseLayer>
+      {defaultBasemapEnabled ? (
+        <BaseLayer checked={activeBase === 'default'} name="Default">
+          <TileLayer
+            ref={attach('default')}
+            url={defaultProps.url}
+            {...defaultProps.options}
+            key={`default-${defaultVariant}`}
+          />
+        </BaseLayer>
+      ) : null}
       <BaseLayer checked={activeBase === 'terrain'} name="Terrain">
         <TileLayer ref={attach('terrain')} url={bases.terrain.url} {...bases.terrain.options} />
       </BaseLayer>

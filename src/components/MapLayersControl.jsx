@@ -34,25 +34,35 @@ const LAYERS_ICON_SVG = [
   '</svg>',
 ].join('');
 
+// Temporary CARTO outage policy: keep the keyless CARTO raster basemaps disabled
+// and start the monitoring map on satellite imagery. Set this back to true once
+// a keyed provider or replacement default basemap is ready.
+const CARTO_DEFAULT_ENABLED = false;
+const INITIAL_BASEMAP = CARTO_DEFAULT_ENABLED ? 'default' : 'satellite';
+
 export default function MapLayersControl({ children, activeTheme }) {
   const map = useMap();
   const { registerLayer, activeIds } = useOverlayState();
   const baseLayerRefs = useRef({});
   const basemapThemeRef = useRef(null);
-  const prevBaseRef = useRef('default');
+  const prevBaseRef = useRef(INITIAL_BASEMAP);
   const defaultThemeRef = useRef(null);
-  const [activeBase, setActiveBase] = useState('default');
+  const [activeBase, setActiveBase] = useState(INITIAL_BASEMAP);
   const { theme, setTheme, setThemeToggleDisabled } = useTheme();
   // Memoize basemap provider props so layers are not recreated
-  const bases = useMemo(
-    () => ({
-      defaultLight: BASEMAPS.Carto_Positron(),
-      defaultDark: BASEMAPS.Carto_DarkMatter(),
+  const bases = useMemo(() => {
+    const availableBases = {
       terrain: BASEMAPS.Esri_WorldTopoMap(),
       satellite: BASEMAPS.Esri_WorldImagery(),
-    }),
-    [],
-  );
+    };
+
+    if (CARTO_DEFAULT_ENABLED) {
+      availableBases.defaultLight = BASEMAPS.Carto_Positron();
+      availableBases.defaultDark = BASEMAPS.Carto_DarkMatter();
+    }
+
+    return availableBases;
+  }, []);
 
   const registerBaseLayer = useCallback(
     (key, layer) => {
@@ -736,13 +746,17 @@ export default function MapLayersControl({ children, activeTheme }) {
       return `url("${url}")`;
     };
     const baseMap = {
-      Default: {
-        key: 'default',
-        url:
-          String(activeTheme || '').toLowerCase() === 'dark'
-            ? bases.defaultDark.url
-            : bases.defaultLight.url,
-      },
+      ...(CARTO_DEFAULT_ENABLED
+        ? {
+            Default: {
+              key: 'default',
+              url:
+                String(activeTheme || '').toLowerCase() === 'dark'
+                  ? bases.defaultDark.url
+                  : bases.defaultLight.url,
+            },
+          }
+        : {}),
       Terrain: { key: 'terrain', url: bases.terrain.url },
       Satellite: { key: 'satellite', url: bases.satellite.url },
     };
@@ -1206,6 +1220,7 @@ export default function MapLayersControl({ children, activeTheme }) {
         registerBaseLayer={registerBaseLayer}
         activeTheme={activeTheme}
         activeBase={activeBase}
+        defaultBasemapEnabled={CARTO_DEFAULT_ENABLED}
       />
       <OverlayLayers
         setFaultsRef={setFaultsRef}
