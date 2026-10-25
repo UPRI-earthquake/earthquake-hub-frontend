@@ -1,59 +1,57 @@
+# Contributing to Earthquake Hub Frontend
+
+This guide outlines the contribution process for the Earthquake Hub frontend repository.
+
 ## Setting Up The Repository On Your Local Machine
 
-For local development, the earthquake-hub-backend is needed to serve the requests from the frontend. As such, you need to spin up the backend code first, then the frontend. All of the
-development setup makes use of docker.
+Follow the repository's current setup instructions and configuration examples. Ensure that required supporting services are available before beginning development.
 
-1. Clone earthquake-hub-backend,
+Refer to the repository documentation for up-to-date development requirements and commands.
 
-   ```bash
-   git clone git@github.com:UPRI-earthquake/earthquake-hub-backend.git
-   ```
+## Development Workflow
 
-   1. Configure the back-end setup by creating a file named `.env`, containing the config variables. An example is available its `.env.example`.
-   2. Install all dependencies via:
-      ```bash
-      npm install
-      ```
-   3. Build the image via:
-      ```bash
-      docker build -t ghcr.io/upri-earthquake/earthquake-hub-backend:latest .
-      ```
-   4. Run the container via:
-      ```bash
-      docker compose up
-      ```
-      from which you should see the following:
-      ```bash
-      [nodemon] restarting due to changes...
-      [nodemon] starting `node -r dotenv/config index.js`
-      db-host: mongodb
-      mysql-host: host.docker.internal
-      Development backend listening at http://172.22.0.3:5000
-      Development client expected (by CORS) at http://localhost:3000
-      ```
+### Branching Strategy
 
-2. Similar to above, clone this repository,
-   ```bash
-   git clone git@github.com:UPRI-earthquake/earthquake-hub-frontend.git
-   ```
-   1. Configure the sender-front-end setup by creating a file named `.env`, containing the config variables. An example is available on `.env.example`., making sure to put this value
-      ```bash
-      REACT_APP_BACKEND_DEV=http://172.22.0.3:5000
-      REACT_APP_RINGSERVER_WS_DEV=ws://127.0.0.1:16000/datalink
-      ```
-   2. Install the dependencies via:
-      ```bash
-      npm install
-      ```
-   3. Build the image via:
-      ```bash
-      docker build -t ghcr.io/upri-earthquake/earthquake-hub-frontend:latest .
-      ```
-   4. Run the container via:
-      ```bash
-      docker compose up
-      ```
+The repository follows this workflow:
 
-## Development Workflow: Creating New Feature
+`feature/*` / `fix/*` / `docs/*` / `chore/*` → `dev` → `staging` → `main`
 
-Please refer to the [contributing guide](https://upri-earthquake.github.io/dev-guide-contributing) to the entire EarthquakeHub suite.
+- **Working branches:** Individual development, bug fixes, documentation, and maintenance.
+- **`dev`:** Integration of ongoing development.
+- **`staging`:** Validation of release candidates.
+- **`main`:** Approved production-release source.
+- **`hotfix/*`:** Urgent corrections based on the verified production baseline.
+
+Create regular working branches from `dev`.
+
+### Contributions and Pull Requests
+
+1. Create a working branch for the intended change.
+2. Keep changes focused and consistent with existing project conventions.
+3. Validate the affected functionality and update relevant tests or documentation.
+4. Submit a pull request to `dev`.
+5. Address feedback and satisfy the applicable branch protection requirements before merging.
+
+### Branch Protection
+
+- Contributors follow the active GitHub branch rulesets.
+- Organization admins may commit directly to `dev` when necessary.
+- Changes to `staging` and `main` require pull requests, including for organization admins.
+- Organization admins may bypass PR approval requirements where explicitly permitted.
+- Protected branches cannot be force-pushed or deleted.
+
+### Release Promotion and Hotfixes
+
+Promote validated changes through `dev` → `staging` → `main` using pull requests.
+
+For urgent production fixes, create `hotfix/*` from the verified production baseline, validate the correction, and merge it through the required release process. Propagate the fix back into active development branches.
+
+## Contribution Guidelines
+
+- Preserve existing functionality unless a change is intentional and documented.
+- Follow established UI, accessibility, and code quality conventions.
+- Include relevant tests and documentation when behavior changes.
+- Avoid unrelated refactoring within focused pull requests.
+- Never commit credentials, secrets, or local configuration files.
+
+For project-specific standards, refer to the repository's current documentation.
