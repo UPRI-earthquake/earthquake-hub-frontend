@@ -1,72 +1,64 @@
-<!--- Add title with the following format,
+<!--
+PR Title Format:
+type: [SEISMO-XXXX] Short description
 
-type: [SEISMO-XXXX] SHORTENED TASK TITLE
-
-where type is:
-1. draft - to be completed PR
-2. feat - new feature
-3. fix - bug fixes
-4. test - unit tests
-5. chore - (aka housekeeping) cleaning/styling/refactor code, documentations, adding comments
+Types: feat, fix, docs, chore, test, refactor
+Include a task ID when available.
+Use GitHub's Draft PR option for work in progress.
 -->
 
-# Detailed Description
+## Summary
 
-### Summary
+<!-- Briefly describe what this PR changes. -->
 
-<!--- Please link the related issue/task -->
+**Related Task/Issue:** <!-- Notion or GitHub link, if applicable -->
 
-> This PR fixes: [SEISMO #### - Title](issue-link)
+## Motivation & Context
 
-<!--- Please include a detailed summary of the changes -->
+<!-- Why is this change needed? What problem does it solve? -->
 
-### Motivation & Context
+## Changes Made
 
-<!--- Why is this change required? What problem does it solve? -->
-<!--- If it fixes an open issue, please link to the issue here. -->
+<!-- List the main changes. -->
+-
 
-### Dependencies
+## Type of Change
 
-<!--- List any dependencies that are required for this change. -->
+- [ ] New feature
+- [ ] Bug fix
+- [ ] Refactoring / maintenance
+- [ ] Documentation
+- [ ] Tests
+- [ ] Infrastructure / configuration
+- [ ] Breaking change
 
-### Type of change
+## Testing & Validation
 
-<!--- Please delete options that are not relevant. -->
+<!-- Describe how the changes were tested or verified. -->
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+**Tests/Checks Performed:**
+-
 
-<!--- If breaking change, detail which existing functionality/s should or is expected to change -->
+**Results:** <!-- Passed, failed, or not tested, with explanation -->
 
-# How Has This Been Tested?
+## Dependencies
 
-<!--- Remove this section if not applicable -->
+<!-- Related PRs, services, or required changes. Use "None" if not applicable. -->
 
-<!--- Please describe the tests that you ran to verify your changes. -->
-<!--- Provide instructions so we can reproduce. -->
-<!--- Please also list any relevant details for your test configuration -->
+None
 
-- [ ] Test A
-- [ ] Test B
+## Impact & Rollback
 
-**Test Configuration**:
+**Potential Impact:**
+<!-- Affected components, services, or existing functionality. -->
 
-- Firmware version:
-- Hardware:
-- Toolchain:
-- SDK:
+**Rollback Plan:**
+<!-- How to revert the changes, if necessary. -->
 
-# Checklist:
+## Checklist
 
-<!--- Double check the following and leave uncheck those that you haven't done or are not applicable. -->
-
-- [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published in downstream modules
+- [ ] I have reviewed my own changes.
+- [ ] Relevant tests or validation have been performed.
+- [ ] Documentation has been updated, if applicable.
+- [ ] No credentials or sensitive information are included.
+- [ ] Breaking changes and risks are documented, if applicable.
