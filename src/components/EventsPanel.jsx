@@ -125,7 +125,7 @@ function EventsPanel({
   };
 
   const scopeLabel =
-    scope === 'all' ? 'All recorded earthquakes' : 'Latest earthquakes (30 days)';
+    scope === 'all' ? 'All recorded earthquakes' : 'Latest 30 earthquakes · Philippines';
 
   const header = (
     <div className={styles.panelShell}>

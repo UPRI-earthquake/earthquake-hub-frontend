@@ -3,6 +3,7 @@ import axios from 'axios';
 import moment from '../utils/time';
 import { backendHost } from '../utils/env';
 import { emitToast } from '../utils/toast';
+import { loadLatestPhilippineEvents } from '../utils/latestEvents';
 import { eventSummaryProjection } from '../utils/eventSummaryContract';
 // Performance: avoid shipping the EventSource polyfill to modern browsers.
 // We dynamically import it only if the native API is unavailable.
@@ -112,6 +113,12 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
     },
     [setEvents],
   );
+
+  const fetchLatestEvents = useCallback(async () => {
+    const events = await loadLatestPhilippineEvents(fetchEventsForRange);
+    setEvents(events);
+    return events;
+  }, [fetchEventsForRange, setEvents]);
 
   const bindSSE = useCallback(() => {
     let stopped = false;
@@ -258,5 +265,5 @@ export function useEventsFeed({ sseEnabledRef, setEvents }) {
     }
   }, []);
 
-  return { eventSourceRef, fetchEventsForRange, bindSSE, closeSSE };
+  return { eventSourceRef, fetchEventsForRange, fetchLatestEvents, bindSSE, closeSSE };
 }

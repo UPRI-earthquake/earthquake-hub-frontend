@@ -16,13 +16,14 @@ import { useStations } from '../hooks/useStations';
 import { useTheme } from '../theme/ThemeProvider';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { normalizeDeviceActivity } from '../utils/deviceStatus';
+import { selectLatestPhilippineEvents } from '../utils/latestEvents';
 import { emitToast } from '../utils/toast';
 
 const MapView = lazy(() => import('../components/MapView'));
 
 const latestRangeDefaults = () => ({
-  startDate: moment().subtract(30, 'days').format('YYYY-MM-DD'),
-  endDate: moment().format('YYYY-MM-DD'),
+  startDate: '',
+  endDate: '',
 });
 
 const earliestAllStart = '1900-01-01';
@@ -205,9 +206,15 @@ const HomePage = () => {
     } catch (_) {}
   }, [fetchStations, setStationsRefStable]);
 
-  const { eventSourceRef, fetchEventsForRange, performInitialLoad } = useAppData({
+  const updateLatestEvents = useCallback((update) => {
+    setLatestEvents((previous) => selectLatestPhilippineEvents(
+      typeof update === 'function' ? update(previous) : update,
+    ));
+  }, []);
+
+  const { eventSourceRef, fetchEventsForRange, fetchLatestEvents, performInitialLoad } = useAppData({
     sseEnabledRef,
-    setEvents: setLatestEvents,
+    setEvents: updateLatestEvents,
     setStationsRef: setStationsRefStable,
     setLoading,
     setServerError,
@@ -357,7 +364,7 @@ const HomePage = () => {
           minDate: range.startDate,
           maxDate: range.endDate,
         });
-        fetchEventsForRange(range.startDate, range.endDate, { setState: true })
+        fetchLatestEvents()
           .catch(console.error)
           .finally(() => setEventsLoading(false));
       } else {
@@ -377,7 +384,7 @@ const HomePage = () => {
         }
       }
     },
-    [eventScope, dispatch, applyAllEqsBounds, fetchEventsForRange],
+    [eventScope, dispatch, applyAllEqsBounds, fetchEventsForRange, fetchLatestEvents],
   );
 
   const activeEvents = eventScope === 'all' ? allEvents : latestEvents;
@@ -606,7 +613,12 @@ const HomePage = () => {
                 onSearchText={setSearchText}
                 filters={filters}
                 onFiltersChange={setFilters}
-                filterBounds={filterBounds}
+                filterBounds={eventScope === 'latest' ? {
+                  minDate: latestEvents.length
+                    ? moment(latestEvents[latestEvents.length - 1].OT).format('YYYY-MM-DD')
+                    : '',
+                  maxDate: moment().format('YYYY-MM-DD'),
+                } : filterBounds}
                 sort={sort}
                 onSortChange={setSort}
                 loading={eventsLoading}

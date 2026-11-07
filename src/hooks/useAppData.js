@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import moment from '../utils/time';
 import { useStations } from './useStations';
 import { useEventsFeed } from './useEventsFeed';
 
@@ -16,18 +15,13 @@ export function useAppData({
   applyStationUpdate,
 }) {
   const { fetchStations } = useStations();
-  const { eventSourceRef, fetchEventsForRange, bindSSE, closeSSE } = useEventsFeed({
+  const { eventSourceRef, fetchEventsForRange, fetchLatestEvents, bindSSE, closeSSE } = useEventsFeed({
     sseEnabledRef,
     setEvents,
   });
 
   const performInitialLoad = useCallback(() => {
     let isMounted = true;
-    const start_time =
-      (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) === 'production'
-        ? moment().subtract(1, 'months')
-        : moment('2026-02-01 14:30:00.0');
-
     const waitingPromise = new Promise((resolve) => setTimeout(resolve, 3000));
     let unbind = null;
     const stationTask = fetchStations()
@@ -43,10 +37,7 @@ export function useAppData({
         }
         return { ok: false, error: e };
       });
-    const eventsTask = fetchEventsForRange(
-      start_time.format('YYYY-MM-DD HH:mm:ss'),
-      moment().format('YYYY-MM-DD HH:mm:ss'),
-    )
+    const eventsTask = fetchLatestEvents()
       .then(() => ({ ok: true }))
       .catch((e) => {
         if (
@@ -104,7 +95,7 @@ export function useAppData({
     };
   }, [
     fetchStations,
-    fetchEventsForRange,
+    fetchLatestEvents,
     bindSSE,
     closeSSE,
     setStationsRef,
@@ -114,5 +105,5 @@ export function useAppData({
     eventSourceRef,
   ]);
 
-  return { eventSourceRef, fetchEventsForRange, performInitialLoad, fetchStations };
+  return { eventSourceRef, fetchEventsForRange, fetchLatestEvents, performInitialLoad, fetchStations };
 }
