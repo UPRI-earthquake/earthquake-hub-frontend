@@ -17,6 +17,9 @@ services:
     extra_hosts:
        - "host.docker.internal:host-gateway"
     command: npm start
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.2
 
 # NOTE: Make sure to run `docker compose up` in the earthquake-hub-backend repo
 # And set its development host domains in its .env
@@ -31,3 +34,8 @@ services:
 # mysql-host: host.docker.internal
 # Development backend listening at http://172.22.0.3:5000
 # Development client expected (by CORS) at http://localhost:3000
+
+networks:
+  app-network:
+    external: true
+    name: earthquake-hub-network-dep-test

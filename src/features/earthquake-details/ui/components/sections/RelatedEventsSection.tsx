@@ -1,0 +1,223 @@
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import moment from '@/shared/utils/time';
+import { calculateDistance } from '@/shared/utils/distanceCalculator';
+import styles from '../../styles/sections/RelatedEventsSection.module.css';
+import { EarthquakeInfo, RelatedEarthquakeEntry } from '@/features/earthquake-details/types/earthquake';
+import { useRemoteGetRelatedEarthquakesInfo } from '@/features/earthquake-details/data/earthquake';
+/**
+ * NearbyEvents component displays earthquakes within the configured time and distance window.
+ * Shows magnitude, location, event-relative time, and distance from the current event.
+ */
+interface RelatedEventsSectionProps {
+  earthquakeInfo: EarthquakeInfo;
+  nearbyEventCount?: number;
+  distanceThresholdKm?: number;
+  timeWindowDays?: number;
+}
+
+export default function RelatedEventsSection({
+  earthquakeInfo,
+  nearbyEventCount = 5,
+  distanceThresholdKm = 200,
+  timeWindowDays = 30,
+}: RelatedEventsSectionProps) {
+  const navigate = useNavigate();
+  const [navigatingEventId, setNavigatingEventId] = useState('');
+
+  const currentLat = Number(earthquakeInfo.latitude_value);
+  const currentLon = Number(earthquakeInfo.longitude_value);
+  const currentTime = earthquakeInfo.OT || earthquakeInfo.eventTime;
+  const currentPublicID = earthquakeInfo.publicID;
+
+  const startDate = moment(currentTime).subtract(timeWindowDays, 'days');
+  const endDate = moment(currentTime).add(timeWindowDays, 'days');
+  
+  const { data: timelyEvents, isLoading: loading } = useRemoteGetRelatedEarthquakesInfo(startDate.format('YYYY-MM-DD HH:mm:ss'), endDate.format('YYYY-MM-DD HH:mm:ss'));
+  
+  const currentMoment = moment.utc(currentTime);
+  const nearbyEvents = useMemo<RelatedEarthquakeEntry[]>(() => timelyEvents?.filter((event) => {
+      if (event.publicID === currentPublicID) return false;
+      const lat = event.latitude_value;
+      const lon = event.longitude_value;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+      const eventMoment = moment.utc(event.OT || event.eventTime);
+      if (!eventMoment.isValid() || !currentMoment.isValid()) return false;
+      const distance = calculateDistance(currentLat, currentLon, lat, lon);
+      return distance <= distanceThresholdKm;
+    })
+    .map((event) => {
+      const lat = event.latitude_value;
+      const lon = event.longitude_value;
+      const distance = calculateDistance(currentLat, currentLon, lat, lon);
+      const eventMoment = moment.utc(event.OT || event.eventTime);
+      const timeDeltaMinutes = Math.abs(currentMoment.diff(eventMoment, 'minute'));
+      return { ...event, distance, timeDeltaMinutes };
+    })
+    .sort((a, b) => {
+      if (a.timeDeltaMinutes !== b.timeDeltaMinutes) {
+        return a.timeDeltaMinutes - b.timeDeltaMinutes;
+      }
+      return a.distance - b.distance;
+    })
+    .slice(0, nearbyEventCount)
+    .sort((a, b) => {
+      const aTime = moment.utc(a.OT || a.eventTime).valueOf();
+      const bTime = moment.utc(b.OT || b.eventTime).valueOf();
+      if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+        return aTime - bTime;
+      }
+      return a.distance - b.distance;
+    }) || [], [ timelyEvents ]);
+
+
+  const formatMagnitude = (event) => {
+    const val = Number(event?.magnitude_value ?? event?.magnitude ?? event?.mag);
+    return Number.isFinite(val) ? val.toFixed(1) : '—';
+  };
+
+  const formatLocation = (event) => {
+    const isUnavailable = (value) => {
+      if (!value) return true;
+      const v = String(value).trim().toLowerCase();
+      return !v || v === 'unavailable' || v === 'unable to geocode';
+    };
+    if (!isUnavailable(event?.place)) return event.place;
+    if (!isUnavailable(event?.text)) return event.text;
+    return event?.location || 'Unknown location';
+  };
+
+  const formatTimeFromCurrentEvent = (eventTime) => {
+    const eventMoment = moment.utc(eventTime);
+    const currentMoment = moment.utc(currentTime);
+    if (!eventMoment.isValid() || !currentMoment.isValid()) return null;
+
+    const diffMinutes = currentMoment.diff(eventMoment, 'minute');
+    const absMinutes = Math.abs(diffMinutes);
+    if (absMinutes < 1) return 'same time';
+
+    const value = absMinutes >= 1440
+      ? Math.round(absMinutes / 1440)
+      : absMinutes >= 60
+        ? Math.round(absMinutes / 60)
+        : absMinutes;
+    const unit = absMinutes >= 1440 ? 'd' : absMinutes >= 60 ? 'h' : 'm';
+    const suffix = diffMinutes >= 0 ? 'before this event' : 'after this event';
+    return `${value}${unit} ${suffix}`;
+  };
+
+  const formatDistance = (distance) => {
+    return distance < 1 ? '<1 km' : `~${Math.round(distance)} km`;
+  };
+
+  const handleEventClick = useCallback(
+    (event) => {
+      const eventId = event?.publicID;
+      if (eventId) {
+        setNavigatingEventId(eventId);
+      }
+      const detailUrl = eventId
+        ? `/earthquake-detail?id=${encodeURIComponent(eventId)}`
+        : '/earthquake-detail';
+
+      navigate(detailUrl, {
+        state: { earthquake: event },
+      });
+    },
+    [navigate]
+  );
+
+  if (!currentPublicID) return null;
+
+  return (
+    <section className={styles.nearbyEventsPanel}>
+      <div className={styles.panelHeader}>
+        <div className={styles.panelTitle}>
+          <h3>Related events</h3>
+          {nearbyEvents.length > 0 && (
+            <span className={styles.eventCount}>
+              within {distanceThresholdKm} km ±{timeWindowDays} days
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.panelBody}>
+        {loading ? (
+          <div className={styles.skeletonList} role="status" aria-live="polite" aria-label="Loading related events">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div className={styles.skeletonItem} key={`nearby-skeleton-${index}`} aria-hidden="true">
+                <span className={`${styles.skeletonBlock} ${styles.skeletonMagnitude}`} />
+                <span className={styles.skeletonContent}>
+                  <span className={`${styles.skeletonBlock} ${styles.skeletonTitle}`} />
+                  <span className={`${styles.skeletonBlock} ${styles.skeletonMeta}`} />
+                </span>
+                <span className={`${styles.skeletonBlock} ${styles.skeletonDistance}`} />
+              </div>
+            ))}
+            <span className={styles.srOnly}>Loading related events...</span>
+          </div>
+        ) : nearbyEvents.length === 0 ? (
+          <div className={styles.empty}>
+            <strong>No nearby events in range.</strong>
+            <span>Nothing matched within {distanceThresholdKm} km and ±{timeWindowDays} days of this event.</span>
+          </div>
+        ) : (
+          <ul className={styles.eventList}>
+            {nearbyEvents.map((event) => {
+              const eventTime = event.OT || event.eventTime;
+              const timeOffset = formatTimeFromCurrentEvent(eventTime);
+
+              return (
+                <li
+                  key={event.publicID}
+                  onClick={() => handleEventClick(event)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleEventClick(event);
+                    } else if (e.key === ' ') {
+                      e.preventDefault();
+                      handleEventClick(event);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Magnitude ${formatMagnitude(event)} - ${formatLocation(event)}`}
+                  className={`${styles.eventItem} ${navigatingEventId === event.publicID ? styles.eventItemNavigating : ''}`}
+                  aria-busy={navigatingEventId === event.publicID ? 'true' : undefined}
+                >
+                  <div className={styles.eventMainContent}>
+                    <div className={styles.magnitudeSection}>
+                      <span className={styles.magnitude}>
+                        <span className={styles.magnitudePrefix} aria-hidden>M</span>
+                        <span className={styles.magnitudeValue}>{formatMagnitude(event)}</span>
+                      </span>
+                    </div>
+                    <div className={styles.eventDetails}>
+                      <div className={styles.location}>
+                        {formatLocation(event)}
+                      </div>
+                      {timeOffset && (
+                        <div className={styles.eventMeta}>
+                          <span className={styles.timeOffset}>
+                            {navigatingEventId === event.publicID ? 'Opening event...' : timeOffset}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.distanceSection}>
+                    <span className={styles.distance}>
+                      {formatDistance(event.distance)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}

@@ -1,4 +1,4 @@
-import { devlog, deverror } from './utils/devlog';
+import { devlog, deverror } from './shared/utils/devlog';
 // This optional code is used to register a service worker.
 // register() is not called by default.
 

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@monsonjeremy/react-leaflet-core": "^1.1.1",
+    "@tanstack/react-query": "^4.44.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
@@ -15,11 +16,10 @@
     "leaflet-providers": "^2.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-icons": "^5.6.0",
+    "react-icons": "^5.4.0",
     "react-leaflet": "npm:@monsonjeremy/react-leaflet@^3.2.2",
     "react-redux": "^7.2.5",
     "react-router-dom": "^6.25.1",
-    "react-scripts": "^5.0.1",
     "react-window": "^1.8.7",
     "redux": "^4.1.1",
     "seisplotjs": "^3.0.0",
@@ -38,12 +38,13 @@
     "workbox-streams": "^5.1.4"
   },
   "scripts": {
-    "start": "./import-env.sh public/config.js && react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "lint": "eslint --ext .js,.jsx src",
-    "format": "prettier --write \"**/*.{js,jsx,css,md}\"",
-    "eject": "react-scripts eject",
+    "start": "./import-env.sh public/config.js && vite",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --ext .ts,.tsx,.js,.jsx src",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,css,md,json}\"",
     "postinstall": "patch-package"
   },
   "eslintConfig": {
@@ -58,12 +59,22 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@react-leaflet/core": "npm:@monsonjeremy/react-leaflet-core@^1.1.1",
+    "@types/jest": "^30.0.0",
+    "@types/leaflet": "^1.7.1",
+    "@types/leaflet-providers": "^1.2.5",
+    "@types/node": "^26.6.5",
+    "@types/react": "^17.0.93",
+    "@types/react-dom": "^17.0.26",
+    "@types/react-leaflet": "^2.8.3",
+    "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^8.57.1",
-    "eslint-config-react-app": "^7.0.1",
     "patch-package": "^8.0.1",
-    "prettier": "^2.8.8"
+    "prettier": "^2.8.8",
+    "typescript": "^4.9.5",
+    "vite": "^6.4.5",
+    "vite-plugin-svgr": "^5.2.0"
   },
   "overrides": {
     "@tootallnate/once": "2.0.1",

@@ -46,3 +46,7 @@ src/components/unused
 # mkcert 
 localhost+1-key.pem
 localhost+1.pem
+
+
+exec
+*.dummy.js

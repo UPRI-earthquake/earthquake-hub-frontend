@@ -1,0 +1,71 @@
+import L, { ControlPosition } from 'leaflet';
+import { useEffect } from "react";
+import { useMap } from "react-leaflet";
+import { useDispatch } from "react-redux";
+
+import { resetToPH } from '../services/resetView';
+import { trackEvent } from '@/analytics';
+
+export default function useResetViewControl({ position = 'topleft', padding = [20, 20] }: { position?: ControlPosition, padding?: [number, number]}) {
+  const map = useMap();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!map) return undefined;
+
+    const control = new L.Control({ position });
+
+    control.onAdd = () => {
+      const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-resetview');
+
+      const btn: HTMLAnchorElement = L.DomUtil.create('a', 'resetview-btn', container) as HTMLAnchorElement;
+      btn.href = '#';
+      btn.title = 'Reset to Philippines';
+      btn.setAttribute('role', 'button');
+      btn.setAttribute('aria-label', 'Reset to Philippines');
+      // Target/crosshair icon; uses currentColor to adapt to theme
+      btn.innerHTML = `
+        <span class="reset-icon" aria-hidden="true" focusable="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="7"></circle>
+            <line x1="12" y1="1" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="1" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="23" y2="12"></line>
+          </svg>
+        </span>`;
+
+      const doReset = () => {
+        try {
+          trackEvent('reset_view', { trigger: 'control_button' });
+        } catch (_) {}
+        resetToPH({ map, dispatch, animate: true, padding });
+      };
+
+      // Mouse and keyboard activation
+      L.DomEvent.on(btn, 'click', (e) => {
+        L.DomEvent.stop(e);
+        doReset();
+      });
+      L.DomEvent.on(btn, 'keydown', (e: any) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          L.DomEvent.stop(e);
+          doReset();
+        }
+      });
+
+      // Prevent map drag/zoom when interacting with the control
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.disableScrollPropagation(container);
+
+      return container;
+    };
+
+    control.addTo(map);
+    return () => {
+      try {
+        control.remove();
+      } catch (_) {}
+    };
+  }, [map, position, padding, dispatch]);
+}
