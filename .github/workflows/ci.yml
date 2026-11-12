@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, staging, main]
+  push:
+    branches: [dev, staging, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint application code
+        # Existing test files use Testing Library container access; track test-file lint cleanup separately.
+        run: npx eslint --ext .js,.jsx src --ignore-pattern '**/__tests__/**' --ignore-pattern '**/*.test.js' --ignore-pattern '**/*.test.jsx'
+
+      - name: Test
+        env:
+          CI: 'true'
+        run: npm test -- --watch=false --runInBand
+
+      - name: Build application
+        env:
+          CI: 'true'
+        run: npm run build
+
+  docker-build:
+    name: Docker build (no push)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Build production image
+        run: docker build --file Dockerfile --tag earthquake-hub-frontend:ci .
