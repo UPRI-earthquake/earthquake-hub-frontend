@@ -138,6 +138,9 @@ export default class EarthquakesDataHandler {
     const existingIndex = this.store.earthquakes.findIndex(e => e.publicID === earthquakeData.publicID);
     
     if(existingIndex >= 0) {
+      // Ignore updates if data is stale
+      if(earthquakeData.last_modification.localeCompare(this.store.earthquakes[existingIndex].last_modification) <= 0) return;
+
       this.store.earthquakes[existingIndex] = earthquakeData;
     } else {
       this.store.earthquakes.push(earthquakeData);
