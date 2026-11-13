@@ -5,7 +5,7 @@ export interface Station {
   longitude: number;
   activity: StationActivity;
   description: string;
-  status?: string;
+  status?: StationStatus;
   statusSince?: string;
 
   /** LEGACY FIELDS */

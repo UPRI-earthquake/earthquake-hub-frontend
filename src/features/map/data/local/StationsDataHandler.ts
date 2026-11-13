@@ -1,14 +1,16 @@
 import { TypedEventTarget } from "@/shared/utils/events";
 import RemoteStationsDataHandler from "../remote/RemoteStationsDataHandler";
-import { StationMessageEvent, StationUpdateEvent, StationUpdateFiltersEvent, StationUpdateListEvent, StationUpdateStatusEvent } from "./stations.events";
+import { GeneralStationsUpdateFiltersEvent, GeneralStationsUpdateListEvent, GeneralStationsUpdateStatusEvent, StationUpdateEvent } from "./stations.events";
 import { Station } from "../../types/station";
+
+type GeneralStationsEventsMap = { 
+  "general-update-status": GeneralStationsUpdateStatusEvent;
+  "general-update-filters": GeneralStationsUpdateFiltersEvent;
+  "general-update-list": GeneralStationsUpdateListEvent;
+};
 
 type StationEventsMap = { 
   "update": StationUpdateEvent;
-  "update-list": StationUpdateListEvent;
-  "message": StationMessageEvent;
-  "update-status": StationUpdateStatusEvent;
-  "update-filters": StationUpdateFiltersEvent;
 };
 
 interface StationsDataStatus {
@@ -48,7 +50,8 @@ export default class StationsDataHandler {
     latestPicksCollection: {}
   };
 
-  private eventTarget = new TypedEventTarget<StationEventsMap>();
+  private eventTarget = new TypedEventTarget<GeneralStationsEventsMap>();
+  private stationEventTargets: { [stationCode: string]: TypedEventTarget<StationEventsMap> } = {};
 
   async reloadStations() {
     const rawStationsData = await this.remote.fetchAllStations();
@@ -58,7 +61,7 @@ export default class StationsDataHandler {
     }
 
     const allStations = this.getAllStations();
-    this.emitEvent(new StationUpdateListEvent(allStations));
+    this.emitEvent(new GeneralStationsUpdateListEvent(allStations));
 
     return allStations;
   }
@@ -73,7 +76,7 @@ export default class StationsDataHandler {
     }
 
     // Notify listeners
-    this.emitEvent(new StationUpdateFiltersEvent(this.getFilters()));
+    this.emitEvent(new GeneralStationsUpdateFiltersEvent(this.getFilters()));
   }
 
 
@@ -88,7 +91,7 @@ export default class StationsDataHandler {
     }
 
     // Notify listeners
-    this.emitEvent(new StationUpdateStatusEvent(this.getStatus()));
+    this.emitEvent(new GeneralStationsUpdateStatusEvent(this.getStatus()));
   }
   
   getAllStations() {
@@ -105,13 +108,14 @@ export default class StationsDataHandler {
     if(!rawStationsStatus) return;
 
     const stationData = this.store.stations.find(s => s.code === stationCode);
+    if(!stationData) return;
+
     stationData.activity = rawStationsStatus.activity;
-    stationData.status = rawStationsStatus.status;
+    stationData.status = rawStationsStatus.status as StationStatus;
     stationData.statusSince = rawStationsStatus.statusSince;
 
     // Notify listeners
-    this.emitEvent(new StationUpdateEvent({ ...stationData }));
-    this.emitEvent(new StationUpdateListEvent(this.getAllStations()));
+    this.emitStationEvent(stationCode, new StationUpdateEvent({ ...stationData }));
   }
 
   receivePickFromStream(stationCode: string, timestamp: string) {
@@ -126,19 +130,47 @@ export default class StationsDataHandler {
     return this.store.latestPicksCollection[stationCode] || null;
   }
 
-  addEventListener<K extends keyof StationEventsMap>(type: K, listener: (event: StationEventsMap[K]) => void) {
+
+  /* ==== GENERAL EVENTS ==== */
+  addEventListener<K extends keyof GeneralStationsEventsMap>(type: K, listener: (event: GeneralStationsEventsMap[K]) => void) {
     this.eventTarget.addEventListener(type, listener);
 
     return listener;
   }
 
-  removeEventListener<K extends keyof StationEventsMap>(type: K, listener: (event: StationEventsMap[K]) => void) {
+  removeEventListener<K extends keyof GeneralStationsEventsMap>(type: K, listener: (event: GeneralStationsEventsMap[K]) => void) {
     this.eventTarget.removeEventListener(type, listener);
 
     return listener;
   }
 
-  private emitEvent<K extends keyof StationEventsMap>(event: StationEventsMap[K]) {
+  private emitEvent<K extends keyof GeneralStationsEventsMap>(event: GeneralStationsEventsMap[K]) {
     this.eventTarget.emit(event);
+  }
+
+
+  /* ==== STATION-SPECIFIC EVENTS ==== */
+  private getStationEventsTarget(stationCode: string) {
+    if(!this.stationEventTargets[stationCode]) {
+      this.stationEventTargets[stationCode] = new TypedEventTarget();
+    }
+
+    return this.stationEventTargets[stationCode];
+  }
+
+  addStationEventListener<K extends keyof StationEventsMap>(stationCode: string, type: K, listener: (event: StationEventsMap[K]) => void) {
+    this.getStationEventsTarget(stationCode).addEventListener(type, listener);
+
+    return listener;
+  }
+
+  removeStationEventListener<K extends keyof StationEventsMap>(stationCode: string, type: K, listener: (event: StationEventsMap[K]) => void) {
+    this.getStationEventsTarget(stationCode).removeEventListener(type, listener);
+
+    return listener;
+  }
+
+  private emitStationEvent<K extends keyof StationEventsMap>(stationCode: string, event: StationEventsMap[K]) {
+    this.getStationEventsTarget(stationCode).emit(event);
   }
 }

@@ -59,6 +59,7 @@ export default class SSEStreamHandler {
   }
 
   private processStationStreamMessage(eventName: typeof StreamEventNames[number], raw: any) {
+    console.log("[STREAM] Event received: ", eventName, { raw });
     switch(eventName) {
       case "SC_PICK":
         this.dataHandlers.stations.receivePickFromStream(raw.stationCode, raw.timestamp);

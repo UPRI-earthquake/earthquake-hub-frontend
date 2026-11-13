@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import useMapView from "./useMapView";
 import { filterAndSortStations } from "../services/stationFilters";
 import { useQuery } from "@tanstack/react-query";
-import { StationsDataFilter } from "../types/station";
+import { Station, StationsDataFilter } from "../types/station";
 
 interface UseStationsReturn {
-  allStations: any[];
-  viewableStations: any[];
+  allStations: Station[];
+  viewableStations: Station[];
   filters: StationsDataFilter;
   updateFilters: (filters: StationsDataFilter) => void;
   isPending: boolean;
@@ -67,22 +67,22 @@ export default function useStations(): UseStationsReturn {
     
 
     const onUpdateListListener = stationsDataHandler.addEventListener(
-      "update-list", (event) => setAllStations(event.stations));
+      "general-update-list", (event) => setAllStations(event.stations));
       
     const onUpdateStatusListener = stationsDataHandler.addEventListener(
-      "update-status", (event) => {
+      "general-update-status", (event) => {
         setIsLoading(event.status.isLoading);
         setIsPending(event.status.isPending);
       });
       
     const onUpdateFiltersListener = stationsDataHandler.addEventListener(
-      "update-filters", (event) => _setFilters(event.filters));
+      "general-update-filters", (event) => _setFilters(event.filters));
 
 
     return (() => {
-      stationsDataHandler.removeEventListener("update-list", onUpdateListListener);
-      stationsDataHandler.removeEventListener("update-status", onUpdateStatusListener);
-      stationsDataHandler.removeEventListener("update-filters", onUpdateFiltersListener);
+      stationsDataHandler.removeEventListener("general-update-list", onUpdateListListener);
+      stationsDataHandler.removeEventListener("general-update-status", onUpdateStatusListener);
+      stationsDataHandler.removeEventListener("general-update-filters", onUpdateFiltersListener);
     });
   }, []);
 

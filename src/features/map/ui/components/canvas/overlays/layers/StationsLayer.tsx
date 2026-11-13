@@ -9,19 +9,13 @@ const StationMarkers = lazy(() => import('../markers/StationMarkers'));
 
 
 export default function StationsLayer() {
-
-  const { viewableStations, filters } = useStations();
-
   return (<LayersControl.Overlay checked name="Stations">
     <RegisterableLayerGroup
       overlayId="stations"
       attribution={`<span class="attr-line attr-stations">${ATTRIBUTIONS.UPRIStations}</span>`}
     >
       <Suspense fallback={null}>
-        <StationMarkers
-          stations={viewableStations}
-          filters={filters}
-        />
+        <StationMarkers />
       </Suspense>
     </RegisterableLayerGroup>
   </LayersControl.Overlay>);

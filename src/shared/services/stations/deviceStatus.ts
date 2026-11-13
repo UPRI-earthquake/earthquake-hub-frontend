@@ -4,7 +4,7 @@ const normalize = (value) => String(value || '').trim().toLowerCase();
  * Normalizes activity/status strings into canonical device activity values.
  * Canonical values: 'active' | 'inactive' | 'unlinked' | '' (unknown/empty).
  */
-export function normalizeDeviceActivity(value: StationActivity): StationActivityCanonical {
+export function normalizeDeviceActivity(value: StationActivity | StationStatus): StationActivityCanonical {
   const v: StationActivity = normalize(value) as StationActivity;
   if (!v) return '';
   if (v === 'active' || v === 'streaming' || v === 'online') return 'active';
