@@ -1,6 +1,6 @@
 export const DEFAULT_POPUP_AUTOPAN = {
   topLeft: [16, 96],
-  bottomRight: [16, 16],
+  bottomRight: [90, 16],
 };
 
 function parsePx(raw, fallback = 0) {

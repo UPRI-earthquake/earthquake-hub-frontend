@@ -12,7 +12,6 @@ interface SidePanelItemProps {
   title: string;
   description: string;
   subDescription: string;
-  status: string;
   last_modification: string;
   depthKm: number;
 }
@@ -22,7 +21,6 @@ export default function SidePanelItem({
   title,
   description,
   subDescription,
-  status,
   last_modification,
   depthKm,
 }: SidePanelItemProps) {

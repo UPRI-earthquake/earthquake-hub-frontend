@@ -1,6 +1,13 @@
 export interface EarthquakeShortInfo {
   OT: string;
   publicID: string;
+
+  magnitude_value: number;
+  depth_value: number;
+  place: string;
+  last_modification: string;
+  latitude_value: number;
+  longitude_value: number;
 }
 
 export interface EarthquakesDataFilter {

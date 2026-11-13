@@ -337,7 +337,7 @@ export default function StationMarkerItem({
     return (() => {
       clearInterval(pickInterval);
     })
-  });
+  }, []);
 
   const [statusState, setStatusState] = useState({ status: null, statusSince: null, activity: null });
   const prevStatusRef = useRef(null);

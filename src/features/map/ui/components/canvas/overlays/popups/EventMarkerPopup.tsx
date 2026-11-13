@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Popup } from "react-leaflet";
 import { DEFAULT_POPUP_AUTOPAN } from "@/config/popupAutoPan";
 
@@ -17,10 +17,9 @@ interface EventMarkerPopupProps {
   eventData: any;
 }
 
-export default function EventMarkerPopup({ publicID, depthKm, mag, lat, lng, time, location, eventData }: EventMarkerPopupProps) {
+function EventMarkerPopup({ publicID, depthKm, mag, lat, lng, time, location, eventData }: EventMarkerPopupProps) {
   const popupRef = useRef(null);
   const popupAutoPanPadding = usePopupAutoPanPadding();
-  
   
   const locationLabel = useMemo(() => normalizeLocation(location), [location]);
   
@@ -67,8 +66,8 @@ export default function EventMarkerPopup({ publicID, depthKm, mag, lat, lng, tim
   }, [publicID, eventData]);
 
   return (<Popup ref={popupRef} autoPan
-    // autoPanPaddingTopLeft={popupPaddingTopLeft}
-    // autoPanPaddingBottomRight={popupPaddingBottomRight}
+    autoPanPaddingTopLeft={popupPaddingTopLeft as [number, number]}
+    autoPanPaddingBottomRight={popupPaddingBottomRight as [number, number]}
     >
     <div className={styles.popupCard}>
       <div className={`${styles.popupGroup} ${styles.popupGroupPrimary}`}>
@@ -140,3 +139,17 @@ const normalizeLocation = (value) => {
   if (!raw || raw === 'Unavailable' || raw === 'Unable to geocode') return '';
   return raw;
 };
+
+export default React.memo(EventMarkerPopup, (prev, next) => {
+  // Only skip re-render when all relevant props are strictly equal
+  return (
+    prev.publicID === next.publicID &&
+    prev.time === next.time &&
+    prev.lat === next.lat &&
+    prev.lng === next.lng &&
+    prev.mag === next.mag &&
+    prev.depthKm === next.depthKm &&
+    prev.location === next.location &&
+    prev.eventData === next.eventData
+  );
+});

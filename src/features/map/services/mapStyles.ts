@@ -117,9 +117,9 @@ export function eqSizePx(mag: number) {
 
 // Opacity by zoom (fill opacity target for EQs)
 export function eqFillOpacityForZoom(z) {
-  if (ZOOM.country(z)) return 0.75;
-  if (ZOOM.regional(z)) return 0.65;
-  return 0.6; // city
+  if (ZOOM.country(z)) return 0.9;
+  if (ZOOM.regional(z)) return 0.8;
+  return 0.75; // city
 }
 
 // Smooth, continuous scale multiplier for marker SVGs based on zoom.

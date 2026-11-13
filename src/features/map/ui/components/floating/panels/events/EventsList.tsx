@@ -18,9 +18,8 @@ export default function EventsList({ events, filters, sort, loading }: EventsLis
     [events, filters, sort],
   );
 
-  const magText = (v: string) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n.toFixed(1) : String(v ?? '-');
+  const magText = (n: number) => {
+    return Number.isFinite(n) ? n.toFixed(1) : String(n ?? '-');
   };
 
   if (loading) {
@@ -48,18 +47,12 @@ export default function EventsList({ events, filters, sort, loading }: EventsLis
       key={item.publicID}
       publicID={item.publicID}
       title={magText(item.magnitude_value)}
-      depthKm={
-        Number(
-          item.depth_km ?? item.depthKm ?? item.depth_value ?? item.depthValue ?? item.depth ?? NaN,
-        )
-      }
+      depthKm={item.depth_value}
       description={
-        item && item.place && !['Unavailable', 'Unable to geocode', ''].includes(item.place)
-          ? item.place
-          : item?.text || ''
+        item.place && !['Unavailable', 'Unable to geocode', ''].includes(item.place)
+          ? item.place : ''
       }
       subDescription={moment(item.OT).fromNow()}
-      status={item.eventType ? item.eventType : null}
       last_modification={item.last_modification}
     />
   ));

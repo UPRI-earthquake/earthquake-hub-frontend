@@ -23,13 +23,9 @@ function EventMarkerItem({
   lng,
   mag,
   depthKm,
-  status,
-  last_modification,
-  location,
-  eventData,
   enableAnimation = true,
-  suppressInitialRadiate = false,
-  isActive = false
+  isActive = false,
+  onClick
 }) {
   // Basic coordinate guard; evaluated but not returned yet (hooks must run first)
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
@@ -257,6 +253,7 @@ function EventMarkerItem({
       {...(paneName ? { pane: paneName } : {})} // only pass pane when available
       eventHandlers={{
         click: () => {
+          onClick?.();
           try {
             dispatch({ type: 'SELECT', payload: publicID });
           } catch (_) {}
@@ -273,50 +270,8 @@ function EventMarkerItem({
             });
           } catch (_) {}
         },
-        popupopen: () => {
-          try {
-            // Any popup opening should collapse Layers/Legend panels
-            try { window.dispatchEvent(new CustomEvent('ui:popup:open')); } catch (_) {}
-            // Do not emit scroll/select if this popup was opened programmatically from sidebar
-            const bySidebar = typeof window !== 'undefined' && window["__openBySidebar"];
-            if (!bySidebar) {
-              dispatch({ type: 'SELECT', payload: publicID });
-              try {
-                const ev = new CustomEvent('selection:fromMarker', { detail: { id: publicID } });
-                window.dispatchEvent(ev);
-              } catch (_) {}
-              try {
-                const magnitude = Number(mag);
-                trackEvent('event_select', {
-                  event_id: publicID,
-                  source: 'marker',
-                  magnitude: Number.isFinite(magnitude) ? magnitude : undefined,
-                });
-              } catch (_) {}
-            }
-          } catch (_) {}
-        },
-        popupclose: () => {
-          try {
-            // only deselect if this marker is currently selected
-            if (selectedEvent === publicID) {
-              dispatch({ type: 'DESELECT' });
-            }
-          } catch (_) {}
-        },
       }}
-    >
-      <EventMarkerPopup 
-        publicID={publicID}
-        depthKm={depthKm}
-        mag={mag}
-        lat={lat}
-        lng={lng}
-        time={time}
-        location={location}
-        eventData={eventData}
-        />
-    </Marker>
+    />
   );
 };
 
@@ -336,10 +291,7 @@ export default React.memo(EventMarkerItem, (prev, next) => {
     prev.lng === next.lng &&
     prev.mag === next.mag &&
     prev.depthKm === next.depthKm &&
-    prev.status === next.status &&
-    prev.last_modification === next.last_modification &&
-    prev.location === next.location &&
-    prev.eventData === next.eventData &&
-    prev.isActive === next.isActive
+    prev.isActive === next.isActive && 
+    prev.onClick === next.onClick
   );
 });

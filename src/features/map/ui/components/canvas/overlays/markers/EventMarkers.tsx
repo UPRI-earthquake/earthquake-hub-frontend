@@ -17,7 +17,8 @@ interface EventMarkersProps {
   popupAutoPanPadding?: {
     topLeft: number[]; 
     bottomRight:number[]
-  }
+  };
+  onClick?: (earthquake: EarthquakeShortInfo) => void;
 }
 
 export default function EventMarkers({
@@ -25,6 +26,7 @@ export default function EventMarkers({
   filters,
   sseEnabled: _sseEnabled = true,
   datasetKey,
+  onClick
 }: EventMarkersProps) {
   const { earthquakes: initEvents, activeEarthquakes } = useEarthquakes();
 
@@ -84,12 +86,9 @@ export default function EventMarkers({
     const magnitude = Number.isFinite(Number(event.magnitude_value))
       ? Number(event.magnitude_value)
       : 0;
-    const locationText =
-      event && event.place && !['Unavailable', 'Unable to geocode', ''].includes(event.place)
-        ? event.place
-        : event?.text || '';
 
     const displayLng = normalizeLngNear(lng, centerLng);
+
 
     return (
       <EventMarkerItem
@@ -100,15 +99,9 @@ export default function EventMarkers({
         lng={displayLng}
         mag={magnitude}
         depthKm={eventDepth(event)}
-        status={event.eventType ? event.eventType : null}
-        last_modification={event.last_modification}
-        location={locationText}
-        // Pass full event object for detail page navigation
-        eventData={event}
-        // Suppress only the initial mount/appear animation on All Stations
         enableAnimation={datasetKey !== 'all-stations'}
-        suppressInitialRadiate={datasetKey === 'all-stations'}
         isActive={activeEarthquakes.has(event.publicID)}
+        onClick={() => onClick?.(event)}
       />
     );
   });

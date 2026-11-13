@@ -6,6 +6,7 @@ import { EarthquakeUpdateActiveListEvent, EarthquakeUpdateEvent, EarthquakeUpdat
 import { getAPIURL } from "@/shared/api";
 import { normalizeDeviceActivity } from "@/shared/services/stations/deviceStatus";
 import { isLatest } from "@/shared/utils/duration";
+import { areSetsEqual } from "@/shared/utils/object";
 
 interface EarthquakeFilters {
   searchText?: string;
@@ -70,10 +71,13 @@ export default class EarthquakesDataHandler {
         if(isLatest(eq.OT, maxDuration)) activeEarthquakesSet.add(eq.publicID);
       }
 
-      this.store.activeEarthquakes = activeEarthquakesSet;
-      
-      // Notify listeners
-      this.emitEvent(new EarthquakeUpdateActiveListEvent(this.getActiveEarthquakes()));
+      // If set is different, update
+      if(!areSetsEqual(this.store.activeEarthquakes, activeEarthquakesSet)) {
+        this.store.activeEarthquakes = activeEarthquakesSet;
+        
+        // Notify listeners
+        this.emitEvent(new EarthquakeUpdateActiveListEvent(this.getActiveEarthquakes()));
+      }
     }, 1000);
   }
 
@@ -133,7 +137,7 @@ export default class EarthquakesDataHandler {
   receiveEarthquakeFromStream(earthquakeData: SSEPayload.Earthquake) {
     const existingIndex = this.store.earthquakes.findIndex(e => e.publicID === earthquakeData.publicID);
     
-    if(existingIndex) {
+    if(existingIndex >= 0) {
       this.store.earthquakes[existingIndex] = earthquakeData;
     } else {
       this.store.earthquakes.push(earthquakeData);
