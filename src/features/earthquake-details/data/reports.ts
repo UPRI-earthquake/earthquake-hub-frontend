@@ -26,7 +26,7 @@ export function useRemoteGetReportComments(eventId?: string, cursor?: string) {
       const response = await sendAPIRequestFromReactQuery<any, RemoteGetReportCommentsResponse>({ 
         host: "backend",
         path: `/comments/`,
-        params: { eventId, cursor }
+        params: { eventId, cursor, limit: 10 }
       });
 
       return {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCommentImage, getCommentKey, resolveCommentImageUrl } from "../services/reports";
 import useEarthquakeInfo from "./useEarthquakeInfo";
 import { getEarthquakeEventId } from "../services/earthquake";
@@ -49,15 +49,35 @@ export default function useReports(): UseReportsReturn {
   );
 
   const [ fetchCursor, setFetchCursor ] = useState<string>();
-  
-  const { data, isLoading, error, refetch: reloadReports } = useRemoteGetReportComments(reportEventId, fetchCursor);
-  const { comments, pagination } = useMemo(() => data || { comments: [], pagination: {} as any }, [data]);
-  const { total: count = 0, nextCursor, hasMore = false } = pagination;
 
+  const allCommentsCollectionRef = useRef<{ [commentId: string ]: EarthquakeReportComment }>({});
+  const [ allComments, setAllComments ] = useState<EarthquakeReportComment[]>([]);
+  const [ count, setTotalCount ] = useState<number>(0);
+  const [ nextCursor, setNextCursor ] = useState<string>();
+  
+
+  const { data: fetchedData, isLoading, error, refetch: reloadReports } = useRemoteGetReportComments(reportEventId, fetchCursor);
+
+  useEffect(() => {
+    if(!fetchedData) return;
+    appendComments(fetchedData.comments);
+    setTotalCount(fetchedData.pagination.total);
+    setNextCursor(fetchedData.pagination.nextCursor);
+  }, [fetchedData]);
+
+  const appendComments = (newComments: EarthquakeReportComment[]) => {
+    for(const comment of newComments) {
+      allCommentsCollectionRef.current[comment.commentId] = comment;
+    }
+
+    setAllComments(Object.values(allCommentsCollectionRef.current).sort((a,b) => -a.createdAt.localeCompare(b.createdAt)));
+  }
+
+  const hasMore = !!nextCursor;
 
   const hasImageReports = useMemo(
-    () => comments?.some((comment) => Boolean(resolveCommentImageUrl(getCommentImage(comment)))) ?? false,
-    [comments]
+    () => allComments?.some((comment) => Boolean(resolveCommentImageUrl(getCommentImage(comment)))) ?? false,
+    [allComments]
   );
 
   const loadMoreReports = useCallback(() => {
@@ -79,6 +99,13 @@ export default function useReports(): UseReportsReturn {
     remotePostReport.mutate({ formData });
   }, [eventId]);
 
+  useEffect(() => {
+    if(!remotePostReport.isSuccess || !remotePostReport.data) return;
+
+    appendComments([ remotePostReport.data.payload ]);
+    setTotalCount(prevTotal => prevTotal + 1);
+  }, [remotePostReport.isSuccess]);
+
   const remoteToggleMarkCommentHelpful = useRemoteToggleMarkCommentHelpful();
   const toggleMarkCommentHelpful = (comment: EarthquakeReportComment, upvote: boolean) => {
     remoteToggleMarkCommentHelpful.mutate({ 
@@ -93,7 +120,8 @@ export default function useReports(): UseReportsReturn {
   };
   
   return { 
-    comments, count, 
+    comments: allComments, 
+    count, 
     isLoading, hasMore, 
     error, nextCursor,
     hasImageReports,

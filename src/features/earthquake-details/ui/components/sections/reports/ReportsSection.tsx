@@ -67,14 +67,8 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
   const textareaRef = useRef(null);
   const canPostWithAccount = isLoggedIn;
   const selectedFileSummary = imageFile ? `${imageFile.name} (${Math.max(1, Math.round(imageFile.size / 1024))} KB)` : '';
-  const visibleComments = useMemo(
-    () => comments.slice(0, visibleReportLimit),
-    [comments, visibleReportLimit]
-  );
-  const visibleReportCount = visibleComments.length;
   const reportedTotalCount = Math.max(Number(totalCount) || 0, comments.length);
-  const hasHiddenLoadedReports = comments.length > visibleReportCount;
-  const canShowMoreReports = hasHiddenLoadedReports || hasMore;
+  const canShowMoreReports = hasMore;
 
   useEffect(() => {
     if(!isPostSuccess) return;
@@ -82,7 +76,6 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
     setIsModalOpen(false);
     resetForm();
     triggerButtonRef.current?.focus();
-    reloadReports();
   }, [isPostSuccess]);
 
 
@@ -221,16 +214,10 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
   }, [isReportIssueSuccess, reportIssueError])
 
   const handleShowMoreReports = useCallback(() => {
-    if (hasHiddenLoadedReports) {
-      setVisibleReportLimit((current) => current + REPORTS_VISIBLE_INCREMENT);
-      return;
-    }
-
     if (hasMore) {
-      setVisibleReportLimit((current) => current + REPORTS_VISIBLE_INCREMENT);
       onLoadMore?.();
     }
-  }, [hasHiddenLoadedReports, hasMore, onLoadMore]);
+  }, [hasMore, onLoadMore]);
 
   const handleImageChange = (event) => {
     const nextFile = event.target.files?.[0] || null;
@@ -309,7 +296,7 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
         {isLoading && comments.length === 0 ? (
           <div className="report-empty" role="status">Loading reports...</div>
         ) : comments.length > 0 ? (
-          visibleComments.map((comment, index) => {
+          comments.map((comment, index) => {
             const imageUrl = resolveCommentImageUrl(getCommentImage(comment));
             const text = getCommentText(comment);
             const commentKey = getCommentKey(comment, `${eventId}-comment-${index}`);
@@ -419,20 +406,16 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
       {comments.length > 0 && (
         <div className="report-load-more-row">
           <span className="report-visible-count">
-            Showing {visibleReportCount} of {formatReportCount(reportedTotalCount)}
+            Showing {comments.length} of {formatReportCount(reportedTotalCount)}
           </span>
           {canShowMoreReports && (
             <button
               type="button"
               className="report-secondary-button"
               onClick={handleShowMoreReports}
-              disabled={hasMore}
+              disabled={!hasMore}
             >
-              {isLoading
-                ? 'Loading reports...'
-                : hasHiddenLoadedReports
-                  ? 'Show more reports'
-                  : 'Load more reports'}
+              {isLoading ? 'Loading reports...' : 'Load more reports'}
             </button>
           )}
         </div>
