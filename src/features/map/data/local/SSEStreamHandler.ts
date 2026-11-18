@@ -67,6 +67,9 @@ export default class SSEStreamHandler {
       case "SC_EVENT":
         this.dataHandlers.earthquakes.receiveEarthquakeFromStream(raw);
         break;
+      case "STATION_STATUS":
+        this.dataHandlers.stations.receiveStationStatusFromStream(raw.station, raw.activity, raw.status, raw.statusSince);
+        break;
     }
   }
 

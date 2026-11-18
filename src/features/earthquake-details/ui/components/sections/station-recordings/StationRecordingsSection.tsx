@@ -44,7 +44,7 @@ export default function StationRecordingsSection({
   const containerRef = useRef(null);
   const requestedWaveformsRef = useRef(new Set());
 
-  const stations = useMemo(() => allStations.map(s => s.code), [allStations]);
+  const stations = useMemo(() => allStations?.map(s => s.code) ?? [], [allStations]);
   const stationList = useMemo(
     () => (Array.isArray(stations) ? stations : []),
     [stations]

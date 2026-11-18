@@ -107,12 +107,19 @@ export default class StationsDataHandler {
     const rawStationsStatus = await this.remote.getStationStatus(stationCode, network);
     if(!rawStationsStatus) return;
 
+    this.setStationStatus(stationCode, 
+      rawStationsStatus.activity, 
+      rawStationsStatus.status as StationStatus, 
+      rawStationsStatus.statusSince);
+  }
+
+  private setStationStatus(stationCode: string, activity: StationActivity, status: StationStatus, statusSince: string) {
     const stationData = this.store.stations.find(s => s.code === stationCode);
     if(!stationData) return;
 
-    stationData.activity = rawStationsStatus.activity;
-    stationData.status = rawStationsStatus.status as StationStatus;
-    stationData.statusSince = rawStationsStatus.statusSince;
+    stationData.activity = activity;
+    stationData.status = status;
+    stationData.statusSince = statusSince;
 
     // Notify listeners
     this.emitStationEvent(stationCode, new StationUpdateEvent({ ...stationData }));
@@ -124,6 +131,10 @@ export default class StationsDataHandler {
     if(!prevLatestPick || prevLatestPick.localeCompare(timestamp) === -1) {
       this.store.latestPicksCollection[stationCode] = timestamp;
     }
+  }
+
+  receiveStationStatusFromStream(stationCode: string, activity: StationActivity, status: StationStatus, statusSince: string) {
+    this.setStationStatus(stationCode, activity, status, statusSince);
   }
 
   getStationLatestPick(stationCode: string): string | null {
