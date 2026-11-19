@@ -1,18 +1,18 @@
 # build environment
-FROM node:16-alpine as base
+FROM node:22-alpine AS base
 
 EXPOSE 3000
 
 WORKDIR /app
 
 # Stage 2: prod
-FROM base as build
+FROM base AS build
 
-ENV PATH /app/node-modules/.bin:$PATH
+ENV PATH=/app/node_modules/.bin:$PATH
 COPY package.json ./
 COPY package-lock.json ./
+COPY patches ./patches
 RUN npm ci
-RUN npm install react-scripts@4.0.3 -g
 
 # copy source except config
 COPY ./src ./src
@@ -42,4 +42,3 @@ CMD ["nginx", "-g", "daemon off;"]
 LABEL org.opencontainers.image.source="https://github.com/UPRI-earthquake/earthquake-hub-frontend"
 LABEL org.opencontainers.image.description="Base docker image for EarthquakeHub frontend"
 LABEL org.opencontainers.image.authors="earthquake@science.upd.edu.ph"
-

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 110" role="img" aria-label="Station marker">
+  <defs>
+    <linearGradient id="tri-left" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f4f8"/>
+      <stop offset="100%" stop-color="#cfd5de"/>
+    </linearGradient>
+    <linearGradient id="tri-right" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e2e7ee"/>
+      <stop offset="100%" stop-color="#b9c2cf"/>
+    </linearGradient>
+    <linearGradient id="tri-base" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#d5dbe4"/>
+      <stop offset="100%" stop-color="#a9b4c3"/>
+    </linearGradient>
+    <filter id="tri-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.22)"/>
+    </filter>
+  </defs>
+  <g filter="url(#tri-shadow)">
+    <polygon points="60 6 6 104 60 84" fill="url(#tri-left)"/>
+    <polygon points="60 6 114 104 60 84" fill="url(#tri-right)"/>
+    <polygon points="6 104 114 104 60 84" fill="url(#tri-base)"/>
+  </g>
+</svg>

@@ -1,0 +1,23 @@
+import React from 'react';
+import axios from 'axios';
+import { render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import App from '../App';
+
+// Minimal reducer to satisfy Provider
+const reducer = (state = null) => state;
+
+test('App mounts and shows loading screen initially', () => {
+  // Prevent the smoke test from making asynchronous network calls after teardown.
+  jest.spyOn(axios, 'get').mockResolvedValue({ data: { payload: [] } });
+  const store = createStore(reducer);
+  render(
+    <Provider store={store}>
+      <App />
+    </Provider>,
+  );
+  // Loading screen renders an SVG with aria-label="Loading"
+  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+});
+

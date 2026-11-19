@@ -7,16 +7,20 @@
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
-    "axios": "^0.21.1",
+    "axios": "^1.18.1",
+    "dayjs": "^1.11.10",
     "event-source-polyfill": "^1.0.25",
     "jwt-decode": "^3.1.2",
     "leaflet": "^1.7.1",
-    "moment": "^2.29.1",
+    "leaflet-providers": "^2.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-icons": "^5.6.0",
     "react-leaflet": "npm:@monsonjeremy/react-leaflet@^3.2.2",
     "react-redux": "^7.2.5",
-    "react-scripts": "4.0.3",
+    "react-router-dom": "^6.25.1",
+    "react-scripts": "^5.0.1",
+    "react-window": "^1.8.7",
     "redux": "^4.1.1",
     "seisplotjs": "^3.0.0",
     "web-vitals": "^1.1.2",
@@ -37,7 +41,10 @@
     "start": "./import-env.sh public/config.js && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "lint": "eslint --ext .js,.jsx src",
+    "format": "prettier --write \"**/*.{js,jsx,css,md}\"",
+    "eject": "react-scripts eject",
+    "postinstall": "patch-package"
   },
   "eslintConfig": {
     "extends": [
@@ -52,6 +59,18 @@
   ],
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@react-leaflet/core": "npm:@monsonjeremy/react-leaflet-core@^1.1.1"
+    "@react-leaflet/core": "npm:@monsonjeremy/react-leaflet-core@^1.1.1",
+    "eslint": "^8.57.1",
+    "eslint-config-react-app": "^7.0.1",
+    "patch-package": "^8.0.1",
+    "prettier": "^2.8.8"
+  },
+  "overrides": {
+    "@tootallnate/once": "2.0.1",
+    "nth-check": "2.0.1",
+    "postcss": "8.5.16",
+    "serialize-javascript": "7.0.7",
+    "uuid": "11.1.1",
+    "webpack-dev-server": "5.2.5"
   }
 }

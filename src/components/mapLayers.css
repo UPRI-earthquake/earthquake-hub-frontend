@@ -1,0 +1,467 @@
+/* Layers control panel styling */
+.leaflet-control-layers {
+  --panel-bg: #ffffffee;
+  --panel-text: #1f2937;
+  --panel-border: rgba(17, 24, 39, 0.12);
+  --panel-padding-x: 10px;
+  --panel-padding-y: 8px;
+  --layers-toggle-size: 48px;
+  --layers-available-width: calc(
+    100vw -
+      (var(--leaflet-right-offset, 0px) + var(--layers-toggle-size) + var(--leaflet-flyout-gap, 10px) + 12px)
+  );
+  --layers-auto-width: max-content;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  border: 1px solid var(--panel-border);
+  line-height: 1.45;
+  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+  position: absolute;
+  right: calc(var(--layers-toggle-size) + var(--leaflet-flyout-gap, 10px));
+  /* Align panel top with the custom Layers toggle */
+  top: 0;
+  /* Intrinsic sizing: grow to longest label, but cap to available space */
+  width: fit-content;
+  inline-size: fit-content;
+  min-inline-size: var(--layers-auto-width, max-content); /* longest label defines the minimum */
+  max-inline-size: min(32rem, 92vw, var(--layers-available-width));
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(12px);
+  z-index: 900;
+}
+.leaflet-control-layers.leaflet-control-layers-expanded {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+  /* Smooth entrance when expanding */
+  animation: layersPanelIn 0.18s ease-out;
+  transform-origin: top right;
+}
+/* Hide the built-in Layers control when collapsed; we use a custom button */
+.leaflet-control-layers:not(.leaflet-control-layers-expanded) {
+  display: inline-flex;
+}
+/* Panel background with theme-aware variant */
+.leaflet-container .leaflet-control-layers {
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  backdrop-filter: saturate(120%) blur(6px);
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers {
+  --panel-bg: #111827dd;
+  --panel-text: #f3f4f6;
+  --panel-border: rgba(255, 255, 255, 0.12);
+}
+/* List body */
+.leaflet-control-layers-list {
+  position: relative;
+  padding: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: fit-content;
+  inline-size: fit-content; /* let content define panel width */
+  min-inline-size: max-content;
+  max-inline-size: 100%;
+}
+.layers-body {
+  padding: var(--panel-padding-y) var(--panel-padding-x);
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: stable both-edges;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: fit-content;
+}
+/* Headings inside the control */
+.leaflet-control-layers-base::before {
+  content: 'Map Views';
+  display: block;
+  font-weight: 600;
+  margin: 8px 0 6px 2px;
+  font-size: 13px;
+}
+.leaflet-control-layers-overlays::before {
+  content: 'Overlays';
+  display: block;
+  font-weight: 600;
+  margin: 8px 0 6px 2px;
+  font-size: 13px;
+}
+.leaflet-control-layers-separator {
+  display: none;
+}
+.leaflet-control-layers label {
+  display: contents; /* remove layout box; inner row controls layout */
+}
+.layer-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+.layer-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layer-text {
+  display: block;
+  white-space: nowrap;
+}
+.layer-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.layer-row:active {
+  transform: translateY(0.5px);
+}
+.leaflet-container[data-basemap-theme='dark'] .layer-row,
+.leaflet-container[data-basemap-theme='imagery'] .layer-row {
+  color: #f3f4f6;
+}
+.leaflet-container[data-basemap-theme='dark'] .layer-row:hover,
+.leaflet-container[data-basemap-theme='imagery'] .layer-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Remove default hover-to-expand; expansion handled by JS click only */
+
+/* Toggle button (FAB-like) */
+.leaflet-control-layers-toggle {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  background-image: none !important; /* remove Leaflet default image */
+  display: inline-flex; /* center custom SVG */
+  align-items: center;
+  justify-content: center;
+  color: #111827; /* ensure SVG currentColor is consistent */
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+}
+.leaflet-control-layers:hover .leaflet-control-layers-toggle {
+  transform: scale(1.03);
+}
+.leaflet-control-layers.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+  background-color: #111827;
+  color: #fff;
+  border-color: transparent;
+}
+/* Always hide the default toggle when using our custom button */
+.leaflet-control-layers .leaflet-control-layers-toggle {
+  display: none;
+}
+
+/* Opening animation */
+@keyframes layersPanelIn {
+  0% {
+    opacity: 0;
+    transform: translateX(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-control-layers.leaflet-control-layers-expanded {
+    animation: none;
+  }
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers-toggle,
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers-toggle {
+  background-color: #1f2937;
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.25); /* match Legend collapsed pill */
+}
+/* Size the injected SVG icon */
+.leaflet-control-layers-toggle svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+/* Custom layers toggle control (uniform with other buttons) */
+.custom-layers-toggle .layers-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms ease,
+    box-shadow 150ms ease, border-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 901;
+}
+.custom-layers-toggle .layers-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.custom-layers-toggle .layers-btn:active {
+  transform: scale(0.98);
+}
+.custom-layers-toggle .layers-btn:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+.custom-layers-toggle .layers-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+.custom-layers-toggle .layers-btn span {
+  font-size: 18px;
+}
+.leaflet-container[data-basemap-theme='dark'] .custom-layers-toggle .layers-btn,
+.leaflet-container[data-basemap-theme='imagery'] .custom-layers-toggle .layers-btn {
+  background-color: rgba(17, 24, 39, 0.82);
+  color: #f3f4f6;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.leaflet-container[data-basemap-theme='dark'] .custom-layers-toggle .layers-btn:hover,
+.leaflet-container[data-basemap-theme='imagery'] .custom-layers-toggle .layers-btn:hover {
+  background: #111827;
+}
+.custom-layers-toggle .layers-btn.is-active,
+.custom-layers-toggle .layers-btn[data-active='1'],
+.leaflet-container[data-layers-expanded='1'] .custom-layers-toggle .layers-btn {
+  background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.35);
+  transform: translateY(-1px);
+}
+.custom-layers-toggle .layers-btn.is-active:hover,
+.custom-layers-toggle .layers-btn[data-active='1']:hover,
+.leaflet-container[data-layers-expanded='1'] .custom-layers-toggle .layers-btn:hover {
+  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+}
+.custom-layers-toggle .layers-btn.is-active:active,
+.custom-layers-toggle .layers-btn[data-active='1']:active,
+.leaflet-container[data-layers-expanded='1'] .custom-layers-toggle .layers-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+.leaflet-container[data-basemap-theme='dark'] .custom-layers-toggle .layers-btn.is-active,
+.leaflet-container[data-basemap-theme='dark'] .custom-layers-toggle .layers-btn[data-active='1'],
+.leaflet-container[data-basemap-theme='dark'][data-layers-expanded='1'] .custom-layers-toggle .layers-btn,
+.leaflet-container[data-basemap-theme='imagery'] .custom-layers-toggle .layers-btn.is-active,
+.leaflet-container[data-basemap-theme='imagery'] .custom-layers-toggle .layers-btn[data-active='1'],
+.leaflet-container[data-basemap-theme='imagery'][data-layers-expanded='1'] .custom-layers-toggle .layers-btn {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.4);
+}
+/* Hide toggle icon when expanded (use header Close) */
+.leaflet-control-layers.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+  display: none;
+}
+
+
+/* Basemap thumbnails */
+/* .leaflet-control-layers-base { padding: 8px; } */
+.leaflet-control-layers-base label.is-basemap {
+  cursor: pointer;
+}
+.leaflet-control-layers-base label.is-basemap .layer-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  white-space: nowrap; /* keep radio and label on one line */
+}
+.leaflet-control-layers-base label.is-basemap .layer-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers-base label.is-basemap .layer-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Overlay swatches */
+/* No overlay swatches in Layers panel – keep it clean (legend shows symbology) */
+
+/* Overlay meta row (Last updated) */
+.overlay-meta {
+  grid-column: 3 / 4; /* place under the text column */
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280; /* gray-500 */
+}
+.leaflet-container[data-basemap-theme='dark'] .overlay-meta,
+.leaflet-container[data-basemap-theme='imagery'] .overlay-meta {
+  color: #9ca3af; /* gray-400 */
+}
+.overlay-meta a {
+  color: inherit;
+  text-decoration: underline dotted;
+}
+.overlay-meta .meta-fallback {
+  opacity: 0.9;
+}
+
+/* Themed radios/checkboxes (avoid default blue) */
+.leaflet-control-layers input[type='radio'],
+.leaflet-control-layers input[type='checkbox'] {
+  accent-color: #0ea5e9; /* brand */
+}
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers input[type='radio'],
+.leaflet-container[data-basemap-theme='dark'] .leaflet-control-layers input[type='checkbox'],
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers input[type='radio'],
+.leaflet-container[data-basemap-theme='imagery'] .leaflet-control-layers input[type='checkbox'] {
+  accent-color: #7dd3fc; /* readable on dark */
+}
+
+/* Focus styles */
+.legend-toggle:focus-visible,
+.leaflet-control-layers-toggle:focus-visible,
+.custom-layers-toggle .layers-btn:focus-visible,
+.layers-tools button:focus-visible,
+.layer-row:focus-within,
+.layer-row:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* Selected/checked states in Layers list */
+/* Text emphasis for the checked option */
+.layer-row:has(input[type='radio']:checked) .layer-text,
+.layer-row:has(input[type='checkbox']:checked) .layer-text {
+  color: #0284c7; /* bright primary */
+  font-weight: 600;
+}
+.leaflet-container[data-basemap-theme='dark'] .layer-row:has(input:checked) .layer-text,
+.leaflet-container[data-basemap-theme='imagery'] .layer-row:has(input:checked) .layer-text {
+  color: #7dd3fc; /* light sky accent */
+}
+/* Highlight the row when its input is checked (modern browsers) */
+.layer-row:has(input[type='radio']:checked),
+.layer-row:has(input[type='checkbox']:checked) {
+  background: rgba(14, 165, 233, 0.10); /* sky-500 @ 10% */
+}
+.leaflet-container[data-basemap-theme='dark'] .layer-row:has(input:checked),
+.leaflet-container[data-basemap-theme='imagery'] .layer-row:has(input:checked) {
+  background: rgba(125, 211, 252, 0.14); /* light sky for dark */
+}
+
+@media (max-width: 960px) and (orientation: landscape) {
+  .leaflet-control-layers {
+    --layers-toggle-size: 42px;
+    --panel-padding-x: 8px;
+    --panel-padding-y: 6px;
+  }
+  .custom-layers-toggle .layers-btn,
+  .leaflet-control-layers-toggle {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  .leaflet-control-layers-toggle svg,
+  .custom-layers-toggle .layers-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .leaflet-control-layers {
+    max-inline-size: min(30rem, 88vw, var(--layers-available-width));
+  }
+  .layers-body {
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+  .leaflet-control-layers {
+    --layers-toggle-size: 42px;
+  }
+  .custom-layers-toggle .layers-btn,
+  .leaflet-control-layers-toggle {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  .leaflet-control-layers-toggle svg,
+  .custom-layers-toggle .layers-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .layers-body {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-control-layers:hover .leaflet-control-layers-toggle {
+    transform: none;
+  }
+}
+/* Responsive panel width */
+/* Tablet: allow taller list */
+/* Mobile tweaks: keep at top-right and constrain height */
+@media (max-width: 767px) {
+  /* Do NOT convert to a bottom sheet – stay in the top-right corner */
+  /* Floating close stays in top-right */
+  .layers-header {
+    right: 8px;
+    top: 8px;
+  }
+  .layers-header::before {
+    display: none;
+  }
+  /* .leaflet-control-layers label { */
+  /* min-height: 44px; larger hit area */
+  /* } */
+}
+
+/* Pointer events tuning: limit hit overlay to stroke only */
+/* Default pointer events (visiblePainted) allow easier hover; no forcing stroke-only */
+
+/* Hover glow for line features (improves readability on dark/imagery) */
+.remote-geojson-layer.hover-glow {
+  filter: drop-shadow(0 0 2px rgba(17, 24, 39, 0.6));
+}
+.leaflet-container[data-basemap-theme='dark'] .remote-geojson-layer.hover-glow,
+.leaflet-container[data-basemap-theme='imagery'] .remote-geojson-layer.hover-glow {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.85));
+}
+
+/* Stronger glow when feature is explicitly selected (tap/click) */
+.remote-geojson-layer.selected-glow {
+  filter: drop-shadow(0 0 3px rgba(17, 24, 39, 0.75));
+}
+.leaflet-container[data-basemap-theme='dark'] .remote-geojson-layer.selected-glow,
+.leaflet-container[data-basemap-theme='imagery'] .remote-geojson-layer.selected-glow {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95));
+}
+
+/* Smooth stroke updates for vector overlays on zoom/theme changes */
+path.remote-geojson-layer {
+  transition: stroke-width 180ms ease, opacity 180ms ease, stroke 180ms ease;
+}

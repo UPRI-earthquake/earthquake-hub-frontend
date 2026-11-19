@@ -1,0 +1,157 @@
+.row {
+  display: grid;
+  grid-template-columns: 56px 1fr; /* match EQ item layout */
+  gap: 20px;
+  align-items: center;
+  /* Match event item paddings */
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  background-color: var(--surface);
+  color: var(--text-primary);
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+html[data-theme='dark'] .row,
+html[data-theme='imagery'] .row {
+  background-color: #0b1220;
+  color: #f3f4f6;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+html[data-theme='dark'] .row:hover,
+html[data-theme='imagery'] .row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* Multi-pulse states for activity toggles (triggered on STATION_STATUS updates) */
+.pulseActive { animation: stationPulseActive 1.2s ease-out; animation-iteration-count: 3; }
+.pulseInactive { animation: stationPulseInactive 1.2s ease-out; animation-iteration-count: 3; }
+
+@keyframes stationPulseActive {
+  0% { background-color: var(--sta-pulse-on-1, rgba(34, 197, 94, 0.16)); }
+  60% { background-color: var(--sta-pulse-on-2, rgba(34, 197, 94, 0.08)); }
+  100% { background-color: transparent; }
+}
+
+/* Continuous pulse while a station SC_PICK is active (sync with marker radiate) */
+.pickPulse { animation: stationPickPulse 1.5s linear infinite; }
+@keyframes stationPickPulse {
+  0% { background-color: rgba(232, 106, 115, 0.16); }
+  60% { background-color: rgba(232, 106, 115, 0.08); }
+  100% { background-color: transparent; }
+}
+@keyframes stationPulseInactive {
+  0% { background-color: var(--sta-pulse-off-1, rgba(107, 114, 128, 0.16)); }
+  60% { background-color: var(--sta-pulse-off-2, rgba(107, 114, 128, 0.08)); }
+  100% { background-color: transparent; }
+}
+
+.leftWrap { display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.codeText { display: inline-block; font-size: 20px; font-weight: 700; line-height: 1; }
+.rightWrap { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.desc { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: inherit; }
+html[data-theme='dark'] .desc,
+html[data-theme='imagery'] .desc { color: inherit; }
+.metaRow { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
+.subDesc { font-size: 12px; color: #6b7280; white-space: nowrap; }
+html[data-theme='dark'] .subDesc,
+html[data-theme='imagery'] .subDesc { color: #9ca3af; }
+.dot { display: none; }
+.dotActive { display: none; }
+.dotInactive { display: none; }
+
+/* New status pill styles */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.04);
+  color: inherit;
+  font-weight: 700;
+  font-size: 12px; /* align with network text size */
+  line-height: 1;
+}
+html[data-theme='dark'] .statusPill,
+html[data-theme='imagery'] .statusPill {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+.statusPillActive {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(22, 163, 74, 0.32);
+  color: #065f46;
+}
+html[data-theme='dark'] .statusPillActive,
+html[data-theme='imagery'] .statusPillActive {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #ecfdf3;
+}
+.statusPillInactive {
+  background: #e5e7eb; /* gray-200 */
+  border-color: #d1d5db; /* gray-300 */
+  color: #111827; /* gray-900 */
+}
+html[data-theme='dark'] .statusPillInactive,
+html[data-theme='imagery'] .statusPillInactive {
+  background: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+  color: #f3f4f6; /* gray-100 */
+}
+.statusText { font-weight: 700; }
+
+.selected {
+  border-left: 4px solid var(--accent); /* brand accent, match EQ item */
+  padding-left: 11px; /* compensate for thicker left border */
+  background: rgba(14, 165, 233, 0.1);
+}
+.selected .codeText { color: var(--accent); }
+
+html[data-theme='dark'] .selected,
+html[data-theme='imagery'] .selected {
+  border-left-color: #7dd3fc; /* readable on dark */
+  background-color: rgba(125, 211, 252, 0.16);
+}
+html[data-theme='dark'] .selected .codeText,
+html[data-theme='imagery'] .selected .codeText {
+  color: #7dd3fc;
+}
+
+/* Mobile card look (match event items) */
+@media (max-width: 768px) {
+  .row {
+    width: 100%;
+    height: auto;
+    border-bottom: 1px solid var(--border);
+    border-right: none;
+    align-content: start;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+  }
+  .row:hover {
+    transform: translateY(-2px);
+  }
+  .selected { border-left-width: 4px; }
+  .rightWrap { gap: 6px; }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .pulseActive,
+  .pulseInactive,
+  .pickPulse {
+    animation: none;
+  }
+}
