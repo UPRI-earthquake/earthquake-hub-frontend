@@ -142,7 +142,7 @@ export interface EarthquakeReportComment {
   anonymous?: boolean;
   isAnonymous?: boolean;
 
-  created_at?: boolean;
+  created_at?: string;
   timestamp?: boolean;
   date?: boolean;
 }

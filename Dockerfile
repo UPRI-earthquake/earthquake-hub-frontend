@@ -1,43 +1,38 @@
-# build environment
-FROM node:22-alpine AS base
 
-EXPOSE 3000
+# Stage 1: Build the React application
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Stage 2: prod
-FROM base AS build
+# Copy dependency manifests first for better caching
+COPY package*.json ./
 
-ENV PATH=/app/node_modules/.bin:$PATH
-COPY package.json ./
-COPY package-lock.json ./
-COPY patches ./patches
+# Install dependencies
 RUN npm ci
 
-# copy source except config
-COPY ./src ./src
-COPY ./public ./public
-RUN [ -f ./public/config.js ] && rm ./public/config.js || echo "config.js not found, skipping removal."
+# Copy application source
+COPY . .
 
-# get minified static build
+# Build production application
 RUN npm run build
 
-# production environment, use nginx as static server
-FROM nginx:stable-alpine
 
-EXPOSE 3000
+# Stage 2: Serve with Nginx
+FROM nginx:alpine AS production
+
+# Remove default Nginx configuration
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Add custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/build /usr/share/nginx/html
-COPY ./import-env.sh /import-env.sh
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /import-env.sh
-RUN chmod +x /entrypoint.sh
 
-# import env vars from environment
-ENTRYPOINT ["./entrypoint.sh"]
+# Copy production build
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# run nginx server (serves as args to ENTRYPOINT)
+EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
+
 
 LABEL org.opencontainers.image.source="https://github.com/UPRI-earthquake/earthquake-hub-frontend"
 LABEL org.opencontainers.image.description="Base docker image for EarthquakeHub frontend"

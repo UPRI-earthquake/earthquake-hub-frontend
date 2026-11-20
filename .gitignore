@@ -50,3 +50,4 @@ localhost+1.pem
 
 exec
 *.dummy.js
+/dist
