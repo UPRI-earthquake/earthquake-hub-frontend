@@ -8,7 +8,6 @@ export default function MapOverlays() {
   return (<>
     <FaultLinesLayer />
     <PlateBoundariesLayer />
-    <PARBoundaryLayer />
     <EarthquakesLayer />
     <StationsLayer />
   </>);

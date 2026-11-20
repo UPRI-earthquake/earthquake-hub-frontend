@@ -1,6 +1,6 @@
 import { useRemoteGetGeoJSON } from '@/features/map/data/remote/geojson';
 import { StyleFunction } from 'leaflet';
-import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { GeoJSON } from 'react-leaflet';
 
 interface RemoteGeoJSONOverlayProps {
@@ -29,6 +29,7 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
     interactive = false,
     onEachFeature,
     pane,
+    renderer
   }: RemoteGeoJSONOverlayProps,
   ref,
 ) {
@@ -87,13 +88,16 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
         className: 'remote-geojson-layer',
       });
 
+  const key = useMemo(() => Date.now(), [data]);
 
   return (<GeoJSON
+    key={key}
     ref={gjRef}
     data={data}
     style={mergedStyle}
-    interactive={Boolean(interactive)}
+    interactive={interactive}
     pane={pane}
+    {...({ renderer })}
     // Pass through optional feature hook for tooltips/highlights
     onEachFeature={onEachFeature}
   />);
