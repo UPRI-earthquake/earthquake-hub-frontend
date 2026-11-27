@@ -54,12 +54,16 @@ export default class EarthquakesDataHandler {
 
   private eventTarget = new TypedEventTarget<EarthquakeEventsMap>();
 
-  private activeEarthquakesTracker;
+  private activeEarthquakesTracker: ReturnType<typeof setInterval> | undefined;
 
   constructor() {
     const initialRange = latestRangeDefaults();
     this.filters.startDate = initialRange.startDate;
     this.filters.endDate = initialRange.endDate;
+  }
+
+  startTrackingActiveEarthquakes() {
+    if (this.activeEarthquakesTracker !== undefined) return;
 
     // For every 1s, track active events
     this.activeEarthquakesTracker = setInterval(() => {
@@ -165,7 +169,8 @@ export default class EarthquakesDataHandler {
   }
 
   destroy() {
-    clearTimeout(this.activeEarthquakesTracker);
+    clearInterval(this.activeEarthquakesTracker);
+    this.activeEarthquakesTracker = undefined;
   }
 
 }

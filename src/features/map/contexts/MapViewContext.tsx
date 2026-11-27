@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { createContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
 import StationsDataHandler from "../data/local/StationsDataHandler";
 import EarthquakesDataHandler from "../data/local/EarthquakesDataHandler";
 import SSEStreamHandler from "../data/local/SSEStreamHandler";
@@ -19,12 +19,8 @@ export const MapViewContext = createContext<MapViewContextType | undefined>(unde
 export function MapViewProvider({ children }: { children: React.ReactNode}) {
   const [activeBase, setActiveBase] = useState('satellite');
 
-  const stationsDataHandlerRef = useRef(new StationsDataHandler());
-  const earthquakesDataHandlerRef = useRef(new EarthquakesDataHandler());
-  const sseStreamHandlerRef = useRef(new SSEStreamHandler({
-    stations: stationsDataHandlerRef.current,
-    earthquakes: earthquakesDataHandlerRef.current
-  }));
+  const [stationsDataHandler] = useState(() => new StationsDataHandler());
+  const [earthquakesDataHandler] = useState(() => new EarthquakesDataHandler());
 
   // Use a single shared Canvas renderer with a higher click/hover tolerance
   // so both Faults and Plates participate in the same hit-testing layer.
@@ -32,22 +28,25 @@ export function MapViewProvider({ children }: { children: React.ReactNode}) {
 
 
   useEffect(() => {
-    const earthquakeHandler = earthquakesDataHandlerRef.current;
-    const streamHandler = sseStreamHandlerRef.current;
-    earthquakeHandler.reloadEarthquakes();
-    stationsDataHandlerRef.current.reloadStations();
+    earthquakesDataHandler.startTrackingActiveEarthquakes();
+    const streamHandler = new SSEStreamHandler({
+      stations: stationsDataHandler,
+      earthquakes: earthquakesDataHandler
+    });
+    earthquakesDataHandler.reloadEarthquakes();
+    stationsDataHandler.reloadStations();
 
     return () => {
       streamHandler.destroy();
-      earthquakeHandler.destroy();
+      earthquakesDataHandler.destroy();
     };
-  }, []);
+  }, [earthquakesDataHandler, stationsDataHandler]);
   
   return (<MapViewContext.Provider value={{
     activeBase,
     setActiveBase,
-    stationsDataHandler: stationsDataHandlerRef.current,
-    earthquakesDataHandler: earthquakesDataHandlerRef.current,
+    stationsDataHandler,
+    earthquakesDataHandler,
     vectorRenderer,
   }}>
     <EarthquakesProvider>
