@@ -1,59 +1,77 @@
+# Contributing to Earthquake Hub Frontend
+
+This guide outlines the contribution process for the Earthquake Hub frontend repository.
+
 ## Setting Up The Repository On Your Local Machine
 
-For local development, the earthquake-hub-backend is needed to serve the requests from the frontend. As such, you need to spin up the backend code first, then the frontend. All of the
-development setup makes use of docker.
+Follow the repository's current setup instructions and configuration examples. Ensure that required supporting services are available before beginning development.
 
-1. Clone earthquake-hub-backend,
+Refer to the repository documentation for up-to-date development requirements and commands.
 
-   ```bash
-   git clone git@github.com:UPRI-earthquake/earthquake-hub-backend.git
-   ```
+## Development Workflow
 
-   1. Configure the back-end setup by creating a file named `.env`, containing the config variables. An example is available its `.env.example`.
-   2. Install all dependencies via:
-      ```bash
-      npm install
-      ```
-   3. Build the image via:
-      ```bash
-      docker build -t ghcr.io/upri-earthquake/earthquake-hub-backend:latest .
-      ```
-   4. Run the container via:
-      ```bash
-      docker compose up
-      ```
-      from which you should see the following:
-      ```bash
-      [nodemon] restarting due to changes...
-      [nodemon] starting `node -r dotenv/config index.js`
-      db-host: mongodb
-      mysql-host: host.docker.internal
-      Development backend listening at http://172.22.0.3:5000
-      Development client expected (by CORS) at http://localhost:3000
-      ```
+### Branching Strategy
 
-2. Similar to above, clone this repository,
-   ```bash
-   git clone git@github.com:UPRI-earthquake/earthquake-hub-frontend.git
-   ```
-   1. Configure the sender-front-end setup by creating a file named `.env`, containing the config variables. An example is available on `.env.example`., making sure to put this value
-      ```bash
-      REACT_APP_BACKEND_DEV=http://172.22.0.3:5000
-      REACT_APP_RINGSERVER_WS_DEV=ws://127.0.0.1:16000/datalink
-      ```
-   2. Install the dependencies via:
-      ```bash
-      npm install
-      ```
-   3. Build the image via:
-      ```bash
-      docker build -t ghcr.io/upri-earthquake/earthquake-hub-frontend:latest .
-      ```
-   4. Run the container via:
-      ```bash
-      docker compose up
-      ```
+The repository follows this workflow:
 
-## Development Workflow: Creating New Feature
+`feature/*` / `fix/*` / `docs/*` / `chore/*` → `dev` → `staging` → `main`
 
-Please refer to the [contributing guide](https://upri-earthquake.github.io/dev-guide-contributing) to the entire EarthquakeHub suite.
+- **Working branches:** Individual development, bug fixes, documentation, and maintenance.
+- **`dev`:** Integration of ongoing development.
+- **`staging`:** Validation of release candidates.
+- **`main`:** Approved production-release source.
+- **`hotfix/*`:** Urgent corrections based on the verified production baseline.
+
+Create regular working branches from `dev`.
+
+### Contributions and Pull Requests
+
+1. Create a `feature/*`, `fix/*`, `docs/*`, or `chore/*` branch from `dev`.
+2. Make focused changes and perform relevant validation.
+3. Open a pull request targeting `dev` using the PR template.
+4. Request a review from an eligible team member with Write access.
+5. Address feedback and resolve review conversations.
+6. Obtain the required approval before merging.
+7. Merge after satisfying the applicable branch rules.
+
+### Review Requirements
+
+- Regular contributors require at least one approval.
+- PR authors cannot approve their own changes.
+- New commits dismiss stale approvals.
+- All review conversations must be resolved before merging.
+- Reviews are handled by `network-hub-development`.
+- Required automated checks will be introduced separately when CI is configured.
+
+### Branch Protection and Owner Exceptions
+
+- `dev`, `staging`, and `main` cannot be deleted or force-pushed.
+- Regular contributors must use pull requests and obtain approval.
+- Organization Owners may bypass PR requirements on `dev` when necessary.
+- Changes to `staging` and `main` require pull requests, including for Owners.
+- Organization Owners may bypass required approvals on release PRs.
+- Any bypass should include a documented reason and validation performed.
+
+
+### Container Image Tagging
+
+Frontend and Backend use the shared [GHCR image-tag policy](https://github.com/UPRI-earthquake/earthquake-hub-commons/blob/dev/docs/image-tagging.md). Automated publishing updates only `dev` and write-once `sha-COMMIT` tags. Staging and release aliases require separate approval and promotion workflows; never deploy a mutable tag without recording its image digest.
+
+### Release Promotion and Hotfixes
+
+- Regular development: working branch → `dev`.
+- Release candidates: `dev` → `staging`.
+- Approved releases: `staging` → `main`.
+- Production hotfixes follow the approved release process and must be propagated back to active development branches.
+
+For urgent production fixes, create `hotfix/*` from the verified production baseline, validate the correction, and merge it through the required release process. Propagate the fix back into active development branches.
+
+## Contribution Guidelines
+
+- Preserve existing functionality unless a change is intentional and documented.
+- Follow established UI, accessibility, and code quality conventions.
+- Include relevant tests and documentation when behavior changes.
+- Avoid unrelated refactoring within focused pull requests.
+- Never commit credentials, secrets, or local configuration files.
+
+For project-specific standards, refer to the repository's current documentation.
