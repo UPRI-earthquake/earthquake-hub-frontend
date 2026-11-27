@@ -12,7 +12,7 @@ export function useRemoteGetWaveform({ stationCodeUpper, startTime, endTime }: U
     retry: false,
     queryKey: [ "waveform", stationCodeUpper, startTime, endTime ],
     queryFn: async () => {
-      const response = await sendAPIRequestFromReactQuery({ 
+      const response = await sendAPIRequestFromReactQuery<never, { payload: ArrayBuffer }>({
         host: "fdsnws",
         path: `/dataselect/1/query`,
         params: {
@@ -45,7 +45,7 @@ export function useRemoteGetWaveformRS({ stationCodeUpper, startTime, endTime }:
     enabled: false,
     queryKey: [ "waveform-rs", stationCodeUpper, startTime, endTime ],
     queryFn: async () => {
-      const response = await sendAPIRequestFromReactQuery({ 
+      const response = await sendAPIRequestFromReactQuery<never, { payload: ArrayBuffer }>({
         host: "fdsnws-rs",
         path: `/dataselect/1/query`,
         params: {

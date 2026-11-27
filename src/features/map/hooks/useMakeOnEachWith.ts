@@ -4,15 +4,13 @@ import { useCallback } from "react";
 export default function useMakeOnEachWith({ nativeTitleFn, overlayTooltipBuilder, baseStyle }) {
   const map = useMap();
 
-  const disableHoverStyling = true;
-  const hoverClassName = null;
-
-  const getBase = () => {
-    const s = typeof baseStyle === 'function' ? baseStyle() : baseStyle;
-    return { ...(s || {}), interactive: true };
-  };
-
   return useCallback((feature, layer) => {
+      const disableHoverStyling = true;
+      const hoverClassName = null;
+      const getBase = () => {
+        const style = typeof baseStyle === 'function' ? baseStyle() : baseStyle;
+        return { ...(style || {}), interactive: true };
+      };
       try {
         const props = feature && feature.properties;
         const html = overlayTooltipBuilder ? overlayTooltipBuilder(props) : '';
@@ -217,5 +215,5 @@ export default function useMakeOnEachWith({ nativeTitleFn, overlayTooltipBuilder
           });
         }
       } catch (_) {}
-    },[map]);
+    }, [map, baseStyle, nativeTitleFn, overlayTooltipBuilder]);
 }

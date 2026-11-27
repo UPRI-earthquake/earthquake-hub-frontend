@@ -16,13 +16,13 @@ export function getAPIURL(host: APIRequestHost, path?: string) {
     return `${hostURL}/${path}`;
 }
 
-export async function sendAPIRequestThrowsException<B = any, K = any>(options: APIRequestParams<B>): Promise<APIResponse<K>> {
+export async function sendAPIRequestThrowsException<B = unknown, K = unknown>(options: APIRequestParams<B>): Promise<APIResponse<K>> {
     const { host, method = "GET", path, params, body, responseType = "json", headers } = options;
 
     try {
         const url = getAPIURL(host, path);
 
-        const response = await axios({
+        const response = await axios<K>({
             url, method, params,
             ...(body && { data: body }),
             headers: {
@@ -33,8 +33,8 @@ export async function sendAPIRequestThrowsException<B = any, K = any>(options: A
             withCredentials: true
         });
 
-        const responseContentType: any = response.headers['content-type'];
-        const isJSON = responseContentType?.includes("application/json");
+        const responseContentType = response.headers['content-type'];
+        const isJSON = typeof responseContentType === 'string' && responseContentType.includes('application/json');
 
         return {
             headers: response.headers,
@@ -58,7 +58,7 @@ export async function sendAPIRequestThrowsException<B = any, K = any>(options: A
     }
 }
 
-export async function sendAPIRequestFromReactQuery<B = any, K = any>(options: APIRequestParams<B>): Promise<K> {
+export async function sendAPIRequestFromReactQuery<B = unknown, K = unknown>(options: APIRequestParams<B>): Promise<K> {
     const response = await sendAPIRequestThrowsException<B, K>(options);
     return response.data;
 }

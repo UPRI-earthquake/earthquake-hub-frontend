@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FiCheck, FiCopy } from 'react-icons/fi';
 import sanitizeHtml from '@/shared/utils/sanitizeHtml';
 import styles from '../../styles/sections/EventSummarySection.module.css';

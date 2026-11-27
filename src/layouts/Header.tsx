@@ -62,7 +62,7 @@ export default function Header({
   };
   const handleAuthClose = () => setShowAuthModal(false);
 
-  const handleSignInSuccess = (username, role, authMeta: any = {}) => {
+  const handleSignInSuccess = (username, role, _authMeta: unknown = {}) => {
     setShowAuthModal(false);
     setShowDashboard(true);
   };

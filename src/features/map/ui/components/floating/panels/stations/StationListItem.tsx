@@ -30,7 +30,7 @@ export default function StationListItem({ station }: StationListItemProps) {
   const [pulse, setPulse] = useState(null); // 'pulseActive' | 'pulseInactive' | null
   const [pickPulse, setPickPulse] = useState(false); // true while SC_PICK highlight is active
   const pickTimerRef = useRef(null);
-  const eventSource = useContext<any>(SSEContext);
+  const { eventSource } = useContext(SSEContext) as { eventSource: EventSource | null };
 
   useEffect(() => {
     const was = prevActiveRef.current;

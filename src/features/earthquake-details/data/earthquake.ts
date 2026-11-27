@@ -12,7 +12,7 @@ export function useRemoteGetEartquakeInfo(eventPublicId: string) {
   return useQuery({
     queryKey: [ "earthquake-info", eventPublicId ],
     queryFn: async () => {
-      const response = await sendAPIRequestFromReactQuery<any, RemoteGetEarthquakeInfoResponse>({ 
+      const response = await sendAPIRequestFromReactQuery<never, RemoteGetEarthquakeInfoResponse>({
         host: "backend",
         path: `/eq-events/${encodeURIComponent(eventPublicId)}`
       });
@@ -33,7 +33,7 @@ export function useRemoteGetRelatedEarthquakesInfo(startTime: string, endTime: s
   return useQuery({
     queryKey: [ "related-earthquakes", startTime, endTime ],
     queryFn: async () => {
-      const response = await sendAPIRequestFromReactQuery<any, RemoteGetRelatedEarthquakesResponse>({ 
+      const response = await sendAPIRequestFromReactQuery<never, RemoteGetRelatedEarthquakesResponse>({
         host: "backend",
         path: `/eq-events/?startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`
       });

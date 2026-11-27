@@ -1,10 +1,8 @@
 import { TypedEventTarget } from "@/shared/utils/events";
-import { EarthquakeShortInfo, SSEPayload } from "../../types/earthquake";
+import { EarthquakeShortInfo, StreamEarthquake } from "../../types/earthquake";
 import latestRangeDefaults from "../../utils/filters";
 import RemoteEarthquakesDataHandler from "../remote/RemoteEarthquakesDataHandler";
 import { EarthquakeUpdateActiveListEvent, EarthquakeUpdateEvent, EarthquakeUpdateFiltersEvent, EarthquakeUpdateListEvent, EarthquakeUpdateStatusEvent } from "./earthquakes.events";
-import { getAPIURL } from "@/shared/api";
-import { normalizeDeviceActivity } from "@/shared/services/stations/deviceStatus";
 import { isLatest } from "@/shared/utils/duration";
 import { areSetsEqual } from "@/shared/utils/object";
 
@@ -134,7 +132,7 @@ export default class EarthquakesDataHandler {
     return new Set(this.store.activeEarthquakes);
   }
 
-  receiveEarthquakeFromStream(earthquakeData: SSEPayload.Earthquake) {
+  receiveEarthquakeFromStream(earthquakeData: StreamEarthquake) {
     const existingIndex = this.store.earthquakes.findIndex(e => e.publicID === earthquakeData.publicID);
     
     if(existingIndex >= 0) {

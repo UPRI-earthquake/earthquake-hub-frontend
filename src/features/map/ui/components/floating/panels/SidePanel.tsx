@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from '../../../styles/floating/panels/SidePanel.module.css';
 
 /**

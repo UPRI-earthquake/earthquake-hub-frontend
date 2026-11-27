@@ -12,7 +12,7 @@ export function useRemoteGetStations() {
   return useQuery({
     queryKey: [ "all-stations" ],
     queryFn: async () => {
-      const response = await sendAPIRequestFromReactQuery<any, RemoteGetStationsResponse>({ 
+      const response = await sendAPIRequestFromReactQuery<never, RemoteGetStationsResponse>({
         host: "backend",
         path: `/device/all`
       });

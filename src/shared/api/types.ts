@@ -1,4 +1,4 @@
-import { ResponseType } from "axios";
+import type { AxiosRequestConfig, AxiosResponse, ResponseType } from "axios";
 import { APIResponseError } from ".";
 
 export type APIRequestHost = "backend" | "fdsnws" | "fdsnws-rs";
@@ -8,15 +8,15 @@ export interface APIRequestParams<B> {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
   path: string;
   body?: B;
-  params?: any;
+  params?: Record<string, unknown> | URLSearchParams;
   contentType?: string;
   responseType?: ResponseType;
   isBulkImport?: boolean;
-  headers?: any;
+  headers?: AxiosRequestConfig["headers"];
 }
 
 export interface APIResponse<K> {
-  headers: any;
+  headers: AxiosResponse["headers"];
   data?: K;
   filename?: string | null;
   type: "json" | "blob";

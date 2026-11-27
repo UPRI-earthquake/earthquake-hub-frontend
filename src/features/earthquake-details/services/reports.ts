@@ -97,24 +97,33 @@ export function formatCommentTime(comment: EarthquakeReportComment) {
 }
 
 
-export function getCommentsFromResponse(data: any) {
+interface CommentResponse {
+  payload?: EarthquakeReportComment[] | { comments?: EarthquakeReportComment[]; total?: number | string };
+  comments?: EarthquakeReportComment[];
+  total?: number | string;
+  pagination?: { total?: number | string; nextCursor?: string; hasMore?: boolean };
+}
+
+export function getCommentsFromResponse(data: CommentResponse | EarthquakeReportComment[]) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.payload)) return data.payload;
   if (Array.isArray(data?.comments)) return data.comments;
-  if (Array.isArray(data?.payload?.comments)) return data.payload.comments;
+  const comments = !Array.isArray(data?.payload) ? data?.payload?.comments : undefined;
+  if (Array.isArray(comments)) return comments;
   return [];
 }
 
-export function getCommentTotalFromResponse(data: any, comments: EarthquakeReportComment[]) {
-  const total = Number(data?.pagination?.total ?? data?.total ?? data?.payload?.total);
+export function getCommentTotalFromResponse(data: CommentResponse, comments: EarthquakeReportComment[]) {
+  const payloadTotal = !Array.isArray(data?.payload) ? data?.payload?.total : undefined;
+  const total = Number(data?.pagination?.total ?? data?.total ?? payloadTotal);
   return Number.isFinite(total) ? total : comments.length;
 }
 
-export function getCommentPaginationFromResponse(data: any) {
-  const pagination = data?.pagination && typeof data.pagination === 'object' ? data.pagination : {};
+export function getCommentPaginationFromResponse(data: CommentResponse) {
+  const pagination = data?.pagination && typeof data.pagination === 'object' ? data.pagination : undefined;
   return {
-    nextCursor: typeof pagination.nextCursor === 'string' && pagination.nextCursor ? pagination.nextCursor : null,
-    hasMore: Boolean(pagination.hasMore),
+    nextCursor: typeof pagination?.nextCursor === 'string' && pagination.nextCursor ? pagination.nextCursor : null,
+    hasMore: Boolean(pagination?.hasMore),
   };
 }
 

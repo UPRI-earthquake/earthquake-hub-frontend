@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import moment from '@/shared/utils/time';
-import { Marker, useMap, Popup } from 'react-leaflet';
+import { Marker, useMap } from 'react-leaflet';
 import { DivIcon } from 'leaflet';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactDOMServer from 'react-dom/server';
@@ -9,7 +9,6 @@ import Circle from '@/assets/circle.svg?react';
 import CircleWithBorder from '@/assets/circleWithBorder.svg?react';
 import { eqSizePx, themeFromMapContainer, eqDepthColor } from '../../../../../services/mapStyles';
 import { trackEvent } from '@/analytics';
-import EventMarkerPopup from '../popups/EventMarkerPopup';
 import { getAppEnvironment } from '@/config/env';
 
 

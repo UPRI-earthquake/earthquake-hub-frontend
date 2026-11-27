@@ -106,20 +106,18 @@ function toReadableDate(date) {
 async function fetchGitHubCommit({ owner, repo, path, ref, token, signal }) {
   const q = new URLSearchParams({ path, sha: ref, per_page: '1' }).toString();
   const url = `https://api.github.com/repos/${owner}/${repo}/commits?${q}`;
-  const headers: any = { Accept: 'application/vnd.github+json' };
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(url, { headers, signal });
   if (!res.ok) {
-    const err: any = new Error(`GitHub API error ${res.status}`);
-    err.status = res.status; // may be 403 rate-limited, 404 path not found, etc.
-    err.headers = res.headers;
-    throw err;
+    throw Object.assign(new Error(`GitHub API error ${res.status}`), {
+      status: res.status,
+      headers: res.headers,
+    });
   }
   const arr = await res.json();
   if (!Array.isArray(arr) || arr.length === 0) {
-    const err: any = new Error('GitHub API returned empty list');
-    err.status = 404;
-    throw err;
+    throw Object.assign(new Error('GitHub API returned empty list'), { status: 404 });
   }
   const item = arr[0];
   const date = item?.commit?.committer?.date || item?.commit?.author?.date;
@@ -142,7 +140,7 @@ async function fetchCdnLastModified(cdnUrl, signal) {
  * Determine last updated metadata, preferring GitHub commits API then falling back
  * to CDN Last-Modified header. Caches results in-memory and in sessionStorage.
  */
-export async function getLastUpdated(meta, opts: any = {}) {
+export async function getLastUpdated(meta, opts: { token?: string; ttlMs?: number } = {}) {
   const { owner, repo, path, ref, cdnUrl } = meta || {};
   const token =
     opts.token ||

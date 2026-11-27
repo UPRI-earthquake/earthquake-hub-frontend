@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar from '../SidePanel';
 import styles from '../../../../styles/floating/panels/Panel.module.css';
 import EventsList from './EventsList';

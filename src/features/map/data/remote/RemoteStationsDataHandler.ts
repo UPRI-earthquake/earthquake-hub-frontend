@@ -9,7 +9,7 @@ interface StationStatusResponse {
 
 export default class RemoteStationsDataHandler {
   async fetchAllStations(): Promise<Station[]> {
-    const response = await sendAPIRequestThrowsException({
+    const response = await sendAPIRequestThrowsException<never, { payload: Station[] }>({
       host: "backend",
       path: "/device/all",
       responseType: "json"
@@ -19,7 +19,7 @@ export default class RemoteStationsDataHandler {
   }
 
   async getStationStatus(stationCode: string, network: string): Promise<StationStatusResponse> {
-    const response = await sendAPIRequestThrowsException({
+    const response = await sendAPIRequestThrowsException<never, { payload: StationStatusResponse }>({
       host: "backend",
       path: `/device/status?network=${network.toUpperCase()}&station=${stationCode.toUpperCase()}`,
       responseType: "json"

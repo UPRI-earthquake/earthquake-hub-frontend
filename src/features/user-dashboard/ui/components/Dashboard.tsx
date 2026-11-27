@@ -361,7 +361,7 @@ function Dashboard({
   const [releasedDevices, setReleasedDevices] = useState([]);
   const [devicesFetched, setDevicesFetched] = useState(false);
   const [brgyAccessToken, setBrgyAccessToken] = useState(); // hook for brgyAccessToken
-  const [accessTokenExpiry, setAccessTokenExpiry] = useState<any>(); // hook for brgy accessToken expiration
+  const [accessTokenExpiry, setAccessTokenExpiry] = useState<string>(); // hook for brgy accessToken expiration
   const [showBrgyTokenCard, setShowBrgyTokenCard] = useState(false);
   const [rshakeAlertEmailsEnabled, setRshakeAlertEmailsEnabled] = useState(Boolean(rshakeEmailEnabled));
   const [isUpdatingRshakeAlerts, setIsUpdatingRshakeAlerts] = useState(false);
@@ -393,9 +393,9 @@ function Dashboard({
     newPassword: '',
     confirmPassword: '',
   });
-  const [emailErrors, setEmailErrors] = useState<any>({});
-  const [usernameErrors, setUsernameErrors] = useState<any>({});
-  const [passwordErrors, setPasswordErrors] = useState<any>({});
+  const [emailErrors, setEmailErrors] = useState<Record<string, string | boolean>>({});
+  const [usernameErrors, setUsernameErrors] = useState<Record<string, string | boolean>>({});
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string | boolean>>({});
   const [passwordVisibility, setPasswordVisibility] = useState({
     emailCurrent: false,
     newPassword: false,
@@ -1579,7 +1579,7 @@ function Dashboard({
       const response = await axios.post(getAPIURL("backend", "/accounts/acquire-brgy-token"));
       devlog('Brgy access token acquired', response.data);
 
-      const decodedToken: any = jwtDecode(response.data.accessToken);
+      const decodedToken = jwtDecode<{ exp?: number }>(response.data.accessToken);
 
       const currentMoment = moment(); // Get the current moment
       const expiryTimeStamp = new Date(decodedToken.exp * 1000); // Convert seconds to milliseconds
@@ -1671,7 +1671,7 @@ function Dashboard({
   }
 
   const validateEmailForm = () => {
-    const nextErrors: any = {};
+    const nextErrors: Record<string, string> = {};
     const trimmedEmail = (emailForm.email || '').trim();
     const emailChanged = Boolean(trimmedEmail) && trimmedEmail !== (accountEmail || '');
 
@@ -1687,7 +1687,7 @@ function Dashboard({
 
     setEmailErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToastMessage(Object.values(nextErrors)[0] as any);
+      setToastMessage(Object.values(nextErrors)[0]);
       setToastType('error');
       scheduleToastClear(6000);
       return null;
@@ -1723,7 +1723,7 @@ function Dashboard({
           setToastMessage(data?.message || 'Unable to update email.');
           setToastType('error');
           const m = String(data?.message || '').toLowerCase();
-          const next: any = {};
+          const next: Record<string, string | boolean> = {};
           if (m.includes('email')) next.email = true;
           if (m.includes('current password')) next.currentPassword = true;
           setEmailErrors(next);
@@ -1745,7 +1745,7 @@ function Dashboard({
   }
 
   const validateUsernameForm = () => {
-    const nextErrors: any = {};
+    const nextErrors: Record<string, string> = {};
     const trimmedUsername = (usernameForm.newUsername || '').trim();
     if (!trimmedUsername || trimmedUsername === (loggedInUser || '')) {
       nextErrors.newUsername = 'Enter a new username to update.';
@@ -1759,7 +1759,7 @@ function Dashboard({
 
     setUsernameErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToastMessage(Object.values(nextErrors)[0] as any);
+      setToastMessage(Object.values(nextErrors)[0]);
       setToastType('error');
       scheduleToastClear(6000);
       return null;
@@ -1795,7 +1795,7 @@ function Dashboard({
           setToastMessage(data?.message || 'Unable to update username.');
           setToastType('error');
           const m = String(data?.message || '').toLowerCase();
-          const next: any = {};
+          const next: Record<string, string | boolean> = {};
           if (m.includes('username')) next.newUsername = true;
           if (m.includes('password')) next.currentPassword = true;
           setUsernameErrors(next);
@@ -1815,7 +1815,7 @@ function Dashboard({
   }
 
   const validatePasswordForm = () => {
-    const nextErrors: any = {};
+    const nextErrors: Record<string, string> = {};
     const passwordChanged = Boolean(passwordForm.newPassword);
 
     if (!passwordChanged) {
@@ -1836,7 +1836,7 @@ function Dashboard({
 
     setPasswordErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToastMessage(Object.values(nextErrors)[0] as any);
+      setToastMessage(Object.values(nextErrors)[0]);
       setToastType('error');
       scheduleToastClear(6000);
       return null;
@@ -1876,7 +1876,7 @@ function Dashboard({
           setToastMessage(data?.message || 'Unable to update password.');
           setToastType('error');
           const m = String(data?.message || '').toLowerCase();
-          const next: any = {};
+          const next: Record<string, string | boolean> = {};
           if (m.includes('current password')) next.currentPassword = true;
           if (m.includes('password')) next.newPassword = true;
           if (m.includes('match')) next.confirmPassword = true;

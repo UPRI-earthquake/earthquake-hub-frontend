@@ -1,7 +1,7 @@
 
 
 
-import React, { createContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useMemo } from "react";
 import { formatCoordinate, formatDepth, formatEventTimePh, formatEventTimeUtc, formatMagnitudeValue } from "@/shared/utils/earthquakeFormat";
 import { normalizeList } from "@/shared/utils/normalizeList";
 import { useRemoteGetEartquakeInfo } from "../data/earthquake";
@@ -20,16 +20,27 @@ interface EarthquakeInfoContextType {
     formattedUpdatedTime: string | null;
     formattedUpdatedTimeUtc: string | null;
   };
-  debugInfo: any;
+  debugInfo: {
+    hasEarthquakeInfo: boolean;
+    earthquakeKeys: string[];
+    onlineStations: string[];
+    stationsForDisplay: string[];
+    onlineStationsLength: number;
+    stationsForDisplayLength: number;
+    candidateStations: string[];
+    recordingStations: string[];
+    recordingAvailabilityStatus: EarthquakeRecordingAvailabilityStatus;
+    stationListSource: "verified" | "candidate";
+  };
   status: {
     isFetching: boolean;
-    fetchError: any;
+    fetchError: unknown;
     isRecordingAvailabilityPending: boolean;
     recordingAvailabilityStatus: EarthquakeRecordingAvailabilityStatus;
   };
   stations: {
     source: "verified" | "candidate";
-    list: any[]
+    list: string[]
   };
   reload: () => void;
 }
@@ -114,7 +125,7 @@ export function EarthquakeInfoProvider({ eventPublicId, children }: EarthquakeIn
     return magText;
   }, [earthquakeInfo, magnitude]);
 
-  const debugInfo = useMemo(() => ({
+  const debugInfo = useMemo<EarthquakeInfoContextType["debugInfo"]>(() => ({
       hasEarthquakeInfo: Boolean(earthquakeInfo),
       earthquakeKeys: earthquakeInfo ? Object.keys(earthquakeInfo) : [],
       onlineStations: stationsForDisplay,

@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, createContext, useEffect, useState } from "react";
 import { EarthquakesDataFilter, EarthquakeShortInfo } from "../types/earthquake";
 import useMapView from "../hooks/useMapView";
 import { useQuery } from "@tanstack/react-query";
@@ -35,12 +35,13 @@ export function EarthquakesProvider({ children }: { children: React.ReactNode}) 
     enabled: false   // do not automatically run, must be triggered via `fetchEarthquakes`
   });
 
-  useEffect(() => earthquakesDataHandler.setStatus({ isPending: fetchEarthquakesQuery.isFetching }), [ fetchEarthquakesQuery.isFetching ]);
-  useEffect(() => earthquakesDataHandler.setStatus({ isLoading: fetchEarthquakesQuery.isLoading }), [ fetchEarthquakesQuery.isLoading ]);
+  useEffect(() => earthquakesDataHandler.setStatus({ isPending: fetchEarthquakesQuery.isFetching }), [earthquakesDataHandler, fetchEarthquakesQuery.isFetching]);
+  useEffect(() => earthquakesDataHandler.setStatus({ isLoading: fetchEarthquakesQuery.isLoading }), [earthquakesDataHandler, fetchEarthquakesQuery.isLoading]);
 
-  const fetchEarthquakes = () => {
-    fetchEarthquakesQuery.refetch();
-  };
+  const { refetch } = fetchEarthquakesQuery;
+  const fetchEarthquakes = useCallback(() => {
+    refetch();
+  }, [refetch]);
   
   
   // Connect and listen to events from EarthquakesDataHandler
@@ -77,7 +78,7 @@ export function EarthquakesProvider({ children }: { children: React.ReactNode}) 
       earthquakesDataHandler.removeEventListener("update-status", onUpdateStatusListener);
       earthquakesDataHandler.removeEventListener("update-filters", onUpdateFiltersListener);
     });
-  }, []);
+  }, [earthquakesDataHandler]);
 
 
   const updateFilters = (filters, triggerFetch = true) => {

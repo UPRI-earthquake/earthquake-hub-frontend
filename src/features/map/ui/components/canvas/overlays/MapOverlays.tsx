@@ -1,6 +1,5 @@
 import EarthquakesLayer from "./layers/EarthquakesLayer";
 import FaultLinesLayer from "./layers/FaultLinesLayer";
-import PARBoundaryLayer from "./layers/PARBoundaryLayer";
 import PlateBoundariesLayer from "./layers/PlateBoundariesLayer";
 import StationsLayer from "./layers/StationsLayer";
 

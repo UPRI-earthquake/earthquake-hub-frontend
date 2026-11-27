@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import useDevice from "@/shared/hooks/useDevice";
 import MapCanvas from "./canvas/MapCanvas";
 import FloatingPanels from "./floating/panels/FloatingPanels";
@@ -9,14 +9,14 @@ import useEarthquakes from "../../hooks/useEarthquakes";
 
 export default function MapView() {
   const { isMobileLandscape, isCompactPanels } = useDevice();
-  const [panelOpen, setPanelOpen] = useState(!isCompactPanels);
+  const [panelOpen] = useState(!isCompactPanels);
 
   const { fetchStations } = useStations();
   const { fetchEarthquakes } = useEarthquakes();
   useEffect(() => {
     fetchStations();
     fetchEarthquakes();
-  }, []);
+  }, [fetchStations, fetchEarthquakes]);
   
 
   return (<div

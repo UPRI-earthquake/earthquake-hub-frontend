@@ -77,7 +77,7 @@ function MapPanelsHeader({ panelOpen, activePanel, hidePanel, setActivePanel, se
   const handlePanelSelect = useCallback((panelKey) => {
     setActivePanel(panelKey);
     setPanelOpen(true);
-  }, []);
+  }, [setActivePanel, setPanelOpen]);
 
   return (<header
     className={`panelControls panelControlsFloating ${isMobileLandscape ? 'isLandscape' : ''}`}

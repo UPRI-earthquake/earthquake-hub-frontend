@@ -43,7 +43,7 @@ const OPTIONS = [
   { key: 'dark', label: 'Dark mode', Icon: MoonIcon },
 ];
 
-function ThemeToggle({ themeValue, size = 'regular' }: { themeValue?: any, size?: any }) {
+function ThemeToggle({ themeValue, size = 'regular' }: { themeValue?: ReturnType<typeof useTheme>, size?: "regular" | "compact" }) {
   const context = useTheme();
   const { theme, resolvedTheme, setTheme } = themeValue || context;
   const themeToggleDisabled = themeValue?.themeToggleDisabled ?? context.themeToggleDisabled;

@@ -14,7 +14,7 @@ interface EventMarkerPopupProps {
   lng: number;
   time: string;
   location: string;
-  eventData: any;
+  eventData: unknown;
 }
 
 function EventMarkerPopup({ publicID, depthKm, mag, lat, lng, time, location, eventData }: EventMarkerPopupProps) {

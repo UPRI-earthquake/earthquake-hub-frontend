@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useMap } from 'react-leaflet';
 import { filterEvents, eventDepth } from '../../../../../services/eventFilters';
 import EventMarkerItem from './EventMarkerItem';
-import { EarthquakeShortInfo } from '@/features/map/types/earthquake';
+import { EarthquakesDataFilter, EarthquakeShortInfo } from '@/features/map/types/earthquake';
 import useEarthquakes from '@/features/map/hooks/useEarthquakes';
 
 /**
@@ -11,7 +11,7 @@ import useEarthquakes from '@/features/map/hooks/useEarthquakes';
 interface EventMarkersProps {
   initEvents: EarthquakeShortInfo[];
   selectedEvent?: EarthquakeShortInfo;
-  filters?: any; 
+  filters?: EarthquakesDataFilter;
   sseEnabled?: boolean;
   datasetKey?: string;
   popupAutoPanPadding?: {

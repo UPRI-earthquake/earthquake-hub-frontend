@@ -15,7 +15,8 @@ import {
   useState,
 } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
-import { useDispatch, useSelector } from "react-redux";
+import type { Marker as LeafletMarker } from "leaflet";
+import { useStore } from "react-redux";
 
 
 export interface EarthquakePopupRef {
@@ -23,26 +24,32 @@ export interface EarthquakePopupRef {
 }
 
 
-const EarthquakePopup = forwardRef<
-  EarthquakePopupRef,
-  any
->(({}, ref) => {
-  const [ showPopup, setShowPopup ] = useState(false);
+const EarthquakePopup = forwardRef<EarthquakePopupRef>(function EarthquakePopup(_props, ref) {
   const [ earthquakePopup, setEarthquakePopup ] = useState<EarthquakeShortInfo>();
-
-
-  
   const popupAutoPanPadding = usePopupAutoPanPadding();
-    
   const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
     popupAutoPanPadding || DEFAULT_POPUP_AUTOPAN;
+  const map = useMap();
+  const store = useStore();
+  const popupParentRef = useRef<LeafletMarker>(null);
 
-  
-  const panTo = useCallback((position) => {
+  useEffect(() => {
+    if (earthquakePopup) popupParentRef.current?.openPopup();
+  }, [earthquakePopup]);
+
+  useEffect(() => {
+    if (!earthquakePopup) return;
+
+    const marker = popupParentRef.current;
+    const position = marker?.getLatLng();
+    if (!position) return;
+
     const popupHeight = 250;
     const popupWidth = 300;
 
-    setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      if (!marker.isPopupOpen()) return;
+
       map.panInside(position, {
         paddingTopLeft: [
           popupPaddingTopLeft[0] + popupWidth/2, 
@@ -53,33 +60,18 @@ const EarthquakePopup = forwardRef<
           popupPaddingBottomRight[1]
         ],
       });
-
     }, 200);
-  }, [popupPaddingTopLeft, popupPaddingBottomRight]);
 
-  const map = useMap();
-  const popupParentRef = useRef(null);
-  useEffect(() => {
-    if (showPopup && earthquakePopup && popupParentRef.current) {
-      popupParentRef.current.openPopup();
-      panTo([earthquakePopup.latitude_value, earthquakePopup.longitude_value]);
-    }
-  }, [showPopup, earthquakePopup, map ]);
+    return () => window.clearTimeout(timer);
+  }, [earthquakePopup, map, popupPaddingTopLeft, popupPaddingBottomRight]);
 
   useImperativeHandle(ref, () => ({
     open: (earthquake: EarthquakeShortInfo) => {
       setEarthquakePopup({ ...earthquake });
-      setShowPopup(true);
     }
   }), []);
 
-  const dispatch = useDispatch();
-  const selectedEvent = useSelector((state) => state);
-
-  
-  
-
-  return showPopup && earthquakePopup && (<Marker
+  return !!earthquakePopup ? (<Marker
     ref={popupParentRef}
     position={[earthquakePopup.latitude_value, earthquakePopup.longitude_value]}
     opacity={0}
@@ -92,7 +84,7 @@ const EarthquakePopup = forwardRef<
           // Do not emit scroll/select if this popup was opened programmatically from sidebar
           const bySidebar = typeof window !== 'undefined' && window["__openBySidebar"];
           if (!bySidebar) {
-            dispatch({ type: 'SELECT', payload: earthquakePopup.publicID });
+            store.dispatch({ type: 'SELECT', payload: earthquakePopup.publicID });
             try {
               const ev = new CustomEvent('selection:fromMarker', { detail: { id: earthquakePopup.publicID } });
               window.dispatchEvent(ev);
@@ -108,22 +100,16 @@ const EarthquakePopup = forwardRef<
         } catch (_) {}
       },
       popupclose: () => {
-        try {
-          // only deselect if this marker is currently selected
-          if (selectedEvent === earthquakePopup.publicID) {
-            dispatch({ type: 'DESELECT' });
-          }
-        } catch (_) {}
+        setEarthquakePopup((current) => current === earthquakePopup ? undefined : current);
+        if (store.getState() === earthquakePopup.publicID) {
+          store.dispatch({ type: 'DESELECT' });
+        }
       }
     }}>
-    <Popup 
-      autoPan={false}
-      // autoPanPaddingTopLeft={popupPaddingTopLeft as [number, number]}
-      // autoPanPaddingBottomRight={popupPaddingBottomRight as [number, number]}
-      >
+    <Popup autoPan={false}>
       <EarthquakePopupContent earthquake={earthquakePopup} />
     </Popup>
-  </Marker>);
+  </Marker>) : null;
 });
 
 function EarthquakePopupContent({ earthquake }: { earthquake: EarthquakeShortInfo }) {
@@ -137,7 +123,7 @@ function EarthquakePopupContent({ earthquake }: { earthquake: EarthquakeShortInf
   const lngText = useMemo(() => formatCoord(earthquake.longitude_value, 'E', 'W'), [earthquake.longitude_value]);
   
   
-  const locationLabel = useMemo(() => normalizeLocation(location), [location]);
+  const locationLabel = normalizeLocation(earthquake.place);
   const timestampText = useMemo(() => formatDateTime(earthquake.OT), [earthquake.OT]);
   const locationText = locationLabel || `${latText}, ${lngText}`;
   const showCoordRows = Boolean(locationLabel);
@@ -168,7 +154,7 @@ function EarthquakePopupContent({ earthquake }: { earthquake: EarthquakeShortInf
     } catch (_) {
       window.location.assign(url);
     }
-  }, [earthquake.publicID, earthquake]);
+  }, [earthquake]);
 
 
   return (<div className={styles.popupCard}>

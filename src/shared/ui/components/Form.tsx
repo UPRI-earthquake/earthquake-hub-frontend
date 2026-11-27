@@ -319,7 +319,7 @@ function SignInFields({ onSuccess, onForgotPassword }) {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<ToastType>('error');
   const [selectedRole, setSelectedRole] = useState('citizen');
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, string | boolean>>({});
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleForgotPassword = () => {
@@ -336,13 +336,13 @@ function SignInFields({ onSuccess, onForgotPassword }) {
       event.target.elements.identifier?.value.trim() || event.target.elements.username?.value.trim() || '';
     const password = event.target.elements.password.value || '';
     const role = event.target.elements.role.value;
-    const nextErrors: any = {};
+    const nextErrors: Record<string, string> = {};
     if (!identifier) nextErrors.identifier = 'Username or email is required';
     if (!password) nextErrors.password = 'Password is required';
     if (!role) nextErrors.role = 'Role is required';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToastMessage(Object.values(nextErrors)[0] as any);
+      setToastMessage(Object.values(nextErrors)[0]);
       setToastType('error');
       return null;
     }
@@ -380,7 +380,7 @@ function SignInFields({ onSuccess, onForgotPassword }) {
         setToastMessage(data.message);
         setToastType('error');
         const m = String(data?.message || '').toLowerCase();
-        const next: any = {};
+        const next: Record<string, string | boolean> = {};
         if (m.includes('role')) next.role = true;
         if (m.includes('password')) next.password = true;
         if (m.includes('username') || m.includes('email') || m.includes('credential')) next.identifier = true;
@@ -468,7 +468,7 @@ function SignUpFields({ onSuccess }) {
   const [toastType, setToastType] = useState<ToastType>('error');
 
   const [selectedRole, setSelectedRole] = useState('citizen');
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, string | boolean>>({});
   const [passwordVisibility, setPasswordVisibility] = useState({
     password: false,
     confirmPassword: false,
@@ -501,7 +501,7 @@ function SignUpFields({ onSuccess }) {
     const username = (event.target.elements.username.value || '').trim();
     const password = event.target.elements.password.value || '';
     const confirmPassword = event.target.elements.confirmPassword.value || '';
-    const nextErrors: any = {};
+    const nextErrors: Record<string, string> = {};
     if (!role) nextErrors.role = 'Role is required';
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) nextErrors.email = 'Enter a valid email address';
     const usernameIssue = describeUsernameIssue(username, 'Username');
@@ -517,7 +517,7 @@ function SignUpFields({ onSuccess }) {
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToastMessage(Object.values(nextErrors)[0] as any);
+      setToastMessage(Object.values(nextErrors)[0]);
       setToastType('error');
       return null;
     }
@@ -530,7 +530,15 @@ function SignUpFields({ onSuccess }) {
     const username = (form.elements.username.value || '').trim();
     const password = form.elements.password.value;
     const confirmPassword = form.elements.confirmPassword.value;
-    const requestPayload: any = {
+    const requestPayload: {
+      role: string;
+      email: string;
+      username: string;
+      password: string;
+      confirmPassword: string;
+      ringserverUrl?: string;
+      ringserverPort?: string;
+    } = {
       role,
       email,
       username,
@@ -563,7 +571,7 @@ function SignUpFields({ onSuccess }) {
         setToastMessage(data.message);
         setToastType('error');
         const m = String(data?.message || '').toLowerCase();
-        const next: any = {};
+        const next: Record<string, string | boolean> = {};
         if (m.includes('username')) next.username = true;
         if (m.includes('email')) next.email = true;
         if (m.includes('password')) next.password = true;

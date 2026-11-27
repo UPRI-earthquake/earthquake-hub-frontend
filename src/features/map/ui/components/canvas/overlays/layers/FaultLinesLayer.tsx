@@ -3,7 +3,7 @@ import RemoteGeoJSONOverlay from "../RemoteGeoJSONOverlay";
 import useMakeOnEachWith from "../../../../../hooks/useMakeOnEachWith";
 import { buildFaultTitle, buildFaultTooltip } from "../../../../../services/overlayTooltips";
 import { ATTRIBUTIONS } from "@/config/attribution";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback } from "react";
 
 import {
   faultsStyle,
@@ -12,6 +12,8 @@ import {
 import { DATASETS } from '@/config/datasets';
 import { useOverlayState } from "../../../../../hooks/useOverlayState";
 import useMapView from "../../../../../hooks/useMapView";
+
+const PHILIPPINES_BBOX = [116, 4.5, 127, 21.5];
 
 export default function FaultLinesLayer() {
   const map = useMap();
@@ -46,7 +48,7 @@ export default function FaultLinesLayer() {
         registerLayer('faults', layer);
       }
     },
-    [registerLayer],
+    [registerLayer, faultsRef],
   );
 
   return (<LayersControl.Overlay name="Fault Lines" checked>
@@ -56,7 +58,7 @@ export default function FaultLinesLayer() {
         style={faultsStyleFor}
         renderer={vectorRenderer}
         // Philippines bbox (lon/lat): 116..127E, 4.5..21.5N
-        filterBbox={[116, 4.5, 127, 21.5]}
+        filterBbox={PHILIPPINES_BBOX}
         lineOnly
         interactive
         onEachFeature={makeOnEachWith}

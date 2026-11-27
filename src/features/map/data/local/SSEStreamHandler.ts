@@ -1,6 +1,8 @@
+import { devlog } from "@/shared/utils/devlog";
 import { getAPIURL } from '@/shared/api';
 import StationsDataHandler from './StationsDataHandler';
 import EarthquakesDataHandler from './EarthquakesDataHandler';
+import type { StreamEarthquake } from '../../types/earthquake';
 
 const StreamEventNames = [ 
   'SC_EVENT',
@@ -10,14 +12,14 @@ const StreamEventNames = [
   'SC_DEVICE',
   'DEVICE_STATUS',
   'STATION_EVENT',
-  'SC_PICK' 
-];
+  'SC_PICK'
+] as const;
 
 interface DataHandlers { stations: StationsDataHandler, earthquakes: EarthquakesDataHandler }
 
 export default class SSEStreamHandler {
   
-  private eventSource: any = null;
+  private eventSource: EventSource | null = null;
   private isSSEStreamStopped: boolean = false;
 
   
@@ -53,23 +55,32 @@ export default class SSEStreamHandler {
     });
 
     for(const eventName of StreamEventNames) {
-      this.eventSource.addEventListener(eventName, (e) => this.processStationStreamMessage(eventName, JSON.parse(e.data)));
+      this.eventSource.addEventListener(eventName, (e: MessageEvent<string>) => this.processStationStreamMessage(eventName, JSON.parse(e.data)));
     }
   
   }
 
-  private processStationStreamMessage(eventName: typeof StreamEventNames[number], raw: any) {
-    console.log("[STREAM] Event received: ", eventName, { raw });
+  private processStationStreamMessage(eventName: typeof StreamEventNames[number], raw: unknown) {
+    devlog("[STREAM] Event received: ", eventName, { raw });
     switch(eventName) {
-      case "SC_PICK":
-        this.dataHandlers.stations.receivePickFromStream(raw.stationCode, raw.timestamp);
+      case "SC_PICK": {
+        const { stationCode, timestamp } = raw as { stationCode: string; timestamp: string };
+        this.dataHandlers.stations.receivePickFromStream(stationCode, timestamp);
         break;
+      }
       case "SC_EVENT":
-        this.dataHandlers.earthquakes.receiveEarthquakeFromStream(raw);
+        this.dataHandlers.earthquakes.receiveEarthquakeFromStream(raw as StreamEarthquake);
         break;
-      case "STATION_STATUS":
-        this.dataHandlers.stations.receiveStationStatusFromStream(raw.station, raw.activity, raw.status, raw.statusSince);
+      case "STATION_STATUS": {
+        const { station, activity, status, statusSince } = raw as {
+          station: string;
+          activity: StationActivity;
+          status: StationStatus;
+          statusSince: string;
+        };
+        this.dataHandlers.stations.receiveStationStatusFromStream(station, activity, status, statusSince);
         break;
+      }
     }
   }
 
@@ -77,6 +88,6 @@ export default class SSEStreamHandler {
   destroy() {
     // Close SSE Stream
     this.isSSEStreamStopped = true;
-    this.eventSource.close();
+    this.eventSource?.close();
   }
 }

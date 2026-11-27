@@ -4,10 +4,10 @@ const ThemeContext = createContext({
   theme: null,
   resolvedTheme: 'light',
   systemTheme: 'light',
-  setTheme: (theme: any) => {},
+  setTheme: (_theme: unknown) => {},
   effectiveTheme: 'light',
   themeToggleDisabled: false,
-  setThemeToggleDisabled: (disabled: boolean) => {},
+  setThemeToggleDisabled: (_disabled: boolean) => {},
 });
 
 const STORAGE_KEY = 'earthquake-hub-theme';

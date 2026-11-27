@@ -1,11 +1,16 @@
 import { getFDSNWS } from "@/config/env";
 import { sendAPIRequestThrowsException } from "@/shared/api";
 
-export default async function downloadStationMetadata(network: string, stationCode: string, logDownload: (args: any) => void){
+export default async function downloadStationMetadata(network: string, stationCode: string, logDownload: (args: {
+  type: 'metadata';
+  format: 'xml';
+  status: 'fallback' | 'success' | 'error';
+  size_bytes?: number;
+}) => void){
   // Download station metadata (XML) from the configured FDSNWS only,
   // saving with a custom filename.
   try {
-    const resp = await sendAPIRequestThrowsException({
+    const resp = await sendAPIRequestThrowsException<never, BlobPart>({
       host: "fdsnws",
       path: "/station/1/query",
       params: {

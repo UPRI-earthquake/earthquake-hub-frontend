@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import styles from '../../../styles/floating/panels/SidePanelItem.module.css';
 import { useSelector, useDispatch } from 'react-redux';
@@ -83,7 +84,7 @@ export default function SidePanelItem({
     return () => {
       try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch (_) {}
     };
-  }, [status, last_modification]);
+  }, [last_modification]);
 
   // Auto-scroll is handled globally from Sidebar when selecting a marker.
 
@@ -103,7 +104,7 @@ export default function SidePanelItem({
         }
       }}
       ref={output}
-      style={pulseStyle as any}
+      style={pulseStyle as CSSProperties}
       data-publicid={publicID}
       data-selectid={publicID}
       title={isSelected ? 'Deselect earthquake' : 'Go to earthquake'}

@@ -24,7 +24,7 @@ export default function useRemoteGetProfile(enabled: boolean = true) {
     queryKey: [ "profile" ],
     enabled,
     queryFn: async () => {
-      const response = await sendAPIRequestFromReactQuery<any, RemoteGetProfileResponse>({ 
+      const response = await sendAPIRequestFromReactQuery<never, RemoteGetProfileResponse>({
         host: "backend",
         path: `/accounts/profile`
       });

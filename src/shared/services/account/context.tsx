@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import useRemoteGetProfile from './data';
 import { Profile } from './types';
 import axios from 'axios';

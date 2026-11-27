@@ -1,17 +1,18 @@
 import { useRemoteGetGeoJSON } from '@/features/map/data/remote/geojson';
-import { StyleFunction } from 'leaflet';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { Layer, PathOptions, StyleFunction } from 'leaflet';
+import type { Feature, FeatureCollection } from 'geojson';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { GeoJSON } from 'react-leaflet';
 
 interface RemoteGeoJSONOverlayProps {
   fetchPath: string;
-  style?: (() => any) | any;
+  style?: StyleFunction | PathOptions;
   filterBbox?: number[];
   lineOnly?: boolean;
   worldCopies?: boolean;
   interactive?: boolean;
-  onEachFeature?: (feature: any, layer: any) => void;
-  pane?: any;
+  onEachFeature?: (feature: Feature, layer: Layer) => void;
+  pane?: string;
   renderer: L.Canvas;
 }
 
@@ -36,8 +37,8 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
   const { data: fetchedData } = useRemoteGetGeoJSON(fetchPath);
   const gjRef = useRef(null);
 
-  const data = useMemo<any>(() => {
-    if(!fetchedData) return null;
+  const overlay = useMemo(() => {
+    if (!fetchedData) return null;
     let features = Array.isArray(fetchedData.features) ? fetchedData.features : [];
     if (filterBbox) features = features.filter((f) => featureInBbox(f, filterBbox));
     if (lineOnly)
@@ -60,8 +61,8 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
       features = [...left, ...features, ...right];
     }
 
-    return { type: 'FeatureCollection', features };
-  }, [fetchedData]);
+    return { key: Date.now(), data: { type: 'FeatureCollection', features } as FeatureCollection };
+  }, [fetchedData, filterBbox, lineOnly, worldCopies]);
 
   // Expose underlying Leaflet layer via ref (compat for v2/v3 forks)
   useImperativeHandle(ref, () => {
@@ -70,10 +71,9 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
     return inst.leafletElement || inst; // v2 uses leafletElement, v3 returns the Leaflet instance directly
   });
 
-  const isFn = typeof style === 'function';
-  const mergedStyle: StyleFunction<any> = isFn
+  const mergedStyle: StyleFunction = typeof style === 'function'
     ? (feat) => ({
-        ...(style ? style(feat) : {}),
+        ...style(feat),
         fill: false,
         fillOpacity: 0,
         interactive: Boolean(interactive),
@@ -88,7 +88,8 @@ const RemoteGeoJSONOverlay = forwardRef(function RemoteGeoJSONOverlay(
         className: 'remote-geojson-layer',
       });
 
-  const key = useMemo(() => Date.now(), [data]);
+  if (!overlay) return null;
+  const { key, data } = overlay;
 
   return (<GeoJSON
     key={key}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import moment from '@/shared/utils/time';
 import { calculateDistance } from '@/shared/utils/distanceCalculator';
@@ -35,7 +35,7 @@ export default function RelatedEventsSection({
   
   const { data: timelyEvents, isLoading: loading } = useRemoteGetRelatedEarthquakesInfo(startDate.format('YYYY-MM-DD HH:mm:ss'), endDate.format('YYYY-MM-DD HH:mm:ss'));
   
-  const currentMoment = moment.utc(currentTime);
+  const currentMoment = useMemo(() => moment.utc(currentTime), [currentTime]);
   const nearbyEvents = useMemo<RelatedEarthquakeEntry[]>(() => timelyEvents?.filter((event) => {
       if (event.publicID === currentPublicID) return false;
       const lat = event.latitude_value;
@@ -68,7 +68,7 @@ export default function RelatedEventsSection({
         return aTime - bTime;
       }
       return a.distance - b.distance;
-    }) || [], [ timelyEvents ]);
+    }) || [], [timelyEvents, currentLat, currentLon, currentMoment, currentPublicID, distanceThresholdKm, nearbyEventCount]);
 
 
   const formatMagnitude = (event) => {

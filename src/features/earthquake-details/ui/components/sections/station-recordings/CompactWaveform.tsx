@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { buildWaveformPaths, buildWaveformTimeTicks, formatAmplitudeLabel, getEventMarkerX, getStationTraceColor, toWaveformPercent } from "@/features/earthquake-details/services/recordings";
 import { useMemo } from "react";
 import { WAVEFORM_AXIS_LABELS, WAVEFORM_BASELINE_Y, WAVEFORM_MARKER_BOTTOM_Y, WAVEFORM_MARKER_TOP_Y, WAVEFORM_PLOT_BOTTOM, WAVEFORM_PLOT_LEFT, WAVEFORM_PLOT_RIGHT, WAVEFORM_PLOT_TOP, WAVEFORM_VIEW_HEIGHT, WAVEFORM_VIEW_WIDTH } from "@/features/earthquake-details/constants/recordings";
@@ -40,7 +41,7 @@ export default function CompactWaveform({ stationCode, stationIndex, channels, i
   return (
     <div
       className={styles.waveformPlot}
-      style={eventMarkerPercent ? { '--event-marker-left': eventMarkerPercent } as any : undefined}
+      style={eventMarkerPercent ? { '--event-marker-left': eventMarkerPercent } as CSSProperties : undefined}
     >
       <svg
         className={styles.compactWaveform}

@@ -19,18 +19,16 @@ export interface EarthquakesDataFilter {
   endDate?: string;
 }
 
-export namespace SSEPayload {
-  export interface Earthquake {
-    publicID: string,
-    OT: string,
-    depth_value: number,
-    eventType: string,
-    last_modification: string,
-    latitude_value: number,
-    longitude_value: number,
-    magnitude_value: number,
-    method: string,
-    place: string,
-    text: string
-  }
+export interface StreamEarthquake {
+  publicID: string,
+  OT: string,
+  depth_value: number,
+  eventType: string,
+  last_modification: string,
+  latitude_value: number,
+  longitude_value: number,
+  magnitude_value: number,
+  method: string,
+  place: string,
+  text: string
 }

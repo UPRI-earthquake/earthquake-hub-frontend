@@ -41,9 +41,9 @@ const Articles = ({ url }) => {
   }, [safeHref]);
 
   const CardTag = safeHref ? 'a' : 'div';
-  const cardProps: any = safeHref
+  const cardProps = safeHref
     ? { href: safeHref, target: '_blank', rel: 'noreferrer noopener' }
-    : { 'aria-disabled': 'true' };
+    : { 'aria-disabled': true as const };
 
   return (
     <CardTag className="article-card" {...cardProps}>

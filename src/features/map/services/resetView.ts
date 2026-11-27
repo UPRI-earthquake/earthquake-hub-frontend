@@ -1,9 +1,11 @@
+import type { FitBoundsOptions, LatLngBoundsLiteral, LatLngTuple, Map } from "leaflet";
+
 // Reusable helper to reset the map view to the Philippines bbox/center.
 // Also collapses UI panels, deselects current selection, and closes popups.
 
-export const PH_CENTER = [12.2795, 122.049];
+export const PH_CENTER: LatLngTuple = [12.2795, 122.049];
 export const PH_ZOOM = 6;
-export const PH_BOUNDS = [
+export const PH_BOUNDS: LatLngBoundsLiteral = [
   [4.5, 116],
   [21.5, 127],
 ];
@@ -27,7 +29,7 @@ function getHeaderOffsetPx() {
 /**
  * Reset the Leaflet map view to the Philippines center/zoom and clear UI state.
  */
-export function resetToPH(opts: { map?: any, dispatch?: Function, animate?: boolean, padding?: [number, number] } = {}) {
+export function resetToPH(opts: { map?: Map, dispatch?: (action: { type: "DESELECT" }) => void, animate?: boolean, padding?: [number, number] } = {}) {
   const { map: providedMap, dispatch, animate = true, padding = [20, 20] } = opts;
   let map = providedMap;
   try {
@@ -46,7 +48,7 @@ export function resetToPH(opts: { map?: any, dispatch?: Function, animate?: bool
     const padX = Array.isArray(padding) ? Number(padding[0]) || 0 : 0;
     const padY = Array.isArray(padding) ? Number(padding[1]) || 0 : 0;
     const headerOffset = getHeaderOffsetPx();
-    const fitOpts = {
+    const fitOpts: FitBoundsOptions = {
       paddingTopLeft: [padX, headerOffset + padY],
       paddingBottomRight: [padX, padY],
       maxZoom: PH_ZOOM,

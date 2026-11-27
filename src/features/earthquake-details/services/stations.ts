@@ -10,7 +10,7 @@ interface NearestRecordingStation {
   coordinates?: Coords;
 }
 
-export function getNearestRecordingStation(stationsForDisplay: Station[], allStations: Station[], earthquakeInfo: EarthquakeInfo, stationLocationsByCode: { [code: string]: Coords }): NearestRecordingStation {
+export function getNearestRecordingStation(stationsForDisplay: string[], allStations: Station[], earthquakeInfo: EarthquakeInfo, stationLocationsByCode: { [code: string]: Coords }): NearestRecordingStation {
   const stationCode = String(stationsForDisplay?.[0] || '').toUpperCase();
   const eventCoordinates = getEventCoordinates(earthquakeInfo);
   const resolveStationResult = (code, fallbackLabel) => {

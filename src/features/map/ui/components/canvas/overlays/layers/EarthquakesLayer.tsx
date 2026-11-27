@@ -1,11 +1,9 @@
-import { LayersControl, Marker } from "react-leaflet";
+import { LayersControl } from "react-leaflet";
 import RegisterableLayerGroup from "../RegisterableLayerGroup";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useRef } from "react";
 import { ATTRIBUTIONS } from "@/config/attribution";
 import usePopupAutoPanPadding from "../../../../../hooks/usePopupAutoPanPadding";
 import useEarthquakes from "../../../../../hooks/useEarthquakes";
-import { EarthquakeShortInfo } from "@/features/map/types/earthquake";
-import EventMarkerPopup from "../popups/EventMarkerPopup";
 import EarthquakePopup, { EarthquakePopupRef } from "../popups/EarthquakePopup";
 
 const EventMarkers = lazy(() => import('../markers/EventMarkers'));

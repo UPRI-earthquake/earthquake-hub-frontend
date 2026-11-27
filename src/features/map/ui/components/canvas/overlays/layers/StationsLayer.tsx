@@ -1,7 +1,6 @@
 import { LayersControl } from "react-leaflet";
 import { lazy, Suspense } from "react";
 
-import useStations from "../../../../../hooks/useStations";
 import RegisterableLayerGroup from "../RegisterableLayerGroup";
 import { ATTRIBUTIONS } from "@/config/attribution";
 

@@ -2,14 +2,13 @@ import L from "leaflet";
 import { createContext, useEffect, useMemo, useRef, useState } from "react";
 import StationsDataHandler from "../data/local/StationsDataHandler";
 import EarthquakesDataHandler from "../data/local/EarthquakesDataHandler";
-import { useEventsFeed } from "../hooks/useEventsFeed";
 import SSEStreamHandler from "../data/local/SSEStreamHandler";
 import { EarthquakesProvider } from "./EarthquakesContext";
 
 
 interface MapViewContextType {
-  activeBase: any;
-  setActiveBase: (base: any) => void;
+  activeBase: string;
+  setActiveBase: (base: string) => void;
   stationsDataHandler: StationsDataHandler;
   earthquakesDataHandler: EarthquakesDataHandler;
   vectorRenderer: L.Canvas;
@@ -33,12 +32,14 @@ export function MapViewProvider({ children }: { children: React.ReactNode}) {
 
 
   useEffect(() => {
-    earthquakesDataHandlerRef.current.reloadEarthquakes();
+    const earthquakeHandler = earthquakesDataHandlerRef.current;
+    const streamHandler = sseStreamHandlerRef.current;
+    earthquakeHandler.reloadEarthquakes();
     stationsDataHandlerRef.current.reloadStations();
 
     return () => {
-      sseStreamHandlerRef.current.destroy();
-      earthquakesDataHandlerRef.current.destroy();
+      streamHandler.destroy();
+      earthquakeHandler.destroy();
     };
   }, []);
   

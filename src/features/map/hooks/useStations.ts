@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useMapView from "./useMapView";
 import { filterAndSortStations } from "../services/stationFilters";
 import { useQuery } from "@tanstack/react-query";
@@ -35,12 +35,13 @@ export default function useStations(): UseStationsReturn {
     enabled: false   // do not automatically run, must be triggered via `fetchStations`
   });
 
-  useEffect(() => stationsDataHandler.setStatus({ isPending: fetchStationsQuery.isFetching }), [ fetchStationsQuery.isFetching ]);
-  useEffect(() => stationsDataHandler.setStatus({ isLoading: fetchStationsQuery.isLoading }), [ fetchStationsQuery.isLoading ]);
+  useEffect(() => stationsDataHandler.setStatus({ isPending: fetchStationsQuery.isFetching }), [stationsDataHandler, fetchStationsQuery.isFetching]);
+  useEffect(() => stationsDataHandler.setStatus({ isLoading: fetchStationsQuery.isLoading }), [stationsDataHandler, fetchStationsQuery.isLoading]);
 
-  const fetchStations = () => {
-    fetchStationsQuery.refetch();
-  };
+  const { refetch } = fetchStationsQuery;
+  const fetchStations = useCallback(() => {
+    refetch();
+  }, [refetch]);
   
   const counts = useMemo(
     () => ({
@@ -84,7 +85,7 @@ export default function useStations(): UseStationsReturn {
       stationsDataHandler.removeEventListener("general-update-status", onUpdateStatusListener);
       stationsDataHandler.removeEventListener("general-update-filters", onUpdateFiltersListener);
     });
-  }, []);
+  }, [stationsDataHandler]);
 
   // Update viewable stations when filters are updated
   const viewableStations = useMemo(() => {

@@ -1,3 +1,4 @@
+import type { APIResponseError } from "@/shared/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCommentImage, getCommentKey, resolveCommentImageUrl } from "../services/reports";
 import useEarthquakeInfo from "./useEarthquakeInfo";
@@ -11,8 +12,8 @@ interface UseReportsReturn {
   count: number;
   isLoading: boolean;
   hasMore: boolean;
-  error: any;
-  nextCursor: any;
+  error: unknown;
+  nextCursor: string;
   hasImageReports: boolean;
   loadMoreReports: () => void;
   reloadReports: () => void;
@@ -20,17 +21,17 @@ interface UseReportsReturn {
   toggleMarkCommentHelpful: (comment: EarthquakeReportComment, upvote: boolean) => void;
   isTogglingCommentVote: boolean;
   isToggleCommentVoteSuccess: boolean;
-  toggleCommentVoteError?: any;
+  toggleCommentVoteError?: APIResponseError;
 
   reportIssue: (commentKey: string, reason: string) => void;
   isReportingIssue: boolean;
   isReportIssueSuccess: boolean;
-  reportIssueError?: any;
+  reportIssueError?: APIResponseError;
 
   postReport: PostReportMethod;
   isPosting: boolean;
   isPostSuccess?: boolean;
-  postError?: any;
+  postError?: APIResponseError;
 }
 
 type PostReportMethod = (params: {
@@ -88,6 +89,7 @@ export default function useReports(): UseReportsReturn {
 
 
   const remotePostReport = useRemotePostReportComment();
+  const { mutate: submitReport, isSuccess: isPostSuccess, data: postedReport } = remotePostReport;
   const postReport: PostReportMethod = useCallback((params) => {
     const { postAnonymously = true, content, imageFile } = params;
     const formData = new FormData();
@@ -96,15 +98,15 @@ export default function useReports(): UseReportsReturn {
     formData.append('content', content);
     if(imageFile) formData.append('image', imageFile);
 
-    remotePostReport.mutate({ formData });
-  }, [eventId]);
+    submitReport({ formData });
+  }, [eventId, submitReport]);
 
   useEffect(() => {
-    if(!remotePostReport.isSuccess || !remotePostReport.data) return;
+    if(!isPostSuccess || !postedReport) return;
 
-    appendComments([ remotePostReport.data.payload ]);
+    appendComments([ postedReport.payload ]);
     setTotalCount(prevTotal => prevTotal + 1);
-  }, [remotePostReport.isSuccess]);
+  }, [isPostSuccess, postedReport]);
 
   const remoteToggleMarkCommentHelpful = useRemoteToggleMarkCommentHelpful();
   const toggleMarkCommentHelpful = (comment: EarthquakeReportComment, upvote: boolean) => {

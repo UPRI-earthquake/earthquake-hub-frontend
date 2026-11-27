@@ -7,7 +7,7 @@ export default class RemoteEventsDataHandler {
     const startTs = filters.startDate ? moment(filters.startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss') : '1900-01-01 00:00:00';
     const endTs = moment(filters.endDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
 
-    const response = await sendAPIRequestThrowsException({
+    const response = await sendAPIRequestThrowsException<never, { payload: EarthquakeShortInfo[] }>({
       host: "backend",
       path: "/eq-events",
       responseType: "json",

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiFlag, FiImage, FiSend, FiThumbsUp, FiX } from "react-icons/fi";
-import { REPORTS_INITIAL_VISIBLE_COUNT, REPORTS_VISIBLE_INCREMENT, REPORT_IMAGE_MAX_BYTES, REPORT_IMAGE_TYPES } from "../../../../constants/reports";
+import { REPORT_IMAGE_MAX_BYTES, REPORT_IMAGE_TYPES } from "../../../../constants/reports";
 import { getCommentAuthor, getCommentHelpfulCount, getCommentImage, getCommentKey, getCommentText, getViewerHasMarkedHelpful, resolveCommentImageUrl } from "../../../../services/reports";
 import ReportAttachment from "./ReportAttachment";
 import ReportAuthorAvatar from "./ReportAuthorAvatar";
@@ -19,7 +19,7 @@ const REPORT_ISSUE_REASONS = [
 ];
 
 interface ReportsSectionProps {
-  onAttachmentPreview: (attachment: any) => void;
+  onAttachmentPreview: (attachment: { src: string; alt: string }) => void;
 }
 
 export default function ReportSection({ onAttachmentPreview }: ReportsSectionProps) {
@@ -55,14 +55,13 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [postAnonymously, setPostAnonymously] = useState(true);
   const [displayedPostError, setDisplayedPostError] = useState<string>();
-  useEffect(() => setDisplayedPostError(postError ? (postError?.response?.data?.message || postError?.message || 'Failed to post report.') : ''), [postError]);
+  useEffect(() => setDisplayedPostError(postError ? (postError.message || 'Failed to post report.') : ''), [postError]);
   const [expandedComments, setExpandedComments] = useState({});
   const [reportActionMessage, setReportActionMessage] = useState('');
   const [pendingHelpfulCommentId, setPendingHelpfulCommentId] = useState('');
   const [issueMenuCommentId, setIssueMenuCommentId] = useState('');
   const [pendingIssueCommentId, setPendingIssueCommentId] = useState('');
   const [reportedIssueReasons, setReportedIssueReasons] = useState({});
-  const [visibleReportLimit, setVisibleReportLimit] = useState(REPORTS_INITIAL_VISIBLE_COUNT);
   const triggerButtonRef = useRef(null);
   const textareaRef = useRef(null);
   const canPostWithAccount = isLoggedIn;
@@ -70,21 +69,20 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
   const reportedTotalCount = Math.max(Number(totalCount) || 0, comments.length);
   const canShowMoreReports = hasMore;
 
-  useEffect(() => {
-    if(!isPostSuccess) return;
-
-    setIsModalOpen(false);
-    resetForm();
-    triggerButtonRef.current?.focus();
-  }, [isPostSuccess]);
-
-
   const resetForm = useCallback(() => {
     setReportText('');
     setImageFile(null);
     setImagePreviewUrl('');
     setPostAnonymously(true);
   }, []);
+
+  useEffect(() => {
+    if(!isPostSuccess) return;
+
+    setIsModalOpen(false);
+    resetForm();
+    triggerButtonRef.current?.focus();
+  }, [isPostSuccess, resetForm]);
 
   useEffect(() => {
     if (!imageFile) {
@@ -143,12 +141,12 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
     }));
   }, []);
 
-  const promptSignInForReportAction = () => {
+  const promptSignInForReportAction = useCallback(() => {
     setReportActionMessage('Sign in to mark reports as helpful or report an issue.');
-  };
+  }, []);
 
 
-  const handleToggleHelpful = useCallback(async (comment) => {
+  const handleToggleHelpful = (comment) => {
     const commentKey = getCommentKey(comment);
     if (!commentKey || pendingHelpfulCommentId) return;
 
@@ -163,14 +161,14 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
     setPendingHelpfulCommentId(commentKey);
 
     toggleMarkCommentHelpful(comment, !wasMarkedHelpful);
-  }, [canPostWithAccount]);
+  };
   
   useEffect(() => {
     if(!(isToggleCommentVoteSuccess || !!toggleCommentVoteError)) return;
 
     setPendingHelpfulCommentId('');
     reloadReports();
-  }, [isToggleCommentVoteSuccess, toggleCommentVoteError]);
+  }, [isToggleCommentVoteSuccess, toggleCommentVoteError, reloadReports]);
 
   const handleOpenIssueMenu = useCallback((commentKey) => {
     if (!commentKey) return;
@@ -200,6 +198,7 @@ export default function ReportSection({ onAttachmentPreview }: ReportsSectionPro
     canPostWithAccount,
     pendingIssueCommentId,
     promptSignInForReportAction,
+    reportIssue,
   ]);
 
   useEffect(() => {

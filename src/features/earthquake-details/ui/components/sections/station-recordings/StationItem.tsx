@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { DEFAULT_WAVEFORM_CHANNELS } from "@/features/earthquake-details/constants/recordings";
 import { buildStationFdsnDownloads, fetchAndDownload, formatChannelLabel, getPreferredChannelCode } from "@/features/earthquake-details/services/recordings";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -85,7 +86,7 @@ function StationChannelControl({ stationCode, channels, selectedChannel, onChang
           aria-label={`Waveform channel for ${stationCode}`}
           value={selectedChannel}
           onChange={(event) => onChange(event.target.value)}
-          style={{ '--channel-label-width': `${Math.max(formatChannelLabel(selectedChannel).length, 3)}ch` } as any}
+          style={{ '--channel-label-width': `${Math.max(formatChannelLabel(selectedChannel).length, 3)}ch` } as CSSProperties}
         >
           {channelOptions.map((channelCode) => (
             <option

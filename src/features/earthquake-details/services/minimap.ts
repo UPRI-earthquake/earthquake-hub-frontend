@@ -1,10 +1,11 @@
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { toFiniteNumber } from "@/shared/utils/earthquakeFormat";
 import { EPICENTER_MINI_MAP_ZOOM, MINI_MAP_DISTANCE_MAX_ZOOM, MINI_MAP_DISTANCE_MIN_ZOOM, MINI_MAP_HEIGHT, MINI_MAP_TILE_SIZE, MINI_MAP_TILE_URL, MINI_MAP_WIDTH, MINI_MAP_ZOOM } from "../constants/minimap";
 
 
-export function useMiniMapDimensions(): [ React.Dispatch<any>, Dimensions] {
-  const [node, setNode] = useState(null);
+export function useMiniMapDimensions(): [ React.RefCallback<HTMLDivElement>, Dimensions] {
+  const [node, setNode] = useState<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({
     width: MINI_MAP_WIDTH,
     height: MINI_MAP_HEIGHT,
@@ -103,7 +104,7 @@ export function getMagnitudeMarkerScale(magnitudeValue) {
 
 export function getMagnitudeMarkerStyle(magnitudeValue: number, point: PointLT | null = null) {
   const markerScale = getMagnitudeMarkerScale(magnitudeValue);
-  const style = { '--metric-epicenter-scale': markerScale } as any;
+  const style = { '--metric-epicenter-scale': markerScale } as CSSProperties;
   if (point) {
     style.left = `${point.left}px`;
     style.top = `${point.top}px`;

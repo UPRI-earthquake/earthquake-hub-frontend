@@ -1,3 +1,5 @@
+import type { PolylineOptions } from "leaflet";
+
 // Centralized, theme-aware map styling for overlays and markers
 // Theme keys: light | dark | satellite (imagery) | standard (alias of light)
 
@@ -248,7 +250,7 @@ export function buildThemeTokens({ theme, zoom, overlays }) {
 }
 
 // Leaflet style builders for GeoJSON layers
-export function faultsStyle({ theme, zoom, overlays }) {
+export function faultsStyle({ theme, zoom, overlays }): PolylineOptions {
   const t = buildThemeTokens({ theme, zoom, overlays }).faults;
   return {
     color: t.color,
@@ -261,7 +263,7 @@ export function faultsStyle({ theme, zoom, overlays }) {
   };
 }
 
-export function platesStyle({ theme, zoom }) {
+export function platesStyle({ theme, zoom }): PolylineOptions {
   const t = buildThemeTokens({ theme, zoom, overlays: null }).plates;
   return {
     color: t.color,
@@ -274,7 +276,7 @@ export function platesStyle({ theme, zoom }) {
   };
 }
 
-export function parStyle({ theme, zoom }) {
+export function parStyle({ theme, zoom }): PolylineOptions {
   const t = buildThemeTokens({ theme, zoom, overlays: null }).par;
   return {
     color: t.color,

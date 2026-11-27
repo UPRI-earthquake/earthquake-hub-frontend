@@ -1,6 +1,6 @@
 import { LayersControl, useMap } from "react-leaflet";
 import RemoteGeoJSONOverlay from "../RemoteGeoJSONOverlay";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback } from "react";
 
 import { DATASETS } from '@/config/datasets';
 
@@ -29,7 +29,7 @@ export default function PARBoundaryLayer() {
         registerLayer('par', layer);
       }
     },
-    [registerLayer],
+    [registerLayer, parRef],
   );
 
   const parStyleFor = useCallback(

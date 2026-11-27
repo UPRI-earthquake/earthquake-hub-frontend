@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { EarthquakeReportComment } from "../types/earthquake";
-import { sendAPIRequestFromReactQuery } from "@/shared/api";
+import { APIResponseError, sendAPIRequestFromReactQuery } from "@/shared/api";
 
 
 interface RemoteGetReportCommentsResponsePagination {
@@ -22,8 +22,8 @@ export function useRemoteGetReportComments(eventId?: string, cursor?: string) {
   return useQuery({
     enabled: !!eventId,
     queryKey: [ "report-comments", eventId, cursor ],
-    queryFn: async ({ }) => {
-      const response = await sendAPIRequestFromReactQuery<any, RemoteGetReportCommentsResponse>({ 
+    queryFn: async () => {
+      const response = await sendAPIRequestFromReactQuery<never, RemoteGetReportCommentsResponse>({
         host: "backend",
         path: `/comments/`,
         params: { eventId, cursor, limit: 10 }
@@ -38,9 +38,9 @@ export function useRemoteGetReportComments(eventId?: string, cursor?: string) {
 }
 
 export function useRemotePostReportComment() {
-  return useMutation<any, any, { formData: FormData }>({
+  return useMutation<{ payload: EarthquakeReportComment }, APIResponseError, { formData: FormData }>({
     mutationFn: ({ formData }) => {
-      return sendAPIRequestFromReactQuery<FormData>({
+      return sendAPIRequestFromReactQuery<FormData, { payload: EarthquakeReportComment }>({
         host: "backend",
         method: "POST",
         path: "/comments",
@@ -51,7 +51,7 @@ export function useRemotePostReportComment() {
 }
 
 export function useRemoteToggleMarkCommentHelpful() {
-  return useMutation<any, any, { commentKey: string, upvote: boolean }>({
+  return useMutation<unknown, APIResponseError, { commentKey: string, upvote: boolean }>({
     mutationFn: ({ commentKey, upvote }) => {
       return sendAPIRequestFromReactQuery<FormData>({
         host: "backend",
@@ -63,7 +63,7 @@ export function useRemoteToggleMarkCommentHelpful() {
 }
 
 export function useRemoteReportIssue() {
-  return useMutation<any, any, { commentKey: string, reason: string }>({
+  return useMutation<unknown, APIResponseError, { commentKey: string, reason: string }>({
     mutationFn: ({ commentKey, reason }) => {
       return sendAPIRequestFromReactQuery({
         host: "backend",

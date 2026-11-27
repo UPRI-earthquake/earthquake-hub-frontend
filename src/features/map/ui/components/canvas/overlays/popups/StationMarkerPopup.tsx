@@ -4,20 +4,18 @@ import InfoTooltip from "@/shared/ui/components/InfoTooltip";
 import moment from "@/shared/utils/time";
 import axios from "axios";
 import { normalizeDeviceActivity } from "@/shared/services/stations/deviceStatus";
-import usePopupAutoPanPadding from "../../../../../hooks/usePopupAutoPanPadding";
-import { DEFAULT_POPUP_AUTOPAN } from "@/config/popupAutoPan";
 import { trackEvent } from "@/analytics";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { getFDSNWS, ringserverWS } from "@/config/env";
 import downloadStationMetadata from "@/features/map/services/station";
 import { Station } from "@/features/map/types/station";
-import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from "@/features/map/services/mapStyles";
+import { themeFromMapContainer } from "@/features/map/services/mapStyles";
 import { STREAM_LINE_COLOR, STREAM_TITLE_COLOR } from "@/features/map/configs/contants";
 import { deverror, devlog } from "@/shared/utils/devlog";
 
 interface StationMarkerPopupProps {
   station: Station;
-  setMarkerTheme: (theme: any) => void;
+  setMarkerTheme: (theme: ReturnType<typeof themeFromMapContainer>) => void;
 }
 
 
@@ -26,6 +24,7 @@ export default function StationMarkerPopup({ station, setMarkerTheme }: StationM
   
 
   return (<Popup
+    key={`station-popup-${station.code}`}
     className={styles.popUp}
     autoPan
     // autoPanPaddingTopLeft={popupPaddingTopLeft}
@@ -38,7 +37,7 @@ export default function StationMarkerPopup({ station, setMarkerTheme }: StationM
 
 interface PopupContentProps {
   station: Station;
-  setMarkerTheme: (theme: any) => void;
+  setMarkerTheme: (theme: ReturnType<typeof themeFromMapContainer>) => void;
 }
 
 function PopupContent({ station, setMarkerTheme }: PopupContentProps) {
@@ -53,31 +52,11 @@ function PopupContent({ station, setMarkerTheme }: PopupContentProps) {
   const map = useMap();
   const graphListRef = useRef(new Map());
   const redrawInProgressRef = useRef(false);
-  const datalinkRef = useRef(null);
-  const connected = useRef(false); // flag used in connectDataLinkWS(), ws is not connected by default
-
-  const demoTimerRef = useRef(null);
-  const demoPlaybackRef = useRef({ plot: null, sdd: null, alignStart: null, alignEnd: null });
-  const ringserver_ws = ringserverWS();
-
-
-  useEffect(() => {
-    stopDemoMseed();
-    ensureSeis().then(() => {
-      initDatalink();
-      startGraph(station.network, station.code);
-    });
-  
-    return () => stopDemoMseed();
-  }, []);
+  const ringserverUrl = ringserverWS();
 
   const markerDesc = String(station.description || '').trim();
   
   const { network, code, status, activity, statusSince } = station;
-  const popupAutoPanPadding = usePopupAutoPanPadding();
-
-  const { topLeft: popupPaddingTopLeft, bottomRight: popupPaddingBottomRight } =
-      popupAutoPanPadding || DEFAULT_POPUP_AUTOPAN;
 
   
   const FDSNWS = getFDSNWS();
@@ -249,20 +228,20 @@ function PopupContent({ station, setMarkerTheme }: PopupContentProps) {
 
 
 
-  const packetHandler = function (packet) {
+  const handlePacket = useCallback((packet) => {
     const sp = spRef.current;
     if (!sp) return;
     if (packet.isMiniseed()) {
-      let seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed()); // Create a SeismogramSegment from the packet
-      let codes = seisSegment.codes(); // Get the codes (stream ID) of the SeismogramSegment
+      const seisSegment = sp.miniseed.createSeismogramSegment(packet.asMiniseed()); // Create a SeismogramSegment from the packet
+      const codes = seisSegment.codes(); // Get the codes (stream ID) of the SeismogramSegment
       let seisPlot = graphListRef.current.get(codes); // Retrieve the corresponding graph for the codes from the graphListRef
 
       if (!seisPlot) {
         // If the graph doesn't exist
         // seisPlotConfig.title = codes; // Set the title of the graph based on the stream_id
 
-        let seismogram = new sp.seismogram.Seismogram([seisSegment]); // Create a Seismogram with the SeismogramSegment
-        let seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seismogram); // Create SeismogramDisplayData from the Seismogram
+        const seismogram = new sp.seismogram.Seismogram([seisSegment]); // Create a Seismogram with the SeismogramSegment
+        const seisData = sp.seismogram.SeismogramDisplayData.fromSeismogram(seismogram); // Create SeismogramDisplayData from the Seismogram
         seisData.alignmentTime = sp.luxon.DateTime.utc(); // Set the alignment time to current UTC time
 
         const seisPlotConfig = seisPlotConfigRef.current;
@@ -280,30 +259,9 @@ function PopupContent({ station, setMarkerTheme }: PopupContentProps) {
     } else {
       devlog(`not a mseed packet: ${packet.streamId}`);
     }
-  };
+  }, [applySeismographTheme]);
 
-  const errorFn = function (_error) {
-    if (datalinkRef.current) {
-      datalinkRef.current.close();
-    } // Close the WebSocket connection
-  };
-
-  /***************************************************************************
-   * new DataLinkConnection:
-   *     A WebSocket based Datalink connection
-   * Parameters:
-   *     url            (string)                                    WebSocket URL to the ringserver
-   *     packetHandler  (function (packet: DataLinkPacket): void)   callback for packets as they arrive
-   *     errorHandler   (function (error: Error): void)             callback for errors
-   *
-   ***************************************************************************/
-  const initDatalink = () => {
-    const sp = spRef.current;
-    if (!sp) return;
-    datalinkRef.current = new sp.datalink.DataLinkConnection(ringserver_ws, packetHandler, errorFn);
-  };
-
-  const drawGraph = function () {
+  const drawGraph = useCallback(() => {
     if (redrawInProgressRef.current) return; // Skip if redraw is already in progress
     redrawInProgressRef.current = true; // Mark redraw as in progress
     window.requestAnimationFrame(() => {
@@ -319,80 +277,61 @@ function PopupContent({ station, setMarkerTheme }: PopupContentProps) {
       });
       redrawInProgressRef.current = false; // Mark redraw as complete
     });
-  };
+  }, []);
 
-  const connectDataLinkWS = async function (network, station) {
-    if (!connected.current && datalinkRef.current) {
-      // start connection
-      try {
-        const matchPattern = `${network}_${station}_([0-9]{2})?_.HZ/MSEED`;
+  useEffect(() => {
+    const graphContainer = realtimeDivRef.current;
+    const graphs = graphListRef.current;
+    let cancelled = false;
+    let connection: InstanceType<typeof import('seisplotjs')['datalink']['DataLinkConnection']>;
+    let redrawTimer: number | undefined;
 
-        devlog('Connecting to datalink via WebSocket');
-        await datalinkRef.current.connect(); // Create WebSocket connection and send the client ID
-        connected.current = true;
-        const matchResponse = await datalinkRef.current.match(matchPattern); // Send match command
-        if (matchResponse.isError()) {
-          devlog(`response is not OK, ignore... ${matchResponse}`);
-        }
+    const startStream = async () => {
+      const sp = await ensureSeis();
+      if (cancelled || !graphContainer) return;
 
-        const positionResponse = await datalinkRef.current.positionAfter(timeWindowRef.current.start); // Send position after match command
-        if (positionResponse.isError()) {
-          devlog(`Oops, positionAfter response is not OK, ignore... ${positionResponse}`);
-        }
+      connection = new sp.datalink.DataLinkConnection(
+        ringserverUrl,
+        (packet) => {
+          if (!cancelled) handlePacket(packet);
+        },
+        () => connection?.close(),
+      );
 
-        await datalinkRef.current.stream(); // Switch to streaming mode to receive data packets from the ringserver
-        // NOTE: This part blocks while streaming,
-        // until endStream() is called
-      } catch (e) {
-        deverror('Error occurred while connecting to WebSocket');
-      }
-    }
-  };
+      const config = seisPlotConfigRef.current;
+      const plotWidth = graphContainer.offsetWidth - config.margin.left - config.margin.right;
+      const redrawInterval = durationRef.current.toMillis() / Math.max(1, plotWidth);
+      redrawTimer = window.setInterval(drawGraph, redrawInterval);
 
-  const disconnectDataLinkWS = async () => {
-    try {
-      if (connected.current && datalinkRef.current) {
-        // close connection
-        devlog('Disconnecting datalink WebSocket');
-        await datalinkRef.current.endStream();
-        await datalinkRef.current.close();
+      devlog('Connecting to datalink via WebSocket');
+      await connection.connect();
+      if (cancelled) return;
 
-        connected.current = false;
-      }
-    } catch (e) {
-      deverror('Error occurred while closing WebSocket');
-    }
-  };
+      const matchPattern = `${network}_${code}_([0-9]{2})?_.HZ/MSEED`;
+      const matchResponse = await connection.match(matchPattern);
+      if (cancelled) return;
+      if (matchResponse.isError()) devlog(`response is not OK, ignore... ${matchResponse}`);
 
-  const startGraph = function (network, station) {
-    if (!seisPlotConfigRef.current || !durationRef.current) return;
-    const seisPlotConfig = seisPlotConfigRef.current;
-    const timerInterval =
-      durationRef.current.toMillis() /
-      (realtimeDivRef.current.offsetWidth -
-        seisPlotConfig.margin.left -
-        seisPlotConfig.margin.right);
-    //The offsetWidth property returns the viewable width of an element (in pixels)
-    // You can think of the timerInterval as the number of data seconds per pixel
-    // Meaning the interval refreshes whenever a pixel-length amount of data is
-    // available.
+      const positionResponse = await connection.positionAfter(timeWindowRef.current.start);
+      if (cancelled) return;
+      if (positionResponse.isError()) devlog(`Oops, positionAfter response is not OK, ignore... ${positionResponse}`);
 
-    window.setInterval(drawGraph, timerInterval);
-    connectDataLinkWS(network, station);
-  };
-  /* End of graph data from DataLink WebSocket */
+      await connection.stream();
+    };
 
-  const stopDemoMseed = () => {
-    try { clearInterval(demoTimerRef.current); } catch (_) {}
-    demoTimerRef.current = null;
-    const { plot } = demoPlaybackRef.current || {};
-    if (plot && plot.remove && plot.parentNode) {
-      try { plot.parentNode.removeChild(plot); } catch (_) {}
-    }
-    demoPlaybackRef.current = { plot: null, sdd: null, alignStart: null, alignEnd: null };
-  };
+    startStream().catch((error) => {
+      if (!cancelled) deverror('Error occurred while connecting to WebSocket', error);
+    });
 
-  
+    return () => {
+      cancelled = true;
+      window.clearInterval(redrawTimer);
+      connection?.close();
+      graphs.forEach((graph) => graph.remove());
+      graphs.clear();
+    };
+  }, [code, network, ringserverUrl, ensureSeis, handlePacket, drawGraph]);
+
   // Re-apply seismograph theme on basemap theme changes while popup remains open
   useEffect(() => {
     if (!map) return undefined;
@@ -426,7 +365,7 @@ function PopupContent({ station, setMarkerTheme }: PopupContentProps) {
       try { map.off('baselayerchange', retheme); } catch (_) {}
       try { mo && mo.disconnect(); } catch (_) {}
     };
-  }, [map, applySeismographTheme]);
+  }, [map, applySeismographTheme, setMarkerTheme]);
 
 
   return (<div className={styles.popUpBody}>

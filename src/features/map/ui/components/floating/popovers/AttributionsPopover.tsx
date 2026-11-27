@@ -22,7 +22,10 @@ export default function AttributionsPopover({ position = 'bottomright' }: Attrib
 
   useEffect(() => {
     if (!map || !map.attributionControl) return undefined;
-    const ctrl: any = map.attributionControl;
+    const ctrl = map.attributionControl as L.Control.Attribution & {
+      _container?: HTMLElement;
+      _update?: () => void;
+    };
     ctrl.setPrefix(false);
 
     const hiddenEl = ctrl._container; // Leaflet internal control element

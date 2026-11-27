@@ -1,3 +1,4 @@
+import { APIResponseError } from "@/shared/api";
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import ErrorScreen from '@/shared/ui/components/ErrorScreen';
 import '../styles/EarthquakeDetailsView.css';
@@ -38,7 +39,6 @@ export default function EarthquakeDetailsView() {
       source: stationListSource,
       list: stationsForDisplay 
     },
-    reload
   } = useEarthquakeInfo();
 
   const [isEventTransitioning, setIsEventTransitioning] = useState(false);
@@ -112,14 +112,14 @@ export default function EarthquakeDetailsView() {
   }, [earthquakeLabel]);
 
   // Show loading screen while fetching only when there is no event data to render yet.
-  if (!earthquakeInfo && isFetching) return <EarthquakeDetailSkeleton onRetry={reload} />;
+  if (!earthquakeInfo && isFetching) return <EarthquakeDetailSkeleton />;
 
   // Show error screen if fetch failed
   if (!earthquakeInfo && fetchError)
     return (<div className={`eqinfo-shell ${isEventTransitioning ? 'eqinfo-shell-transitioning' : ''}`}>
           <ErrorScreen
             title="Unable to Load Earthquake"
-            message={fetchError}
+            message={fetchError instanceof APIResponseError ? fetchError.message : undefined}
             actionLabel="Back to Events"
             onAction={() => window.history.back()}
           />
@@ -230,8 +230,8 @@ export default function EarthquakeDetailsView() {
 
 
 
-function useNearViewport(rootMargin = '600px'): [React.Dispatch<any>, boolean] {
-  const [targetNode, setTargetNode] = useState(null);
+function useNearViewport(rootMargin = '600px'): [React.RefCallback<HTMLDivElement>, boolean] {
+  const [targetNode, setTargetNode] = useState<HTMLDivElement>(null);
   const [isNearViewport, setIsNearViewport] = useState(false);
 
   useEffect(() => {

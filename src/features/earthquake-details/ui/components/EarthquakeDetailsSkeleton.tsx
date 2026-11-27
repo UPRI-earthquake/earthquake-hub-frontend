@@ -1,5 +1,5 @@
 
-export default function EarthquakeDetailSkeleton({ onRetry }) {
+export default function EarthquakeDetailSkeleton() {
   return (
     <>
       <div className="eqinfo-shell eqinfo-skeleton-page" role="status" aria-live="polite" aria-busy="true">

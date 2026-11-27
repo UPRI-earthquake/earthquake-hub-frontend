@@ -1,7 +1,7 @@
 import { LayersControl, useMap } from "react-leaflet";
 import RemoteGeoJSONOverlay from "../RemoteGeoJSONOverlay";
 import useMakeOnEachWith from "../../../../../hooks/useMakeOnEachWith";
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
 import { DATASETS } from '@/config/datasets';
 
@@ -31,7 +31,7 @@ export default function PlateBoundariesLayer() {
         registerLayer('plates', layer);
       }
     },
-    [registerLayer],
+    [registerLayer, platesRef],
   );
 
   const platesStyleFor = useCallback(

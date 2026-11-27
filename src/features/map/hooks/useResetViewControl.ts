@@ -47,7 +47,7 @@ export default function useResetViewControl({ position = 'topleft', padding = [2
         L.DomEvent.stop(e);
         doReset();
       });
-      L.DomEvent.on(btn, 'keydown', (e: any) => {
+      L.DomEvent.on(btn, 'keydown', (e: KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           L.DomEvent.stop(e);
           doReset();

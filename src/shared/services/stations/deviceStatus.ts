@@ -4,7 +4,7 @@ const normalize = (value) => String(value || '').trim().toLowerCase();
  * Normalizes activity/status strings into canonical device activity values.
  * Canonical values: 'active' | 'inactive' | 'unlinked' | '' (unknown/empty).
  */
-export function normalizeDeviceActivity(value: StationActivity | StationStatus): StationActivityCanonical {
+export function normalizeDeviceActivity(value: string): StationActivityCanonical {
   const v: StationActivity = normalize(value) as StationActivity;
   if (!v) return '';
   if (v === 'active' || v === 'streaming' || v === 'online') return 'active';
@@ -21,7 +21,7 @@ export const toMarkerActivity = (value: StationActivity) => (isStreamingActivity
 
 export const toPublicOnlineLabel = (value: StationActivity) => (isStreamingActivity(value) ? 'Online' : 'Offline');
 
-export const toDashboardStatusLabel = ({ activity, status }: { activity?: StationActivity, status?: any } = {}) => {
+export const toDashboardStatusLabel = ({ activity, status }: { activity?: StationActivity, status?: string } = {}) => {
   const norm = normalizeDeviceActivity(activity || status);
   if (norm === 'unlinked') return 'Unlinked';
   if (norm === 'active') return 'Streaming';

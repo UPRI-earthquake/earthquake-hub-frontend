@@ -39,7 +39,7 @@ export function OverlayStateProvider({ children }) {
   const readyRef = useRef(false);
 
   const { activeBase, setActiveBase } = useMapView();
-  const baseLayerRefs = useRef<any>({});
+  const baseLayerRefs = useRef<Record<string, L.TileLayer & { _url?: string }>>({});
   const basemapThemeRef = useRef(null);
   const prevBaseRef = useRef('default');
   const defaultThemeRef = useRef(null);
@@ -50,7 +50,7 @@ export function OverlayStateProvider({ children }) {
   const platesRef = useRef(null);
   const parRef = useRef(null);
   const customLayersToggleRef = useRef(null);
-  const cleanupRefs = useRef<any>({});
+  const cleanupRefs = useRef<{ customCtrl?: L.Control; mo?: MutationObserver; ctrl?: HTMLElement }>({});
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -189,7 +189,7 @@ export function OverlayStateProvider({ children }) {
     return () => {
       map.off('baselayerchange', onBaseLayerChange);
     };
-  }, [map]);
+  }, [map, setActiveBase]);
 
   useEffect(() => {
     const prevBase = prevBaseRef.current;
@@ -319,7 +319,7 @@ export function OverlayStateProvider({ children }) {
                 L.DomEvent.stop(e);
                 togglePanel();
               });
-              L.DomEvent.on(a, 'keydown', (e: any) => {
+              L.DomEvent.on(a, 'keydown', (e: KeyboardEvent) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   L.DomEvent.stop(e);
                   togglePanel();

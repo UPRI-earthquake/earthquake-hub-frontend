@@ -1,21 +1,15 @@
-import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
-import { Marker, Popup, useMap } from 'react-leaflet';
-import { DivIcon, LatLngExpression } from 'leaflet';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { Marker, useMap } from 'react-leaflet';
+import { DivIcon } from 'leaflet';
 import styles from '../../../../styles/canvas/overlays/markers/StationMarkerItem.module.css';
-import SSEContext from '../../../../../../../SSEContext';
-import moment from '@/shared/utils/time';
-import axios from 'axios';
-import { normalizeDeviceActivity, toMarkerActivity } from '@/shared/services/stations/deviceStatus';
+import { normalizeDeviceActivity } from '@/shared/services/stations/deviceStatus';
 // Defer loading of the heavy seisplotjs library until the popup/graph is used
-import { devlog, deverror } from '@/shared/utils/devlog';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { buildThemeTokens, themeFromMapContainer, zoomFromMap } from '../../../../../services/mapStyles';
 import { trackEvent } from '@/analytics';
 import { buildTriangleSVG } from '@/shared/utils/triangleMarker';
-import { ringserverWS } from '@/config/env';
 import StationMarkerPopup from '../popups/StationMarkerPopup';
 import useMapView from '@/features/map/hooks/useMapView';
-import { getAPIURL } from '@/shared/api';
 import { isLatest } from '@/shared/utils/duration';
 import { Station } from '@/features/map/types/station';
 /**
@@ -69,7 +63,7 @@ export default function StationMarkerItem({
       stationsDataHandler.removeStationEventListener(code, "update", stationUpdateListener);
     });
 
-  }, []);
+  }, [code, stationsDataHandler]);
 
 
   const [pick, setPick] = useState(false);
@@ -88,7 +82,7 @@ export default function StationMarkerItem({
     return (() => {
       clearInterval(pickInterval);
     })
-  }, []);
+  }, [code, stationsDataHandler]);
 
   // Keep per-marker unique SVG ids so gradients don't collide across markers
   const gradientIdRef = useRef(null);

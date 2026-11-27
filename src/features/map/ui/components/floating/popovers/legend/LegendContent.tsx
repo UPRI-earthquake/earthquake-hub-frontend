@@ -3,12 +3,12 @@ import InfoTooltip from "@/shared/ui/components/InfoTooltip";
 import META from "../../../../../configs/meta";
 import { getLastUpdated, partsForCdnUrl } from "../../../../../services/lastUpdated";
 import { useMap } from "react-leaflet";
-import { DEPTH_RAMP, themeFromMapContainer } from "../../../../../services/mapStyles";
+import { buildThemeTokens, DEPTH_RAMP, themeFromMapContainer } from "../../../../../services/mapStyles";
 import { buildTriangleSVG } from "@/shared/utils/triangleMarker";
 
 interface LegendContentProps {
   active: Set<"faults" | "plates" | "par" | "stations" | "earthquakes">;
-  tokens: any;
+  tokens: ReturnType<typeof buildThemeTokens>;
 }
 
 export default function LegendContent({ active, tokens }: LegendContentProps) {

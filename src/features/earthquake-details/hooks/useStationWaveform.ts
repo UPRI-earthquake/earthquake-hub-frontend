@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRemoteGetWaveform, useRemoteGetWaveformRS } from "../data/waveform";
 import { createWaveformDisplay, parseMiniSeedRecords } from "../services/recordings";
 
@@ -10,19 +10,10 @@ interface UseStationWaveformProps {
 
 interface UseStationWaveformReturn {
   isLoading: boolean;
-  waveformData?: {
-    dataList: any;
-    config: any;
+  waveformData?: ReturnType<typeof createWaveformDisplay> & {
     timestamp: string;
     isDemoData: boolean;
     source: "primary" | "rs";
-    channels: any;
-    channelSamples: {
-      code: any;
-      samples: any;
-      segments: any;
-      color: any;
-    }[];
   } | null;
 }
 
@@ -39,15 +30,16 @@ export default function useStationWaveform(params: UseStationWaveformProps): Use
   })()}, []);
 
 
+  const { refetch: refetchBackup } = remoteBackup;
   useEffect(() => {
     // If primary provider fails to load waveform, try raspberryshake (rs)
     if(!remote.isLoading && !remote.data) {
       setProvider("rs");
-      remoteBackup.refetch();
+      refetchBackup();
     }
-  }, [remote.isLoading, remote.data])
+  }, [remote.isLoading, remote.data, refetchBackup])
 
-  const fetchedData = useMemo(() => provider === "primary" ? remote.data : remoteBackup.data, [provider]);
+  const fetchedData = provider === "primary" ? remote.data : remoteBackup.data;
 
   const waveformData = useMemo(() => {
     if(!sp || !fetchedData) return null;

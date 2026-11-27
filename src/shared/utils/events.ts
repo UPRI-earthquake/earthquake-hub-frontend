@@ -1,6 +1,4 @@
-type EventMap = Record<string, any>;
-
-export class TypedEventTarget<Events extends EventMap> {
+export class TypedEventTarget<Events extends { [K in keyof Events]: Event }> {
     private target: EventTarget = new EventTarget();
 
     addEventListener<K extends keyof Events>(

@@ -26,7 +26,7 @@ export function formatDepth(value) {
   return num == null ? null : `${num.toFixed(0)} km`;
 }
 
-export function formatCoordinate(value, positiveLabel, negativeLabel, options: any = {}) {
+export function formatCoordinate(value, positiveLabel, negativeLabel, options: { separator?: string } = {}) {
   const num = toFiniteNumber(value);
   if (num == null) return null;
   const separator = options.separator ?? ' ';

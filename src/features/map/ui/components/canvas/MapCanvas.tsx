@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { MapContainer, LayersControl, ScaleControl, ZoomControl, Pane, useMap } from 'react-leaflet';
 // Leaflet CSS is loaded via non-blocking CDN link in public/index.html to avoid render-blocking
 import '../../styles/canvas/MapLayers.css';
