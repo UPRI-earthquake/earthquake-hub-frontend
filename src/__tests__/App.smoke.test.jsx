@@ -1,23 +1,23 @@
 import React from 'react';
-import axios from 'axios';
 import { render, screen } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { createStore } from 'redux';
+import { vi } from 'vitest';
 import App from '../App';
 
-// Minimal reducer to satisfy Provider
-const reducer = (state = null) => state;
+vi.mock('../pages/MapPage', () => ({ default: () => null }));
+vi.mock('../pages/EarthquakeDetailsPage', () => ({ default: () => null }));
+vi.mock('@/shared/services/account/data', () => ({
+  default: () => ({ data: null, isLoading: false }),
+}));
 
-test('App mounts and shows loading screen initially', () => {
-  // Prevent the smoke test from making asynchronous network calls after teardown.
-  jest.spyOn(axios, 'get').mockResolvedValue({ data: { payload: [] } });
-  const store = createStore(reducer);
-  render(
-    <Provider store={store}>
-      <App />
-    </Provider>,
-  );
-  // Loading screen renders an SVG with aria-label="Loading"
-  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+test('App shows the loading screen while the fallback route loads', async () => {
+  const originalPath = window.location.href;
+  window.history.replaceState(null, '', '/missing-page');
+  try {
+    render(<App />);
+    expect(screen.getByRole('img', { name: 'Loading' })).toBeInTheDocument();
+    expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
+  } finally {
+    window.history.replaceState(null, '', originalPath);
+  }
 });
 

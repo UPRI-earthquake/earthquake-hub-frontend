@@ -2,7 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import EventList from '../EventList.jsx';
+import EventsList from '@/features/map/ui/components/floating/panels/events/EventsList';
 
 const reducer = (state = null, action) => {
   switch (action.type) {
@@ -32,14 +32,14 @@ function getRenderedIds(container) {
 test('sort by magnitude ascending and descending', () => {
   const { container, rerender } = render(
     <Provider store={makeStore()}>
-      <EventList events={baseItems} sort={{ by: 'mag', order: 'asc' }} />
+      <EventsList events={baseItems} sort={{ by: 'mag', order: 'asc' }} />
     </Provider>,
   );
   expect(getRenderedIds(container)).toEqual(['a', 'c', 'b']);
 
   rerender(
     <Provider store={makeStore()}>
-      <EventList events={baseItems} sort={{ by: 'mag', order: 'desc' }} />
+      <EventsList events={baseItems} sort={{ by: 'mag', order: 'desc' }} />
     </Provider>,
   );
   expect(getRenderedIds(container)).toEqual(['b', 'c', 'a']);
@@ -48,7 +48,7 @@ test('sort by magnitude ascending and descending', () => {
 test('filters by text', () => {
   const { container } = render(
     <Provider store={makeStore()}>
-      <EventList events={baseItems} filters={{ searchText: 'bra' }} />
+      <EventsList events={baseItems} filters={{ searchText: 'bra' }} />
     </Provider>,
   );
   expect(getRenderedIds(container)).toEqual(['b']);
@@ -57,7 +57,7 @@ test('filters by text', () => {
 test('empty state renders when no results', () => {
   const { container } = render(
     <Provider store={makeStore()}>
-      <EventList events={[]} />
+      <EventsList events={[]} />
     </Provider>,
   );
   expect(container.textContent).toMatch(/No results/i);
@@ -66,7 +66,7 @@ test('empty state renders when no results', () => {
 test('does not render migrated legacy primary events with a visual badge', () => {
   const { container } = render(
     <Provider store={makeStore()}>
-      <EventList
+      <EventsList
         events={[
           {
             ...baseItems[0],
@@ -78,5 +78,6 @@ test('does not render migrated legacy primary events with a visual badge', () =>
     </Provider>,
   );
 
+  expect(getRenderedIds(container)).toEqual(['a']);
   expect(container.textContent).not.toMatch(/Legacy/);
 });

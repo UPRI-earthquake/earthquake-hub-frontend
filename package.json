@@ -43,6 +43,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.cjs",
+    "test:watch": "vitest --watch",
     "lint": "eslint --ext .ts,.tsx,.js,.jsx src",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,css,md,json}\"",
     "postinstall": "patch-package"
@@ -68,11 +70,13 @@
     "eslint": "^8.57.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "jsdom": "^26.1.0",
     "patch-package": "^8.0.1",
     "prettier": "^2.8.8",
     "typescript": "^4.9.5",
     "vite": "^6.4.5",
-    "vite-plugin-svgr": "^5.2.0"
+    "vite-plugin-svgr": "^5.2.0",
+    "vitest": "^3.2.6"
   },
   "overrides": {
     "@tootallnate/once": "2.0.1",

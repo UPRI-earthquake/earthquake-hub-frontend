@@ -1,4 +1,4 @@
-import { generateEventSummary } from '../../utils/generateEventSummary';
+import { generateEventSummary } from '@/features/earthquake-details/services/generateEventSummary';
 
 describe('generateEventSummary', () => {
   test('returns empty string for null or undefined input', () => {

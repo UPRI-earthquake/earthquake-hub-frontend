@@ -17,6 +17,8 @@ See `CONTRIBUTING.md` for setup. When refactoring:
 
 ### NPM Scripts
 
+- `npm test` runs the Vitest suite once. Use `npm run test:watch` to rerun tests as files change.
+- `npm test -- --watch=false --runInBand` runs test files serially, as in the GitHub check.
 - `npm run lint` — ESLint over `src` with `react-app` config.
 - `npm run format` — Prettier write for JS/JSX/CSS/MD files.
 

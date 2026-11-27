@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import {
   getLastUpdated,
   parseJsDelivrGitHubUrl,
@@ -5,13 +6,13 @@ import {
   partsForCdnUrl,
   formatLastUpdated,
   _testInternals,
-} from '../../utils/lastUpdated';
+} from '@/features/map/services/lastUpdated';
 
 describe('lastUpdated utils', () => {
   const { toLocalManila } = _testInternals();
 
   beforeEach(() => {
-    jest.spyOn(global, 'fetch');
+    vi.spyOn(global, 'fetch');
     sessionStorage.clear();
   });
 

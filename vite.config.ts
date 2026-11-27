@@ -1,5 +1,8 @@
 
+/// <reference types="vitest/config" />
+
 import { defineConfig, loadEnv } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import svgr from 'vite-plugin-svgr';
@@ -26,6 +29,17 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: previewPort,
       strictPort: true,
+    },
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./src/setupTests.js"],
+      exclude: [
+        ...configDefaults.exclude,
+        // These specs cover the removed carousel and CRA backend-host resolver.
+        "src/shared/ui/__tests__/CommunityReportsCarousel.test.jsx",
+        "src/shared/utils/__tests__/backendHost.test.js",
+      ],
     },
   };
 });

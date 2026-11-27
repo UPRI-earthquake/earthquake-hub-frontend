@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import CatalogComparison from '../CatalogComparison';
+import OtherRecordsSection from '@/features/earthquake-details/ui/components/sections/OtherRecordsSection';
 
 const baseEvent = {
   OT: '2026-05-04T06:09:52.000Z',
@@ -13,7 +13,7 @@ const baseEvent = {
 
 test('keeps the catalog panel but omits empty source placeholders', () => {
   const { container } = render(
-    <CatalogComparison
+    <OtherRecordsSection
       earthquakeInfo={{
         ...baseEvent,
         additionalInformation: {
@@ -31,7 +31,7 @@ test('keeps the catalog panel but omits empty source placeholders', () => {
 
 test('renders only catalog sources with available match data', () => {
   const { container } = render(
-    <CatalogComparison
+    <OtherRecordsSection
       earthquakeInfo={{
         ...baseEvent,
         additionalInformation: {
@@ -56,7 +56,7 @@ test('renders only catalog sources with available match data', () => {
 
 test('renders migrated legacy catalog records with a stable UPRI label', () => {
   render(
-    <CatalogComparison
+    <OtherRecordsSection
       earthquakeInfo={{
         ...baseEvent,
         additionalInformation: [

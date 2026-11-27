@@ -1,23 +1,29 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import SeismicWaveforms from '../SeismicWaveforms';
+import { vi } from 'vitest';
+import StationRecordingsSection from '@/features/earthquake-details/ui/components/sections/station-recordings/StationRecordingsSection';
 
-jest.mock('../../hooks/useStations', () => ({
-  useStations: () => ({
-    fetchStations: jest.fn(() => new Promise(() => {})),
+vi.mock('@/features/earthquake-details/hooks/useEarthquakeInfo', () => ({
+  default: () => ({ earthquakeInfo: { OT: '2025-01-02T10:00:00Z' } }),
+}));
+
+vi.mock('@/features/earthquake-details/hooks/useStationsList', () => ({
+  default: () => ({
+    allStations: ['R1382', 'R8728', 'R257C', 'R1234'].map((code) => ({ code })),
+    stationLocationsByCode: {},
   }),
 }));
 
-const stations = ['R1382', 'R8728', 'R257C', 'R1234'];
+vi.mock('@/features/earthquake-details/hooks/useStationWaveform', () => ({
+  default: () => ({ waveformData: null, isLoading: true }),
+}));
 
-describe('SeismicWaveforms', () => {
+describe('StationRecordingsSection', () => {
   it('renders a bounded station preview and opens the all-stations action', () => {
-    const onViewAllStations = jest.fn();
+    const onViewAllStations = vi.fn();
 
     render(
-      <SeismicWaveforms
-        earthquakeInfo={{}}
-        stations={stations}
+      <StationRecordingsSection
         initialVisibleCount={2}
         onViewAllStations={onViewAllStations}
       />
@@ -35,9 +41,7 @@ describe('SeismicWaveforms', () => {
 
   it('renders all stations when used inside the focused recordings view', () => {
     render(
-      <SeismicWaveforms
-        earthquakeInfo={{}}
-        stations={stations}
+      <StationRecordingsSection
         showAllByDefault
         showStationToggle={false}
       />
